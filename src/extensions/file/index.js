@@ -229,7 +229,7 @@ export default Node.create({
         },
     }
   },
-  onTransaction({ editor, transaction }) {
+  onUpdate({ editor, transaction }) {
     transaction.steps.forEach((step) => {
       const { name } = step.constructor
       if (!['_ReplaceStep', '_ReplaceAroundStep'].includes(name)) {
