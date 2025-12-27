@@ -12,12 +12,12 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getSelectionNode } from '@/extensions/selection'
 
 const editor = inject('editor')
 
-const setRotate = (rotate: number) => {
+const setRotate = (rotate) => {
   const image = editor.value ? getSelectionNode(editor.value) : null
   const { angle } = image?.attrs ?? {}
   if (image) {

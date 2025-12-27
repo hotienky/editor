@@ -27,7 +27,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   onSelectEmoji: undefined,
 })
@@ -35,7 +35,7 @@ const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 const options = inject('options')
 
-const selectEmoji = (emoji: string) => {
+const selectEmoji = (emoji) => {
   if (props.onSelectEmoji) {
     props.onSelectEmoji(emoji)
   } else {

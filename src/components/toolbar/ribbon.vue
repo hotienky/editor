@@ -261,27 +261,32 @@
   </div>
 </template>
 
-<script setup lang="ts">
-const props = defineProps<{
+<script setup>
+const props = defineProps({
   menus: {
-    value: string
-    label: string
-  }[]
-  currentMenu: string
-}>()
+    type: Array,
+    default: () => [],
+  },
+  currentMenu: {
+    type: String,
+    default: '',
+  },
+})
 const emits = defineEmits(['menu-change'])
 
 const options = inject('options')
 const page = inject('page')
-const disableMenu = (name: string) => {
+const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
-const scrollableRef = $ref<{ update: () => void }>()
-const changeMenu = async (menu: string) => {
+const scrollableRef = $ref(null)
+const changeMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()
-  scrollableRef?.update()
+  if (scrollableRef) {
+    scrollableRef.update()
+  }
 }
 </script>
 

@@ -33,7 +33,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   select: {
     type: Boolean,
@@ -45,7 +45,7 @@ const editor = inject('editor')
 const options = inject('options')
 const typeWriterIsRunning = inject('typeWriterIsRunning')
 
-const disableMenu = (name: string) => {
+const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
@@ -84,7 +84,7 @@ const fontSizes = [
 ]
 
 // 设置字体大小
-const setFontSize = (fontSize: string) => {
+const setFontSize = (fontSize) => {
   editor.value?.chain().focus().setFontSize(fontSize).run()
 }
 

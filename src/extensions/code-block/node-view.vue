@@ -18,9 +18,7 @@
               }"
               filterable
               borderless
-              @menu-click="
-                (value: string) => updateAttribute('language', value)
-              "
+              @menu-click="(value) => updateAttribute('language', value)"
             />
             <menus-button
               :text="t('bubbleMenu.code.themes.text')"
@@ -31,7 +29,7 @@
               :disabled="options.document?.readOnly"
               force-enabled
               borderless
-              @menu-click="(value: string) => updateAttribute('theme', value)"
+              @menu-click="(value) => updateAttribute('theme', value)"
             />
           </template>
           <span v-else class="umo-node-code-block-language">{{
@@ -80,11 +78,12 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import { common, createLowlight } from 'lowlight'
 
-const { node, updateAttributes, deleteNode } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, updateAttributes, deleteNode } = props
 const lowlight = createLowlight(common)
 
 const container = inject('container')
@@ -100,7 +99,7 @@ const themeOptions = [
   { label: t('bubbleMenu.code.themes.light'), value: 'light' },
 ]
 
-const updateAttribute = (type: string, value: string) => {
+const updateAttribute = (type, value) => {
   updateAttributes({ [type]: value })
 }
 
@@ -108,7 +107,7 @@ const copyCode = () => {
   const { copy } = useClipboard({
     source: node.textContent,
   })
-  void copy()
+  copy()
   useMessage('success', {
     attach: container,
     content: t('bubbleMenu.code.copy.success'),

@@ -13,7 +13,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { removeBackground } from '@imgly/background-removal'
 
 import { updateAttributesWithoutHistory } from '@/extensions/file'

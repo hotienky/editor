@@ -52,7 +52,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
 const editor = inject('editor')
@@ -71,12 +71,12 @@ const options = [
 
 let currentColor = $ref('#000')
 let colorPickerVisible = $ref(false)
-const colorChange = (color: string) => {
+const colorChange = (color) => {
   currentColor = color
   colorPickerVisible = false
 }
 
-const setHr = ({ value }: { value: string }) => {
+const setHr = ({ value }) => {
   if (!value || !editor.value) {
     return
   }

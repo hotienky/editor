@@ -24,7 +24,7 @@
         :attach="container"
         trigger="click"
         placement="right-bottom"
-        @visible-change="(visible: boolean) => (moreColorPicker = visible)"
+        @visible-change="(visible) => (moreColorPicker = visible)"
       >
         <div class="umo-background-more" :class="{ active: moreColorPicker }">
           <div class="umo-background-more-menu">
@@ -49,7 +49,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
 const page = inject('page')
@@ -65,7 +65,7 @@ const backgrounds = [
 
 // 更多颜色
 const moreColorPicker = $ref(false)
-const backgroundChange = (color: string) => {
+const backgroundChange = (color) => {
   page.value.background = color
 }
 </script>

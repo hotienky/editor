@@ -16,7 +16,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const setAlignLeft = () => {
   if (editor.value?.can().chain().focus().setTextAlign('left').run()) {

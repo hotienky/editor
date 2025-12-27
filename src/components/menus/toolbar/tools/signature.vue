@@ -67,7 +67,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import SmoothSignature from 'smooth-signature'
 
 import { shortId } from '@/utils/short-id'
@@ -109,10 +109,10 @@ const reuseOptions = () => {
   openSmooth = false
 }
 
-const changeLineColor = (color: string) => {
+const changeLineColor = (color) => {
   signature.color = color
 }
-const changeLineWidth = ({ value }: { value: number }) => {
+const changeLineWidth = ({ value }) => {
   signature.minWidth = value
   signature.maxWidth = value
 }
@@ -138,7 +138,7 @@ const setSignature = async () => {
         id,
         type: 'signature',
         name,
-        src: image ?? '',
+        src: image || '',
         size: file.size,
         width: 120,
         height: 40,
@@ -157,14 +157,16 @@ const setSignature = async () => {
 
 watch(
   () => dialogVisible,
-  async (val: any) => {
+  async (val) => {
     if (val) {
       if (!signature) {
         await nextTick()
         signature = new SmoothSignature(signatureRef, options)
       }
     } else {
-      signature?.clear()
+      if (signature) {
+        signature.clear()
+      }
       signature = null
     }
   },

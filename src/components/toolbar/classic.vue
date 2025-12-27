@@ -216,16 +216,17 @@
   </toolbar-scrollable>
 </template>
 
-<script setup lang="ts">
-import { withSuppress } from '@/utils/functional'
-
-const props = defineProps<{
+<script setup>
+const props = defineProps({
   menus: {
-    value: string
-    label: string
-  }[]
-  currentMenu: string
-}>()
+    type: Array,
+    default: () => [],
+  },
+  currentMenu: {
+    type: String,
+    default: '',
+  },
+})
 
 const { selectVisible } = useSelect()
 
@@ -234,7 +235,7 @@ const emits = defineEmits(['menu-change'])
 const container = inject('container')
 const options = inject('options')
 const page = inject('page')
-const disableMenu = (name: string) => {
+const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
@@ -242,15 +243,15 @@ const disableMenu = (name: string) => {
 let currentMenu = $ref('')
 watch(
   () => props.currentMenu,
-  withSuppress(async (val) => {
+  async (val) => {
     currentMenu = val
     await nextTick()
     scrollableRef?.update()
-  }),
+  },
   { immediate: true },
 )
-const scrollableRef = $ref<{ update: () => void }>()
-const toggoleMenu = async (menu: string) => {
+const scrollableRef = $ref(null)
+const toggoleMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()
   scrollableRef?.update()

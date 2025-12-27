@@ -45,7 +45,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const emits = defineEmits(['show-bubble', 'hide-bubble'])
 
 const { popupVisible, togglePopup } = usePopup()
@@ -89,7 +89,7 @@ const removeLink = () => {
 
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
+  (val) => {
     if (val) {
       const { meta } = editor.value.storage.link
       text = meta.target.textContent

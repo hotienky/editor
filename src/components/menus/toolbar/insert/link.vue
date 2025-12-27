@@ -45,7 +45,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getSelectionText } from '@/extensions/selection'
 
 const { popupVisible, togglePopup } = usePopup()
@@ -82,10 +82,10 @@ const removeLink = () => {
 
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
+  (val) => {
     if (val) {
       text = editor.value ? getSelectionText(editor.value) : ''
-      href = editor?.value?.getAttributes('link').href ?? ''
+      href = editor?.value?.getAttributes('link').href || ''
     } else {
       text = ''
       href = ''

@@ -27,12 +27,12 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 const options = inject('options')
 
-const selectSymbol = (char: string) => {
+const selectSymbol = (char) => {
   editor.value?.chain().focus().insertContent(char).run()
   popupVisible.value = false
 }

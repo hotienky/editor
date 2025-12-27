@@ -9,12 +9,12 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const options = inject('options')
 
 const lineHeights = computed(() => {
-  return options.value.dicts?.lineHeights.map((item: any) => {
+  return options.value.dicts?.lineHeights.map((item) => {
     return {
       content: item.default
         ? l(item.label) + t('base.lineHeight.default')
@@ -25,13 +25,7 @@ const lineHeights = computed(() => {
   })
 })
 
-const setLineHeight = ({
-  content,
-  value,
-}: {
-  content: string
-  value: string
-}) => {
+const setLineHeight = ({ content, value }) => {
   if (!content) {
     return
   }

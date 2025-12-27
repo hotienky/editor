@@ -93,7 +93,6 @@ For more details, see [Features](https://dev.umodoc.com/en/docs/editor/features)
 - **Vue** (>=v3.x)
 - **Vite** (>=v5.x)
 - **Tiptap** (>=v2.6)
-- **TypeScript** (>=v5.5)
 
 ## Join the Community
 
@@ -108,10 +107,10 @@ Report bugs via [GitHub Issues](https://github.com/umodoc/editor/issues).
 The development of Umo Editor relies on community support. Below is a list of contributors who have contributed code to Umo Editor. We thank them for their efforts:
 
 - [Umo Team](https://github.com/umodoc): 👨‍💻 Core developers
-- [Cassielxd](https://github.com/Cassielxd): 💪🏻 Implemented pagination and many important features
 - [china-wangxu](https://github.com/china-wangxu): 💪🏻 Added many important features
-- [Na'aman Hirschfeld](https://github.com/Goldziher): 💪🏻 Enhanced TypeScript support and added tests
-- [SevenDreamYang](https://github.com/SevenDreamYang): 🛠️ Enhanced TypeScript support and fixed some issues
+- [Cassielxd](https://github.com/Cassielxd): 💪🏻 Added many important features
+- [Na'aman Hirschfeld](https://github.com/Goldziher): 🛠️ Contributed code
+- [SevenDreamYang](https://github.com/SevenDreamYang):🛠️ Contributed code
 - [ChenErik](https://github.com/ChenErik): 🛠️ Contributed code
 - [SerRashin](https://github.com/SerRashin): 🛠️ Added Russian language support
 - [Sunny Wisozk](https://github.com/SunnyWisozk): 🛠️ Contributed code

@@ -214,13 +214,13 @@
   </template>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const options = inject('options')
-const disableMenu = (name: string) => {
+const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
-const getCurrentNode = (type: string) => {
+const getCurrentNode = (type) => {
   const { state } = editor.value
   const { selection } = state
   const { $from } = selection

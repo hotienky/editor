@@ -74,7 +74,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getSelectionNode } from '@/extensions/selection'
 
 const { popupVisible, togglePopup } = usePopup()
@@ -98,7 +98,7 @@ const styles = [
 const borderColor = $ref('#000')
 let colorPickerVisible = $ref(false)
 
-const colorChange = (color: any) => {
+const colorChange = (color) => {
   const textBox = editor.value ? getSelectionNode(editor.value) : null
   if (textBox) {
     editor.value?.commands.updateAttributes(textBox.type, {
@@ -108,7 +108,7 @@ const colorChange = (color: any) => {
     popupVisible.value = false
   }
 }
-const styleChange = ({ value }: any) => {
+const styleChange = ({ value }) => {
   const textBox = editor.value ? getSelectionNode(editor.value) : null
   if (textBox) {
     editor.value?.commands.updateAttributes(textBox.type, {

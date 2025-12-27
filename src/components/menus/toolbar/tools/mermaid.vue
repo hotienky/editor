@@ -39,7 +39,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import mermaid from 'mermaid'
 import svg64 from 'svg64'
 
@@ -78,7 +78,7 @@ const menuClick = () => {
 const defaultCode = 'graph TB\na-->b'
 let mermaidCode = $ref('')
 let svgCode = $ref('')
-const mermaidRef = $ref<HTMLElement | null>(null)
+const mermaidRef = $ref(null)
 const renderMermaid = async () => {
   try {
     const { svg } = await mermaid.render('mermaid-svg', mermaidCode)
@@ -89,9 +89,9 @@ const renderMermaid = async () => {
 }
 watch(
   () => dialogVisible,
-  (val: boolean) => {
+  (val) => {
     if (val) {
-      mermaidCode = props.content ?? defaultCode
+      mermaidCode = props.content || defaultCode
     }
   },
   { immediate: true },

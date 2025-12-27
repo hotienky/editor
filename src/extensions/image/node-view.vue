@@ -89,7 +89,7 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 import { base64ToFile } from 'file64'
@@ -102,12 +102,13 @@ const container = inject('container')
 const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
 const imageViewer = inject('imageViewer')
-const { node, updateAttributes, getPos } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, updateAttributes, getPos } = props
 const options = inject('options')
 const { isLoading, error } = useImage({ src: node.attrs.src })
 
 const containerRef = ref(null)
-const imageRef = $ref<HTMLImageElement | null>(null)
+const imageRef = $ref(null)
 let selected = $ref(false)
 let maxWidth = $ref(0)
 let maxHeight = $ref(0)
@@ -137,7 +138,8 @@ const uploadImage = async () => {
   }
   try {
     const file = uploadFileMap.value.get(node.attrs.id)
-    const { id, url } = (await options.value?.onFileUpload?.(file)) ?? {}
+    const result = await options.value?.onFileUpload?.(file)
+    const { id, url } = result ?? {}
     if (containerRef.value) {
       updateAttributesWithoutHistory(
         editor.value,
@@ -149,7 +151,7 @@ const uploadImage = async () => {
   } catch (error) {
     useMessage('error', {
       attach: container,
-      content: (error as Error).message,
+      content: error.message,
     })
   }
 }
@@ -164,24 +166,24 @@ const onLoad = async () => {
   }
   if ([null, 'auto', 0].includes(node.attrs.height)) {
     await nextTick()
-    const { height } = imageRef?.getBoundingClientRect() ?? {}
-    updateAttributes({ height: Number(height.toFixed(2)) })
+    const rect = imageRef?.getBoundingClientRect() ?? {}
+    updateAttributes({ height: Number(rect.height?.toFixed(2)) })
   }
 }
 
-const onRotate = ({ angle }: { angle: number }) => {
+const onRotate = ({ angle }) => {
   updateAttributes({ angle })
 }
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({
     width: width.toFixed(2),
     height: height.toFixed(2),
   })
 }
 
-const dragRef = $ref<HTMLDivElement | null>(null)
+const dragRef = $ref(null)
 let isMousedown = $ref(false)
-const onMousedown = (e: MouseEvent) => {
+const onMousedown = (e) => {
   if (!node.attrs.draggable) {
     return
   }
@@ -192,16 +194,16 @@ const onMousedown = (e: MouseEvent) => {
   const downY = e.clientY
 
   // 鼠标在盒子里的位置
-  const elRect = dragRef.$el!.getBoundingClientRect()
+  const elRect = dragRef.$el.getBoundingClientRect()
   const mouseX = downX - elRect.left
   const mouseY = downY - elRect.top
 
-  const onMousemove = (e: MouseEvent) => {
+  const onMousemove = (e) => {
     const left = e.clientX - mouseX
     const top = e.clientY - mouseY
     updateAttributes({ left, top })
   }
-  const onMouseup = (_e: MouseEvent) => {
+  const onMouseup = (_e) => {
     isMousedown = false
     // 移除document事件
     document.removeEventListener('mousemove', onMousemove)
@@ -229,7 +231,7 @@ const openImageViewer = async () => {
 
 watch(
   () => node.attrs.draggable,
-  (draggable: boolean) => {
+  (draggable) => {
     if (!draggable) {
       updateAttributes({ left: null, top: null })
     }
@@ -238,7 +240,7 @@ watch(
 
 watch(
   () => node.attrs.equalProportion,
-  async (equalProportion: boolean) => {
+  async (equalProportion) => {
     await nextTick()
     const width = imageRef?.offsetWidth ?? 1
     const height = imageRef?.offsetHeight ?? 1
@@ -248,7 +250,7 @@ watch(
 )
 watch(
   () => node.attrs.src,
-  async (src: string) => {
+  async (src) => {
     if (node.attrs.uploaded === false && !error.value) {
       if (src?.startsWith('data:image')) {
         const [data, type] = src.split(';')[0].split(':')
@@ -273,7 +275,7 @@ watch(
 )
 watch(
   () => error.value,
-  (errorValue: any) => {
+  (errorValue) => {
     if (errorValue?.type) {
       updateAttributesWithoutHistory(
         editor.value,

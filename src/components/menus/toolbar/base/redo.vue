@@ -9,9 +9,9 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 /* 重做*/
 const historyRecords = inject('historyRecords')
 
-const menuClick = inject('redoHistory') as () => void
+const menuClick = inject('redoHistory')
 </script>

@@ -23,22 +23,22 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
-import type { ReactiveVariable } from '@vue-macros/reactivity-transform/macros'
 
 import { mediaPlayer } from '@/utils/player'
 
 import { updateAttributesWithoutHistory } from '../file'
 
-const { node, getPos } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, getPos } = props
 const options = inject('options')
 const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
 
-const containerRef = ref<HTMLElement | null>(null)
-const audiorRef = $ref<ReactiveVariable<HTMLAudioElement> | null>(null)
-let player = $ref<Plyr | null>(null)
+const containerRef = ref(null)
+const audioRef = $ref(null)
+let player = $ref(null)
 let selected = $ref(false)
 
 const nodeStyle = $computed(() => {
@@ -55,14 +55,15 @@ const nodeStyle = $computed(() => {
 })
 
 onMounted(async () => {
-  player = mediaPlayer(audiorRef)
+  player = mediaPlayer(audioRef)
   if (node.attrs.uploaded || !node.attrs.id) {
     return
   }
   try {
     if (uploadFileMap.value.has(node.attrs.id)) {
       const file = uploadFileMap.value.get(node.attrs.id)
-      const { id, url } = (await options.value?.onFileUpload?.(file)) ?? {}
+      const result = await options.value?.onFileUpload?.(file)
+      const { id, url } = result ?? {}
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,
@@ -73,13 +74,13 @@ onMounted(async () => {
       uploadFileMap.value.delete(node.attrs.id)
     }
   } catch (error) {
-    useMessage('error', (error as Error).message)
+    useMessage('error', error.message)
   }
 })
 
 onBeforeUnmount(() => {
   if (player) {
-    player?.destroy()
+    player.destroy()
   }
 })
 

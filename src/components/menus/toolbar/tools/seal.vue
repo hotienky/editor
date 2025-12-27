@@ -30,7 +30,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { removeBackground } from '@imgly/background-removal'
 
 import { shortId } from '@/utils/short-id'
@@ -43,9 +43,9 @@ const options = inject('options')
 const container = inject('container')
 const uploadFileMap = inject('uploadFileMap')
 
-let sealImg = $ref<string | null>(null)
-let converting = $ref<string | null>(null)
-let file = $ref<File | null>(null)
+let sealImg = $ref(null)
+let converting = $ref(null)
+let file = $ref(null)
 
 const selectImage = () => {
   const { open, onChange } = useFileDialog({

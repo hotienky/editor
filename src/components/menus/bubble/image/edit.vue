@@ -5,7 +5,7 @@
   <menus-toolbar-tools-mermaid v-if="type === 'mermaid'" :content="content" />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const type = computed(() => {
   return editor.value?.getAttributes('image').type

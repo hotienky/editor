@@ -86,7 +86,6 @@ Umo Editor 的诞生旨在解决 Web 应用中文档编辑的复杂性，为 Web
 - **Vue** (>=v3.x)
 - **Vite** (>=v5.x)
 - **Tiptap** (>=v2.6)
-- **TypeScript** (>=v5.5)
 
 ## 加入社区
 
@@ -101,10 +100,10 @@ Umo Editor 的诞生旨在解决 Web 应用中文档编辑的复杂性，为 Web
 Umo Editor 的发展离不开社区的支持，以下是为 Umo Editor 贡献过代码的贡献者名单，向他们致谢：
 
 - [Umo Team](https://github.com/umodoc)：👨‍💻 核心开发者
-- [Cassielxd](https://github.com/Cassielxd)：💪🏻 实现了分页和许多重要功能
 - [china-wangxu](https://github.com/china-wangxu)：💪🏻 添加了许多重要功能
-- [Na'aman Hirschfeld](https://github.com/Goldziher)：💪🏻 增强了 TypeScript 支持并添加测试
-- [SevenDreamYang](https://github.com/SevenDreamYang)：🛠️ 增强 TypeScript 支持并修复了部分问题
+- [Cassielxd](https://github.com/Cassielxd)：💪🏻 添加了许多重要功能
+- [Na'aman Hirschfeld](https://github.com/Goldziher)：🛠️ 贡献了部分代码
+- [SevenDreamYang](https://github.com/SevenDreamYang)：🛠️ 贡献了部分代码
 - [ChenErik](https://github.com/ChenErik)：🛠️ 贡献了部分代码
 - [SerRashin](https://github.com/SerRashin)：🛠️ 添加了俄语支持
 - [Sunny Wisozk](https://github.com/SunnyWisozk)：🛠️ 贡献了部分代码

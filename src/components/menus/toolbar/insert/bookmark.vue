@@ -64,7 +64,7 @@
     </div>
   </modal>
 </template>
-<script setup lang="ts">
+<script setup>
 const container = inject('container')
 const editor = inject('editor')
 const page = inject('page')
@@ -74,7 +74,7 @@ let dialogVisible = $ref(false)
 // 书签名称
 let bookmarkText = $ref('')
 // 书签数据
-let bookmarkData: any = []
+let bookmarkData = []
 // 书签表格显示列
 const bookmarkColumns = [
   {
@@ -127,12 +127,12 @@ const insertBookmark = () => {
     })
   }
 }
-const onActiveChange = (highlightRowKeys: any, ctx: any) => {
+const onActiveChange = (highlightRowKeys, ctx) => {
   // 重置文档
   bookmarkText = ctx.currentRowData?.bookmarkRowName
 }
 // 这个方法本来也想封装到addCommands 中，但经过多次验证，每次都会有一个额外的事务异常
-const rowDelete = (row: any) => {
+const rowDelete = (row) => {
   const element = editor.value?.view.dom.querySelector(
     `bookmark[bookmarkName="${row.bookmarkRowName}"]`,
   )
@@ -161,8 +161,8 @@ const rowDelete = (row: any) => {
 const getCurWordAllBookmark = () => {
   try {
     bookmarkText = ''
-    editor.value?.commands.getAllBookmarks(function (_data: any) {
-      bookmarkData = _data
+    editor.value?.commands.getAllBookmarks((data) => {
+      bookmarkData = data
     })
   } catch (e) {
     dialogVisible = false

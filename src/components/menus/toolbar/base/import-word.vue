@@ -7,7 +7,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { loadResource } from '@/utils/load-resource'
 
 const container = inject('container')
@@ -25,7 +25,6 @@ onMounted(async () => {
 })
 
 const importWord = () => {
-  // @ts-expect-error, global variable injected by script
   if (!mammoth) {
     const dialog = useAlert({
       attach: container,
@@ -46,8 +45,8 @@ const importWord = () => {
   // 打开文件对话框
   open()
   // 插入文件
-  onChange(async (files: FileList | null) => {
-    const [file] = Array.from(files ?? [])
+  onChange(async (files) => {
+    const [file] = Array.from(files || [])
     if (!file) {
       return
     }
@@ -94,16 +93,15 @@ const importWord = () => {
       return
     }
 
-    // @ts-expect-error, global variable injected by script
     if (!mammoth) {
       return
     }
     // 使用 Mammoth 导入
-    const arrayBuffer = file.arrayBuffer()
+    const arrayBuffer = await file.arrayBuffer()
     // 一些配置默认
     const customOptions = {
-      transformConvertRun(run: any) {
-        const resultRun: any = {}
+      transformConvertRun(run) {
+        const resultRun = {}
         if (run.bgColor) {
           resultRun['mark'] = {
             style: `background-color:${run.bgColor}; color: inherit`,
@@ -114,14 +112,13 @@ const importWord = () => {
       },
       styleMap: [
         "p[style-name='引用'] => blockquote.blockquote > p:fresh",
-        "p[style-name='blockquote'] => blockquote.blockquote > p:fresh",
         "p[style-name='BlockQuote'] => blockquote.blockquote > p:fresh",
+        "p[style-name='blockquote'] => blockquote.blockquote > p:fresh",
         "p[style-name='代码块'] => pre.preCode > code:fresh",
         "p[style-name='Code'] => pre.preCode > code:fresh",
         "p[style-name='code'] => pre.preCode > code:fresh",
       ],
     }
-    // @ts-expect-error, global variable injected by script
     const { messages, value } = await mammoth.convertToHtml(
       { arrayBuffer },
       {

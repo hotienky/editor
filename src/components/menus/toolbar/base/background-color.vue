@@ -20,7 +20,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   text: {
     type: String,
@@ -40,9 +40,9 @@ const emits = defineEmits(['change'])
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-let currentColor = $ref<string | undefined>()
+let currentColor = $ref()
 
-const colorChange = (color: string) => {
+const colorChange = (color) => {
   currentColor = color
   popupVisible.value = false
 

@@ -14,7 +14,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const container = inject('container')
 const destroyed = inject('destroyed')
 const options = inject('options')

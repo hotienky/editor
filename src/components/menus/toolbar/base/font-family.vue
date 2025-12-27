@@ -40,7 +40,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { isString } from '@tool-belt/type-predicates'
 
 const editor = inject('editor')
@@ -49,9 +49,9 @@ const $toolbar = useState('toolbar', options)
 const $recent = useState('recent', options)
 const typeWriterIsRunning = inject('typeWriterIsRunning')
 
-const usedFonts = $ref<string[]>([])
+const usedFonts = $ref([])
 // https://www.cnblogs.com/gaidalou/p/8479452.html
-const fontDetect = (font?: string) => {
+const fontDetect = (font) => {
   if (!font) {
     return true
   }
@@ -75,7 +75,7 @@ const fontDetect = (font?: string) => {
     context.textBaseline = 'middle'
   }
 
-  const getImageDataWithFont = (currentFont: string) => {
+  const getImageDataWithFont = (currentFont) => {
     if (!context) {
       return []
     }
@@ -102,12 +102,10 @@ const allFonts = computed(() => {
     },
   ]
   // 通过字体值获取字体列表
-  const getFontsByValues = (values: string[]) => {
+  const getFontsByValues = (values) => {
     return values.map(
       (item) =>
-        options.value.dicts?.fonts.find(
-          ({ value }: { value: string }) => value === item,
-        ) ?? {
+        options.value.dicts?.fonts.find(({ value }) => value === item) ?? {
           label: item,
           item,
         },
@@ -116,13 +114,13 @@ const allFonts = computed(() => {
   if ($recent.value.fonts.length > 0) {
     all.unshift({
       label: t('base.fontFamily.recent'),
-      children: getFontsByValues($recent.value.fonts) as any,
+      children: getFontsByValues($recent.value.fonts),
     })
   }
   if (usedFonts.length > 0) {
     all.unshift({
       label: t('base.fontFamily.used'),
-      children: getFontsByValues(usedFonts) as any,
+      children: getFontsByValues(usedFonts),
     })
   }
   return all
@@ -142,7 +140,7 @@ const getUsedFonts = () => {
   }
 }
 
-const setFontFamily = (fontFamily: string) => {
+const setFontFamily = (fontFamily) => {
   if (fontFamily) {
     $recent.value.fonts.forEach((item, index) => {
       if (item === fontFamily) {
@@ -160,7 +158,7 @@ const setFontFamily = (fontFamily: string) => {
 
 watch(
   () => editor.value,
-  (val: any) => {
+  (val) => {
     if (val) {
       getUsedFonts()
     }

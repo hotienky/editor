@@ -43,7 +43,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getSelectionNode } from '@/extensions/selection'
 
 const { popupVisible, togglePopup } = usePopup()
@@ -83,7 +83,7 @@ const setMargin = () => {
 
 watch(
   () => popupVisible.value,
-  (visible: boolean) => {
+  (visible) => {
     setMarginValue()
     if (!visible && editor.value) {
       editor.value.commands.focus()

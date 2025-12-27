@@ -25,7 +25,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import DiagramEditor from '@/utils/diagram-editor'
 import { shortId } from '@/utils/short-id'
 
@@ -44,26 +44,14 @@ const uploadFileMap = inject('uploadFileMap')
 let dialogVisible = $ref(false)
 let loading = $ref(false)
 const diagramEditor = new DiagramEditor({
-  domain: (options.value.diagrams?.domain ?? '') as string,
-  params: (options.value.diagrams?.params ?? {}) as Record<string, any>,
+  domain: options.value.diagrams?.domain || '',
+  params: options.value.diagrams?.params || {},
   container: `${container} .umo-diagrams-container`,
 })
 
-let image = $ref<
-  | {
-      id: string
-      type: string
-      src: string
-      name: string
-      size: number
-      width: number
-      height: number
-      content: string
-    }
-  | undefined
->()
+let image = $ref(undefined)
 
-const messageListener = async (evt: MessageEvent) => {
+const messageListener = async (evt) => {
   if (evt?.type !== 'message' || typeof evt?.data !== 'string') {
     return
   }
@@ -103,7 +91,7 @@ const messageListener = async (evt: MessageEvent) => {
 
 watch(
   () => dialogVisible,
-  async (val: boolean) => {
+  async (val) => {
     if (!val) {
       window.removeEventListener('message', messageListener)
       diagramEditor.stopEditing()
@@ -114,7 +102,7 @@ watch(
     }
     await nextTick()
     loading = true
-    diagramEditor.edit(props.content ?? '')
+    diagramEditor.edit(props.content || '')
     window.addEventListener('message', messageListener)
     image = undefined
   },

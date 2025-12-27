@@ -29,7 +29,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 
 const container = inject('container')

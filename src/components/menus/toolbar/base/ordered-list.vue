@@ -52,7 +52,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
@@ -80,14 +80,14 @@ const options = [
 let listStyleType = $ref('left')
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
+  (val) => {
     if (val && editor.value) {
       const { listType } = editor.value.getAttributes('orderedList')
       listStyleType = listType
     }
   },
 )
-const toggleOrderedList = (listType: string) => {
+const toggleOrderedList = (listType) => {
   const chain = editor.value?.chain().focus()
   if (editor.value?.isActive('orderedList')) {
     if (editor.value.getAttributes('orderedList').listType === listType) {
@@ -118,7 +118,7 @@ const changeOrderedListStart = () => {
 }
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
+  (val) => {
     if (val && editor.value) {
       startAt = editor.value.getAttributes('orderedList').start
     } else {

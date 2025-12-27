@@ -87,9 +87,7 @@
               size="small"
               :options="selectOptions"
               :popup-props="{
-                overlayClassName: attrs['overlay-class-name'] as
-                  | string
-                  | undefined,
+                overlayClassName: attrs['overlay-class-name'],
                 popperOptions: {
                   modifiers: [
                     { name: 'offset', options: { offset: [-22, 0] } },
@@ -99,7 +97,7 @@
                 destroyOnClose: true,
                 attach: container,
               }"
-              @click="attrs.onChange as any"
+              @click="attrs.onChange"
             >
               <span class="umo-button-icon-arrow umo-button-handle">
                 <icon name="arrow-down" />
@@ -120,7 +118,7 @@
               destroyOnClose: true,
               attach: container,
             }"
-            @click="attrs.onChange as any"
+            @click="attrs.onChange"
           >
             <t-button
               class="umo-menu-button has-arrow"
@@ -322,9 +320,8 @@
   </t-tooltip>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { isString } from '@tool-belt/type-predicates'
-import type { DropdownOption } from 'tdesign-vue-next'
 
 import { getShortcut } from '@/utils/shortcut'
 
@@ -376,7 +373,7 @@ const props = defineProps({
   },
   // Dropdown,Select 相关
   selectOptions: {
-    type: Array as PropType<DropdownOption[]>,
+    type: Array,
     default: undefined,
   },
   selectValue: {
@@ -413,17 +410,17 @@ const container = inject('container')
 const editor = inject('editor')
 const options = inject('options')
 const $toolbar = useState('toolbar', options)
-const menuClick = (...args: any[]) => {
+const menuClick = (...args) => {
   if (attrs.onMenuClickThrough) {
-    ;(attrs.onMenuClickThrough as (...args: any[]) => void)(...args)
+    attrs.onMenuClickThrough(...args)
   } else if (attrs.onMenuClick) {
-    ;(attrs.onMenuClick as (...args: any[]) => void)(...args)
+    attrs.onMenuClick(...args)
   }
 }
 
 const tooltipVisible = $ref(false)
 let tooltipForceHide = $ref(false)
-const popupVisileChange = (visible: boolean) => {
+const popupVisileChange = (visible) => {
   // 隐藏 Tooltip，适用于 select、dropdown、popup 等子组件展开时，隐藏 Tooltip
   tooltipForceHide = visible
 }
@@ -441,7 +438,7 @@ const getTooltipContent = () => {
 }
 watch(
   () => props.popupVisible,
-  (val: boolean) => {
+  (val) => {
     tooltipForceHide = val
   },
 )
@@ -449,7 +446,7 @@ watch(
 // Popup
 const popupHandleRef = ref(null)
 const popupContentRef = ref(null)
-const togglePopup = (visible: boolean) => {
+const togglePopup = (visible) => {
   emits('toggle-popup', visible)
 }
 onClickOutside(

@@ -7,7 +7,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { saveAs } from 'file-saver'
 
 const editor = inject('editor')

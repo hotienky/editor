@@ -7,6 +7,6 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const viewer = inject('viewer')
 </script>

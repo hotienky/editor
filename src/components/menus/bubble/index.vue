@@ -2,7 +2,7 @@
   <bubble-menu
     class="umo-editor-bubble-menu"
     :class="{ assistant }"
-    :editor="editor!"
+    :editor="editor"
     :tippy-options="tippyOpitons"
   >
     <menus-bubble-menus
@@ -16,9 +16,8 @@
   </bubble-menu>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { BubbleMenu } from '@tiptap/vue-3'
-import type { Instance } from 'tippy.js'
 
 const container = inject('container')
 const editor = inject('editor')
@@ -26,13 +25,13 @@ const assistant = inject('assistant')
 const options = inject('options')
 
 // 气泡菜单
-let tippyInstance = $ref<Instance | null>(null)
-const tippyOpitons = $ref<Partial<Instance>>({
+let tippyInstance = $ref(null)
+const tippyOpitons = $ref({
   appendTo: () =>
-    document.querySelector(`${container} .umo-zoomable-container`)!,
+    document.querySelector(`${container} .umo-zoomable-container`),
   maxWidth: 580,
   zIndex: 110,
-  onShow(instance: Instance) {
+  onShow(instance) {
     tippyInstance = instance
   },
   onHide() {
@@ -46,7 +45,7 @@ const tippyOpitons = $ref<Partial<Instance>>({
 // AI 助手
 watch(
   () => [assistant.value],
-  (visible: any[]) => {
+  (visible) => {
     if (tippyInstance) {
       tippyInstance?.setProps({
         placement: visible.includes(true) ? 'bottom' : 'top',

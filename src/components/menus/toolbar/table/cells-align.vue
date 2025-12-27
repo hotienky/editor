@@ -11,7 +11,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 
 const alignments = [
@@ -29,7 +29,7 @@ const alignments = [
   { content: t('table.cellAlign.jb'), value: 'justify-bottom' },
 ]
 
-const setCellsAlign = ({ value }: { value: string }) => {
+const setCellsAlign = ({ value }) => {
   if (!value) {
     return
   }

@@ -25,7 +25,7 @@
       <header class="umo-toolbar">
         <toolbar
           :key="toolbarKey"
-          @menu-change="(event: any) => emits('menuChange', event)"
+          @menu-change="(event) => emits('menuChange', event)"
         >
           <template
             v-for="item in options.toolbar?.menus"
@@ -50,9 +50,7 @@
   </t-config-provider>
 </template>
 
-<script setup lang="ts">
-import type { FocusPosition, JSONContent } from '@tiptap/core'
-import type { Editor } from '@tiptap/vue-3'
+<script setup>
 import {
   isBoolean,
   isNumber,
@@ -60,11 +58,6 @@ import {
   isString,
 } from '@tool-belt/type-predicates'
 import domToImage from 'dom-to-image-more'
-import type {
-  DialogOptions,
-  GlobalConfigProvider,
-  MessageOptions,
-} from 'tdesign-vue-next'
 import enConfig from 'tdesign-vue-next/esm/locale/en_US'
 import cnConfig from 'tdesign-vue-next/esm/locale/zh_CN'
 
@@ -72,20 +65,6 @@ import { getSelectionNode, getSelectionText } from '@/extensions/selection'
 import { getTypewriterRunState } from '@/extensions/type-writer'
 import { i18n } from '@/i18n'
 import { propsOptions } from '@/options'
-import type {
-  InsterContentOptions,
-  InsterContentType,
-  PageOption,
-  SetContentOptions,
-  SetContentType,
-  UmoEditorOptions,
-} from '@/types'
-import type {
-  AutoSaveOptions,
-  DocumentOptions,
-  SupportedLocale,
-  WatermarkOption,
-} from '@/types'
 import { contentTransform } from '@/utils/content-transform'
 import { consoleCopyright } from '@/utils/copyright'
 import {
@@ -137,8 +116,8 @@ const historyRecords = ref({
 
 const container = $ref(`#umo-editor-${shortId(4)}`)
 const defaultOptions = inject('defaultOptions', {})
-const options = ref<UmoEditorOptions>(getOpitons(props, defaultOptions))
-const editor = ref<Editor | null>(null)
+const options = ref(getOpitons(props, defaultOptions))
+const editor = ref(null)
 const savedAt = ref(null)
 const page = ref({})
 const blockMenu = ref(false)
@@ -184,12 +163,10 @@ watch(
     showBookmark,
     showLineNumber,
     showToc,
-  }: PageOption) => {
+  }) => {
     page.value = {
       layout: layouts[0],
-      size: options.value.dicts?.pageSizes.find(
-        (item: { default: boolean }) => item.default,
-      ),
+      size: options.value.dicts?.pageSizes.find((item) => item.default),
       margin: defaultMargin,
       background: defaultBackground,
       orientation: defaultOrientation,
@@ -216,7 +193,7 @@ watch(
 )
 watch(
   () => options.value.document?.readOnly,
-  (val: boolean) => {
+  (val) => {
     editor.value?.setEditable(!val)
   },
 )
@@ -250,21 +227,21 @@ watch(
 
 watch(
   () => options.value.theme,
-  (theme: 'light' | 'dark' | 'auto') => {
+  (theme) => {
     setTheme(theme)
   },
 )
 
 watch(
   () => options.value.document,
-  (val: any) => {
+  (val) => {
     $document.value = val
   },
 )
 
 watch(
   () => getTypewriterRunState(),
-  (newValue: boolean) => {
+  (newValue) => {
     typeWriterIsRunning.value = newValue
     console.log('typeWriterIsRunning', typeWriterIsRunning)
   },
@@ -273,7 +250,7 @@ watch(
 // 定时保存
 let contentUpdated = $ref(false)
 let isFirstUpdate = $ref(true)
-let autoSaveInterval = $ref<NodeJS.Timeout | null>(null)
+let autoSaveInterval = $ref(null)
 const clearAutoSaveInterval = () => {
   if (autoSaveInterval !== null) {
     clearInterval(autoSaveInterval)
@@ -282,7 +259,7 @@ const clearAutoSaveInterval = () => {
 }
 watch(
   () => contentUpdated,
-  (val: boolean) => {
+  (val) => {
     const { autoSave } = options.value.document ?? {}
     if (!autoSave?.enabled) {
       return
@@ -346,7 +323,7 @@ watch(
 
 watch(
   () => $toolbar.value,
-  (toolbar: any, oldToolbar: any) => {
+  (toolbar, oldToolbar) => {
     emits('changed:toolbar', { toolbar, oldToolbar })
   },
   { deep: true },
@@ -354,7 +331,7 @@ watch(
 
 watch(
   () => page.value.layout,
-  (pageLayout: any, oldPageLayout: any) => {
+  (pageLayout, oldPageLayout) => {
     emits('changed:pageLayout', { pageLayout, oldPageLayout })
     addHistory(historyRecords, 'page', {
       proType: 'layout',
@@ -367,7 +344,7 @@ watch(
 
 watch(
   () => page.value.size,
-  (pageSize: any, oldPageSize: any) => {
+  (pageSize, oldPageSize) => {
     emits('changed:pageSize', { pageSize, oldPageSize })
     addHistory(historyRecords, 'page', {
       proType: 'size',
@@ -380,7 +357,7 @@ watch(
 
 watch(
   () => page.value.margin,
-  (pageMargin: any, oldPageMargin: any) => {
+  (pageMargin, oldPageMargin) => {
     emits('changed:pageMargin', { pageMargin, oldPageMargin })
     addHistory(historyRecords, 'page', {
       proType: 'margin',
@@ -393,7 +370,7 @@ watch(
 
 watch(
   () => page.value.background,
-  (pageBackground: string, oldPageBackground: string) => {
+  (pageBackground, oldPageBackground) => {
     emits('changed:pageBackground', { pageBackground, oldPageBackground })
     addHistory(historyRecords, 'page', {
       proType: 'background',
@@ -405,7 +382,7 @@ watch(
 
 watch(
   () => page.value.orientation,
-  (pageOrientation: string, oldPageOrientation: string) => {
+  (pageOrientation, oldPageOrientation) => {
     emits('changed:pageOrientation', { pageOrientation, oldPageOrientation })
     addHistory(historyRecords, 'page', {
       proType: 'orientation',
@@ -417,14 +394,14 @@ watch(
 
 watch(
   () => page.value.showToc,
-  (showToc: boolean) => {
+  (showToc) => {
     emits('changed:pageShowToc', showToc)
   },
 )
 
 watch(
   () => page.value.zoomLevel,
-  (zoomLevel: number, oldZoomLevel: number) => {
+  (zoomLevel, oldZoomLevel) => {
     emits('changed:pageZoom', { zoomLevel, oldZoomLevel })
     addHistory(historyRecords, 'page', {
       proType: 'zoomLevel',
@@ -436,14 +413,14 @@ watch(
 
 watch(
   () => page.value.preview?.enabled,
-  (previewEnabled: boolean) => {
+  (previewEnabled) => {
     emits('changed:pagePreview', previewEnabled)
   },
 )
 
 watch(
   () => page.value.watermark,
-  (pageWatermark: any, oldPageWatermark: any) => {
+  (pageWatermark, oldPageWatermark) => {
     emits('changed:pageWatermark', { pageWatermark, oldPageWatermark })
     // 增加水印撤回
     addHistory(historyRecords, 'page', {
@@ -464,12 +441,11 @@ watch(
 )
 
 // i18n Setup
-// @ts-ignore
 const { t, locale, mergeLocaleMessage } = useI18n()
 const $locale = useStorage('umo-editor:locale', options.value.locale)
 locale.value = $locale.value
 consoleCopyright()
-const getLocaleMessage = (lang: SupportedLocale) => {
+const getLocaleMessage = (lang) => {
   const translations = options.value.translations?.[lang.replaceAll('-', '_')]
   if (isRecord(translations)) {
     return translations
@@ -484,19 +460,19 @@ if (appContext) {
 }
 watch(
   () => locale.value,
-  (locale: any, oldLocale: any) => {
+  (locale, oldLocale) => {
     emits('changed:locale', { locale, oldLocale })
   },
 )
 
 // Global Locale Config
-const localeConfig = $ref<Record<string, GlobalConfigProvider>>({
-  'zh-CN': cnConfig as unknown as GlobalConfigProvider,
-  'en-US': enConfig as unknown as GlobalConfigProvider,
+const localeConfig = $ref({
+  'zh-CN': cnConfig,
+  'en-US': enConfig,
 })
 
 // Options Setup
-const setOptions = (value: UmoEditorOptions): UmoEditorOptions => {
+const setOptions = (value) => {
   options.value = getOpitons(value)
   const $locale = useStorage('umo-editor:locale', options.value.locale)
   if (!$locale.value) {
@@ -506,7 +482,7 @@ const setOptions = (value: UmoEditorOptions): UmoEditorOptions => {
 }
 
 // Theme Setup
-const setTheme = (theme: 'light' | 'dark' | 'auto') => {
+const setTheme = (theme) => {
   if (!isString(theme) || !['light', 'dark', 'auto'].includes(theme)) {
     throw new Error('"theme" must be one of "light", "dark" or "auto".')
   }
@@ -524,7 +500,7 @@ const setTheme = (theme: 'light' | 'dark' | 'auto') => {
 }
 
 // Toolbar and Page Setup Methods
-const setToolbar = (params: { mode: 'classic' | 'ribbon'; show: boolean }) => {
+const setToolbar = (params) => {
   if (!isRecord(params)) {
     throw new Error('params must be an object.')
   }
@@ -545,7 +521,7 @@ const setToolbar = (params: { mode: 'classic' | 'ribbon'; show: boolean }) => {
   }
 }
 
-const setLayout = (layout: 'web' | 'page') => {
+const setLayout = (layout) => {
   if (!options.value.page.layouts.includes(layout)) {
     throw new Error(
       `"params.layout" must be one of ${JSON.stringify(options.value.page.layouts)}.`,
@@ -554,12 +530,7 @@ const setLayout = (layout: 'web' | 'page') => {
   page.value.layout = layout
 }
 
-const setPage = (params: {
-  size: string
-  orientation: string
-  background: string
-  layout: 'web' | 'page'
-}) => {
+const setPage = (params) => {
   if (!isRecord(params)) {
     throw new Error('params must be an object.')
   }
@@ -568,12 +539,11 @@ const setPage = (params: {
       throw new Error('"params.size" must be a string.')
     }
     const size = options.value.dicts?.pageSizes.find(
-      (item: any) =>
-        item.label === params.size || l(item.label) === params.size,
+      (item) => item.label === params.size || l(item.label) === params.size,
     )
     if (!size) {
       throw new Error(
-        `"params.size" must be one of ${options.value.dicts?.pageSizes.map((item: any) => l(item.label))}.`,
+        `"params.size" must be one of ${options.value.dicts?.pageSizes.map((item) => l(item.label))}.`,
       )
     }
     page.value.size = size
@@ -607,11 +577,11 @@ const setPage = (params: {
   }
 }
 
-const setWatermark = (params: Partial<WatermarkOption>) => {
+const setWatermark = (params) => {
   if (!isRecord(params)) {
     throw new Error('params must be an object.')
   }
-  page.value.watermark ??= {} as WatermarkOption
+  page.value.watermark ??= {}
 
   if (isDefined(params.alpha)) {
     if (!isNumber(params.alpha)) {
@@ -669,13 +639,13 @@ const setWatermark = (params: Partial<WatermarkOption>) => {
   }
 }
 
-const setDocument = (params: DocumentOptions) => {
+const setDocument = (params) => {
   // The original "isRecord" function affects the following typeScript type derivation, so change the method to judge.
   // 原来的“isRecord”函数影响了下面的typeScript类型推导，所以换一个方法判断。
   if (Object.prototype.toString.call(params) !== '[object Object]') {
     throw new Error('params must be an object.')
   }
-  options.value.document ??= {} as DocumentOptions
+  options.value.document ??= {}
 
   if (params.title) {
     if (!isString(params.title)) {
@@ -717,8 +687,8 @@ const setDocument = (params: DocumentOptions) => {
       throw new Error('"params.autoSave.interval" must be a number.')
     }
 
-    options.value.document ??= {} as DocumentOptions
-    options.value.document.autoSave ??= {} as AutoSaveOptions
+    options.value.document ??= {}
+    options.value.document.autoSave ??= {}
     options.value.document.autoSave.enabled = params.autoSave.enabled
     options.value.document.autoSave.interval = params.autoSave.interval
   }
@@ -726,8 +696,8 @@ const setDocument = (params: DocumentOptions) => {
 
 // Content Methods
 const setContent = (
-  content: SetContentType,
-  options: SetContentOptions = {
+  content,
+  options = {
     emitUpdate: true,
     focusPosition: 'start',
     focusOptions: { scrollIntoView: true },
@@ -746,8 +716,8 @@ const setContent = (
 
 // Content Methods
 const insertContent = (
-  content: InsterContentType,
-  options: InsterContentOptions = {
+  content,
+  options = {
     updateSelection: true,
     focusPosition: 'start',
     focusOptions: { scrollIntoView: true },
@@ -764,7 +734,7 @@ const insertContent = (
     .run()
 }
 
-const startTypewriter = (content: object, options: any) => {
+const startTypewriter = (content, options) => {
   if (!editor.value) {
     throw new Error('editor is not ready!')
   }
@@ -785,26 +755,24 @@ const getTypewriterState = () => {
   return editor?.value?.commands.getTypewriterState()
 }
 
-const getContent = <T extends 'html' | 'json' | 'text' = 'html'>(
-  format: T = 'html' as T,
-): T extends 'json' ? JSONContent : string => {
+const getContent = (format = 'html') => {
   if (!editor.value) {
     throw new Error('editor is not ready!')
   }
   if (format === 'html') {
-    return editor.value.getHTML() as T extends 'json' ? JSONContent : string
+    return editor.value.getHTML()
   }
   if (format === 'text') {
-    return editor.value.getText() as T extends 'json' ? JSONContent : string
+    return editor.value.getText()
   }
   if (format === 'json') {
-    return editor.value.getJSON() as T extends 'json' ? JSONContent : string
+    return editor.value.getJSON()
   }
   throw new Error('format must be html, text or json')
 }
 
 // Locale Methods
-const setLocale = (params: SupportedLocale) => {
+const setLocale = (params) => {
   if (!['zh-CN', 'en-US'].includes(params)) {
     throw new Error('"params" must be one of "zh-CN" or "en-US".')
   }
@@ -819,13 +787,11 @@ const getLocale = () => locale.value
 const getI18n = () => i18n
 
 // Export Methods
-const getImage = async (format: 'blob' | 'jpeg' | 'png' = 'blob') => {
+const getImage = async (format = 'blob') => {
   const { zoomLevel } = page.value
   try {
     page.value.zoomLevel = 100
-    const node = document.querySelector(
-      `${container} .umo-page-content`,
-    ) as HTMLElement
+    const node = document.querySelector(`${container} .umo-page-content`)
     if (format === 'blob') {
       return await toBlob(node)
     }
@@ -860,17 +826,16 @@ const getVanillaHTML = async () => {
   await nextTick()
   const pageNode = document
     .querySelector(`${container} .umo-page-content`)
-    ?.cloneNode(true) as HTMLElement
+    ?.cloneNode(true)
   if (!readOnly) {
     options.value.document.readOnly = false
   }
 
-  const replaceIcons = (nodes: NodeListOf<Element>, size = '1em') => {
+  const replaceIcons = (nodes, size = '1em') => {
     const iconsNode = document.querySelector('#umo-icons')
     nodes.forEach((el) => {
       const icons = el.querySelectorAll('.umo-icon')
       icons.forEach((svg) => {
-        // @ts-ignore
         const iconId = svg.childNodes[0].getAttribute('xlink:href')
         svg.setAttribute('viewBox', '0 0 48 48')
         svg.setAttribute('fill', 'none')
@@ -959,7 +924,7 @@ const getVanillaHTML = async () => {
 }
 
 const focus = (position = 'start', options = { scrollIntoView: true }) =>
-  editor.value?.commands.focus(position as FocusPosition, options)
+  editor.value?.commands.focus(position, options)
 
 const blur = () => editor.value?.chain().blur().run()
 
@@ -975,7 +940,7 @@ const print = () => {
   }
 }
 
-const toggleFullscreen = (isFullscreen?: boolean) => {
+const toggleFullscreen = (isFullscreen) => {
   if (isFullscreen !== undefined) {
     if (!isBoolean(isFullscreen)) {
       throw new Error('"isFullscreen" must be a boolean.')
@@ -986,7 +951,7 @@ const toggleFullscreen = (isFullscreen?: boolean) => {
   fullscreen.value = !fullscreen.value
 }
 
-const reset = (silent: boolean) => {
+const reset = (silent) => {
   const resetLocalStorage = () => {
     const keys = Object.keys(localStorage)
     const umoEditorKeys = keys.filter((key) => key.startsWith('umo-editor:'))
@@ -1088,10 +1053,9 @@ const saveContent = async (showMessage = true) => {
     }
     const time = useTimestamp({ offset: 0 })
     savedAt.value = time.value
-  } catch (e: unknown) {
+  } catch (error) {
     MessagePlugin.closeAll()
     if (saveBack.showMessage) {
-      const error = e as Error
       useMessage('error', {
         attach: container,
         content: error?.message ? error.message : t('save.error'),
@@ -1099,23 +1063,23 @@ const saveContent = async (showMessage = true) => {
         offset: [0, -20],
       })
     }
-    console.error((e as Error).message)
+    console.error(error?.message)
   }
 }
-const getAllBookmarks = (): any[] => {
-  let bookmarkData: any = []
-  editor.value?.commands.getAllBookmarks(function (_data: any) {
+const getAllBookmarks = () => {
+  let bookmarkData
+  editor.value?.commands.getAllBookmarks(function (_data) {
     bookmarkData = _data
   })
   return bookmarkData
 }
-const focusBookmark = (bookmarkName: string): boolean | undefined => {
+const focusBookmark = (bookmarkName) => {
   return editor.value?.commands.focusBookmark(bookmarkName)
 }
-const setBookmark = (bookmarkName: string): boolean | undefined => {
+const setBookmark = (bookmarkName) => {
   return editor.value?.commands.setBookmark({ bookmarkName })
 }
-const deleteBookmark = (bookmarkName: string) => {
+const deleteBookmark = (bookmarkName) => {
   if (!bookmarkName) {
     return false
   }
@@ -1239,7 +1203,7 @@ provide('undoHistory', undoHistory)
 provide('redoHistory', redoHistory)
 // Exposing Methods
 defineExpose({
-  getOptions: () => options.value as UmoEditorOptions,
+  getOptions: () => options.value,
   setOptions,
   setToolbar,
   setLayout,
@@ -1263,15 +1227,14 @@ defineExpose({
   saveContent,
   getContentExcerpt,
   getEditor: () => editor,
-  useEditor: () => editor.value as Editor | null,
+  useEditor: () => editor.value,
   getTableOfContents: () => editor.value?.storage.tableOfContents.content,
   getSelectionText: () => (editor.value ? getSelectionText(editor.value) : ''),
   getSelectionNode: () =>
     editor.value ? getSelectionNode(editor.value) : null,
-  deleteSelectionNode: () =>
-    editor.value?.commands.deleteSelectionNode() as boolean | undefined,
+  deleteSelectionNode: () => editor.value?.commands.deleteSelectionNode(),
   setCurrentNodeSelection: () =>
-    editor.value?.commands.setCurrentNodeSelection() as boolean | undefined,
+    editor.value?.commands.setCurrentNodeSelection(),
   getLocale,
   getI18n,
   setReadOnly(readOnly = true) {
@@ -1289,13 +1252,13 @@ defineExpose({
   getAllBookmarks,
   setBookmark,
   deleteBookmark,
-  useAlert(pramas: DialogOptions) {
+  useAlert(pramas) {
     return useAlert({ attach: container, ...pramas })
   },
-  useConfirm(pramas: DialogOptions) {
+  useConfirm(pramas) {
     return useConfirm({ attach: container, ...pramas })
   },
-  useMessage(type: string, pramas: MessageOptions) {
+  useMessage(type, pramas) {
     return useMessage(type, { attach: container, ...pramas })
   },
 })

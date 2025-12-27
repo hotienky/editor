@@ -94,10 +94,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import UmoViewer from '@umoteam/viewer'
-
-import type { WatermarkOption } from '@/types'
 
 const container = inject('container')
 const imageViewer = inject('imageViewer')
@@ -105,7 +103,7 @@ const pageOptions = inject('page')
 
 // 页面大小
 const pageSize = $computed(() => {
-  const { width, height } = pageOptions.value.size ?? { width: 0, height: 0 }
+  const { width, height } = pageOptions.value.size || { width: 0, height: 0 }
   return {
     width: pageOptions.value.orientation === 'portrait' ? width : height,
     height: pageOptions.value.orientation === 'portrait' ? height : width,
@@ -132,7 +130,7 @@ const setPageZoomHeight = async () => {
     console.warn('The element <.umo-page-content> does not exist.')
     return
   }
-  pageZoomHeight = `${(el.clientHeight * (pageOptions.value.zoomLevel ?? 1)) / 100}px`
+  pageZoomHeight = `${(el.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
 }
 onMounted(() => {
   void setPageZoomHeight()
@@ -160,19 +158,17 @@ watch(
 )
 
 // 水印
-const watermarkOptions = $ref<{
-  x: number
-  y?: number
-  width?: number
-  height: number
-  type?: string
-}>({
+const watermarkOptions = $ref({
   x: 0,
+  y: 0,
+  width: 0,
   height: 0,
+  type: undefined,
 })
 watch(
   () => pageOptions.value.watermark,
-  ({ type }: Partial<WatermarkOption> = { type: '' }) => {
+  (watermarkObj = { type: '' }) => {
+    const { type } = watermarkObj
     if (type === 'compact') {
       watermarkOptions.width = 320
       watermarkOptions.y = 240
@@ -185,12 +181,12 @@ watch(
 )
 
 // 图片预览
-let previewImages = $ref<string[]>([])
-let currentImageIndex = $ref<number>(0)
+let previewImages = $ref([])
+let currentImageIndex = $ref(0)
 
 watch(
   () => imageViewer.value.visible,
-  async (visible: boolean) => {
+  async (visible) => {
     if (!visible) {
       previewImages = []
       currentImageIndex = 0
@@ -201,8 +197,8 @@ watch(
       `${container} .umo-page-node-content img[src]:not(.umo-icon)`,
     )
     Array.from(images).forEach((image, index) => {
-      const src = (image as HTMLImageElement).getAttribute('src')
-      const nodeId = (image as HTMLImageElement).getAttribute('data-id')
+      const src = image.getAttribute('src')
+      const nodeId = image.getAttribute('data-id')
       previewImages.push(src)
       if (nodeId === imageViewer.value.current) {
         currentImageIndex = index
@@ -227,7 +223,7 @@ const viewerOptions = $ref({
   closeable: true,
   showAside: false,
 })
-watch(viewer, async (visible: boolean) => {
+watch(viewer, async (visible) => {
   viewerOptions.html = visible ? await getVanillaHTML() : ''
   viewerVisible = visible
 })

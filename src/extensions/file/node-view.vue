@@ -90,7 +90,7 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import prettyBytes from 'pretty-bytes'
 
@@ -98,7 +98,8 @@ import { getFileExtname, getFileIcon } from '@/utils/file'
 
 import { updateAttributesWithoutHistory } from './'
 
-const { node, getPos } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, getPos } = props
 const editor = inject('editor')
 const options = inject('options')
 const container = inject('container')
@@ -126,11 +127,11 @@ const fileIcon = $computed(() => {
 
 let previewModal = $ref(false)
 let previewURL = $ref(null)
-const setPreviewURL = (fileName: string) => {
+const setPreviewURL = (fileName) => {
   const { preview } = options.value.file
   const extname = getFileExtname(fileName)
   const match = preview.find(
-    (item: any) => extname && item.extensions.includes(extname),
+    (item) => extname && item.extensions.includes(extname),
   )
   if (match?.url.includes('{url}')) {
     previewURL = match.url
@@ -146,7 +147,8 @@ onMounted(async () => {
   if (uploadFileMap.value.has(node.attrs.id)) {
     try {
       const file = uploadFileMap.value.get(node.attrs.id)
-      const { id, url } = (await options.value?.onFileUpload?.(file)) ?? {}
+      const result = await options.value?.onFileUpload?.(file)
+      const { id, url } = result ?? {}
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,
@@ -156,7 +158,7 @@ onMounted(async () => {
       }
       uploadFileMap.value.delete(node.attrs.id)
     } catch (e) {
-      useMessage('error', { attach: container, content: (e as Error).message })
+      useMessage('error', { attach: container, content: e.message })
     }
   }
   setPreviewURL(node.attrs.name)

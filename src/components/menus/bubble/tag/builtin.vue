@@ -20,7 +20,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const tags = [
   {
     color: '#999',
@@ -51,7 +51,7 @@ const tags = [
 
 const editor = inject('editor')
 
-const selectStyle = (item: (typeof tags)[0]) => {
+const selectStyle = (item) => {
   const tag = editor.value?.state?.selection?.$from?.node()
   if (tag) {
     editor.value?.commands.updateAttributes('tag', {

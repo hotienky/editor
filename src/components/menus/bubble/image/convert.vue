@@ -11,7 +11,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getSelectionNode } from '@/extensions/selection'
 
 const editor = inject('editor')
@@ -26,7 +26,7 @@ const convertPosition = () => {
   if (image) {
     const typeName =
       image?.type?.name === 'inlineImage' ? 'inlineImage' : 'image'
-    const imageData = image.attrs ?? {}
+    const imageData = image.attrs || {}
     if (!imageData.error && imageData.src) {
       // 1.删除原有节点
       editor.value

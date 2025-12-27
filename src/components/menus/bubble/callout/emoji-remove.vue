@@ -6,7 +6,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getSelectionNode } from '@/extensions/selection'
 
 const emits = defineEmits(['change'])

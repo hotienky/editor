@@ -8,6 +8,6 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const searchReplace = inject('searchReplace')
 </script>

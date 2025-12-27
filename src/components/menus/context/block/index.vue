@@ -25,16 +25,15 @@
   </drag-handle>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import DragHandle from '@tiptap-pro/extension-drag-handle-vue-3'
-import type { Instance } from 'tippy.js'
 
 const editor = inject('editor')
 let selectedNode = $ref(null)
 let selectedNodePos = $ref(null)
 
-let tippyInstance = $ref<Instance | null>(null)
-const tippyOpitons = $ref<Partial<Instance>>({
+let tippyInstance = $ref(null)
+const tippyOpitons = $ref({
   zIndex: 20,
   popperOptions: {
     modifiers: [
@@ -44,19 +43,19 @@ const tippyOpitons = $ref<Partial<Instance>>({
       },
     ],
   },
-  onMount(instance: Instance) {
+  onMount(instance) {
     tippyInstance = instance
   },
 })
 
-const nodeChange = ({ node, pos }: { node: Node | null; pos: number }) => {
-  selectedNode = node ?? null
+const nodeChange = ({ node, pos }) => {
+  selectedNode = node || null
   if (pos !== null) {
     selectedNodePos = pos
   }
 }
 
-const dropdownVisible = (visible: boolean) => {
+const dropdownVisible = (visible) => {
   editor.value.commands.setMeta('lockDragHandle', visible)
 }
 </script>

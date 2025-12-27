@@ -9,6 +9,6 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const dialogVisible = $ref(false)
 </script>

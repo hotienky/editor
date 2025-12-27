@@ -88,18 +88,18 @@
   </modal>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getSelectionText } from '@/extensions/selection'
 
 const editor = inject('editor')
 const searchReplace = inject('searchReplace')
 
-let searchText = $ref<string>('')
-let replaceText = $ref<string>('')
-const caseSensitive = $ref<boolean>(false)
+let searchText = $ref('')
+let replaceText = $ref('')
+const caseSensitive = $ref(false)
 
 const resultLength = computed(
-  () => editor.value?.storage.searchAndReplace?.results.length ?? 0,
+  () => editor.value?.storage.searchAndReplace?.results.length || 0,
 )
 
 const clear = () => {
@@ -133,12 +133,12 @@ const goToSelection = () => {
   const { node } = editor.value.view.domAtPos(
     editor.value.state.selection.anchor,
   )
-  ;(node as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' })
+  node.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 watch(
   () => searchText.trim(),
-  (val: string, oldVal: string) => {
+  (val, oldVal) => {
     if (!val) {
       clear()
     }
@@ -149,12 +149,12 @@ watch(
 )
 watch(
   () => replaceText.trim(),
-  (val: string, oldVal: string) => (val === oldVal ? null : search()),
+  (val, oldVal) => (val === oldVal ? null : search()),
 )
 
 watch(
   () => caseSensitive,
-  (val: boolean, oldVal: boolean) => {
+  (val, oldVal) => {
     if (val !== oldVal) {
       search(true)
     }
@@ -180,7 +180,7 @@ const replaceAll = () => editor.value?.commands.replaceAll()
 
 watch(
   () => searchReplace.value,
-  (visible: boolean) => {
+  (visible) => {
     searchText = visible ? getSelectionText(editor.value) : ''
   },
 )

@@ -7,7 +7,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const emits = defineEmits(['hide-bubble'])
 
 const editor = inject('editor')

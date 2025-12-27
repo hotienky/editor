@@ -27,26 +27,26 @@
   </div>
 </template>
 
-<script setup lang="ts">
-const wraperRef = ref<HTMLDivElement | null>(null)
-const contentRef = $ref<HTMLDivElement | null>(null)
+<script setup>
+const wraperRef = ref(null)
+const contentRef = $ref(null)
 let hidePrev = $ref(true)
 let hideNext = $ref(true)
 
 const checkScrollPosition = () => {
-  const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = contentRef ?? {}
+  const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = contentRef || {}
   hidePrev = scrollLeft === 0
   hideNext = scrollLeft + clientWidth + 100 >= scrollWidth
 }
 
 const scrollLeft = () => {
-  if (contentRef?.scrollLeft || contentRef.scrollLeft === 0) {
+  if (contentRef && (contentRef.scrollLeft || contentRef.scrollLeft === 0)) {
     contentRef.scrollLeft -= contentRef.offsetWidth - 10 || 100
   }
 }
 
 const scrollRight = () => {
-  if (contentRef?.scrollLeft || contentRef.scrollLeft === 0) {
+  if (contentRef && (contentRef.scrollLeft || contentRef.scrollLeft === 0)) {
     contentRef.scrollLeft += contentRef.offsetWidth - 10 || 100
   }
 }
@@ -58,7 +58,9 @@ useResizeObserver(wraperRef, () => {
 
 //
 onMounted(() => {
-  contentRef?.addEventListener('scroll', checkScrollPosition)
+  if (contentRef) {
+    contentRef.addEventListener('scroll', checkScrollPosition)
+  }
 })
 
 // 更新

@@ -32,12 +32,13 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 const options = inject('options')
 
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, updateAttributes } = props
 const containerRef = ref(null)
 let selected = $ref(false)
 let maxWidth = $ref(0)
@@ -66,7 +67,7 @@ onMounted(async () => {
     }
   }
 })
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({ width, height })
 }
 onClickOutside(containerRef, () => {

@@ -43,7 +43,7 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 
@@ -51,7 +51,8 @@ import { mediaPlayer } from '@/utils/player'
 
 import { updateAttributesWithoutHistory } from '../file'
 
-const { node, updateAttributes, getPos } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, updateAttributes, getPos } = props
 const options = inject('options')
 const editor = inject('editor')
 const container = inject('container')
@@ -59,8 +60,8 @@ const uploadFileMap = inject('uploadFileMap')
 
 const containerRef = ref(null)
 let selected = $ref(false)
-const videoRef = $ref<HTMLVideoElement | null>(null)
-let player = $ref<Plyr | null>(null)
+const videoRef = $ref(null)
+let player = $ref(null)
 let maxWidth = $ref(0)
 let maxHeight = $ref(0)
 
@@ -86,7 +87,8 @@ onMounted(async () => {
   if (uploadFileMap.value.has(node.attrs.id)) {
     try {
       const file = uploadFileMap.value.get(node.attrs.id)
-      const { id, url } = (await options.value?.onFileUpload?.(file)) ?? {}
+      const result = await options.value?.onFileUpload?.(file)
+      const { id, url } = result ?? {}
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,
@@ -96,7 +98,7 @@ onMounted(async () => {
       }
       uploadFileMap.value.delete(node.attrs.id)
     } catch (e) {
-      useMessage('error', { attach: container, content: (e as Error).message })
+      useMessage('error', { attach: container, content: e.message })
     }
   }
 })
@@ -116,12 +118,12 @@ const onLoad = () => {
     }, 200)
   }
 }
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({ width, height })
 }
 onBeforeUnmount(() => {
   if (player) {
-    player?.destroy()
+    player.destroy()
   }
 })
 

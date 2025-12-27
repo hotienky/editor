@@ -12,7 +12,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import tippy from 'tippy.js'
 
 import MenusBubbleLinkCopy from './copy.vue'
@@ -20,7 +20,7 @@ import MenusBubbleLinkCopy from './copy.vue'
 const linkBubbleRef = $ref(null)
 const container = inject('container')
 const editor = inject('editor')
-let tippyInstance: any = null
+let tippyInstance = null
 
 onMounted(() => {
   const { meta } = editor.value.storage.link
@@ -34,7 +34,7 @@ onMounted(() => {
     interactive: true,
     allowHTML: true,
     zIndex: 110,
-    appendTo: pageContainer!,
+    appendTo: pageContainer,
     onHide() {
       editor.value.storage.link.edit = false
       editor.value.storage.link.meta = {}

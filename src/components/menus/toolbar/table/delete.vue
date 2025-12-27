@@ -8,7 +8,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const container = inject('container')
 const editor = inject('editor')
 

@@ -65,7 +65,7 @@
       <t-dropdown
         :attach="container"
         :popup-props="{
-          onVisibleChange(visible: boolean) {
+          onVisibleChange(visible) {
             showLayoutSelect = visible
           },
         }"
@@ -263,7 +263,7 @@
     </div>
     <statusbar-countdown
       :visible="countdownSetting"
-      @visible-change="(visible: boolean) => (countdownSetting = visible)"
+      @visible-change="(visible) => (countdownSetting = visible)"
       @countdown-change="countdownChange"
       @exit-preivew="exitPreview"
       @close="countdownSetting = false"
@@ -331,11 +331,7 @@
   </t-drawer>
 </template>
 
-<script setup lang="ts">
-import type { UseFullscreenReturn } from '@vueuse/core'
-import type { DropdownOption } from 'tdesign-vue-next'
-
-import type { SupportedLocale } from '@/types'
+<script setup>
 import { getShortcut } from '@/utils/shortcut'
 
 const { locale } = useI18n()
@@ -348,7 +344,7 @@ const $document = useState('document', options)
 // 快捷键抽屉
 const showShortcut = $ref(false)
 
-const reset = inject('reset') as (silent: boolean) => void
+const reset = inject('reset')
 
 // 字数统计
 const showWordCount = $ref(false)
@@ -371,12 +367,12 @@ const about = $ref(false)
 // 页面布局
 const showLayoutSelect = $ref(false)
 const layouts = computed(() => {
-  return options.value.page.layouts.map((item: string) => {
+  return options.value.page.layouts.map((item) => {
     return { content: t(`layout.${item}`), value: item }
   })
 })
 const currentLayout = computed(() => {
-  return layouts.value.find((item: any) => item.value === page.value.layout)
+  return layouts.value.find((item) => item.value === page.value.layout)
 })
 watch(
   () => page.value.layout,
@@ -391,7 +387,7 @@ const toggleFullscreen = () => {
   fullscreen.value = !fullscreen.value
 }
 
-let documentFullscreen: UseFullscreenReturn = $ref(null)
+let documentFullscreen = $ref(null)
 onMounted(() => {
   documentFullscreen = useFullscreen(document.querySelector(container))
 })
@@ -399,7 +395,7 @@ onMounted(() => {
 // 演示模式
 const togglePreview = () => {
   page.value.showToc = false
-  page.value.preview ??= {}
+  page.value.preview = page.value.preview || {}
   page.value.preview.enabled = !page.value.preview.enabled
 
   const zoomableContainer = document.querySelector(
@@ -411,14 +407,14 @@ const togglePreview = () => {
 }
 const exitPreview = () => {
   if (page.value.preview.enabled) {
-    page.value.preview ??= {}
+    page.value.preview = page.value.preview || {}
     page.value.preview.enabled = false
   }
 }
 
 watch(
   () => page.value.preview?.enabled,
-  (enabled: boolean) => {
+  (enabled) => {
     if (enabled) {
       page.value.preview.editable = editor.value.isEditable
       editor.value.setEditable(false)
@@ -431,13 +427,13 @@ watch(
 // 演示模式倒计时
 const countdownSetting = $ref(false)
 let countdownValue = $ref('')
-const countdownChange = (value: string) => {
+const countdownChange = (value) => {
   countdownValue = value
 }
 
 watch(
   () => page.value.preview?.enabled,
-  (enabled: boolean) => {
+  (enabled) => {
     if (enabled) {
       void documentFullscreen.enter()
       if (page.value.layout === 'page') {
@@ -451,7 +447,7 @@ watch(
 )
 watch(
   () => documentFullscreen?.isFullscreen,
-  (isFullscreen: boolean) => {
+  (isFullscreen) => {
     if (!isFullscreen) {
       exitPreview()
     }
@@ -487,8 +483,8 @@ const autoWidth = (auto = true, padding = 50) => {
       `${container} .umo-zoomable-container`,
     )
     const pageEl = editorEl?.querySelector('.umo-page-content')
-    const editorWidth = editorEl?.clientWidth ?? 0
-    const pageWidth = pageEl?.clientWidth ?? 0
+    const editorWidth = editorEl?.clientWidth || 0
+    const pageWidth = pageEl?.clientWidth || 0
     page.value.zoomLevel = Math.floor(
       Number((editorWidth - padding * 2) / pageWidth) * 100,
     )
@@ -518,13 +514,13 @@ const langs = [
   { content: '🇨🇳 简体中文', value: 'zh-CN' },
   { content: '🇱🇷 English', value: 'en-US' },
 ]
-const setLocale = inject('setLocale') as (value: SupportedLocale) => void
+const setLocale = inject('setLocale')
 
 const lang = computed(
   () => langs.find((item) => item.value === locale.value)?.content,
 )
-const changeLang = (dropdownItem: DropdownOption) => {
-  const value = dropdownItem.value as SupportedLocale
+const changeLang = (dropdownItem) => {
+  const { value } = dropdownItem
   if (lang.value === value) {
     return
   }

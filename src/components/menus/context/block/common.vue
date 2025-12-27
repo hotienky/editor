@@ -56,9 +56,7 @@
                 <menus-button
                   :tooltip="false"
                   :shortcut-text="`ctrl+alt+${item}`"
-                  @menu-click="
-                    toggleNodeType('heading', { level: item as Level })
-                  "
+                  @menu-click="toggleNodeType('heading', { level: item })"
                 >
                   <span class="umo-heading">
                     <span class="icon-heading">H{{ item }}</span>
@@ -154,17 +152,18 @@
   </t-dropdown>
 </template>
 
-<script setup lang="ts">
-import type { Level } from '@tiptap/extension-heading'
-import type { Node } from '@tiptap/pm/model'
-
-const props = defineProps<{
-  node: Node | null
-  pos: number | null
-}>()
-const emits = defineEmits<{
-  dropdownVisible: (visible: boolean) => void
-}>()
+<script setup>
+const props = defineProps({
+  node: {
+    type: Object,
+    default: null,
+  },
+  pos: {
+    type: Number,
+    default: null,
+  },
+})
+const emits = defineEmits(['dropdownVisible'])
 
 const container = inject('container')
 const editor = inject('editor')
@@ -174,7 +173,7 @@ let menuActive = $ref(false)
 
 const popupProps = {
   attach: `${container} .umo-main-container`,
-  onVisibleChange(visible: boolean) {
+  onVisibleChange(visible) {
     editor.value.commands.focus()
     blockMenu.value = visible
     menuActive = visible
@@ -182,22 +181,17 @@ const popupProps = {
   },
 }
 
-const headings = $ref<number[]>([1, 2, 3, 4, 5, 6])
+const headings = $ref([1, 2, 3, 4, 5, 6])
 
-const toggleNodeType = (
-  type: string,
-  props?: {
-    level: Level
-  },
-) => {
+const toggleNodeType = (type, propsData) => {
   editor.value?.chain().focus().run()
   switch (type) {
     case 'paragraph':
       editor.value?.commands.setParagraph()
       break
     case 'heading':
-      if (props) {
-        editor.value?.commands.setHeading(props)
+      if (propsData) {
+        editor.value?.commands.setHeading(propsData)
       }
       break
     case 'orderedList':
@@ -243,5 +237,3 @@ const deleteNode = () => {
     .run()
 }
 </script>
-
-<style lang="less" scoped></style>

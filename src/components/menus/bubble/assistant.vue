@@ -6,7 +6,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const assistant = inject('assistant')
 const openAssistant = () => {
@@ -14,5 +14,3 @@ const openAssistant = () => {
   editor.value?.commands.focus()
 }
 </script>
-
-<style lang="less" scoped></style>

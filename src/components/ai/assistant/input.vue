@@ -121,30 +121,24 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { isString } from '@tool-belt/type-predicates'
 
 import { getSelectionText, setSelectionText } from '@/extensions/selection'
-import type {
-  AssistantContent,
-  AssistantPayload,
-  AssistantResult,
-  CommandItem,
-} from '@/types'
 
 const container = inject('container')
 const editor = inject('editor')
 const assistant = inject('assistant')
 const options = inject('options')
 
-const inputRef = ref<HTMLElement | null>(null)
-let command = $ref<string>('')
-const result = $ref<AssistantResult>({
+const inputRef = ref(null)
+let command = $ref('')
+const result = $ref({
   prompt: '',
   content: '',
   error: false,
 })
-const generating = ref<boolean>(false)
+const generating = ref(false)
 
 const send = async () => {
   generating.value = true
@@ -154,17 +148,17 @@ const send = async () => {
 
   const { locale } = useI18n()
 
-  const payload: AssistantPayload = {
+  const payload = {
     lang: locale.value,
     input: editor.value ? getSelectionText(editor.value) : '',
     command,
     output: 'rich-text',
   }
 
-  const content: AssistantContent = {
-    html: editor.value?.getHTML() ?? '',
-    text: editor.value?.getText() ?? '',
-    json: editor.value?.getJSON() ?? {},
+  const content = {
+    html: editor.value?.getHTML() || '',
+    text: editor.value?.getText() || '',
+    json: editor.value?.getJSON() || {},
   }
 
   try {
@@ -221,11 +215,13 @@ const send = async () => {
   }
 }
 
-const insertCommand = ({ value, autoSend }: CommandItem) => {
-  command = l(value ?? '') ?? ''
-  result.command = l(value ?? '') ?? ''
+const insertCommand = ({ value, autoSend }) => {
+  command = l(value || '') || ''
+  result.command = l(value || '') || ''
   result.content = ''
-  inputRef.value?.focus()
+  if (inputRef.value) {
+    inputRef.value.focus()
+  }
   if (autoSend !== false) {
     void send()
   }
@@ -238,16 +234,16 @@ const exitAssistant = () => {
 
 const replaceContent = () => {
   // 记录插入前的选区位置
-  const { from, to } = editor.value?.state.selection ?? {}
-  const prevDocLength = editor.value?.state.doc.content.size ?? 0
+  const { from, to } = editor.value?.state.selection || {}
+  const prevDocLength = editor.value?.state.doc.content.size || 0
   editor.value?.chain().insertContent(result.content).run()
   setSelectionText(editor.value, prevDocLength, from, to)
   exitAssistant()
 }
 
 const insertContentAtAfter = () => {
-  const { to } = editor.value?.state.selection ?? {}
-  const prevDocLength = editor.value?.state.doc.content.size ?? 0
+  const { to } = editor.value?.state.selection || {}
+  const prevDocLength = editor.value?.state.doc.content.size || 0
   if (to) {
     editor.value?.chain().insertContentAt(to, result.content).focus().run()
     setSelectionText(editor.value, prevDocLength, to, to)
@@ -258,8 +254,8 @@ const insertContentAtAfter = () => {
 
 const insertContentAtBelow = () => {
   editor.value?.commands.selectParentNode()
-  const { to } = editor.value?.state.selection ?? {}
-  const prevDocLength = editor.value?.state.doc.content.size ?? 0
+  const { to } = editor.value?.state.selection || {}
+  const prevDocLength = editor.value?.state.doc.content.size || 0
   if (to) {
     editor.value?.chain().insertContentAt(to, result.content).focus().run()
     setSelectionText(editor.value, prevDocLength, to, to)

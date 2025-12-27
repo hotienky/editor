@@ -9,7 +9,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { shortId } from '@/utils/short-id'
 
 const editorRef = $ref(null)
@@ -85,7 +85,7 @@ const options = $ref({
   ],
   // https://dev.umodoc.com/cn/docs/options/extensions#disableextensions
   disableExtensions: ['file'],
-  async onSave(content: string, page: number, document: { content: string }) {
+  async onSave(content, page, document) {
     localStorage.setItem('document.content', document.content)
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -99,7 +99,7 @@ const options = $ref({
       }, 2000)
     })
   },
-  async onFileUpload(file: File & { url?: string }) {
+  async onFileUpload(file) {
     if (!file) {
       throw new Error('没有找到要上传的文件')
     }
@@ -113,7 +113,7 @@ const options = $ref({
       size: file.size,
     }
   },
-  onFileDelete(id: string, url: string, type: string) {
+  onFileDelete(id, url, type) {
     console.log(id, url, type)
   },
 })

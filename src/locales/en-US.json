@@ -153,9 +153,9 @@
     "image": {
       "text": "Image",
       "block": "Image",
-      "blockdesc": "Insert an image on the node",
+      "blockdesc": "Insert new image node",
       "inline": "Inline Image",
-      "inlinedesc": "Insert an image within the paragraph"
+      "inlinedesc": "Insert inline image in the current line"
     },
     "link": {
       "text": "Link",

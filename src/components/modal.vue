@@ -4,12 +4,11 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { Dialog } from 'tdesign-vue-next'
-// @ts-ignore
 import { h } from 'vue'
 
 const container = inject('container', 'body')
 const vm = getCurrentInstance()
-const changeRef = (expose: any) => (vm.expose = expose)
+const changeRef = (expose) => (vm.expose = expose)
 </script>

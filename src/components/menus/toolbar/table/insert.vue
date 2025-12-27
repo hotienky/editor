@@ -59,7 +59,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
@@ -69,7 +69,7 @@ const table = Array.from({ length: 8 }, () =>
 const selected = $ref({ rows: 0, cols: 0 })
 const withHeaderRow = $ref(true)
 
-const isSelected = (rows: number, cols: number) => {
+const isSelected = (rows, cols) => {
   return (
     selected.rows &&
     selected.rows > rows &&
@@ -77,7 +77,7 @@ const isSelected = (rows: number, cols: number) => {
     selected.cols > cols
   )
 }
-const selectCell = (rows: number, cols: number) => {
+const selectCell = (rows, cols) => {
   selected.rows = rows + 1
   selected.cols = cols + 1
 }

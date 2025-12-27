@@ -31,16 +31,17 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, updateAttributes } = props
 const container = inject('container')
 const options = inject('options')
 const page = inject('page')
 let popupVisible = $ref(false)
 
-const formatDateToChinese = (dateStr: string) => {
-  const replaceDigits = (num: string) => {
+const formatDateToChinese = (dateStr) => {
+  const replaceDigits = (num) => {
     const digits = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
     return num
       .toString()
@@ -76,7 +77,7 @@ const formatDateToChinese = (dateStr: string) => {
   })
 }
 
-const datetimeChange = (value: any) => {
+const datetimeChange = (value) => {
   let selectDate = value
   if (selectDate && node?.attrs?.capitalize) {
     selectDate = formatDateToChinese(value)

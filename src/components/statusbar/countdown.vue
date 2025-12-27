@@ -93,7 +93,7 @@
   </t-popup>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -131,13 +131,13 @@ const options = [
   { label: t('preview.countdown.custom'), value: null },
 ]
 
-const countdownSelect = (value: number) => {
+const countdownSelect = (value) => {
   minutes = value
 }
 
 let countdownInfo = $ref('')
-let messageBox: ReturnType<typeof useMessage> = null
-let countdownInterval: ReturnType<typeof setInterval> | null = null
+let messageBox = null
+let countdownInterval = null
 const resetCountdown = () => {
   hours = null
   minutes = null
@@ -145,12 +145,14 @@ const resetCountdown = () => {
   countdownInfo = ''
 }
 const startCountdown = async () => {
-  messageBox?.close()
+  if (messageBox) {
+    messageBox.close()
+  }
   if (countdownInterval !== null) {
     clearInterval(countdownInterval)
   }
   const totalSeconds =
-    (hours ?? 0) * 3600 + (minutes ?? 0) * 60 + (seconds ?? 0)
+    (hours || 0) * 3600 + (minutes || 0) * 60 + (seconds || 0)
 
   if (totalSeconds <= 0) {
     messageBox = await useMessage('error', {
@@ -164,7 +166,9 @@ const startCountdown = async () => {
 
   countdownInterval = setInterval(async () => {
     if (remainingTime <= 0) {
-      messageBox?.close()
+      if (messageBox) {
+        messageBox.close()
+      }
       resetCountdown()
       if (countdownInterval !== null) {
         clearInterval(countdownInterval)
@@ -200,7 +204,7 @@ const cancelCountdown = () => {
 
 watch(
   () => countdownInfo,
-  (value: string) => {
+  (value) => {
     emits('countdown-change', value)
   },
   { immediate: true },
@@ -210,7 +214,9 @@ onBeforeUnmount(() => {
   if (countdownInterval !== null) {
     clearInterval(countdownInterval)
   }
-  messageBox?.close()
+  if (messageBox) {
+    messageBox.close()
+  }
 })
 </script>
 

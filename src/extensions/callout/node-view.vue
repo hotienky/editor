@@ -9,7 +9,7 @@
         bubbleMenu &&
         editor.state.selection.to === editor.state.selection.from
       "
-      @visible-change="(visible: boolean) => (bubbleMenu = visible)"
+      @visible-change="(visible) => (bubbleMenu = visible)"
     >
       <div
         class="umo-node-container hover-shadow umo-node-callout"
@@ -47,14 +47,15 @@
   </node-view-wrapper>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, updateAttributes } = props
 
 const container = inject('container')
 const bubbleMenu = $ref(false)
 
-const selectEmoji = (emoji: string) => {
+const selectEmoji = (emoji) => {
   updateAttributes({
     icon: emoji,
   })

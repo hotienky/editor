@@ -18,7 +18,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 const props = defineProps({
   items: {
     type: Array,
@@ -39,7 +39,7 @@ watch(
   },
 )
 
-const onKeyDown = ({ event }: any) => {
+const onKeyDown = ({ event }) => {
   if (event.key === 'ArrowUp') {
     upHandler()
     return true
@@ -73,7 +73,7 @@ const enterHandler = () => {
   selectItem(selectedIndex)
 }
 
-const selectItem = (index: number) => {
+const selectItem = (index) => {
   const item = props.items[index]
 
   if (item) {

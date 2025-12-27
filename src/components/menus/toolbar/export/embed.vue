@@ -28,7 +28,7 @@
   </modal>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const options = inject('options')
 const container = inject('container')
 let dialogVisible = $ref(false)

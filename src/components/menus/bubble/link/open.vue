@@ -6,7 +6,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const emits = defineEmits(['hide-bubble'])
 

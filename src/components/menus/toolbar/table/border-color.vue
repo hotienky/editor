@@ -14,13 +14,13 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const emits = defineEmits(['change'])
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-const colorBorderChange = (color: string) => {
+const colorBorderChange = (color) => {
   popupVisible.value = false
   const borderColor = color === '' ? null : color
   editor.value

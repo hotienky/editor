@@ -44,11 +44,12 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const { node, updateAttributes } = props
 
 const options = inject('options')
 
@@ -57,13 +58,13 @@ const contentRef = $ref(null)
 let selected = $ref(false)
 let disabled = $ref(false)
 
-const onRotate = ({ angle }: { angle: number }) => {
+const onRotate = ({ angle }) => {
   updateAttributes({ angle })
 }
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({ width, height })
 }
-const onDrag = ({ left, top }: { left: number; top: number }) => {
+const onDrag = ({ left, top }) => {
   updateAttributes({ left, top })
 }
 
@@ -76,9 +77,11 @@ const editTextBox = () => {
   disabled = true
   const range = document.createRange()
   range.selectNodeContents(contentRef.$el)
-  const sel = window.getSelection()
-  sel?.removeAllRanges()
-  sel?.addRange(range)
+  const election = window.getSelection()
+  if (election) {
+    election.removeAllRanges()
+    election.addRange(range)
+  }
   contentRef.$el.focus()
 }
 </script>

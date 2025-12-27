@@ -31,25 +31,13 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getShortcut } from '@/utils/shortcut'
 
 const options = inject('options')
 const $document = useState('document', options)
 
-const shortcuts = $ref<
-  {
-    title: string
-    items: {
-      icon?: string
-      html?: string
-      tag?: string
-      className?: string
-      label: string
-      keys: string[]
-    }[]
-  }[]
->([
+const shortcuts = $ref([
   {
     title: t('shortcut.commonlyUsed'),
     items: [

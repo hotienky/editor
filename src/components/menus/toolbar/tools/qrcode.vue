@@ -24,7 +24,7 @@
             menu-type="select"
             :select-value="config.ecl"
             @menu-click="
-              (value: string) => {
+              (value) => {
                 config.ecl = value
               }
             "
@@ -67,13 +67,13 @@
             :text="t('tools.qrcode.color')"
             :default-color="config.color"
             modeless
-            @change="(value: any) => (config.color = value)"
+            @change="(value) => (config.color = value)"
           />
           <menus-toolbar-base-background-color
             :text="t('tools.qrcode.bgColor')"
             :default-color="config.background"
             modeless
-            @change="(value: any) => (config.background = value)"
+            @change="(value) => (config.background = value)"
           />
         </div>
         <div class="umo-qrcode-code">
@@ -111,7 +111,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { qrcode } from 'pure-svg-code'
 import svg64 from 'svg64'
 
@@ -153,7 +153,7 @@ const defaultConfig = {
 let config = $ref({ ...defaultConfig })
 let changed = $ref(false)
 
-let svgCode = $ref<string | null>(null)
+let svgCode = $ref(null)
 let renderError = $ref(false)
 const renderQrcode = () => {
   try {
@@ -168,7 +168,7 @@ const renderQrcode = () => {
 }
 watch(
   () => dialogVisible,
-  (val: boolean) => {
+  (val) => {
     if (val) {
       config = content ? JSON.parse(content) : { ...defaultConfig }
       setTimeout(() => {

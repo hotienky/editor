@@ -24,24 +24,24 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
 let activeColumn = $ref(0)
 
 const columns = [1, 2, 3, 4, 5, 6]
-const setActiveColumn = (column: number) => {
+const setActiveColumn = (column) => {
   activeColumn = column
 }
-const setColumns = (column: number) => {
+const setColumns = (column) => {
   editor.value?.chain().focus().setColumns(column, true).run()
   popupVisible.value = false
 }
 
 watch(
   () => popupVisible.value,
-  (visible: boolean) => {
+  (visible) => {
     if (!visible) {
       activeColumn = 0
     }

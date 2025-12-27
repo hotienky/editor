@@ -88,7 +88,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { shortId } from '@/utils/short-id'
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
@@ -129,7 +129,9 @@ const initCalData = () => {
         }
       }
     }
-    boxData[i].key ??= shortId()
+    if (!boxData[i].key) {
+      boxData[i].key = shortId()
+    }
   }
 }
 
@@ -204,7 +206,7 @@ const confirmClick = () => {
 
   const optionConfig = editor.value ? getSelectionNode(editor.value) : null
   if (optionConfig?.type?.name === 'option-box' && optionConfig?.attrs) {
-    _checkAll = optionConfig?.attrs?.boxChecked ?? false
+    _checkAll = optionConfig?.attrs?.boxChecked || false
   }
   const _optionData = {
     dataType: 'optionBox',
@@ -235,10 +237,10 @@ watch(
           : null
         if (optionConfig?.type?.name === 'option-box' && optionConfig?.attrs) {
           boxData = JSON.parse(
-            JSON.stringify(optionConfig?.attrs?.boxOptions ?? []),
+            JSON.stringify(optionConfig?.attrs?.boxOptions || []),
           )
-          boxType = optionConfig?.attrs?.boxType ?? 'checkbox'
-          showCheckAll = optionConfig?.attrs?.boxShowCheckAll ?? false
+          boxType = optionConfig?.attrs?.boxType || 'checkbox'
+          showCheckAll = optionConfig?.attrs?.boxShowCheckAll || false
           initCalData()
         }
       }

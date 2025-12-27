@@ -25,7 +25,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import nzh from 'nzh/cn'
 
 import { getSelectionText } from '@/extensions/selection'
@@ -33,13 +33,7 @@ import { getSelectionText } from '@/extensions/selection'
 const editor = inject('editor')
 const container = inject('container')
 
-const options: {
-  label: string
-  desc: string
-  func: (text: string) => string
-  divider?: boolean
-  value?: string | number
-}[] = [
+const options = [
   {
     label: '数字小写金额 → 中文大写金额',
     desc: '人民币伍佰肆拾叁元贰角壹分',
@@ -105,7 +99,7 @@ onMounted(() => {
   })
 })
 
-const setChineseCase = (func: (text: string) => string) => {
+const setChineseCase = (func) => {
   if (!editor.value) {
     return
   }

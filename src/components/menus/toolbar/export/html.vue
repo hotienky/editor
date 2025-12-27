@@ -2,7 +2,7 @@
   <menus-button ico="html5" text="HTML" huge @menu-click="saveHtmlFile" />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { saveAs } from 'file-saver'
 
 const editor = inject('editor')

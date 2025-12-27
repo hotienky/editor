@@ -129,12 +129,8 @@
   </t-dropdown>
 </template>
 
-<script setup lang="ts">
-import type { Template } from '@/types'
-
-const emits = defineEmits<{
-  dropdownVisible: (visible: boolean) => void
-}>()
+<script setup>
+const emits = defineEmits(['dropdownVisible'])
 
 const container = inject('container')
 const editor = inject('editor')
@@ -145,7 +141,7 @@ const options = inject('options')
 let menuActive = $ref(false)
 const popupProps = {
   attach: `${container} .umo-main-container`,
-  onVisibleChange(visible: boolean) {
+  onVisibleChange(visible) {
     editor.value.commands.focus()
     blockMenu.value = visible
     menuActive = visible
@@ -153,7 +149,7 @@ const popupProps = {
   },
 }
 
-const disableMenu = (name: string) => {
+const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
@@ -161,11 +157,11 @@ const openAssistant = () => {
   assistant.value = true
   editor.value?.commands.selectParentNode()
   editor.value?.commands.focus()
-  const { from, to } = editor.value?.state.selection ?? {}
-  editor.value?.commands.setTextSelection({ from: from ?? 0, to: to ?? 0 })
+  const { from, to } = editor.value?.state.selection || {}
+  editor.value?.commands.setTextSelection({ from: from || 0, to: to || 0 })
 }
 
-const setTemplate = ({ content }: Template) => {
+const setTemplate = ({ content }) => {
   if (!content || !editor.value) {
     return
   }

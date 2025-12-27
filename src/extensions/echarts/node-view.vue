@@ -39,7 +39,7 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 // tiptap 组件
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 // 拖拽组件
@@ -57,7 +57,7 @@ const options = inject('options')
 const containerRef = ref(null)
 let maxWidth = $ref(0)
 let selected = $ref(false)
-let chart: any = null
+let chart = null
 let chartOption = $ref(null)
 
 // 加载数据
@@ -83,7 +83,7 @@ const nodeStyle = $computed(() => {
     marginBottom,
   }
 })
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({
     width: Number(width.toFixed(2)),
     height: Number(height.toFixed(2)),
@@ -107,7 +107,7 @@ const loadData = async () => {
 
   // 等待 echarts 加载完成
   const waitForECharts = () => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let attempts = 0
       const maxAttempts = 40 // 最多等待2秒
       const checkECharts = () => {
@@ -161,7 +161,7 @@ const loadData = async () => {
 // 监听 node.attrs 变化并在变化时重新加载数据
 watch(
   () => node.attrs,
-  async (newAttrs: any, oldAttrs: any) => {
+  async (newAttrs, oldAttrs) => {
     // 避免初次挂载时重复调用 loadData
     if (
       newAttrs !== undefined &&

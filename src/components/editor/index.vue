@@ -35,7 +35,7 @@
   </template>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { Editor, EditorContent } from '@tiptap/vue-3'
 
 import { getDefaultExtensions, inputAndPasteRules } from '@/extensions'
@@ -55,18 +55,17 @@ const assistant = inject('assistant')
 const $document = useState('document', options)
 
 const defaultLineHeight = $computed(
-  () =>
-    options.value.dicts?.lineHeights?.find((item: any) => item.default)?.value,
+  () => options.value.dicts?.lineHeights?.find((item) => item.default)?.value,
 )
 
 const container = inject('container')
-const extensions: any[] = getDefaultExtensions({
+const extensions = getDefaultExtensions({
   container,
   options,
   uploadFileMap,
 })
 
-const editorInstance: Editor = new Editor({
+const editorInstance = new Editor({
   editable: !options.value.document?.readOnly,
   autofocus: options.value.document?.autofocus,
   content: contentTransform(options.value.document?.content),
@@ -83,7 +82,7 @@ const editorInstance: Editor = new Editor({
   onUpdate({ editor }) {
     const throttleFn = useThrottleFn(() => {
       $document.value.content = editor.getHTML()
-      addHistory(historyRecords, 'editor', (editor?.state as any)?.history$)
+      addHistory(historyRecords, 'editor', editor?.state?.history$)
     }, 1000)
     void throttleFn()
   },

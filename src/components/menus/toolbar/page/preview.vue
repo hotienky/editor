@@ -9,6 +9,6 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const page = inject('page')
 </script>

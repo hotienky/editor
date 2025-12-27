@@ -24,7 +24,7 @@
             menu-type="select"
             :select-value="config.format"
             @menu-click="
-              (value: string) => {
+              (value) => {
                 config.format = value
               }
             "
@@ -37,7 +37,7 @@
             menu-type="select"
             :select-value="config.font"
             @menu-click="
-              (value: string) => {
+              (value) => {
                 config.font = value
               }
             "
@@ -47,13 +47,13 @@
             :text="t('tools.barcode.lineColor')"
             :default-color="config.lineColor"
             modeless
-            @change="(value: any) => (config.lineColor = value)"
+            @change="(value) => (config.lineColor = value)"
           />
           <menus-toolbar-base-background-color
             :text="t('tools.barcode.bgColor')"
             :default-color="config.background"
             modeless
-            @change="(value: any) => (config.background = value)"
+            @change="(value) => (config.background = value)"
           />
           <t-divider layout="vertical" />
           <menus-toolbar-base-bold
@@ -219,7 +219,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import JsBarcode from 'jsbarcode'
 import svg64 from 'svg64'
 
@@ -258,10 +258,10 @@ const formats = [
   { label: 'MSI1110', value: 'MSI1110' },
   { label: 'Pharmacode', value: 'Pharmacode' },
 ]
-const fonts = options.value.dicts?.fonts.map((item: any) => {
+const fonts = options.value.dicts?.fonts.map((item) => {
   return {
     label: l(item.label),
-    value: item.value ?? '',
+    value: item.value || '',
   }
 })
 const textPositions = [
@@ -288,10 +288,10 @@ const defaultConfig = {
 let config = $ref({ ...defaultConfig })
 let changed = $ref(false)
 
-const changeFontOptions = (val: string) => {
+const changeFontOptions = (val) => {
   let fontOptions = config.fontOptions.split(' ')
   if (fontOptions.includes(val)) {
-    fontOptions = fontOptions.filter((item: any) => item !== val)
+    fontOptions = fontOptions.filter((item) => item !== val)
   } else {
     fontOptions.push(val)
   }
@@ -300,13 +300,7 @@ const changeFontOptions = (val: string) => {
 
 // 生成条形码
 let renderError = $ref(false)
-const barcodeSvgRef = $ref<
-  | (HTMLElement & {
-      width: { animVal: { value: number } }
-      height: { animVal: { value: number } }
-    })
-  | null
->(null)
+const barcodeSvgRef = $ref(null)
 const renderBarcode = async () => {
   try {
     await nextTick()
@@ -318,7 +312,7 @@ const renderBarcode = async () => {
 }
 watch(
   () => dialogVisible,
-  (val: boolean) => {
+  (val) => {
     if (val) {
       config = content ? JSON.parse(content) : { ...defaultConfig }
       setTimeout(() => {
@@ -357,8 +351,8 @@ const setBarcode = () => {
   }
   const id = shortId(10)
   const name = `barcode-${id}.svg`
-  const width = barcodeSvgRef?.width.animVal.value
-  const height = barcodeSvgRef?.height.animVal.value
+  const width = barcodeSvgRef?.width?.animVal?.value
+  const height = barcodeSvgRef?.height?.animVal?.value
   const blob = new Blob([barcodeSvgRef.outerHTML], {
     type: 'image/svg+xml',
   })
@@ -377,7 +371,7 @@ const setBarcode = () => {
           type: 'barcode',
           name,
           size: file.size,
-          src: svg64(barcodeSvgRef?.outerHTML ?? ''),
+          src: svg64(barcodeSvgRef?.outerHTML || ''),
           content: JSON.stringify(config),
           width,
           height,

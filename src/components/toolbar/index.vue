@@ -37,7 +37,7 @@
         :attach="container"
         trigger="click"
         placement="bottom-right"
-        @visible-change="(visible: boolean) => (statusPopup = visible)"
+        @visible-change="(visible) => (statusPopup = visible)"
       >
         <t-button
           class="umo-toolbar-actions-button"
@@ -111,7 +111,7 @@
         <template #dropdown>
           <t-dropdown-menu
             v-for="item in editorModeOptions"
-            :key="item.value as string"
+            :key="item.value"
             :content="item.label"
             :value="item.value"
             :divider="item.divider"
@@ -132,9 +132,7 @@
   </tooltip>
 </template>
 
-<script setup lang="ts">
-import type { DropdownOption } from 'tdesign-vue-next'
-
+<script setup>
 import { timeAgo } from '@/utils/time-ago'
 const emits = defineEmits(['menu-change'])
 
@@ -158,18 +156,18 @@ const defaultToolbarMenus = [
 let toolbarMenus = defaultToolbarMenus
 if (options.value.toolbar?.menus) {
   toolbarMenus = options.value.toolbar?.menus.map(
-    (item: any) => defaultToolbarMenus.filter((menu) => menu.value === item)[0],
+    (item) => defaultToolbarMenus.filter((menu) => menu.value === item)[0],
   )
 }
 let currentMenu = $ref(toolbarMenus[0].value)
-const menuChange = (menu: string) => {
+const menuChange = (menu) => {
   currentMenu = menu
   emits('menu-change', menu)
 }
 // 监听如果当前编辑元素为table则切换到table菜单
 watch(
   () => editor.value?.isActive('table'),
-  (val: boolean, oldVal: boolean) => {
+  (val, oldVal) => {
     if (val) {
       currentMenu = 'table'
     } else if (!val && oldVal) {
@@ -197,17 +195,17 @@ const editorModeOptions = [
   },
 ]
 
-const toggleToolbarMode = ({ value }: DropdownOption) => {
+const toggleToolbarMode = ({ value }) => {
   if (value === 'hideToolbar') {
     $toolbar.value.show = false
   } else {
     $toolbar.value.show = true
-    $toolbar.value.mode = value as string
+    $toolbar.value.mode = value
   }
 }
 
 // 保存文档
-const saveContentMethod = inject('saveContent') as () => void
+const saveContentMethod = inject('saveContent')
 const saveContent = () => {
   saveContentMethod()
   statusPopup = false
