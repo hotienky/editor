@@ -132,9 +132,17 @@ const setPageZoomHeight = async () => {
   }
   pageZoomHeight = `${(el.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
 }
+
+// 编辑器内容发生变化后，自动调整页面高度
+const editorInstance = inject('editor')
 onMounted(() => {
-  setPageZoomHeight()
+  editorInstance.value.on('update', useThrottleFn(setPageZoomHeight, 200))
 })
+onBeforeUnmount(() => {
+  editorInstance.value.off('update')
+})
+
+// 页面变化后，更新页面高度
 watch(
   () => [
     pageOptions.value.layout,
@@ -146,15 +154,6 @@ watch(
     setPageZoomHeight()
   },
   { deep: true },
-)
-
-// 编辑器内容发生变化后，自动调整页面高度
-const editorInstance = inject('editor')
-watch(
-  () => editorInstance.value?.getHTML(),
-  () => {
-    setPageZoomHeight()
-  },
 )
 
 // 水印
