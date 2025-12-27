@@ -133,7 +133,7 @@ const setPageZoomHeight = async () => {
   pageZoomHeight = `${(el.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
 }
 onMounted(() => {
-  void setPageZoomHeight()
+  setPageZoomHeight()
 })
 watch(
   () => [
@@ -143,7 +143,7 @@ watch(
     pageOptions.value.orientation,
   ],
   () => {
-    void setPageZoomHeight()
+    setPageZoomHeight()
   },
   { deep: true },
 )
@@ -153,7 +153,7 @@ const editorInstance = inject('editor')
 watch(
   () => editorInstance.value?.getHTML(),
   () => {
-    void setPageZoomHeight()
+    setPageZoomHeight()
   },
 )
 

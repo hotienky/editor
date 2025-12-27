@@ -276,7 +276,7 @@ watch(
       return
     }
     autoSaveInterval = setInterval(() => {
-      void saveContent()
+      saveContent()
       contentUpdated = false
       clearAutoSaveInterval()
     }, autoSave.interval)
@@ -1171,7 +1171,7 @@ watch(
       useHotkeys('esc', unsetFormatPainter)
       useHotkeys('ctrl+s,command+s', () => {
         if (options?.value?.toolbar?.showSaveLabel) {
-          void saveContent()
+          saveContent()
           unsetFormatPainter()
         }
       })

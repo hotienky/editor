@@ -18,7 +18,7 @@ const copyLink = () => {
   const { copy } = useClipboard({
     source: ref(meta.href),
   })
-  void copy()
+  copy()
   useMessage('success', {
     attach: container,
     content: t('insert.link.copySuccess'),

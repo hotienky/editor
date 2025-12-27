@@ -184,7 +184,7 @@ const send = async () => {
           result.command = command
         },
       })
-      void data.pipeTo(stream)
+      data.pipeTo(stream)
       return
     }
 
@@ -223,7 +223,7 @@ const insertCommand = ({ value, autoSend }) => {
     inputRef.value.focus()
   }
   if (autoSend !== false) {
-    void send()
+    send()
   }
 }
 
@@ -267,7 +267,7 @@ const copyResult = () => {
   const { copy } = useClipboard({
     source: ref(result.content),
   })
-  void copy()
+  copy()
   useMessage('success', {
     attach: container,
     content: t('assistant.copySuccess'),
@@ -279,7 +279,7 @@ const rewrite = () => {
   if (resultCommand) {
     command = resultCommand
   }
-  void send()
+  send()
 }
 
 const deleteResult = () => {

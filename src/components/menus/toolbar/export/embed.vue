@@ -39,7 +39,7 @@ const embedValue = computed(() => {
 
 const copyEmbed = () => {
   const { copy } = useClipboard({ source: embedValue })
-  void copy()
+  copy()
   useMessage('success', {
     attach: container,
     content: t('export.embed.copied'),

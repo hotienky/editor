@@ -95,7 +95,7 @@ onMounted(() => {
       const text = getSelectionText(editor.value)
       selectionText = text
     }, 200)
-    void throttleFn()
+    throttleFn()
   })
 })
 

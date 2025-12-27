@@ -84,7 +84,7 @@ const throttleTocTreeData = (toc) =>
 watch(
   () => editor.value?.storage.tableOfContents.content,
   (toc) => {
-    void throttleTocTreeData(toc)
+    throttleTocTreeData(toc)
   },
   { immediate: true },
 )

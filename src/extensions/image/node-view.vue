@@ -268,7 +268,7 @@ watch(
         uploadFileMap.value.set(node.attrs.id, file)
       }
       await nextTick()
-      void uploadImage()
+      uploadImage()
     }
   },
   { immediate: true },

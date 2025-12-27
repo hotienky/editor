@@ -435,12 +435,12 @@ watch(
   () => page.value.preview?.enabled,
   (enabled) => {
     if (enabled) {
-      void documentFullscreen.enter()
+      documentFullscreen.enter()
       if (page.value.layout === 'page') {
         autoWidth(false, 10)
       }
     } else {
-      void documentFullscreen.exit()
+      documentFullscreen.exit()
       zoomReset()
     }
   },

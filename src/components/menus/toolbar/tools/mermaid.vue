@@ -101,7 +101,7 @@ watch(
   async () => {
     if (dialogVisible) {
       await nextTick()
-      void renderMermaid()
+      renderMermaid()
     }
   },
   { immediate: true },

@@ -84,7 +84,7 @@ const editorInstance = new Editor({
       $document.value.content = editor.getHTML()
       addHistory(historyRecords, 'editor', editor?.state?.history$)
     }, 1000)
-    void throttleFn()
+    throttleFn()
   },
 })
 const editor = inject('editor')

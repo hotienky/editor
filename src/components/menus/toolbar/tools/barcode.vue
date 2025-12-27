@@ -327,7 +327,7 @@ watch(
   () => {
     if (dialogVisible) {
       changed = true
-      void renderBarcode()
+      renderBarcode()
     }
   },
   { immediate: true, deep: true },
