@@ -1,36 +1,15 @@
 {
   "compilerOptions": {
     "allowJs": true,
-    "checkJs": false,
     "target": "ESNext",
     "module": "ESNext",
-    "strict": false,
-    "noEmit": true,
-    "jsx": "preserve",
-    "moduleResolution": "bundler",
-    "experimentalDecorators": true,
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "useDefineForClassFields": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "types": [
-      "vue",
-      "unplugin-vue-macros/macros-global",
-      "@vue-macros/reactivity-transform/macros-global",
-      "vite/client"
-    ],
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "lib": ["ESNext", "DOM", "DOM.Iterable", "ScriptHost"]
+    }
   },
   "vueCompilerOptions": {
     "plugins": ["unplugin-vue-macros/volar"]
   },
-  "include": ["src/**/*.js", "src/**/*.vue", "types/**/*.d.ts"],
+  "include": ["src/**/*.js", "src/**/*.vue"],
   "exclude": ["node_modules", "dist"]
 }
