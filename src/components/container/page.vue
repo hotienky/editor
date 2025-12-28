@@ -136,7 +136,10 @@ const setPageZoomHeight = async () => {
 // 编辑器内容发生变化后，自动调整页面高度
 const editorInstance = inject('editor')
 onMounted(() => {
-  editorInstance.value.on('update', useThrottleFn(setPageZoomHeight, 200))
+  const throttleFn = useThrottleFn(setPageZoomHeight, 200)
+  editorInstance.value.on('update', () => {
+    throttleFn()
+  })
 })
 onBeforeUnmount(() => {
   editorInstance.value.off('update')

@@ -68,7 +68,7 @@ const highlightChange = (item) => {
     return
   }
   if (item.bgcolor) {
-    editor.value?.chain().focus().setHighlight({ color: item.bgcolor }).run()
+    editor.value?.chain().focus().setBackgroundColor(item.bgcolor).run()
   }
   if (item.color) {
     editor.value?.chain().focus().setColor(item.color).run()
@@ -76,7 +76,7 @@ const highlightChange = (item) => {
   highlight = item
 }
 const clearFormat = () => {
-  editor.value?.chain().focus().unsetHighlight().run()
+  editor.value?.chain().focus().unsetBackgroundColor().run()
   editor.value?.chain().focus().unsetColor().run()
   highlight = undefined
 }

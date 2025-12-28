@@ -1,6 +1,5 @@
-import OrderedList from '@tiptap/extension-ordered-list'
+import { OrderedList } from '@tiptap/extension-list'
 
-// https://www.npmjs.com/package/@tiptap/extension-ordered-list
 export default OrderedList.extend({
   content: 'listItem*',
   addAttributes() {

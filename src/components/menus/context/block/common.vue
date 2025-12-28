@@ -174,7 +174,7 @@ let menuActive = $ref(false)
 const popupProps = {
   attach: `${container} .umo-main-container`,
   onVisibleChange(visible) {
-    editor.value.commands.focus()
+    editor.value.commands.focus(props.pos)
     blockMenu.value = visible
     menuActive = visible
     emits('dropdownVisible', visible)

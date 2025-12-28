@@ -1,5 +1,9 @@
 <template>
-  <div v-if="items.length > 0" class="umo-popup umo-mention-popup">
+  <div
+    v-if="items.length > 0"
+    class="umo-popup umo-mention-popup"
+    ref="popupRef"
+  >
     <div class="umo-popup__content umo-dropdown">
       <div class="umo-dropdown__menu" style="padding: 5px; max-height: 320px">
         <div>
@@ -28,8 +32,13 @@ const props = defineProps({
     type: Function,
     required: true,
   },
+  clientRect: {
+    type: Function,
+    default: () => ({}),
+  },
 })
 
+const popupRef = ref(null)
 let selectedIndex = $ref(0)
 
 watch(
@@ -37,6 +46,19 @@ watch(
   () => {
     selectedIndex = 0
   },
+)
+
+watch(
+  () => props.clientRect,
+  async (rect) => {
+    if (rect && popupRef.value) {
+      await nextTick()
+      popupRef.value.style.position = 'fixed'
+      popupRef.value.style.left = `${rect.left}px`
+      popupRef.value.style.top = `${rect.bottom + window.scrollY}px`
+    }
+  },
+  { immediate: true },
 )
 
 const onKeyDown = ({ event }) => {

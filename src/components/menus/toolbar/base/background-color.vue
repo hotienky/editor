@@ -52,9 +52,9 @@ const colorChange = (color) => {
   }
 
   if (color === '') {
-    editor.value?.chain().focus().unsetHighlight().run()
+    editor.value?.chain().focus().unsetBackgroundColor().run()
   } else {
-    editor.value?.chain().focus().setHighlight({ color }).run()
+    editor.value?.chain().focus().setBackgroundColor(color).run()
   }
 }
 </script>

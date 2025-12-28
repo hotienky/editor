@@ -1,16 +1,23 @@
 <template>
   <drag-handle
+    v-if="editor"
     :editor="editor"
-    :tippy-options="tippyOpitons"
     class="umo-block-menu-drag-handle"
-    :class="{ 'is-empty': editor.isEmpty }"
+    :class="{
+      'is-empty': editor.isEmpty,
+      'is-visible': selectedNodePos !== null,
+    }"
     @node-change="nodeChange"
   >
     <div
       class="umo-block-menu-hander"
       :class="`umo-selected-node-${selectedNode?.type?.name || 'unknown'} `"
     >
-      <menus-context-block-node @dropdown-visible="dropdownVisible" />
+      <menus-context-block-node
+        :node="selectedNode"
+        :pos="selectedNodePos"
+        @dropdown-visible="dropdownVisible"
+      />
       <menus-context-block-common
         v-if="
           !editor.isEmpty ||
@@ -26,27 +33,11 @@
 </template>
 
 <script setup>
-import DragHandle from '@tiptap-pro/extension-drag-handle-vue-3'
+import { DragHandle } from '@tiptap/extension-drag-handle-vue-3'
 
 const editor = inject('editor')
 let selectedNode = $ref(null)
 let selectedNodePos = $ref(null)
-
-let tippyInstance = $ref(null)
-const tippyOpitons = $ref({
-  zIndex: 20,
-  popperOptions: {
-    modifiers: [
-      {
-        name: 'eventListeners',
-        options: { scroll: false, resize: false },
-      },
-    ],
-  },
-  onMount(instance) {
-    tippyInstance = instance
-  },
-})
 
 const nodeChange = ({ node, pos }) => {
   selectedNode = node || null
@@ -65,16 +56,21 @@ const dropdownVisible = (visible) => {
   .umo-menu-button {
     color: var(--umo-text-color-light) !important;
   }
-  &-drag-handle.is-empty {
-    .umo-block-menu-hander {
-      margin-top: 2px;
+  &-drag-handle {
+    &.is-empty {
+      z-index: 20;
+      .umo-block-menu-hander {
+        margin-top: 2px;
+      }
+    }
+    &.is-visible {
+      visibility: visible !important;
     }
   }
   &-hander {
-    position: absolute;
     display: flex;
-    right: -10px;
-    top: -5px;
+    right: 0;
+    margin-top: -5px;
     padding-right: 15px;
     @media print {
       display: none;
@@ -82,11 +78,12 @@ const dropdownVisible = (visible) => {
     &.umo-selected-node {
       &-table,
       &-horizontalRule,
+      &-codeBlock,
       &-ProseMirror-gapcursor {
-        margin-top: 5px;
+        margin-top: 0;
       }
       &-pageBreak {
-        margin-top: -6px;
+        margin-top: -11px;
       }
     }
     .umo-menu-button {

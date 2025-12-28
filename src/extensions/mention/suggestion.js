@@ -1,5 +1,4 @@
 import { VueRenderer } from '@tiptap/vue-3'
-import tippy from 'tippy.js'
 
 import Mentions from './mentions.vue'
 
@@ -25,7 +24,6 @@ export default (users, container) => {
 
     render: () => {
       let component
-      let popup
 
       return {
         onStart: (props) => {
@@ -34,40 +32,19 @@ export default (users, container) => {
             editor: props.editor,
           })
 
-          if (!props.clientRect) {
-            return
-          }
-
-          popup = tippy('body', {
-            getReferenceClientRect: props.clientRect,
-            appendTo: document.querySelector(
-              `${container} .umo-zoomable-container`,
-            ),
-            content: component.element,
-            showOnCreate: true,
-            interactive: true,
-            trigger: 'manual',
-            placement: 'bottom-start',
-          })
+          document.body.appendChild(component.element)
         },
         onUpdate(props) {
           component.updateProps(props)
-          if (!props.clientRect) {
-            return
-          }
-          popup[0].setProps({
-            getReferenceClientRect: props.clientRect,
-          })
         },
         onKeyDown(props) {
           if (props.event.key === 'Escape') {
-            popup[0].hide()
+            component.destroy()
             return true
           }
           return component.ref?.onKeyDown(props)
         },
         onExit() {
-          popup[0].destroy()
           component.destroy()
         },
       }

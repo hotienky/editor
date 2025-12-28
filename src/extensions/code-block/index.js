@@ -9,7 +9,7 @@ const lowlight = createLowlight(common)
 const customCodeBlock = CodeBlock.extend({
   addAttributes() {
     return {
-      ...(this.parent ?? {}),
+      ...this.parent?.(),
       language: {
         default: 'plaintext',
       },

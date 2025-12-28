@@ -1,4 +1,7 @@
-import Table from '@tiptap/extension-table'
+import { Table } from '@tiptap/extension-table'
+import { TableCell } from '@tiptap/extension-table/cell'
+import { TableHeader } from '@tiptap/extension-table/header'
+import { TableRow } from '@tiptap/extension-table/row'
 import { DOMParser as ProseMirrorDOMParser } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 
@@ -35,7 +38,8 @@ const extractStyles = (styleText) => {
   return styles
 }
 
-const CustomTable = Table.extend({
+// 扩展表格能力
+Table.extend({
   addProseMirrorPlugins() {
     return [
       ...(this.parent?.() ?? []),
@@ -99,7 +103,44 @@ const CustomTable = Table.extend({
   },
 })
 
-export default CustomTable.configure({
-  allowTableNodeSelection: true,
-  resizable: true,
-})
+// 扩展单元格
+const TableCellOptions = {
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      align: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('align') ?? null,
+        renderHTML: ({ align }) => ({ align }),
+      },
+      background: {
+        default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') ?? ''
+          const match = style.match(/background(?:-color)?:\s*([^;]+)/i)
+          return match ? match[1].trim() : null
+        },
+        renderHTML: ({ background }) => {
+          return background ? { style: `background-color: ${background}` } : {}
+        },
+      },
+      color: {
+        default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') ?? ''
+          const match = style.match(/(?<!background-)color:\s*([^;]+)/i)
+          if (style.includes('background-color')) return null
+          return match ? match[1].trim() : null
+        },
+        renderHTML: ({ color }) => {
+          return color ? { style: `color: ${color}` } : {}
+        },
+      },
+    }
+  },
+}
+
+TableHeader.extend(TableCellOptions)
+TableCell.extend(TableCellOptions)
+
+export { Table, TableCell, TableHeader, TableRow }

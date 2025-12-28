@@ -1,7 +1,6 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 
-// @tiptap-pro/extension-file-handler
 const FileHandlePlugin = (option) => {
   const { key, editor, onPaste, onDrop, allowedMimeTypes } = option
   return new Plugin({

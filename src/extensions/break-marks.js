@@ -1,8 +1,8 @@
-import { InvisibleNode } from '@tiptap-pro/extension-invisible-characters'
+import { InvisibleNode } from '@tiptap/extension-invisible-characters'
 import InvisibleCharacters, {
   HardBreakNode,
   ParagraphNode,
-} from '@tiptap-pro/extension-invisible-characters'
+} from '@tiptap/extension-invisible-characters'
 
 class HeadingNode extends InvisibleNode {
   constructor() {

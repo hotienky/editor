@@ -1,8 +1,8 @@
 import { nodeInputRule } from '@tiptap/core'
-import hr from '@tiptap/extension-horizontal-rule'
+import HorizontalRule from '@tiptap/extension-horizontal-rule'
 import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 
-export default hr.extend({
+export default HorizontalRule.extend({
   addOptions() {
     return {
       HTMLAttributes: {

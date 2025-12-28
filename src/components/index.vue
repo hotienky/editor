@@ -183,11 +183,7 @@ watch(
         zoom: 100,
       },
     }
-    if (showBreakMarks) {
-      editor.value?.commands.showInvisibleCharacters()
-    } else {
-      editor.value?.commands.hideInvisibleCharacters()
-    }
+    editor.value?.commands.showInvisibleCharacters(showBreakMarks)
   },
   { immediate: true, deep: true },
 )
@@ -709,7 +705,7 @@ const setContent = (
   const doc = contentTransform(content)
   editor.value
     .chain()
-    .setContent(doc, options.emitUpdate)
+    .setContent(doc, { emitUpdate: options.emitUpdate })
     .focus(options.focusPosition, options.focusOptions)
     .run()
 }

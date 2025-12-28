@@ -16,8 +16,8 @@ const options = inject('options')
 const $options = options.value.importWord
 
 // 动态导入 mammoth.js
-onMounted(async () => {
-  await loadResource(
+onMounted(() => {
+  loadResource(
     `${options.value.cdnUrl}/libs/mammoth/mammoth.browser.min.js`,
     'script',
     'mammoth-script',

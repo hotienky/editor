@@ -14,8 +14,16 @@ const CustomLink = Link.extend({
         props: {
           handleClick(view, pos, event) {
             const { target } = event
-            if (target.tagName === 'A') {
-              const href = target.getAttribute('href')
+            if (target.tagName !== 'A') {
+              return false
+            }
+
+            const href = target.getAttribute('href')
+            if (!href) {
+              return false
+            }
+
+            if (view.editable) {
               view.dispatch(
                 view.state.tr.setMeta('link-click', {
                   target,
@@ -23,9 +31,9 @@ const CustomLink = Link.extend({
                   pos,
                 }),
               )
-              return true
             }
-            return false
+
+            return true
           },
         },
       }),
@@ -38,10 +46,6 @@ const CustomLink = Link.extend({
       this.storage.meta = meta
     }
   },
-})
-
-CustomLink.configure({
-  openOnClick: (props) => !props.editor.isEditable,
 })
 
 export default CustomLink

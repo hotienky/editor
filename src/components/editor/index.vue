@@ -98,8 +98,8 @@ watch(
   { immediate: true, deep: true },
 )
 
-onMounted(async () => {
-  await loadResource(
+onMounted(() => {
+  loadResource(
     `${options.value.cdnUrl}/libs/katex/katex.min.css`,
     'css',
     'katex-style',
@@ -108,7 +108,7 @@ onMounted(async () => {
 
 // 销毁编辑器实例
 onBeforeUnmount(() => {
-  editorInstance.destroy()
+  editorInstance.unmount()
 })
 </script>
 

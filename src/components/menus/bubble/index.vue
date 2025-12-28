@@ -1,9 +1,11 @@
 <template>
   <bubble-menu
+    v-if="editor"
     class="umo-editor-bubble-menu"
     :class="{ assistant }"
     :editor="editor"
-    :tippy-options="tippyOpitons"
+    :append-to="appendTo"
+    :options="floatingUiOptions"
   >
     <menus-bubble-menus
       v-if="options?.document?.enableBubbleMenu && !assistant"
@@ -17,54 +19,30 @@
 </template>
 
 <script setup>
-import { BubbleMenu } from '@tiptap/vue-3'
+import { BubbleMenu } from '@tiptap/vue-3/menus'
+import { computed } from 'vue'
 
 const container = inject('container')
 const editor = inject('editor')
 const assistant = inject('assistant')
 const options = inject('options')
 
-// 气泡菜单
-let tippyInstance = $ref(null)
-const tippyOpitons = $ref({
-  appendTo: () =>
-    document.querySelector(`${container} .umo-zoomable-container`),
-  maxWidth: 580,
-  zIndex: 110,
-  onShow(instance) {
-    tippyInstance = instance
-  },
-  onHide() {
-    assistant.value = false
-  },
-  onDestroy() {
-    tippyInstance = null
-  },
-})
-
-// AI 助手
-watch(
-  () => [assistant.value],
-  (visible) => {
-    if (tippyInstance) {
-      tippyInstance?.setProps({
-        placement: visible.includes(true) ? 'bottom' : 'top',
-      })
-    }
-  },
+const appendTo = computed(() =>
+  document.querySelector(`${container} .umo-zoomable-container`),
 )
 
-// 销毁 tippy
-onUnmounted(() => {
-  if (tippyInstance) {
-    tippyInstance.destroy()
-    tippyInstance = null
-  }
-})
+const floatingUiOptions = computed(() => ({
+  placement: assistant.value ? 'bottom' : 'top',
+  onHide: () => {
+    assistant.value = false
+  },
+}))
 </script>
 
 <style lang="less">
 .umo-editor-bubble-menu {
+  max-width: 580px;
+  z-index: 110;
   border-radius: var(--umo-radius);
   display: flex;
   align-items: center;

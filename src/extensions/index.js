@@ -1,27 +1,15 @@
-import SearchReplace from '@sereneinserenade/tiptap-search-and-replace'
 import Bold from '@tiptap/extension-bold'
-import CharacterCount from '@tiptap/extension-character-count'
-import Color from '@tiptap/extension-color'
-import Dropcursor from '@tiptap/extension-dropcursor'
-import Focus from '@tiptap/extension-focus'
-import FontFamily from '@tiptap/extension-font-family'
-import Highlight from '@tiptap/extension-highlight'
-import History from '@tiptap/extension-history'
-import Placeholder from '@tiptap/extension-placeholder'
+import { TaskItem, TaskList } from '@tiptap/extension-list'
+import Mathematics from '@tiptap/extension-mathematics'
+import NodeRange from '@tiptap/extension-node-range'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
-import TableRow from '@tiptap/extension-table-row'
-import TaskItem from '@tiptap/extension-task-item'
-import TaskList from '@tiptap/extension-task-list'
-import TextColor from '@tiptap/extension-text-style'
+import { getHierarchicalIndexes } from '@tiptap/extension-table-of-contents'
+import { TableOfContents } from '@tiptap/extension-table-of-contents'
+import { TextStyleKit } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
-import Underline from '@tiptap/extension-underline'
+import { CharacterCount, Focus, UndoRedo } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
-import { ColumnsExtension as Columns } from '@tiptap-extend/columns'
-import Mathematics from '@tiptap-pro/extension-mathematics'
-import NodeRange from '@tiptap-pro/extension-node-range'
-import { getHierarchicalIndexes } from '@tiptap-pro/extension-table-of-contents'
-import { TableOfContents } from '@tiptap-pro/extension-table-of-contents'
 
 import { l } from '@/composables/i18n'
 import { useState } from '@/composables/state'
@@ -38,14 +26,11 @@ import Datetime from './datetime'
 import Echarts from './echarts'
 import File from './file'
 import FileHandler from './file-handler'
-import FontSize from './font-size'
 import FormatPainter from './format-painter'
-import Hr from './hr'
+import HorizontalRule from './hr'
 import Iframe from './iframe'
 import { BlockImage, InlineImage } from './image'
 import Indent from './indent'
-import LineHeight from './line-height'
-import Link from './link'
 import Margin from './margin'
 import Mention from './mention'
 import getUsersSuggestion from './mention/suggestion'
@@ -54,9 +39,7 @@ import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
 import Selection from './selection'
-import Table from './table'
-import TableCell from './table/cell'
-import TableHeader from './table/header'
+import { Table, TableCell, TableHeader, TableRow } from './table'
 import Tag from './tag'
 import TextAlign from './text-align'
 import TextBox from './text-box'
@@ -65,36 +48,13 @@ import typeWriter from './type-writer'
 import Video from './video'
 
 export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
-  const {
-    dicts,
-    page,
-    document: doc,
-    users,
-    file,
-    disableExtensions,
-  } = options.value
+  const { page, document: doc, users, file, disableExtensions } = options.value
 
   const EXTENSIONS = {
-    highlight: Highlight.configure({
-      multicolor: true,
-    }),
     'ordered-list': OrderedList,
     'bullet-list': BulletList,
-    'task-list': [
-      TaskItem.configure({ nested: true }),
-      TaskList.configure({
-        HTMLAttributes: {
-          class: 'umo-task-list',
-        },
-      }),
-    ],
-    'line-height': LineHeight.configure({
-      types: ['heading', 'paragraph'],
-      defaultLineHeight:
-        dicts?.lineHeights?.find((item) => item.default)?.value ?? undefined,
-    }),
+    'task-list': TaskList,
     margin: Margin,
-    link: Link,
     image: BlockImage,
     inlineImage: InlineImage,
     video: Video,
@@ -103,7 +63,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     symbol: Symbol,
     math: Mathematics,
     tag: Tag,
-    columns: Columns,
     callout: Callout,
     mention: Mention.configure({
       suggestion: getUsersSuggestion(users ?? [], container),
@@ -116,7 +75,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     'hard-break': BreakMarks.configure({
       visible: page?.showBreakMarks,
     }),
-    hr: Hr,
+    hr: HorizontalRule,
     toc: Toc,
     'text-box': TextBox,
     'web-page': Iframe,
@@ -129,13 +88,18 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       orderedList: false,
       codeBlock: false,
       horizontalRule: false,
-      dropcursor: false,
+      undoRedo: false,
       history: false,
+      link: !disableExtensions.includes('link'),
+      placeholder: {
+        placeholder: () => String(l(doc?.placeholder ?? '')),
+      },
+      dropcursor: {
+        color: 'var(--umo-primary-color)',
+      },
     }),
-    Placeholder.configure({
-      placeholder: () => String(l(doc?.placeholder ?? '')),
-    }),
-    History.extend({
+    TextStyleKit,
+    UndoRedo.extend({
       addKeyboardShortcuts() {
         // 返回空对象表示移除所有默认快捷键
         return {}
@@ -146,31 +110,27 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       mode: 'all',
     }),
     FormatPainter,
-    FontFamily,
-    FontSize,
     Bold.extend({
       renderHTML: ({ HTMLAttributes }) => ['b', HTMLAttributes, 0],
     }),
-    Underline,
     Subscript,
     Superscript,
-    Color,
-    TextColor,
     Indent,
     TextAlign,
     NodeAlign,
-    SearchReplace.configure({
-      searchResultClass: 'umo-search-result',
-    }),
+    TaskItem,
 
     // 插入
     File,
 
     // 表格
-    Table,
+    Table.configure({
+      allowTableNodeSelection: true,
+      resizable: true,
+    }),
     TableRow,
-    TableHeader,
     TableCell,
+    TableHeader,
 
     // 工具
     Echarts,
@@ -226,9 +186,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
           })
         }
       },
-    }),
-    Dropcursor.configure({
-      color: 'var(--umo-primary-color)',
     }),
     typeWriter,
   ]

@@ -1,14 +1,8 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "target": "ESNext",
-    "module": "ESNext",
     "paths": {
       "@/*": ["./src/*"]
     }
-  },
-  "vueCompilerOptions": {
-    "plugins": ["unplugin-vue-macros/volar"]
   },
   "include": ["src/**/*.js", "src/**/*.vue"],
   "exclude": ["node_modules", "dist"]
