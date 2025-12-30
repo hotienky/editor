@@ -50,7 +50,6 @@ const insertImage = (type) => {
     .focus()
     .selectFiles(type, container.value, uploadFileMap.value)
     .run()
-  popupVisible.value = false
 }
 </script>
 <style lang="less">
