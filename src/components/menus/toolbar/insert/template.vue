@@ -67,6 +67,7 @@ const setTemplate = ({ content }) => {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
+    font-size: 12px;
   }
 }
 </style>
