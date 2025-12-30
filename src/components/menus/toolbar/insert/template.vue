@@ -19,10 +19,10 @@
           }"
           @click="setTemplate(item)"
         >
-          <div class="title">{{ item.title }}</div>
+          <div class="umo-templates-dropdown-title">{{ item.title }}</div>
           <div
             v-if="item.description && item.description !== ''"
-            class="description"
+            class="umo-templates-dropdown-description"
           >
             {{ item.description }}
           </div>
@@ -51,12 +51,12 @@ const setTemplate = ({ content }) => {
     min-width: 200px;
     max-width: 320px;
   }
-  .title {
+  &-title {
     display: flex;
     align-items: center;
     font-size: 14px;
   }
-  .description {
+  &-description {
     color: var(--umo-text-color-light);
     white-space: normal;
     line-height: 1.4;
