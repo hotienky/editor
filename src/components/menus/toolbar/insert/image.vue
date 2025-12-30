@@ -25,8 +25,6 @@
 </template>
 
 <script setup>
-const { popupVisible, togglePopup } = usePopup()
-
 const container = inject('container')
 const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
