@@ -14,9 +14,12 @@
           :value="item.value"
           @click="insertImage(item.value)"
         >
-          <div class="title">{{ item.title }}</div>
-          <div class="description">
-            {{ item.description }}
+          <icon :name="item.icon" class="umo-image-dropdown-icon" />
+          <div>
+            <div class="umo-image-dropdown-title">{{ item.title }}</div>
+            <div class="umo-image-dropdown-description">
+              {{ item.description }}
+            </div>
           </div>
         </t-dropdown-item>
       </t-dropdown-menu>
@@ -33,11 +36,13 @@ const imageOptions = [
   {
     title: t('insert.image.block'),
     value: 'image',
+    icon: 'image',
     description: t('insert.image.blockdesc'),
   },
   {
     title: t('insert.image.inline'),
     value: 'inlineImage',
+    icon: 'image-inline',
     description: t('insert.image.inlinedesc'),
   },
 ]
@@ -54,23 +59,23 @@ const insertImage = (type) => {
 .umo-image-dropdown {
   .umo-dropdown__item-text {
     padding: 5px 5px;
+    display: flex;
+    gap: 8px;
   }
-  .title {
+  &-icon {
+    font-size: 2em;
+    opacity: 0.6;
+  }
+  &-title {
     display: flex;
     align-items: center;
     font-size: 14px;
   }
-  .description {
+  &-description {
     color: var(--umo-text-color-light);
     white-space: normal;
     line-height: 1.4;
-    margin-top: 3px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
+    font-size: 12px;
   }
 }
 </style>
