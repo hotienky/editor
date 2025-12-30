@@ -3,7 +3,7 @@ import { AllSelection, TextSelection } from '@tiptap/pm/state'
 import { isFunction } from '@tool-belt/type-predicates'
 
 // @weiruo/tiptap-extension-indent Version:2.0.4-1
-const classAttrPrefix = 'indent-'
+const classAttrPrefix = 'umo-indent-'
 export default Extension.create({
   name: 'indent',
   addOptions() {
