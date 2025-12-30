@@ -1,4 +1,5 @@
 import Bold from '@tiptap/extension-bold'
+import Link from '@tiptap/extension-link'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import Mathematics from '@tiptap/extension-mathematics'
 import NodeRange from '@tiptap/extension-node-range'
@@ -55,6 +56,10 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     'bullet-list': BulletList,
     'task-list': TaskList,
     margin: Margin,
+    link: Link.configure({
+      openOnClick: false,
+      enableClickSelection: true,
+    }),
     image: BlockImage,
     inlineImage: InlineImage,
     video: Video,
@@ -92,7 +97,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       horizontalRule: false,
       undoRedo: false,
       history: false,
-      link: !disableExtensions.includes('link'),
+      link: false,
       placeholder: {
         placeholder: () => String(l(doc?.placeholder ?? '')),
       },

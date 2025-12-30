@@ -159,8 +159,8 @@
     },
     "link": {
       "text": "Link",
-      "insert": "Insert",
-      "remove": "Remove",
+      "confirm": "Confirm",
+      "remove": "Remove Link",
       "hrefText": "Link Text:",
       "hrefTextTip": "Enter or select link text",
       "href": "Link URL:",

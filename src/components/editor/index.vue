@@ -31,7 +31,6 @@
         <slot name="bubble_menu" v-bind="props" />
       </template>
     </menus-bubble>
-    <menus-bubble-link v-if="editor?.storage?.link?.edit" />
   </template>
 </template>
 

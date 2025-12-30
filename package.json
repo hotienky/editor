@@ -73,6 +73,7 @@
     "@tiptap/extension-horizontal-rule": "3.14.0",
     "@tiptap/extension-image": "3.14.0",
     "@tiptap/extension-invisible-characters": "3.14.0",
+    "@tiptap/extension-link": "^3.14.0",
     "@tiptap/extension-list": "3.14.0",
     "@tiptap/extension-mathematics": "3.14.0",
     "@tiptap/extension-mention": "3.14.0",

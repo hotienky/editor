@@ -1,6 +1,9 @@
 <template>
-  <menus-button :text="t('insert.link.open')" @menu-click="menuClick">
-    <a class="umo-link" :href="editor.storage.link.meta.href" target="_blank"
+  <menus-button :text="t('insert.link.open')">
+    <a
+      class="umo-link"
+      :href="editor?.getAttributes('link').href"
+      target="_blank"
       ><icon name="link" /> {{ t('insert.link.open') }}</a
     >
   </menus-button>
@@ -8,13 +11,6 @@
 
 <script setup>
 const editor = inject('editor')
-const emits = defineEmits(['hide-bubble'])
-
-const menuClick = () => {
-  setTimeout(() => {
-    emits('hide-bubble')
-  }, 100)
-}
 </script>
 
 <style lang="less" scoped>
@@ -22,6 +18,7 @@ const menuClick = () => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--umo-text-color);
+  color: var(--umo-primary-color);
+  text-decoration: none !important;
 }
 </style>

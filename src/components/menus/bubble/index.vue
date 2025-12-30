@@ -20,7 +20,6 @@
 
 <script setup>
 import { BubbleMenu } from '@tiptap/vue-3/menus'
-import { computed } from 'vue'
 
 const container = inject('container')
 const editor = inject('editor')

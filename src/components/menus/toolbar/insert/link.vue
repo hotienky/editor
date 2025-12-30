@@ -28,13 +28,18 @@
             />
           </t-form-item>
           <t-form-item>
-            <t-button theme="primary" type="submit" @click="insertLink">{{
-              t('insert.link.insert')
-            }}</t-button>
+            <t-button
+              theme="primary"
+              type="submit"
+              :disabled="href === '' || text === ''"
+              @click="insertLink"
+              >{{ t('insert.link.confirm') }}</t-button
+            >
             <t-button
               theme="default"
               variant="text"
               style="margin-left: 10px"
+              :disabled="href === '' || text === ''"
               @click="removeLink"
               >{{ t('insert.link.remove') }}</t-button
             >

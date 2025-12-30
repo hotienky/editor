@@ -159,8 +159,8 @@
     },
     "link": {
       "text": "链接",
-      "insert": "插入",
-      "remove": "移除",
+      "confirm": "确定",
+      "remove": "移除链接",
       "hrefText": "链接文本：",
       "hrefTextTip": "请输入或选中链接文本",
       "href": "链接地址：",
