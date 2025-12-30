@@ -103,7 +103,6 @@
               v-if="!disableMenu('chinese-date')"
             />
             <menus-toolbar-insert-emoji v-if="!disableMenu('emoji')" />
-            <menus-toolbar-insert-math v-if="!disableMenu('math')" />
           </div>
           <div class="umo-virtual-group">
             <menus-toolbar-insert-tag v-if="!disableMenu('tag')" />
@@ -195,6 +194,7 @@
             <menus-toolbar-tools-seal v-if="!disableMenu('seal')" />
           </div>
           <div class="umo-virtual-group">
+            <menus-toolbar-tools-math v-if="!disableMenu('math')" />
             <menus-toolbar-tools-diagrams v-if="!disableMenu('diagrams')" />
             <menus-toolbar-tools-echarts v-if="!disableMenu('echarts')" />
             <!-- <menus-toolbar-tools-mind-map v-if="!disableMenu('mind-map')" /> -->

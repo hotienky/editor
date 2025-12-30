@@ -170,7 +170,6 @@
       "open": "Open Link",
       "edit": "Edit Link"
     },
-    "math": "Mathematics",
     "columns": "Columns",
     "tag": "Tag",
     "callout": "Callout",
@@ -300,6 +299,18 @@
     "chineseCase": {
       "text": "Chinese Case",
       "tip": "Chinese Case Conversion"
+    },
+    "math": {
+      "text": "Mathematics",
+      "insert": "Insert LaTeX Math",
+      "edit": "Edit LaTeX Math",
+      "update": "Update Math",
+      "inline": "Inline Math",
+      "block": "Block Math",
+      "placeholder": "Enter LaTeX or select from the right",
+      "preview": "Math Preview Area",
+      "cancel": "Cancel",
+      "confirm": "Insert Math"
     },
     "diagrams": {
       "text": "Diagram",

@@ -170,7 +170,6 @@
       "open": "打开链接",
       "edit": "编辑链接"
     },
-    "math": "数学公式",
     "columns": "分栏",
     "tag": "标签",
     "callout": "高亮块",
@@ -300,6 +299,18 @@
     "chineseCase": {
       "text": "中文大小写",
       "tip": "中文大小写"
+    },
+    "math": {
+      "text": "公式",
+      "insert": "插入 LaTex 公式",
+      "edit": "编辑公式",
+      "update": "更新公式",
+      "inline": "行内公式",
+      "block": "块级公式",
+      "placeholder": "请输入 LaTex 公式或从右侧选择",
+      "preview": "公式预览区域",
+      "cancel": "取消",
+      "confirm": "插入公式"
     },
     "diagrams": {
       "text": "流程图",

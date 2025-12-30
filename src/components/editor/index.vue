@@ -37,6 +37,7 @@
 
 <script setup>
 import { Editor, EditorContent } from '@tiptap/vue-3'
+import { migrateMathStrings } from '@tiptap/extension-mathematics'
 
 import { getDefaultExtensions, inputAndPasteRules } from '@/extensions'
 import { contentTransform } from '@/utils/content-transform'
@@ -79,6 +80,9 @@ const editorInstance = new Editor({
   },
   parseOptions: options.value.document?.parseOptions,
   extensions: [...extensions, ...options.value.extensions],
+  onCreate: ({ editor }) => {
+    migrateMathStrings(editor)
+  },
   onUpdate({ editor }) {
     const throttleFn = useThrottleFn(() => {
       $document.value.content = editor.getHTML()

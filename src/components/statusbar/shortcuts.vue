@@ -193,11 +193,6 @@ if ($document.value.enableMarkdown) {
         keys: ['`', 'TEXT', '`'],
       },
       {
-        icon: 'math',
-        label: t('insert.math'),
-        keys: ['$', 'TEXT', '$'],
-      },
-      {
         icon: 'highlight',
         tag: 'mark',
         label: t('base.highlight.text'),

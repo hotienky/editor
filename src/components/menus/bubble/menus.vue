@@ -170,6 +170,14 @@
       <div class="umo-bubble-menu-divider"></div>
       <menus-bubble-node-delete />
     </template>
+    <template
+      v-else-if="
+        editor?.isActive('blockMath') || editor?.isActive('inlineMath')
+      "
+    >
+      <menus-bubble-math />
+      <menus-bubble-node-delete />
+    </template>
     <template v-else>
       <template v-if="options.ai?.assistant?.enabled">
         <menus-bubble-assistant />
@@ -197,8 +205,6 @@
         <menus-toolbar-base-highlight v-if="!disableMenu('highlight')" />
       </template>
       <template v-else>
-        <menus-bubble-text-box-border />
-        <menus-bubble-text-box-background />
         <div class="umo-bubble-menu-divider"></div>
         <menus-bubble-node-delete />
       </template>

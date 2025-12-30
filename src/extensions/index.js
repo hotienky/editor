@@ -61,7 +61,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     audio: Audio,
     'code-block': CodeBlock,
     symbol: Symbol,
-    math: Mathematics,
+    math: Mathematics.configure({
+      katex: { throwOnError: false },
+    }),
     tag: Tag,
     callout: Callout,
     mention: Mention.configure({
