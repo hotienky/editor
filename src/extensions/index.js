@@ -28,7 +28,7 @@ import Echarts from './echarts'
 import File from './file'
 import FileHandler from './file-handler'
 import FormatPainter from './format-painter'
-import HorizontalRule from './hr'
+import HorizontalRule from './horizontal-rule'
 import Iframe from './iframe'
 import { BlockImage, InlineImage } from './image'
 import Indent from './indent'
@@ -36,6 +36,7 @@ import Margin from './margin'
 import Mention from './mention'
 import getUsersSuggestion from './mention/suggestion'
 import NodeAlign from './node-align'
+import NodeSelect from './node-select'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
@@ -81,7 +82,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     'hard-break': BreakMarks.configure({
       visible: page?.showBreakMarks,
     }),
-    hr: HorizontalRule,
+    'horizontal-rule': HorizontalRule,
     toc: Toc,
     'text-box': TextBox,
     'web-page': Iframe,
@@ -115,6 +116,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       className: 'umo-node-focused',
       mode: 'all',
     }),
+    NodeSelect,
     FormatPainter,
     Bold.extend({
       renderHTML: ({ HTMLAttributes }) => ['b', HTMLAttributes, 0],

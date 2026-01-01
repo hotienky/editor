@@ -6,6 +6,7 @@ export const getSelectionNode = (editor) => {
   editor.commands.selectParentNode()
   return $anchor.node(1) || node
 }
+
 export const getSelectionText = (editor) => {
   const { from, to, empty } = editor.state.selection
   if (empty) {
@@ -14,7 +15,6 @@ export const getSelectionText = (editor) => {
   return editor.state.doc.textBetween(from, to, '')
 }
 
-// 设置选中区域 包含选中效果
 export const setSelectionText = (editor, prevDocLength, from, to) => {
   const state = editor?.state
   // 计算新的文档长度
