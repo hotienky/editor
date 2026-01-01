@@ -19,9 +19,6 @@ const customCodeBlock = CodeBlock.extend({
       wordWrap: {
         default: true,
       },
-      updated: {
-        default: false,
-      },
     }
   },
   addNodeView() {

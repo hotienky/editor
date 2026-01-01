@@ -61,7 +61,6 @@ import domToImage from 'dom-to-image-more'
 import enConfig from 'tdesign-vue-next/esm/locale/en_US'
 import cnConfig from 'tdesign-vue-next/esm/locale/zh_CN'
 
-import { getSelectionNode, getSelectionText } from '@/utils/selection'
 import { getTypewriterRunState } from '@/extensions/type-writer'
 import { i18n } from '@/i18n'
 import { propsOptions } from '@/options'
@@ -73,6 +72,7 @@ import {
   undoHistoryRecord,
 } from '@/utils/history-record'
 import { getOpitons } from '@/utils/options'
+import { getSelectionNode, getSelectionText } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 const { toBlob, toJpeg, toPng } = domToImage
 
