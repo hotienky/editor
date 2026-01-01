@@ -17,7 +17,7 @@
 import { removeBackground } from '@imgly/background-removal'
 
 import { updateAttributesWithoutHistory } from '@/extensions/file'
-import { getSelectionNode } from '@/extensions/selection'
+import { getSelectionNode } from '@/utils/selection'
 
 const editor = inject('editor')
 const options = inject('options')

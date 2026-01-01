@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-import { getSelectionText } from '@/extensions/selection'
+import { getSelectionText } from '@/utils/selection'
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')

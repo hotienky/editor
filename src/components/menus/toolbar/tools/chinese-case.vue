@@ -28,7 +28,7 @@
 <script setup>
 import nzh from 'nzh/cn'
 
-import { getSelectionText } from '@/extensions/selection'
+import { getSelectionText } from '@/utils/selection'
 
 const editor = inject('editor')
 const container = inject('container')

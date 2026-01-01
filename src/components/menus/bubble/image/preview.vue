@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { getSelectionNode } from '@/extensions/selection'
+import { getSelectionNode } from '@/utils/selection'
 
 const editor = inject('editor')
 const imageViewer = inject('imageViewer')

@@ -221,7 +221,7 @@ import {
   calbaseConfigData,
   calbaseConfigOptions,
 } from '@/extensions/echarts/cal-service'
-import { getSelectionNode } from '@/extensions/selection'
+import { getSelectionNode } from '@/utils/selection'
 import { loadResource } from '@/utils/load-resource'
 import { shortId } from '@/utils/short-id'
 

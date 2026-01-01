@@ -124,7 +124,7 @@
 <script setup>
 import { isString } from '@tool-belt/type-predicates'
 
-import { getSelectionText, setSelectionText } from '@/extensions/selection'
+import { getSelectionText, setSelectionText } from '@/utils/selection'
 
 const container = inject('container')
 const editor = inject('editor')

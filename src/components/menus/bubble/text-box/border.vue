@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { getSelectionNode } from '@/extensions/selection'
+import { getSelectionNode } from '@/utils/selection'
 
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')

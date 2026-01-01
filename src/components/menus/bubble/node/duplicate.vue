@@ -7,7 +7,7 @@
 </template>
 
 <script setup>
-import { getSelectionNode } from '@/extensions/selection'
+import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 
 const editor = inject('editor')

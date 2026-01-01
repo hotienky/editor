@@ -9,7 +9,7 @@ import { getHierarchicalIndexes } from '@tiptap/extension-table-of-contents'
 import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { TextStyleKit } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
-import { CharacterCount, Focus, UndoRedo } from '@tiptap/extensions'
+import { CharacterCount, Focus, Selection, UndoRedo } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
 
 import { l } from '@/composables/i18n'
@@ -39,7 +39,6 @@ import NodeAlign from './node-align'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
-import Selection from './selection'
 import { Table, TableCell, TableHeader, TableRow } from './table'
 import Tag from './tag'
 import TextAlign from './text-align'
@@ -146,7 +145,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     PageBreak,
 
     // 其他
-    Selection,
+    Selection.configure({
+      className: 'umo-text-selection',
+    }),
     NodeRange,
     TableOfContents.configure({
       getIndex: getHierarchicalIndexes,

@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import { getSelectionText } from '@/extensions/selection'
+import { getSelectionText } from '@/utils/selection'
 
 const editor = inject('editor')
 const searchReplace = inject('searchReplace')

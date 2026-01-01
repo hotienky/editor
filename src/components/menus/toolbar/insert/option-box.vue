@@ -93,7 +93,7 @@ import { shortId } from '@/utils/short-id'
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
 const editor = inject('editor')
-import { getSelectionNode } from '@/extensions/selection'
+import { getSelectionNode } from '@/utils/selection'
 
 const props = defineProps({
   toEdit: {
