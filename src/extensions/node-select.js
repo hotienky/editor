@@ -12,14 +12,12 @@ export default Extension.create({
         'toc',
         'file',
         'iframe',
-        'codeBlock',
         'audio',
         'echarts',
         'video',
         'image',
         'pageBreak',
         'callout',
-        'textBox',
       ],
     }
   },
@@ -31,8 +29,7 @@ export default Extension.create({
         key: new PluginKey('clickSelectNode'),
         props: {
           handleDOMEvents: {
-            // 使用 mousedown 通常比 click 反应更快且更稳定
-            mousedown(view, event) {
+            click(view, event) {
               const { state, dispatch } = view
 
               const pos = view.posAtCoords({
@@ -42,20 +39,20 @@ export default Extension.create({
 
               if (!pos) return false
 
-              const node = state.doc.nodeAt(
-                pos.inside >= 0 ? pos.inside : pos.pos,
-              )
+              const resolvedPos = pos.inside >= 0 ? pos.inside : pos.pos
 
-              if (!node || !types.includes(node.type.name)) return false
+              const node = state.doc.nodeAt(resolvedPos)
 
-              const selection = NodeSelection.create(
-                state.doc,
-                pos.inside >= 0 ? pos.inside : pos.pos,
-              )
+              if (!node || !types.includes(node.type.name)) {
+                return false
+              }
+
+              const selection = NodeSelection.create(state.doc, resolvedPos)
+
               dispatch(state.tr.setSelection(selection))
-
               view.focus()
 
+              // 返回 true 表示事件已处理，阻止 PM 继续处理
               return true
             },
           },
