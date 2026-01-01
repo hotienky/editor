@@ -9,7 +9,14 @@ import { getHierarchicalIndexes } from '@tiptap/extension-table-of-contents'
 import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { TextStyleKit } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
-import { CharacterCount, Focus, Selection, UndoRedo } from '@tiptap/extensions'
+import {
+  CharacterCount,
+  Dropcursor,
+  Focus,
+  Placeholder,
+  Selection,
+  UndoRedo,
+} from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
 
 import { l } from '@/composables/i18n'
@@ -98,12 +105,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       undoRedo: false,
       history: false,
       link: false,
-      placeholder: {
-        placeholder: () => String(l(doc?.placeholder ?? '')),
-      },
-      dropcursor: {
-        color: 'var(--umo-primary-color)',
-      },
+      placeholder: false,
+      dropcursor: false,
     }),
     TextStyleKit,
     UndoRedo.extend({
@@ -115,6 +118,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     Focus.configure({
       className: 'umo-node-focused',
       mode: 'all',
+    }),
+    Placeholder.configure({
+      placeholder: () => String(l(doc?.placeholder ?? '')),
     }),
     NodeSelect,
     FormatPainter,
@@ -196,6 +202,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
           })
         }
       },
+    }),
+    Dropcursor.configure({
+      color: 'var(--umo-primary-color)',
     }),
     typeWriter,
   ]
