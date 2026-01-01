@@ -1,7 +1,5 @@
 <template>
-  <template
-    v-if="editor?.isActive('link') && editor?.getAttributes('link').href"
-  >
+  <template v-if="is('link') && attrs('link').href">
     <menus-bubble-link-open />
     <div class="umo-bubble-menu-divider"></div>
     <menus-toolbar-insert-link ico="edit" />
@@ -10,11 +8,7 @@
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
-  <template
-    v-else-if="
-      editor?.isActive('image') && !editor?.getAttributes('image').error
-    "
-  >
+  <template v-else-if="is('image') && !attrs('image').error">
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
@@ -26,43 +20,32 @@
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-image-remove-background
       v-if="
-        editor?.getAttributes('image')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(
-          editor?.getAttributes('image')?.type,
-        )
+        attrs('image')?.type.startsWith('image') ||
+        ['image/png', 'image/jpeg'].includes(attrs('image')?.type)
       "
     />
     <menus-bubble-image-preview
       v-if="
-        editor?.getAttributes('image')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(
-          editor?.getAttributes('image')?.type,
-        )
+        attrs('image')?.type.startsWith('image') ||
+        ['image/png', 'image/jpeg'].includes(attrs('image')?.type)
       "
     />
     <menus-bubble-image-edit />
     <menus-bubble-image-open />
     <menus-bubble-node-duplicate
-      v-if="
-        editor?.isActive('image') && editor?.getAttributes('image').draggable
-      "
+      v-if="is('image') && attrs('image').draggable"
     />
     <menus-bubble-node-tofile
       v-if="
-        editor?.getAttributes('image').previewType !== null &&
-        editor?.getAttributes('image').type.startsWith('image')
+        attrs('image').previewType !== null &&
+        attrs('image').type.startsWith('image')
       "
     />
     <menus-bubble-image-convert />
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
-  <template
-    v-else-if="
-      editor?.isActive('inlineImage') &&
-      !editor?.getAttributes('inlineImage').error
-    "
-  >
+  <template v-else-if="is('inlineImage') && !attrs('inlineImage').error">
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
@@ -72,18 +55,14 @@
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-image-remove-background
       v-if="
-        editor?.getAttributes('inlineImage')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(
-          editor?.getAttributes('inlineImage')?.type,
-        )
+        attrs('inlineImage')?.type.startsWith('image') ||
+        ['image/png', 'image/jpeg'].includes(attrs('inlineImage')?.type)
       "
     />
     <menus-bubble-image-preview
       v-if="
-        editor?.getAttributes('inlineImage')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(
-          editor?.getAttributes('inlineImage')?.type,
-        )
+        attrs('inlineImage')?.type.startsWith('image') ||
+        ['image/png', 'image/jpeg'].includes(attrs('inlineImage')?.type)
       "
     />
     <menus-bubble-image-open />
@@ -92,41 +71,30 @@
     <menus-bubble-node-delete />
   </template>
   <template
-    v-else-if="
-      editor?.isActive('video') ||
-      editor?.isActive('audio') ||
-      editor?.isActive('file') ||
-      editor?.isActive('iframe')
-    "
+    v-else-if="is('video') || is('audio') || is('file') || is('iframe')"
   >
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
     <div class="umo-bubble-menu-divider"></div>
-    <template v-if="editor?.isActive('iframe')">
+    <template v-if="is('iframe')">
       <menus-bubble-webpage-clickable />
       <menus-toolbar-insert-web-page
-        v-if="!disableMenu('web-page')"
+        v-if="!disable('web-page')"
         ico="edit"
-        :page-type="editor?.getAttributes('iframe')?.type"
-        :page-url="editor?.getAttributes('iframe')?.src"
+        :page-type="attrs('iframe')?.type"
+        :page-url="attrs('iframe')?.src"
       />
       <menus-bubble-webpage-open />
       <div class="umo-bubble-menu-divider"></div>
     </template>
     <menus-bubble-file-download
-      v-if="
-        editor?.isActive('file') ||
-        editor?.isActive('video') ||
-        editor?.isActive('audio')
-      "
+      v-if="is('file') || is('video') || is('audio')"
     />
-    <menus-bubble-node-tofile
-      v-if="editor?.isActive('video') || editor?.isActive('audio')"
-    />
+    <menus-bubble-node-tofile v-if="is('video') || is('audio')" />
     <menus-bubble-node-delete />
   </template>
-  <template v-else-if="editor?.isActive('table')">
+  <template v-else-if="is('table')">
     <menus-toolbar-table-cells-align />
     <menus-toolbar-table-cells-background />
     <!-- <menus-toolbar-table-border-color  /> -->
@@ -142,7 +110,7 @@
     <menus-toolbar-table-merge-cells />
     <menus-toolbar-table-split-cell />
   </template>
-  <template v-else-if="editor?.isActive('tag')">
+  <template v-else-if="is('tag')">
     <menus-bubble-tag-input />
     <menus-bubble-tag-builtin />
     <div class="umo-bubble-menu-divider"></div>
@@ -151,7 +119,7 @@
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-tag-delete />
   </template>
-  <template v-else-if="editor?.isActive('echarts')">
+  <template v-else-if="is('echarts')">
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
@@ -159,7 +127,7 @@
     <menus-toolbar-tools-echarts ico="setting" />
     <menus-bubble-node-delete />
   </template>
-  <template v-else-if="editor?.isActive('optionBox')">
+  <template v-else-if="is('optionBox')">
     <menus-toolbar-base-font-size :select="false" />
     <menus-toolbar-base-bold />
     <menus-toolbar-base-italic />
@@ -171,19 +139,17 @@
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
-  <template
-    v-else-if="editor?.isActive('blockMath') || editor?.isActive('inlineMath')"
-  >
+  <template v-else-if="is('blockMath') || is('inlineMath')">
     <menus-bubble-math />
     <menus-bubble-node-delete />
   </template>
   <template
     v-else-if="
-      editor?.isActive('toc') ||
-      editor?.isActive('pageBreak') ||
-      editor?.isActive('horizontalRule') ||
-      editor?.isActive('codeBlock') ||
-      editor?.getAttributes('image').error
+      is('toc') ||
+      is('pageBreak') ||
+      is('horizontalRule') ||
+      is('codeBlock') ||
+      attrs('image').error
     "
   >
     <!-- <menus-bubble-node-delete /> -->
@@ -195,9 +161,7 @@
     </template>
     <menus-toolbar-base-font-size :select="false" />
     <div
-      v-if="
-        !disableMenu('font-size-increase') || !disableMenu('font-size-decrease')
-      "
+      v-if="!disable('font-size-increase') || !disable('font-size-decrease')"
       class="umo-bubble-menu-divider"
     ></div>
     <menus-toolbar-base-bold />
@@ -206,20 +170,19 @@
     <menus-toolbar-base-strike />
     <div class="umo-bubble-menu-divider"></div>
     <menus-toolbar-base-align-dropdown />
-    <menus-toolbar-insert-link v-if="!disableMenu('link')" />
+    <menus-toolbar-insert-link v-if="!disable('link')" />
     <div class="umo-bubble-menu-divider"></div>
     <menus-toolbar-base-color />
-    <template v-if="!editor?.isActive('textBox')">
+    <template v-if="!is('textBox')">
       <menus-toolbar-base-background-color />
-      <menus-toolbar-base-highlight v-if="!disableMenu('highlight')" />
+      <menus-toolbar-base-highlight v-if="!disable('highlight')" />
     </template>
     <template v-else>
       <div class="umo-bubble-menu-divider"></div>
       <menus-bubble-node-delete />
     </template>
   </template>
-  <template v-if="editor?.state?.selection && !editor?.isActive('codeBlock')">
-    <div class="umo-bubble-menu-divider"></div>
+  <template v-if="editor?.state?.selection">
     <slot
       name="bubble_menu"
       :node-type="getCurrentNode('name')"
@@ -231,8 +194,15 @@
 <script setup>
 const editor = inject('editor')
 const options = inject('options')
-const disableMenu = (name) => {
+
+const disable = (name) => {
   return options.value.disableExtensions.includes(name)
+}
+const is = (type) => {
+  return editor.value.isActive(type)
+}
+const attrs = (type) => {
+  return editor.value.getAttributes(type)
 }
 
 const getCurrentNode = (type) => {
