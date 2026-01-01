@@ -99,8 +99,13 @@ const themeOptions = [
   { label: t('bubbleMenu.code.themes.light'), value: 'light' },
 ]
 
-const updateAttribute = (type, value) => {
-  updateAttributes({ [type]: value })
+// Fix: 修复 tiptap v3 更新属性不生效的问题
+const updateAttribute = (attr, value) => {
+  node.attrs.update = true
+  node.attrs[attr] = value
+  updateAttributes({
+    [attr]: value,
+  })
 }
 
 const copyCode = () => {

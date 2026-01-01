@@ -218,7 +218,7 @@
       <menus-bubble-node-delete />
     </template>
   </template>
-  <template v-if="editor?.state?.selection">
+  <template v-if="editor?.state?.selection && !editor?.isActive('codeBlock')">
     <div class="umo-bubble-menu-divider"></div>
     <slot
       name="bubble_menu"
@@ -235,9 +235,6 @@ const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
-onMounted(() => {
-  console.log('editor', editor.value.getJSON())
-})
 const getCurrentNode = (type) => {
   const { state } = editor.value
   const { selection } = state
