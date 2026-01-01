@@ -96,7 +96,7 @@ const checkboxAll = () => {
   // 更新属性
   updateAttributes({
     items: newOptions,
-    checked: checked,
+    checked,
   })
 
   // 使用 setTimeout 重置标志位
