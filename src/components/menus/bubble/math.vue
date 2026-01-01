@@ -17,6 +17,7 @@ const type = computed(() => {
   if (editor.value?.isActive('inlineMath')) {
     return 'inline'
   }
+  return null
 })
 
 const latex = computed(() => {

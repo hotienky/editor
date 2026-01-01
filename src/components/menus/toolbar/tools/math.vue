@@ -10,7 +10,7 @@
       icon="math"
       width="734px"
       :confirm-btn="{
-        disabled: latex === '',
+        disabled: latexValue === '',
       }"
       destroy-on-close
       @cancel="dialogVisible = false"
@@ -23,13 +23,13 @@
       <div ref="containerRef" class="umo-math-container">
         <div class="umo-math-input">
           <t-textarea
-            v-model.trim="latex"
+            v-model.trim="latexValue"
             :autosize="{ minRows: 3, maxRows: 6 }"
             :placeholder="t('tools.math.placeholder')"
             @change="previewMath"
           />
           <div class="umo-math-input-preview umo-scrollbar">
-            <div v-if="latex !== ''" class="umo-math-input-render"></div>
+            <div v-if="latexValue !== ''" class="umo-math-input-render"></div>
             <div v-else class="umo-math-input-preview-empty">
               {{ t('tools.math.preview') }}
             </div>
@@ -64,11 +64,11 @@
             ]"
             @click="insertMath"
           >
-            <t-button :disabled="latex === ''">
+            <t-button :disabled="latexValue === ''">
               {{ t('tools.math.confirm') }}
             </t-button>
           </t-dropdown>
-          <t-button v-else :disabled="latex === ''" @click="updateMath">
+          <t-button v-else :disabled="latexValue === ''" @click="updateMath">
             {{ t('tools.math.update') }}
           </t-button>
         </div>
@@ -181,8 +181,8 @@ const templates = [
 ]
 
 let dialogVisible = $ref(false)
-let containerRef = $ref()
-let latex = $ref('')
+const containerRef = $ref()
+let latexValue = $ref('')
 
 const loadKatex = async () => {
   const { cdnUrl } = options.value
@@ -203,11 +203,12 @@ watch(
         renderMath('templates')
       }, 100)
       if (props.latex !== '') {
-        latex = props.latex
+        const { latex } = props
+        latexValue = latex
         previewMath()
       }
     } else {
-      latex = ''
+      latexValue = ''
     }
   },
 )
@@ -224,15 +225,15 @@ const renderMath = async (type) => {
       render(el.textContent, el)
     })
   }
-  if (type === 'preview' && latex !== '') {
+  if (type === 'preview' && latexValue !== '') {
     await nextTick()
     const el = containerRef.querySelector('.umo-math-input-render')
-    render(latex, el)
+    render(latexValue, el)
   }
 }
 
 const selectMath = (value) => {
-  latex = latex === '' ? value : `${latex} ${value}`
+  latexValue = latexValue === '' ? value : `${latexValue} ${value}`
   previewMath()
 }
 
@@ -242,10 +243,10 @@ const previewMath = () => {
 
 const insertMath = ({ value }) => {
   if (value === 'inline') {
-    editor.value?.chain().focus().insertInlineMath({ latex }).run()
+    editor.value?.chain().focus().insertInlineMath({ latex: latexValue }).run()
   }
   if (value === 'block') {
-    editor.value?.chain().focus().insertBlockMath({ latex }).run()
+    editor.value?.chain().focus().insertBlockMath({ latex: latexValue }).run()
   }
   dialogVisible = false
 }

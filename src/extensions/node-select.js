@@ -3,7 +3,7 @@ import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state'
 
 // 点击节点时选中当前节点，主要是为了解决升级到 tiptap v3 后，点击节点无法选中当前节点的问题
 export default Extension.create({
-  name: 'clickSelectNode',
+  name: 'selectNode',
   addOptions() {
     return {
       types: [
@@ -17,7 +17,9 @@ export default Extension.create({
         'video',
         'image',
         'pageBreak',
-        'callout',
+        'optionBox',
+        'blockMath',
+        'inlineMath',
       ],
     }
   },
@@ -26,7 +28,7 @@ export default Extension.create({
 
     return [
       new Plugin({
-        key: new PluginKey('clickSelectNode'),
+        key: new PluginKey('selectNode'),
         props: {
           handleDOMEvents: {
             click(view, event) {

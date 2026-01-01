@@ -1,6 +1,6 @@
 <template>
   <node-view-wrapper
-    :id="node.attrs.id"
+    :id="attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
@@ -10,15 +10,12 @@
     >
       <audio
         ref="audiorRef"
-        :src="node.attrs.src"
+        :src="attrs.src"
         controls
         crossorigin="anonymous"
         preload="metadata"
       ></audio>
-      <div
-        v-if="!node.attrs.uploaded && node.attrs.id !== null"
-        class="uploading"
-      ></div>
+      <div v-if="!attrs.uploaded && attrs.id !== null" class="uploading"></div>
     </div>
   </node-view-wrapper>
 </template>
@@ -31,7 +28,8 @@ import { mediaPlayer } from '@/utils/player'
 import { updateAttributesWithoutHistory } from '../file'
 
 const props = defineProps(nodeViewProps)
-const { node, getPos } = props
+const attrs = $computed(() => props.node.attrs)
+const { getPos } = props
 const options = inject('options')
 const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
@@ -42,7 +40,7 @@ let player = $ref(null)
 let selected = $ref(false)
 
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -56,12 +54,12 @@ const nodeStyle = $computed(() => {
 
 onMounted(async () => {
   player = mediaPlayer(audioRef)
-  if (node.attrs.uploaded || !node.attrs.id) {
+  if (attrs.uploaded || !attrs.id) {
     return
   }
   try {
-    if (uploadFileMap.value.has(node.attrs.id)) {
-      const file = uploadFileMap.value.get(node.attrs.id)
+    if (uploadFileMap.value.has(attrs.id)) {
+      const file = uploadFileMap.value.get(attrs.id)
       const result = await options.value?.onFileUpload?.(file)
       const { id, url } = result ?? {}
       if (containerRef.value) {
@@ -71,7 +69,7 @@ onMounted(async () => {
           getPos(),
         )
       }
-      uploadFileMap.value.delete(node.attrs.id)
+      uploadFileMap.value.delete(attrs.id)
     }
   } catch (error) {
     useMessage('error', error.message)

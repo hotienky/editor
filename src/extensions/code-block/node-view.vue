@@ -1,7 +1,7 @@
 <template>
   <node-view-wrapper ref="containerRef" class="umo-node-view umo-code-block">
     <div
-      :class="`umo-node-container hover-shadow umo-node-code-block umo-node-code-block-theme-${node.attrs.theme}`"
+      :class="`umo-node-container hover-shadow umo-node-code-block umo-node-code-block-theme-${attrs.theme}`"
     >
       <div class="umo-node-code-block-toolbar">
         <div class="umo-node-code-block-toolbar-left">
@@ -11,7 +11,7 @@
               menu-type="select"
               style="width: 100px"
               :select-options="languageOptions"
-              :select-value="node.attrs.language"
+              :select-value="attrs.language"
               :popup-props="{
                 attach: container,
                 overlayClassName: 'umo-code-block-language',
@@ -25,7 +25,7 @@
               menu-type="select"
               style="width: 100px"
               :select-options="themeOptions"
-              :select-value="node.attrs.theme"
+              :select-value="attrs.theme"
               :disabled="options.document?.readOnly"
               force-enabled
               borderless
@@ -33,18 +33,18 @@
             />
           </template>
           <span v-else class="umo-node-code-block-language">{{
-            node.attrs.language
+            attrs.language
           }}</span>
         </div>
         <div class="umo-node-code-block-toolbar-right">
           <menus-button
             class="umo-word-wrap-button"
-            :menu-active="node.attrs.wordWrap"
+            :menu-active="attrs.wordWrap"
             :text="t('bubbleMenu.code.wordWrap')"
             ico="code-word-wrap"
             hide-text
             force-enabled
-            @menu-click="updateAttribute('wordWrap', !node.attrs.wordWrap)"
+            @menu-click="updateAttribute('wordWrap', !attrs.wordWrap)"
           />
           <menus-button
             class="umo-copy-button"
@@ -67,11 +67,11 @@
       <pre
         class="umo-node-code-block-content"
         :class="{
-          'umo-node-code-block-word-wrap': node.attrs.wordWrap,
+          'umo-node-code-block-word-wrap': attrs.wordWrap,
         }"
       ><node-view-content
-        :class="`hljs language-${node.attrs.language}`"
-        :style="`white-space: pre${node.attrs.wordWrap ? '-wrap' : ''} !important;`"
+        :class="`hljs language-${attrs.language}`"
+        :style="`white-space: pre${attrs.wordWrap ? '-wrap' : ''} !important;`"
         as="code"
       /></pre>
     </div>
@@ -83,7 +83,8 @@ import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import { common, createLowlight } from 'lowlight'
 
 const props = defineProps(nodeViewProps)
-const { node, updateAttributes, deleteNode } = props
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes, deleteNode } = props
 const lowlight = createLowlight(common)
 
 const container = inject('container')
@@ -99,10 +100,7 @@ const themeOptions = [
   { label: t('bubbleMenu.code.themes.light'), value: 'light' },
 ]
 
-// Fix: 修复 tiptap v3 更新属性不生效的问题
 const updateAttribute = (attr, value) => {
-  node.attrs.update = true
-  node.attrs[attr] = value
   updateAttributes({
     [attr]: value,
   })

@@ -1,6 +1,6 @@
 <template>
   <node-view-wrapper
-    :id="node.attrs.id"
+    :id="attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
@@ -14,8 +14,8 @@
       <drager
         :selected="selected"
         :rotatable="false"
-        :width="node.attrs.width"
-        :height="node.attrs.height"
+        :width="attrs.width"
+        :height="attrs.height"
         :min-width="400"
         :min-height="200"
         :max-width="maxWidth"
@@ -24,8 +24,8 @@
         @focus="selected = true"
       >
         <iframe
-          :src="node.attrs.src"
-          :style="{ pointerEvents: node.attrs.clickable ? 'auto' : 'none' }"
+          :src="attrs.src"
+          :style="{ pointerEvents: attrs.clickable ? 'auto' : 'none' }"
         ></iframe>
       </drager>
     </div>
@@ -38,13 +38,14 @@ import Drager from 'es-drager'
 const options = inject('options')
 
 const props = defineProps(nodeViewProps)
-const { node, updateAttributes } = props
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes } = props
 const containerRef = ref(null)
 let selected = $ref(false)
 let maxWidth = $ref(0)
 
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -62,7 +63,7 @@ onMounted(async () => {
     const { offsetWidth } = containerRef.value.$el
 
     maxWidth = offsetWidth
-    if (node.attrs.width === null) {
+    if (attrs.width === null) {
       updateAttributes({ width: offsetWidth })
     }
   }

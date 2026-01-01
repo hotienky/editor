@@ -1,6 +1,6 @@
 <template>
   <node-view-wrapper
-    :id="node.attrs.id"
+    :id="attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
@@ -17,23 +17,16 @@
           width: supportPreview ? '200px' : '237px',
         }"
       >
-        <div
-          class="umo-file-name"
-          :title="node.attrs.name || t('file.unknownName')"
-        >
-          {{ node.attrs.name || t('file.unknownName') }}
+        <div class="umo-file-name" :title="attrs.name || t('file.unknownName')">
+          {{ attrs.name || t('file.unknownName') }}
         </div>
         <div class="umo-file-meta">
-          {{
-            node.attrs.size
-              ? prettyBytes(node.attrs.size)
-              : t('file.unknownSize')
-          }}
+          {{ attrs.size ? prettyBytes(attrs.size) : t('file.unknownSize') }}
         </div>
       </div>
       <div class="umo-file-action">
         <div
-          v-if="!node.attrs.uploaded && node.attrs.id !== null"
+          v-if="!attrs.uploaded && attrs.id !== null"
           class="umo-action-item"
           :title="t('file.uploading')"
         >
@@ -46,14 +39,14 @@
             :title="t('file.preview')"
             :data-preview-url="previewURL"
             :data-file-icon="fileIcon"
-            :data-file-name="node.attrs.name"
+            :data-file-name="attrs.name"
             @click.stop="togglePreview"
           >
             <icon name="view" />
           </div>
           <a
-            :href="node.attrs.url"
-            :download="node.attrs.name"
+            :href="attrs.url"
+            :download="attrs.name"
             target="_blank"
             class="umo-action-item"
             :title="t('file.download')"
@@ -72,7 +65,7 @@
     >
       <div class="umo-file-preview-modal-header">
         <img :src="fileIcon" class="file-icon" />
-        <h3>{{ node.attrs.name || t('file.unknownName') }}</h3>
+        <h3>{{ attrs.name || t('file.unknownName') }}</h3>
         <t-button
           class="close-btn"
           size="small"
@@ -99,7 +92,8 @@ import { getFileExtname, getFileIcon } from '@/utils/file'
 import { updateAttributesWithoutHistory } from './'
 
 const props = defineProps(nodeViewProps)
-const { node, getPos } = props
+const attrs = $computed(() => props.node.attrs)
+const { getPos } = props
 const editor = inject('editor')
 const options = inject('options')
 const container = inject('container')
@@ -109,7 +103,7 @@ const containerRef = ref(null)
 // FIXME: 保存刷新后预览失效
 
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -122,7 +116,7 @@ const nodeStyle = $computed(() => {
 })
 
 const fileIcon = $computed(() => {
-  return `${options.value.cdnUrl}/icons/file/${getFileIcon(node.attrs.name)}.svg`
+  return `${options.value.cdnUrl}/icons/file/${getFileIcon(attrs.name)}.svg`
 })
 
 let previewModal = $ref(false)
@@ -135,18 +129,18 @@ const setPreviewURL = (fileName) => {
   )
   if (match?.url.includes('{url}')) {
     previewURL = match.url
-      .replace(/{{url}}/g, encodeURIComponent(node.attrs.url))
-      .replace(/{url}/g, node.attrs.url)
+      .replace(/{{url}}/g, encodeURIComponent(attrs.url))
+      .replace(/{url}/g, attrs.url)
   }
 }
 
 onMounted(async () => {
-  if (node.attrs.uploaded || !node.attrs.id) {
+  if (attrs.uploaded || !attrs.id) {
     return
   }
-  if (uploadFileMap.value.has(node.attrs.id)) {
+  if (uploadFileMap.value.has(attrs.id)) {
     try {
-      const file = uploadFileMap.value.get(node.attrs.id)
+      const file = uploadFileMap.value.get(attrs.id)
       const result = await options.value?.onFileUpload?.(file)
       const { id, url } = result ?? {}
       if (containerRef.value) {
@@ -156,17 +150,17 @@ onMounted(async () => {
           getPos(),
         )
       }
-      uploadFileMap.value.delete(node.attrs.id)
+      uploadFileMap.value.delete(attrs.id)
     } catch (e) {
       useMessage('error', { attach: container, content: e.message })
     }
   }
-  setPreviewURL(node.attrs.name)
+  setPreviewURL(attrs.name)
 })
 
 const supportPreview = $computed(() => {
   const supportNodes = ['image', 'video', 'audio']
-  return supportNodes.includes(node.attrs.previewType) || previewURL !== null
+  return supportNodes.includes(attrs.previewType) || previewURL !== null
 })
 const togglePreview = () => {
   if (previewURL !== null) {

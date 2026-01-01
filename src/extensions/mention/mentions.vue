@@ -1,8 +1,8 @@
 <template>
   <div
     v-if="items.length > 0"
-    class="umo-popup umo-mention-popup"
     ref="popupRef"
+    class="umo-popup umo-mention-popup"
   >
     <div class="umo-popup__content umo-dropdown">
       <div class="umo-dropdown__menu" style="padding: 5px; max-height: 320px">

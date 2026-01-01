@@ -13,17 +13,16 @@
     >
       <span class="umo-node-datetime-text">
         <icon name="date" class="umo-node-datetime-icon" />
-        <span>{{ node.attrs.text }}</span>
+        <span>{{ attrs.text }}</span>
       </span>
       <template #content>
         <t-date-picker-panel
-          :value="node.attrs.date"
+          :value="attrs.date"
           :format="
-            node.attrs.format ||
-            `YYYY-MM-DD${node.attrs.withTime ? ' HH:mm:ss' : ''}`
+            attrs.format || `YYYY-MM-DD${attrs.withTime ? ' HH:mm:ss' : ''}`
           "
-          :enable-time-picker="node.attrs.withTime"
-          :mode="node.attrs.format === 'YYYY年M月' ? 'month' : 'date'"
+          :enable-time-picker="attrs.withTime"
+          :mode="attrs.format === 'YYYY年M月' ? 'month' : 'date'"
           @change="datetimeChange"
         />
       </template>
@@ -34,7 +33,8 @@
 <script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 const props = defineProps(nodeViewProps)
-const { node, updateAttributes } = props
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes } = props
 const container = inject('container')
 const options = inject('options')
 const page = inject('page')

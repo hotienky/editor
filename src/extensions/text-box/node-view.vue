@@ -1,14 +1,14 @@
 <template>
   <node-view-wrapper
-    :id="node.attrs.id"
+    :id="attrs.id"
     ref="containerRef"
     class="umo-node-view umo-floating-node"
     :style="{
       zIndex: 90,
-      '--umo-textbox-border-color': node.attrs.borderColor,
-      '--umo-textbox-border-width': node.attrs.borderWidth + 'px',
-      '--umo-textbox-border-style': node.attrs.borderStyle,
-      '--umo-textbox-background-color': node.attrs.backgroundColor,
+      '--umo-textbox-border-color': attrs.borderColor,
+      '--umo-textbox-border-width': attrs.borderWidth + 'px',
+      '--umo-textbox-border-style': attrs.borderStyle,
+      '--umo-textbox-background-color': attrs.backgroundColor,
     }"
   >
     <div class="umo-node-container umo-node-text-box">
@@ -22,11 +22,11 @@
         :disabled="disabled || options?.document?.readOnly"
         :rotatable="true"
         :boundary="false"
-        :angle="node.attrs.angle"
-        :width="node.attrs.width"
-        :height="node.attrs.height"
-        :left="node.attrs.left"
-        :top="node.attrs.top"
+        :angle="attrs.angle"
+        :width="attrs.width"
+        :height="attrs.height"
+        :left="attrs.left"
+        :top="attrs.top"
         :min-width="14"
         :min-height="14"
         :title="t('node.textBox.tip')"
@@ -49,7 +49,8 @@ import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 
 const props = defineProps(nodeViewProps)
-const { node, updateAttributes } = props
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes } = props
 
 const options = inject('options')
 

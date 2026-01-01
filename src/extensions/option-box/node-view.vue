@@ -1,8 +1,11 @@
 <template>
   <node-view-wrapper as="span" class="umo-node-option-box">
-    <span v-if="boxType === 'radio'" class="umo-option-box-radio-container">
+    <span
+      v-if="attrs.target === 'radio'"
+      class="umo-option-box-radio-container"
+    >
       <span
-        v-for="(box, index) in boxOptions"
+        v-for="(box, index) in attrs.items"
         :key="box.key"
         class="option-item"
       >
@@ -10,25 +13,25 @@
           :key="index"
           :checked="box.checked"
           :disabled="isDisabled"
-          @change="handleRadioChange(index)"
+          @change="radioChange(index)"
         ></t-radio>
         <span>{{ box.label }}</span>
       </span>
     </span>
 
     <span v-else class="umo-option-box-checkbox-container">
-      <span v-if="boxShowCheckAll" class="option-item">
+      <span v-if="attrs.checkAll" class="option-item">
         <t-checkbox
           key="checkallInxex"
-          :checked="boxChecked"
+          :checked="attrs.checked"
           :disabled="isDisabled"
-          @click="handleCheckboxAll"
+          @click="checkboxAll"
         ></t-checkbox>
         <span>{{ t('insert.option.check') }}</span>
       </span>
 
       <span
-        v-for="(box, index) in boxOptions"
+        v-for="(box, index) in attrs.items"
         :key="box.key"
         class="option-item"
       >
@@ -36,7 +39,7 @@
           :key="index"
           :checked="box.checked"
           :disabled="isDisabled"
-          @click="handleCheckboxChange(index)"
+          @click="checkboxChange(index)"
         ></t-checkbox>
         <span>{{ box.label }}</span>
       </span>
@@ -51,90 +54,72 @@ const page = inject('page')
 const editor = inject('editor')
 const props = defineProps(nodeViewProps)
 const { updateAttributes } = props
+const attrs = $computed(() => props.node.attrs)
 
-// 创建响应式的计算属性
-const boxType = computed(() => props.node.attrs?.boxType ?? 'checkbox')
-const boxOptions = computed(() => props.node.attrs?.boxOptions ?? [])
-const boxShowCheckAll = computed(
-  () => props.node.attrs?.boxShowCheckAll ?? false,
-)
-const boxChecked = computed(() => props.node.attrs?.boxChecked ?? false)
 // 统一的禁用状态计算
-const isDisabled = computed(() => {
-  if (
+const isDisabled = $computed(() => {
+  return (
     page.value?.preview?.enabled ||
     options.value?.document?.readOnly ||
     !editor.value?.isEditable
-  ) {
-    return true
-  } else return false
+  )
 })
-// 防止重复调用的标志位
-let isProcessing = false
 
 // 处理复选框变化
-const handleCheckboxChange = (index) => {
+const checkboxChange = (index) => {
   // 如果是禁用状态，则忽略此次调用
-  if (isDisabled.value) return
+  if (isDisabled) return
   // 如果正在处理中，则忽略此次调用
-  if (isProcessing) return
+  if (attrs.updated) return
 
-  isProcessing = true
-  const newOptions = [...boxOptions.value]
+  const newOptions = [...attrs.items]
   newOptions[index].checked = !newOptions[index].checked
-  updateAttributes({ boxOptions: newOptions })
+  updateAttributes({ items: newOptions, updated: true })
 
   // 使用 setTimeout 重置标志位
   setTimeout(() => {
-    isProcessing = false
+    updateAttributes({ updated: false })
   }, 0)
 }
 
-const handleCheckboxAll = () => {
+const checkboxAll = () => {
   // 如果是禁用状态，则忽略此次调用
-  if (isDisabled.value) return
-  // 如果正在处理中，则忽略此次调用
-  if (isProcessing) return
-
-  isProcessing = true
-  const newOptions = [...boxOptions.value]
-
-  const newChecked = !boxChecked.value
+  if (isDisabled) return
 
   // 更新所有选项的选中状态
-  newOptions.forEach((option) => {
-    option.checked = newChecked
-  })
+  const checked = !attrs.checked
+  const newOptions = attrs.items.map((option) => ({
+    ...option,
+    checked,
+  }))
+
   // 更新属性
   updateAttributes({
-    boxOptions: newOptions,
-    boxChecked: newChecked,
+    items: newOptions,
+    checked: checked,
   })
 
   // 使用 setTimeout 重置标志位
   setTimeout(() => {
-    isProcessing = false
+    updateAttributes({ updated: false })
   }, 0)
 }
 
 // 处理单选框变化
-const handleRadioChange = (index) => {
+const radioChange = (index) => {
   // 如果是禁用状态，则忽略此次调用
-  if (isDisabled.value) return
-  // 如果正在处理中，则忽略此次调用
-  if (isProcessing) return
+  if (isDisabled) return
 
-  isProcessing = true
-  const newOptions = [...boxOptions.value]
   // 清除其他选项的选中状态
-  newOptions.forEach((option, i) => {
-    option.checked = i === index
-  })
-  updateAttributes({ boxOptions: newOptions })
+  const newOptions = attrs.items.map((option, i) => ({
+    ...option,
+    checked: i === index,
+  }))
+  updateAttributes({ items: newOptions, updated: true })
 
   // 使用 setTimeout 重置标志位
   setTimeout(() => {
-    isProcessing = false
+    updateAttributes({ updated: false })
   }, 0)
 }
 </script>

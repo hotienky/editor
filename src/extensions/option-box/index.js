@@ -10,32 +10,30 @@ export default Node.create({
   atom: true,
   addAttributes() {
     return {
-      boxType: {
+      target: {
         default: 'checkbox', // 'checkbox' 或 'radio'
       },
-      boxOptions: {
-        default: [
-          { label: '选项1', checked: false, key: '1' },
-          { label: '选项2', checked: false, key: '2' },
-        ],
+      items: {
+        default: [],
         parseHTML: (element) => {
-          const _data = element.hasAttribute('box-options')
-            ? element.getAttribute('box-options')
+          const _data = element.hasAttribute('items')
+            ? element.getAttribute('items')
             : null
           return _data ? JSON.parse(_data) : null
         },
         renderHTML: (attributes) => ({
-          // 在渲染 HTML 时，确保 chartOptions 被序列化为字符串
-          'box-options': attributes.boxOptions
-            ? JSON.stringify(attributes.boxOptions)
-            : null,
+          // 在渲染 HTML 时，确保 items 被序列化为字符串
+          items: attributes.items ? JSON.stringify(attributes.items) : null,
         }),
       },
-      boxShowCheckAll: {
+      checkAll: {
         default: false,
       },
-      boxChecked: {
+      checked: {
         default: true,
+      },
+      updated: {
+        default: false,
       },
     }
   },
@@ -45,7 +43,7 @@ export default Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const showText = HTMLAttributes['box-options'] ?? ''
+    const showText = HTMLAttributes['items'] ?? ''
 
     return [
       'span',

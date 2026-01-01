@@ -14,7 +14,6 @@ import {
   Dropcursor,
   Focus,
   Placeholder,
-  Selection,
   UndoRedo,
 } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
@@ -47,6 +46,7 @@ import NodeSelect from './node-select'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
+import Selection from './selection'
 import { Table, TableCell, TableHeader, TableRow } from './table'
 import Tag from './tag'
 import TextAlign from './text-align'
@@ -107,6 +107,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       link: false,
       placeholder: false,
       dropcursor: false,
+      selection: false,
     }),
     TextStyleKit,
     UndoRedo.extend({

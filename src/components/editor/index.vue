@@ -35,8 +35,8 @@
 </template>
 
 <script setup>
-import { Editor, EditorContent } from '@tiptap/vue-3'
 import { migrateMathStrings } from '@tiptap/extension-mathematics'
+import { Editor, EditorContent } from '@tiptap/vue-3'
 
 import { getDefaultExtensions, inputAndPasteRules } from '@/extensions'
 import { contentTransform } from '@/utils/content-transform'

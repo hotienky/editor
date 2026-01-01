@@ -14,15 +14,15 @@
       <div
         class="umo-node-container hover-shadow umo-node-callout"
         :style="{
-          color: node.attrs.fontColor,
-          backgroundColor: node.attrs.backgroundColor,
+          color: attrs.fontColor,
+          backgroundColor: attrs.backgroundColor,
         }"
       >
         <span
-          v-if="node.attrs.icon"
+          v-if="attrs.icon"
           class="umo-node-callout-icon"
           contenteditable="false"
-          >{{ node.attrs.icon }}</span
+          >{{ attrs.icon }}</span
         >
         <node-view-content
           class="umo-node-callout-content"
@@ -50,7 +50,8 @@
 <script setup>
 import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 const props = defineProps(nodeViewProps)
-const { node, updateAttributes } = props
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes } = props
 
 const container = inject('container')
 const bubbleMenu = $ref(false)

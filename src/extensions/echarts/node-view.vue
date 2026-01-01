@@ -1,6 +1,6 @@
 <template>
   <node-view-wrapper
-    :id="'chartNode-' + node.attrs.id"
+    :id="'chartNode-' + attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
@@ -8,9 +8,9 @@
     <div
       class="umo-node-container umo-node-echarts"
       :class="{
-        'is-draggable': node.attrs.draggable,
+        'is-draggable': attrs.draggable,
         'umo-hover-shadow': !options.document?.readOnly,
-        'umo-select-outline': !node.attrs.draggable,
+        'umo-select-outline': !attrs.draggable,
       }"
       :data-options="
         options.document?.readOnly ? JSON.stringify(chartOption) : null
@@ -20,20 +20,18 @@
         :selected="selected"
         :rotatable="false"
         :boundary="false"
-        :draggable="
-          Boolean(node.attrs.draggable) && !options.document?.readOnly
-        "
+        :draggable="Boolean(attrs.draggable) && !options.document?.readOnly"
         :disabled="options.document?.readOnly"
         :angle="0"
-        :width="Number(node.attrs.width)"
-        :height="Number(node.attrs.height)"
+        :width="Number(attrs.width)"
+        :height="Number(attrs.height)"
         :max-width="maxWidth"
         :min-height="200"
         :z-index="10"
         @resize="onResize"
         @focus="selected = true"
       >
-        <div :id="'chart-' + node.attrs.id" class="umo-node-echarts-body"></div>
+        <div :id="'chart-' + attrs.id" class="umo-node-echarts-body"></div>
       </drager>
     </div>
   </node-view-wrapper>
@@ -52,7 +50,9 @@ import {
 // 引入 echart 服务 用此方法初始化加载 cdn echart.js 脚本 否则
 import { loadResource } from '@/utils/load-resource'
 
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes } = props
 const options = inject('options')
 const containerRef = ref(null)
 let maxWidth = $ref(0)
@@ -64,7 +64,7 @@ let chartOption = $ref(null)
 onMounted(async () => {
   await nextTick()
   maxWidth = containerRef.value?.$el.offsetWidth
-  if (node.attrs.width === null) {
+  if (attrs.width === null) {
     updateAttributes({ width: maxWidth })
   }
   await loadData()
@@ -72,7 +72,7 @@ onMounted(async () => {
 
 // 初始化样式，需要在 margin 和 nodeAlign 里面增加 name 才可以
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -129,7 +129,7 @@ const loadData = async () => {
   await waitForECharts()
   // 接下来的使用就跟之前一样，初始化图表，设置配置项
   if (typeof echarts !== 'undefined') {
-    const { chartOptions, chartConfig, id, mode } = node.attrs
+    const { chartOptions, chartConfig, id, mode } = attrs
     // 根据参数不同 实现效果不同
     if (chart !== null) {
       chart.dispose()
@@ -158,9 +158,9 @@ const loadData = async () => {
   }
 }
 
-// 监听 node.attrs 变化并在变化时重新加载数据
+// 监听 attrs 变化并在变化时重新加载数据
 watch(
-  () => node.attrs,
+  () => attrs,
   async (newAttrs, oldAttrs) => {
     // 避免初次挂载时重复调用 loadData
     if (

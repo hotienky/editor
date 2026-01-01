@@ -3,8 +3,8 @@
     ref="containerRef"
     class="umo-node-view"
     :class="{
-      'umo-floating-node': node.attrs.draggable,
-      'is-inline-image': node.attrs.inline,
+      'umo-floating-node': attrs.draggable,
+      'is-inline-image': attrs.inline,
     }"
     :style="nodeStyle"
     @dblclick="openImageViewer"
@@ -12,24 +12,24 @@
     <div
       class="umo-node-container umo-node-image"
       :class="{
-        'is-loading': node.attrs.src && isLoading,
-        'is-error': node.attrs.src && error,
+        'is-loading': attrs.src && isLoading,
+        'is-error': attrs.src && error,
         'umo-hover-shadow': !options.document?.readOnly,
-        'umo-select-outline': !node.attrs.draggable,
+        'umo-select-outline': !attrs.draggable,
       }"
     >
       <div
-        v-if="node.attrs.src && isLoading"
+        v-if="attrs.src && isLoading"
         class="loading"
-        :style="{ height: `${node.attrs.height}px` }"
+        :style="{ height: `${attrs.height}px` }"
       >
         <icon name="loading" class="loading-icon" />
         {{ t('node.image.loading') }}
       </div>
       <div
-        v-else-if="node.attrs.src && error"
+        v-else-if="attrs.src && error"
         class="error"
-        :style="{ height: `${node.attrs.height}px` }"
+        :style="{ height: `${attrs.height}px` }"
       >
         <icon name="image-failed" class="error-icon" />
         {{ t('node.image.error') }}
@@ -37,10 +37,10 @@
       <drager
         v-else
         ref="dragRef"
-        :class="{ 'is-draggable': node.attrs.draggable }"
+        :class="{ 'is-draggable': attrs.draggable }"
         :style="{
           cursor:
-            node.attrs.draggable && !options.document?.readOnly
+            attrs.draggable && !options.document?.readOnly
               ? 'move'
               : 'default !important',
         }"
@@ -48,17 +48,17 @@
         :rotatable="true"
         :boundary="false"
         :disabled="options.document?.readOnly"
-        :angle="node.attrs.angle"
-        :width="Number(node.attrs.width)"
-        :height="Number(node.attrs.height)"
-        :left="Number(node.attrs.left)"
-        :top="Number(node.attrs.top)"
+        :angle="attrs.angle"
+        :width="Number(attrs.width)"
+        :height="Number(attrs.height)"
+        :left="Number(attrs.left)"
+        :top="Number(attrs.top)"
         :min-width="14"
         :min-height="14"
         :max-width="maxWidth"
         :max-height="maxHeight"
         :z-index="10"
-        :equal-proportion="node.attrs.equalProportion"
+        :equal-proportion="attrs.equalProportion"
         @rotate="onRotate"
         @resize="onResize"
         @mousedown="onMousedown"
@@ -66,22 +66,19 @@
       >
         <img
           ref="imageRef"
-          :src="node.attrs.src"
-          :class="{ 'not-equal-proportion': !node.attrs.equalProportion }"
+          :src="attrs.src"
+          :class="{ 'not-equal-proportion': !attrs.equalProportion }"
           :style="{
             transform:
-              node.attrs.flipX || node.attrs.flipY
-                ? `rotateX(${node.attrs.flipX ? '180' : '0'}deg) rotateY(${node.attrs.flipY ? '180' : '0'}deg)`
+              attrs.flipX || attrs.flipY
+                ? `rotateX(${attrs.flipX ? '180' : '0'}deg) rotateY(${attrs.flipY ? '180' : '0'}deg)`
                 : 'none',
           }"
-          :data-id="node.attrs.id"
+          :data-id="attrs.id"
           loading="lazy"
           @load="onLoad"
         />
-        <div
-          v-if="!node.attrs.uploaded && node.attrs.file !== null"
-          class="uploading"
-        >
+        <div v-if="!attrs.uploaded && attrs.file !== null" class="uploading">
           <span></span>
         </div>
       </drager>
@@ -103,9 +100,10 @@ const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
 const imageViewer = inject('imageViewer')
 const props = defineProps(nodeViewProps)
-const { node, updateAttributes, getPos } = props
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes, getPos } = props
 const options = inject('options')
-const { isLoading, error } = useImage({ src: node.attrs.src })
+const { isLoading, error } = useImage({ src: attrs.src })
 
 const containerRef = ref(null)
 const imageRef = $ref(null)
@@ -114,7 +112,7 @@ let maxWidth = $ref(0)
 let maxHeight = $ref(0)
 
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -123,21 +121,17 @@ const nodeStyle = $computed(() => {
     justifyContent: nodeAlign,
     marginTop,
     marginBottom,
-    zIndex: selected ? 100 : node.attrs.draggable ? 95 : 0,
+    zIndex: selected ? 100 : attrs.draggable ? 95 : 0,
   }
 })
 
 const uploadImage = async () => {
-  if (
-    node.attrs.uploaded ||
-    !node.attrs.id ||
-    !uploadFileMap.value.has(node.attrs.id)
-  ) {
+  if (attrs.uploaded || !attrs.id || !uploadFileMap.value.has(attrs.id)) {
     updateAttributesWithoutHistory(editor.value, { uploaded: true }, getPos())
     return
   }
   try {
-    const file = uploadFileMap.value.get(node.attrs.id)
+    const file = uploadFileMap.value.get(attrs.id)
     const result = await options.value?.onFileUpload?.(file)
     const { id, url } = result ?? {}
     if (containerRef.value) {
@@ -147,7 +141,7 @@ const uploadImage = async () => {
         getPos(),
       )
     }
-    uploadFileMap.value.delete(node.attrs.id)
+    uploadFileMap.value.delete(attrs.id)
   } catch (error) {
     useMessage('error', {
       attach: container,
@@ -157,14 +151,14 @@ const uploadImage = async () => {
 }
 const onLoad = async () => {
   // updateAttributes({ error: false })
-  if (node.attrs.width === null) {
+  if (attrs.width === null) {
     const { clientWidth = 1, clientHeight = 1 } = imageRef ?? {}
     const ratio = clientWidth / clientHeight
     maxWidth = containerRef.value?.$el.clientWidth
     maxHeight = maxWidth / ratio
     updateAttributes({ width: maxWidth })
   }
-  if ([null, 'auto', 0].includes(node.attrs.height)) {
+  if ([null, 'auto', 0].includes(attrs.height)) {
     await nextTick()
     const rect = imageRef?.getBoundingClientRect() ?? {}
     updateAttributes({ height: Number(rect.height?.toFixed(2)) })
@@ -184,7 +178,7 @@ const onResize = ({ width, height }) => {
 const dragRef = $ref(null)
 let isMousedown = $ref(false)
 const onMousedown = (e) => {
-  if (!node.attrs.draggable) {
+  if (!attrs.draggable) {
     return
   }
   isMousedown = true
@@ -221,16 +215,16 @@ onClickOutside(containerRef, () => {
 
 const openImageViewer = async () => {
   const id = shortId(10)
-  if (node.attrs.id === null) {
+  if (attrs.id === null) {
     updateAttributesWithoutHistory(editor.value, { id }, getPos())
   }
   await nextTick()
   imageViewer.value.visible = true
-  imageViewer.value.current = node.attrs.id
+  imageViewer.value.current = attrs.id
 }
 
 watch(
-  () => node.attrs.draggable,
+  () => attrs.draggable,
   (draggable) => {
     if (!draggable) {
       updateAttributes({ left: null, top: null })
@@ -239,7 +233,7 @@ watch(
 )
 
 watch(
-  () => node.attrs.equalProportion,
+  () => attrs.equalProportion,
   async (equalProportion) => {
     await nextTick()
     const width = imageRef?.offsetWidth ?? 1
@@ -249,9 +243,9 @@ watch(
   },
 )
 watch(
-  () => node.attrs.src,
+  () => attrs.src,
   async (src) => {
-    if (node.attrs.uploaded === false && !error.value) {
+    if (attrs.uploaded === false && !error.value) {
       if (src?.startsWith('data:image')) {
         const [data, type] = src.split(';')[0].split(':')
         let [_, ext] = type.split('/')
@@ -265,7 +259,7 @@ watch(
         const file = await base64ToFile(src, `${filename}.${ext}`, {
           type,
         })
-        uploadFileMap.value.set(node.attrs.id, file)
+        uploadFileMap.value.set(attrs.id, file)
       }
       await nextTick()
       uploadImage()
@@ -275,16 +269,12 @@ watch(
 )
 watch(
   () => error.value,
-  (errorValue) => {
-    if (errorValue?.type) {
-      updateAttributesWithoutHistory(
-        editor.value,
-        { error: errorValue.type === 'error' },
-        getPos(),
-      )
-    } else {
-      updateAttributesWithoutHistory(editor.value, { error: false }, getPos())
-    }
+  (err) => {
+    updateAttributesWithoutHistory(
+      editor.value,
+      { error: err?.type ? err.type === 'error' : false },
+      getPos(),
+    )
   },
 )
 </script>

@@ -135,11 +135,14 @@
     <menus-toolbar-base-color />
     <menus-toolbar-base-background-color />
     <div class="umo-bubble-menu-divider"></div>
-    <menus-toolbar-insert-option-box :to-edit="true" />
+    <menus-toolbar-insert-option-box edit />
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
   <template v-else-if="is('blockMath') || is('inlineMath')">
+    <menus-toolbar-base-align-left />
+    <menus-toolbar-base-align-center />
+    <menus-toolbar-base-align-right />
     <menus-bubble-math />
     <menus-bubble-node-delete />
   </template>
