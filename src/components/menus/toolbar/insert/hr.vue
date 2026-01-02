@@ -18,7 +18,7 @@
           class="umo-page-divider-item"
           :value="item.value"
           :title="item.label"
-          @click="setHr(item)"
+          @click="setHorizontalRule(item)"
         >
           <hr
             class="umo-page-divider"
@@ -76,11 +76,15 @@ const colorChange = (color) => {
   colorPickerVisible = false
 }
 
-const setHr = ({ value }) => {
+const setHorizontalRule = ({ value }) => {
   if (!value || !editor.value) {
     return
   }
-  editor.value.chain().focus().setHr({ type: value, color: currentColor }).run()
+  editor.value
+    .chain()
+    .focus()
+    .setHorizontalRule({ type: value, color: currentColor })
+    .run()
   popupVisible.value = false
 }
 </script>

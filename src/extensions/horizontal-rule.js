@@ -32,7 +32,7 @@ export default HorizontalRule.extend({
   },
   addCommands() {
     return {
-      setHr:
+      setHorizontalRule:
         ({ type, color }) =>
         ({ chain, state }) => {
           const { $to: $originTo } = state.selection
