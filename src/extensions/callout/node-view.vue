@@ -65,15 +65,15 @@ const selectEmoji = (emoji) => {
 
 <style lang="less">
 .umo-node-callout {
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: var(--umo-radius);
   display: flex;
   width: 100%;
-  min-height: 38px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
+  align-items: center;
   &-icon {
-    font-size: 16px;
+    font-size: 18px;
     margin-right: 10px;
   }
   &-content {
@@ -81,19 +81,17 @@ const selectEmoji = (emoji) => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
     &.umo-node-callout-empty {
       display: flex;
       align-items: center;
+      line-height: 1.5;
       &::after {
         content: attr(data-placeholder);
         opacity: 0.5;
       }
-      :deep(p) {
-        height: 1em;
-        line-height: 1em;
-        * {
-          display: none;
-        }
+      .tiptap-invisible-character {
+        display: none;
       }
     }
   }

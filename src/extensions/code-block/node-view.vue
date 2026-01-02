@@ -203,6 +203,9 @@ const copyCode = () => {
       border-color: var(--umo-primary-color);
     }
   }
+  .tiptap-invisible-character {
+    display: none;
+  }
 }
 .umo-code-block-language {
   .umo-select__list {
