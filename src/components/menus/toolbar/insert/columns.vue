@@ -1,13 +1,14 @@
 <template>
   <menus-button
     ico="columns"
-    :text="t('insert.columns')"
+    :text="t('insert.columns.text')"
     menu-type="popup"
     huge
     :popup-visible="popupVisible"
     @toggle-popup="togglePopup"
   >
     <template #content>
+      <div class="umo-columns-title">{{ t('insert.columns.number') }}</div>
       <div class="umo-columns-container">
         <div
           v-for="column in columns"
@@ -51,6 +52,12 @@ watch(
 
 <style lang="less" scoped>
 .umo-columns {
+  &-title {
+    font-size: 14px;
+    color: var(--umo-text-color-light);
+    line-height: 1;
+    margin-bottom: 10px;
+  }
   &-container {
     width: 180px;
     display: grid;

@@ -114,7 +114,7 @@
 
   &.is-empty
     .is-editor-empty:not(.umo-node-view):not(.tableWrapper):not(
-      .column-block
+      .umo-column-block
     ):not(ul):not(ol) {
     &::after {
       display: inline-block;
@@ -570,14 +570,15 @@
     }
   }
 
-  .column-block {
+  .umo-column-block {
     width: 100%;
     display: grid;
-    grid-auto-flow: column;
     gap: 12px;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
   }
 
-  .column {
+  .umo-column {
     overflow: auto;
     background-color: var(--umo-content-table-selected-background);
     border-radius: var(--umo-radius);

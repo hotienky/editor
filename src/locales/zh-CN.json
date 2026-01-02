@@ -170,7 +170,10 @@
       "open": "打开链接",
       "edit": "编辑链接"
     },
-    "columns": "分栏",
+    "columns": {
+      "text": "分栏",
+      "number": "选择分栏数量"
+    },
     "tag": "标签",
     "callout": "高亮块",
     "mention": "提及某人",

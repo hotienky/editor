@@ -29,6 +29,7 @@ import BreakMarks from './break-marks'
 import BulletList from './bullet-list'
 import Callout from './callout'
 import CodeBlock from './code-block'
+import Columns from './columns'
 import Datetime from './datetime'
 import Echarts from './echarts'
 import File from './file'
@@ -81,6 +82,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       katex: { throwOnError: false },
     }),
     tag: Tag,
+    columns: Columns,
     callout: Callout,
     mention: Mention.configure({
       suggestion: getUsersSuggestion(users ?? [], container),
