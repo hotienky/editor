@@ -168,7 +168,6 @@ const togglePreview = () => {
     previewModal = true
     return
   }
-  const { attrs } = node
   editor.value.commands.insertContent({
     type: attrs.previewType,
     attrs: {
