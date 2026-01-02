@@ -7,9 +7,9 @@ import {
   isString,
 } from '@tool-belt/type-predicates'
 
-import { defaultAiOptions } from './ai'
-import { defaultDicts } from './dicts'
-import { defaultWebPages } from './web-pages'
+import defaultAiOptions from './ai'
+import defaultDicts from './dicts'
+import defaultWebPages from './web-pages'
 
 // 默认配置
 const defaultOptions = {

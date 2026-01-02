@@ -155,10 +155,7 @@
         <div class="umo-virtual-group">
           <menus-toolbar-tools-qrcode v-if="!disableMenu('qrcode')" />
           <menus-toolbar-tools-barcode v-if="!disableMenu('barcode')" />
-        </div>
-        <div class="umo-virtual-group">
           <menus-toolbar-tools-signature v-if="!disableMenu('signature')" />
-          <menus-toolbar-tools-seal v-if="!disableMenu('seal')" />
         </div>
         <div class="umo-virtual-group">
           <menus-toolbar-tools-math v-if="!disableMenu('math')" />

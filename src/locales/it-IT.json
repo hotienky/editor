@@ -367,18 +367,6 @@
       "renderError": "Generazione QR Code fallita",
       "notEmpty": "Il contenuto del QR Code non può essere vuoto"
     },
-    "seal": {
-      "text": "Timbro",
-      "title": "Inserisci timbro",
-      "insert": "Inserisci",
-      "tip": "Seleziona un'immagine del timbro con sfondo a tinta unita; verrà estratto automaticamente. Tutte le operazioni avvengono localmente senza inviare dati al server, quindi puoi caricarlo senza problemi.",
-      "insertTip": "Clicca qui per selezionare l'immagine del timbro",
-      "converting1": "Caricamento...",
-      "converting2": "Caricamento: {percentage}%",
-      "converting3": "Estrazione immagine, attendere...",
-      "convertError": "Estrazione timbro fallita, riprova",
-      "notEmpty": "Seleziona un timbro per favore"
-    },
     "signature": {
       "text": "Firma",
       "title": "Inserisci firma grafometrica",
@@ -528,8 +516,6 @@
       "flipY": "Capovolgi verticalmente",
       "preview": "Anteprima immagine",
       "proportion": "Blocca proporzioni immagine",
-      "removeBg": "Rimuovi sfondo immagine",
-      "removingBg": "Rimozione sfondo immagine...",
       "reset": "Reimposta posizione immagine",
       "rotateCC": "Ruota 90° antiorario",
       "rotateC": "Ruota 90° orario",

@@ -382,18 +382,6 @@
       "renderError": "QR Code generation failed",
       "notEmpty": "QR Code content cannot be empty"
     },
-    "seal": {
-      "text": "Official Seal",
-      "title": "Insert Official Seal",
-      "insert": "Insert",
-      "tip": "Select a photocopy or photo of a solid-color background seal; it will be automatically extracted. All operations are completed locally without sending data to the server, so feel free to use.",
-      "insertTip": "Click here to select seal image",
-      "converting1": "Loading component...",
-      "converting2": "Loading component: {percentage}%",
-      "converting3": "Extracting image, please wait...",
-      "convertError": "Electronic seal extraction failed, please retry",
-      "notEmpty": "Please select a seal"
-    },
     "signature": {
       "text": "E-Signature",
       "title": "Insert Electronic Signature",
@@ -543,8 +531,6 @@
       "flipY": "Flip Vertically",
       "preview": "Preview Image",
       "proportion": "Lock Image Aspect Ratio",
-      "removeBg": "Remove Image Background",
-      "removingBg": "Removing Image Background...",
       "reset": "Reset Image Position",
       "rotateCC": "Rotate Counter-Clockwise 90°",
       "rotateC": "Rotate Clockwise 90°",

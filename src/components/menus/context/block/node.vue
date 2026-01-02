@@ -83,9 +83,6 @@
       <t-dropdown-item v-if="!disableMenu('signature')">
         <menus-toolbar-tools-signature :huge="false" :tooltip="false" />
       </t-dropdown-item>
-      <t-dropdown-item v-if="!disableMenu('seal')">
-        <menus-toolbar-tools-seal :huge="false" :tooltip="false" />
-      </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('diagrams')">
         <menus-toolbar-tools-diagrams :huge="false" :tooltip="false" />
       </t-dropdown-item>

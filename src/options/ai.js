@@ -1,4 +1,4 @@
-export const defaultAiOptions = {
+const defaultAiOptions = {
   assistant: {
     enabled: false,
     maxlength: 100,
@@ -47,3 +47,5 @@ export const defaultAiOptions = {
     },
   },
 }
+
+export default defaultAiOptions

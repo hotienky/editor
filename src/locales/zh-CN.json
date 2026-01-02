@@ -382,18 +382,6 @@
       "renderError": "二维码生成失败",
       "notEmpty": "二维码内容不能为空"
     },
-    "seal": {
-      "text": "电子签章",
-      "title": "插入电子签章",
-      "insert": "插入",
-      "tip": "选择纯色背景电子章的影印件或者照片，将自动扣取电子章，所有操作在本地完成，不会向服务器发送数据，请放心使用。",
-      "insertTip": "点击此处选择电子章图片",
-      "converting1": "正在加载抠图组件...",
-      "converting2": "正在加载抠图组件: {ppercentage}%",
-      "converting3": "正在抠图中，请稍后...",
-      "convertError": "电子章抠取失败，请重试",
-      "notEmpty": "请选择电子章"
-    },
     "signature": {
       "text": "电子签名",
       "title": "插入电子签名",
@@ -543,8 +531,6 @@
       "flipY": "垂直翻转",
       "preview": "预览图片",
       "proportion": "锁定图片缩放比例",
-      "removeBg": "去除图片背景",
-      "removingBg": "正在去除图片背景...",
       "reset": "重置图片位置",
       "rotateCC": "逆时针旋转90度",
       "rotateC": "顺时针旋转90度",

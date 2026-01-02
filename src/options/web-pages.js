@@ -1,4 +1,4 @@
-export const defaultWebPages = [
+const defaultWebPages = [
   {
     label: {
       zh_CN: '哔哩哔哩',
@@ -77,3 +77,5 @@ export const defaultWebPages = [
     },
   },
 ]
+
+export default defaultWebPages

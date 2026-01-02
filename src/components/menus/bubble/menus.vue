@@ -18,12 +18,6 @@
     <menus-bubble-image-draggable />
     <menus-bubble-image-reset />
     <div class="umo-bubble-menu-divider"></div>
-    <menus-bubble-image-remove-background
-      v-if="
-        attrs('image')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(attrs('image')?.type)
-      "
-    />
     <menus-bubble-image-preview
       v-if="
         attrs('image')?.type.startsWith('image') ||
@@ -53,12 +47,6 @@
     <menus-bubble-image-flip />
     <menus-bubble-image-proportion />
     <div class="umo-bubble-menu-divider"></div>
-    <menus-bubble-image-remove-background
-      v-if="
-        attrs('inlineImage')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(attrs('inlineImage')?.type)
-      "
-    />
     <menus-bubble-image-preview
       v-if="
         attrs('inlineImage')?.type.startsWith('image') ||

@@ -125,7 +125,7 @@ const changeSmooth = () => {
 const setSignature = async () => {
   try {
     const id = shortId(10)
-    const name = `seal-${id}.png`
+    const name = `signature-${id}.png`
     const image = signature.getPNG()
     const file = await fetch(image)
       .then((res) => res.blob())
