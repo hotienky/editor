@@ -1,6 +1,6 @@
 import Mention from '@tiptap/extension-mention'
 
-const CustomMention = Mention.extend({
+export default Mention.extend({
   addAttributes() {
     return {
       id: {
@@ -21,12 +21,5 @@ const CustomMention = Mention.extend({
           )
         },
     }
-  },
-})
-
-// 配置并导出扩展
-export default CustomMention.configure({
-  HTMLAttributes: {
-    class: 'umo-node-mention',
   },
 })

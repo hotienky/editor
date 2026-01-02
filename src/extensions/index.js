@@ -85,6 +85,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     columns: Columns,
     callout: Callout,
     mention: Mention.configure({
+      HTMLAttributes: {
+        class: 'umo-node-mention',
+      },
       suggestion: getUsersSuggestion(users ?? [], container),
     }),
     'date-time': Datetime,
