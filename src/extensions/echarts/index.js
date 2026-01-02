@@ -28,9 +28,6 @@ export default Node.create({
       height: {
         default: 300,
       },
-      draggable: {
-        default: false,
-      },
       mode: {
         // 图表设置时，默认打开的模式 0，表示直接使用 echarts 的 options，json: 源码模式，1: 可视化模式，可以通过配置创建图表
         default: 1,

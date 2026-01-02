@@ -61,6 +61,7 @@
         :equal-proportion="attrs.equalProportion"
         @rotate="onRotate"
         @resize="onResize"
+        @drag-end="onDragEnd"
         @mousedown="onMousedown"
         @focus="selected = true"
       >
@@ -94,6 +95,7 @@ import { base64ToFile } from 'file64'
 import { shortId } from '@/utils/short-id'
 
 import { updateAttributesWithoutHistory } from '../file'
+import { nextTick } from 'vue'
 
 const container = inject('container')
 const editor = inject('editor')
@@ -207,6 +209,14 @@ const onMousedown = (e) => {
   document.addEventListener('mousemove', onMousemove)
   // 鼠标抬起事件
   document.addEventListener('mouseup', onMouseup)
+}
+const onDragEnd = () => {
+  if (!attrs.draggable) {
+    setTimeout(() => {
+      dragRef.$el.style.left = 0
+      dragRef.$el.style.top = 0
+    }, 100)
+  }
 }
 
 onClickOutside(containerRef, () => {

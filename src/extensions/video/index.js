@@ -33,9 +33,6 @@ export default Node.create({
       height: {
         default: 200,
       },
-      draggable: {
-        default: false,
-      },
       uploaded: {
         default: false,
       },

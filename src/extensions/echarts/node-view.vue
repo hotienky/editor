@@ -6,11 +6,9 @@
     :style="nodeStyle"
   >
     <div
-      class="umo-node-container umo-node-echarts"
+      class="umo-node-container umo-node-echarts umo-select-outline"
       :class="{
-        'is-draggable': attrs.draggable,
         'umo-hover-shadow': !options.document?.readOnly,
-        'umo-select-outline': !attrs.draggable,
       }"
       :data-options="
         options.document?.readOnly ? JSON.stringify(chartOption) : null
@@ -20,7 +18,6 @@
         :selected="selected"
         :rotatable="false"
         :boundary="false"
-        :draggable="Boolean(attrs.draggable) && !options.document?.readOnly"
         :disabled="options.document?.readOnly"
         :angle="0"
         :width="Number(attrs.width)"
@@ -194,7 +191,7 @@ watch(
     max-width: 100%;
     position: relative;
 
-    &:not(.is-draggable) .es-drager {
+    .es-drager {
       max-width: 100%;
       max-height: 100%;
       transform: translateX(0px) translateY(0px) rotate(0deg) !important;
