@@ -15,7 +15,7 @@
         'preview-mode': page.preview?.enabled,
         'laser-pointer': page.preview?.enabled && page.preview?.laserPointer,
         'umo-editor-is-fullscreen': fullscreen,
-        'umo-editor-is-typerwriterRuning': !typeWriterIsRunning,
+        'umo-editor-is-typerwriter-runing': !typeWriterIsRunning,
       }"
       :style="{
         height: options.height,
@@ -1317,9 +1317,8 @@ defineExpose({
     right: 0;
     bottom: 0;
   }
-  &:not(.umo-editor-is-typerwriterRuning) {
-    pointer-events: none; /* 核心：禁用所有鼠标事件 */
-    /* 可选：添加半透明效果提示不可交互 */
+  &:not(.umo-editor-is-typerwriter-runing) {
+    pointer-events: none;
     opacity: 0.9;
   }
 }
