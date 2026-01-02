@@ -233,7 +233,7 @@ const deleteNode = () => {
     ?.chain()
     .setNodeSelection(props.pos)
     .focus()
-    .deleteSelectionNode()
+    .deleteSelection()
     .run()
 }
 </script>
