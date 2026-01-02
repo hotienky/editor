@@ -40,6 +40,14 @@ const extractStyles = (styleText) => {
 
 // 扩展表格能力
 Table.extend({
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      HTMLAttributes: {
+        class: 'umo-node-table',
+      },
+    }
+  },
   addProseMirrorPlugins() {
     return [
       ...(this.parent?.() ?? []),

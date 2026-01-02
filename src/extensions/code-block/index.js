@@ -4,8 +4,6 @@ import { common, createLowlight } from 'lowlight'
 
 import NodeView from './node-view.vue'
 
-const lowlight = createLowlight(common)
-
 const customCodeBlock = CodeBlock.extend({
   addAttributes() {
     return {
@@ -27,5 +25,8 @@ const customCodeBlock = CodeBlock.extend({
 })
 
 export default customCodeBlock.configure({
-  lowlight,
+  lowlight: createLowlight(common),
+  enableTabIndentation: true,
+  tabSize: 2,
+  defaultLanguage: 'plaintext',
 })

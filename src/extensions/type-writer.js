@@ -15,7 +15,7 @@ let typewriterProgress = {
 }
 
 // 计算总字符数用于进度跟踪
-function calculateTotalChars(content) {
+const calculateTotalChars = (content) => {
   return content.reduce((total, node) => {
     if (node.type === 'paragraph' && node.content) {
       return node.content.reduce((paraTotal, textNode) => {
@@ -254,6 +254,4 @@ export default Extension.create({
   },
 })
 
-export const getTypewriterRunState = () => {
-  return typewriterState.value.isRunning
-}
+export const getTypewriterRunState = () => typewriterState.value.isRunning

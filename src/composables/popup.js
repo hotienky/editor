@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export function usePopup() {
+export const usePopup = () => {
   const popupVisible = ref(false)
 
   const togglePopup = (visible) => {

@@ -1,4 +1,4 @@
-export function useState(key, options) {
+export const useState = (key, options) => {
   const storageKey = `umo-editor:${options?.value?.editorKey ?? 'default'}:${key}`
 
   if (key === 'document') {

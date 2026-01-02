@@ -1,6 +1,14 @@
 import Mention from '@tiptap/extension-mention'
 
 export default Mention.extend({
+  addOptions() {
+    return {
+      ...this.parent?.(),
+      HTMLAttributes: {
+        class: 'umo-node-mention',
+      },
+    }
+  },
   addAttributes() {
     return {
       id: {

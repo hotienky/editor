@@ -61,7 +61,7 @@ const FileHandlePlugin = (option) => {
   })
 }
 
-const FileHandler = Extension.create({
+export default Extension.create({
   name: 'fileHandler',
   addOptions: () => ({
     onPaste: undefined,
@@ -80,4 +80,3 @@ const FileHandler = Extension.create({
     ]
   },
 })
-export { FileHandler as default, FileHandlePlugin, FileHandler }

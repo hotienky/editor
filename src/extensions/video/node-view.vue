@@ -48,7 +48,7 @@
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 
-import { mediaPlayer } from '@/utils/player'
+import { player } from '@/utils/player'
 
 import { updateAttributesWithoutHistory } from '../file'
 
@@ -63,7 +63,7 @@ const uploadFileMap = inject('uploadFileMap')
 const containerRef = ref(null)
 let selected = $ref(false)
 const videoRef = $ref(null)
-let player = $ref(null)
+let playerInstance = $ref(null)
 let maxWidth = $ref(0)
 let maxHeight = $ref(0)
 
@@ -82,7 +82,7 @@ const nodeStyle = $computed(() => {
 
 onMounted(async () => {
   await nextTick()
-  player = mediaPlayer(videoRef)
+  playerInstance = player(videoRef)
   if (attrs.uploaded || !attrs.id) {
     return
   }
@@ -124,8 +124,8 @@ const onResize = ({ width, height }) => {
   updateAttributes({ width, height })
 }
 onBeforeUnmount(() => {
-  if (player) {
-    player.destroy()
+  if (playerInstance) {
+    playerInstance.destroy()
   }
 })
 

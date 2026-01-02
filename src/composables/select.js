@@ -2,7 +2,7 @@
 
 import { onMounted, ref } from 'vue'
 
-export function useSelect() {
+export const useSelect = () => {
   const selectVisible = ref(false)
 
   onMounted(() => {

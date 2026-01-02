@@ -10,7 +10,7 @@
       class="umo-node-container umo-hover-shadow umo-select-outline umo-node-audio"
     >
       <audio
-        ref="audiorRef"
+        ref="audioRef"
         :src="attrs.src"
         controls
         crossorigin="anonymous"
@@ -24,7 +24,7 @@
 <script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 
-import { mediaPlayer } from '@/utils/player'
+import { player } from '@/utils/player'
 
 import { updateAttributesWithoutHistory } from '../file'
 
@@ -37,7 +37,7 @@ const uploadFileMap = inject('uploadFileMap')
 
 const containerRef = ref(null)
 const audioRef = $ref(null)
-let player = $ref(null)
+let playerInstance = $ref(null)
 let selected = $ref(false)
 
 const nodeStyle = $computed(() => {
@@ -54,7 +54,7 @@ const nodeStyle = $computed(() => {
 })
 
 onMounted(async () => {
-  player = mediaPlayer(audioRef)
+  playerInstance = player(audioRef)
   if (attrs.uploaded || !attrs.id) {
     return
   }
@@ -78,8 +78,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (player) {
-    player.destroy()
+  if (playerInstance) {
+    playerInstance.destroy()
   }
 })
 

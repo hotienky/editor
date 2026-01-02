@@ -79,11 +79,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     inlineImage: InlineImage,
     video: Video,
     audio: Audio,
-    'code-block': CodeBlock.configure({
-      enableTabIndentation: true,
-      tabSize: 2,
-      defaultLanguage: 'plaintext',
-    }),
+    'code-block': CodeBlock,
     symbol: Symbol,
     math: Mathematics.configure({
       katex: { throwOnError: false },
@@ -92,16 +88,11 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     columns: Columns,
     callout: Callout,
     mention: Mention.configure({
-      HTMLAttributes: {
-        class: 'umo-node-mention',
-      },
       suggestion: getUsersSuggestion(users ?? [], container),
     }),
     'date-time': Datetime,
     optionBox: OptionBox,
-    bookmark: Bookmark.configure({
-      class: 'umo-editor-bookmark',
-    }),
+    bookmark: Bookmark,
     'hard-break': BreakMarks.configure({
       visible: page?.showBreakMarks,
     }),
@@ -162,10 +153,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     DetailsSummary,
 
     // 表格
-    Table.configure({
-      allowTableNodeSelection: true,
-      resizable: true,
-    }),
+    Table,
     TableRow,
     TableCell,
     TableHeader,
@@ -177,9 +165,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     PageBreak,
 
     // 其他
-    Selection.configure({
-      className: 'umo-text-selection',
-    }),
+    Selection,
     NodeRange,
     NodeSelect,
     TableOfContents.configure({

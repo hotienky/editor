@@ -4,7 +4,7 @@ import { VueNodeViewRenderer } from '@tiptap/vue-3'
 
 import NodeView from './node-view.vue'
 
-const baseImageExtend = Image.extend({
+const customImage = Image.extend({
   atom: true,
   selectable: true,
   addAttributes() {
@@ -105,8 +105,8 @@ const baseImageExtend = Image.extend({
   },
 })
 // 节点块级别扩展
-export const BlockImage = baseImageExtend.extend({
-  ...baseImageExtend,
+export const BlockImage = customImage.extend({
+  ...customImage,
   addNodeView() {
     return VueNodeViewRenderer(NodeView)
   },
@@ -130,8 +130,8 @@ export const BlockImage = baseImageExtend.extend({
   },
 })
 // 行内扩展
-export const InlineImage = baseImageExtend.extend({
-  ...baseImageExtend,
+export const InlineImage = customImage.extend({
+  ...customImage,
   name: 'inlineImage',
   // 行内元素
   inline: true,
