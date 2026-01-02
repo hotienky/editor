@@ -571,6 +571,20 @@ const setPage = (params) => {
     }
     page.value.layout = params.layout
   }
+
+  if (params.margin) {
+    const marginKeys = ['left', 'right', 'top', 'bottom']
+    const copyMargin = { ...page.value.margin }
+    for (const key of marginKeys) {
+      if (params.margin[key] !== undefined) {
+        if (!isNumber(params.margin[key])) {
+          throw new Error(`"params.margin.${key}" must be a number.`)
+        }
+        copyMargin[key] = params.margin[key]
+      }
+    }
+    page.value.margin = copyMargin
+  }
 }
 
 const setWatermark = (params) => {
