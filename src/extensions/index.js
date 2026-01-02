@@ -14,6 +14,7 @@ import { getHierarchicalIndexes } from '@tiptap/extension-table-of-contents'
 import { TableOfContents } from '@tiptap/extension-table-of-contents'
 import { TextStyleKit } from '@tiptap/extension-text-style'
 import Typography from '@tiptap/extension-typography'
+import UniqueID from '@tiptap/extension-unique-id'
 import {
   CharacterCount,
   Dropcursor,
@@ -229,6 +230,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     Dropcursor.configure({
       color: 'var(--umo-primary-color)',
+    }),
+    UniqueID.configure({
+      generateID: () => shortId(10),
     }),
     typeWriter,
   ]
