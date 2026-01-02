@@ -10,7 +10,7 @@
     "
     :disabled="
       !editor?.can().chain().focus().setTextAlign('left').run() &&
-      !editor?.can().chain().focus().setNodeAlign('left').run()
+      !editor?.can().chain().focus().setNodeAlign('flex-start').run()
     "
     @menu-click="setAlignLeft"
   />
