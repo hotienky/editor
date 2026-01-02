@@ -96,7 +96,6 @@ import { base64ToFile } from 'file64'
 import { shortId } from '@/utils/short-id'
 
 import { updateAttributesWithoutHistory } from '../file'
-import { nextTick } from 'vue'
 
 const container = inject('container')
 const editor = inject('editor')

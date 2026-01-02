@@ -31,7 +31,7 @@
 
 <script setup>
 import { TextSelection } from '@tiptap/pm/state'
-import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3'
+import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 
 const { getPos } = defineProps(nodeViewProps)
 
