@@ -267,9 +267,7 @@ watch(
           ext = 'svg'
         }
         const filename = shortId(10)
-        const file = await base64ToFile(src, `${filename}.${ext}`, {
-          type,
-        })
+        const file = await base64ToFile(src, `${filename}.${ext}`, { type })
         uploadFileMap.value.set(attrs.id, file)
       }
       await nextTick()
