@@ -71,7 +71,11 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     inlineImage: InlineImage,
     video: Video,
     audio: Audio,
-    'code-block': CodeBlock,
+    'code-block': CodeBlock.configure({
+      enableTabIndentation: true,
+      tabSize: 2,
+      defaultLanguage: 'plaintext',
+    }),
     symbol: Symbol,
     math: Mathematics.configure({
       katex: { throwOnError: false },
