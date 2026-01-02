@@ -13,6 +13,7 @@
   >
     <div class="umo-node-container umo-node-text-box">
       <drager
+        class="is-draggable"
         :style="{
           cursor: !options.document?.readOnly
             ? 'inherit'
@@ -30,7 +31,6 @@
         :min-width="14"
         :min-height="14"
         :title="t('node.textBox.tip')"
-        :draggable="true"
         @rotate="onRotate"
         @resize="onResize"
         @drag="onDrag"
@@ -90,7 +90,7 @@ const editTextBox = () => {
 <style lang="less">
 .umo-node-view {
   .umo-node-text-box {
-    position: relative;
+    position: absolute;
     .es-drager {
       user-select: text !important;
       cursor: default !important;

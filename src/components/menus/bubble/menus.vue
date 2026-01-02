@@ -181,6 +181,8 @@
       <menus-toolbar-base-highlight v-if="!disable('highlight')" />
     </template>
     <template v-else>
+      <menus-bubble-text-box-border />
+      <menus-bubble-text-box-background />
       <div class="umo-bubble-menu-divider"></div>
       <menus-bubble-node-delete />
     </template>

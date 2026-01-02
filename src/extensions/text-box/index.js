@@ -17,7 +17,7 @@ export default Node.create({
         default: 200,
       },
       height: {
-        default: 34,
+        default: 30,
       },
       angle: {
         default: null,
@@ -27,9 +27,6 @@ export default Node.create({
       },
       top: {
         default: 0,
-      },
-      draggable: {
-        default: true,
       },
       rotatable: {
         default: true,
