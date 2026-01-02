@@ -60,7 +60,7 @@ const dropdownVisible = (visible) => {
     &.is-empty {
       z-index: 20;
       .umo-block-menu-hander {
-        margin-top: 2px;
+        margin-top: -3px;
       }
     }
     &.is-visible {
