@@ -650,9 +650,7 @@ const setWatermark = (params) => {
 }
 
 const setDocument = (params) => {
-  // The original "isRecord" function affects the following typeScript type derivation, so change the method to judge.
-  // 原来的“isRecord”函数影响了下面的typeScript类型推导，所以换一个方法判断。
-  if (Object.prototype.toString.call(params) !== '[object Object]') {
+  if (!isRecord(params)) {
     throw new Error('params must be an object.')
   }
   options.value.document ??= {}
