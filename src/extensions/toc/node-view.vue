@@ -136,12 +136,13 @@ const headingActive = (value) => {
         }
       }
       .umo-tree__empty {
-        height: 60px;
+        height: 40px;
         font-size: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--umo-text-color-light);
+        margin-bottom: 15px;
       }
     }
   }
