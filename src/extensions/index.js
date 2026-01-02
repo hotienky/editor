@@ -47,6 +47,7 @@ import NodeSelect from './node-select'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
+import SearchReplace from './search-replace'
 import Selection from './selection'
 import { Table, TableCell, TableHeader, TableRow } from './table'
 import Tag from './tag'
@@ -143,6 +144,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     TextAlign,
     NodeAlign,
     TaskItem,
+    SearchReplace,
 
     // 插入
     File,

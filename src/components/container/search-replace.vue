@@ -3,9 +3,10 @@
     class="umo-search-replace-dialog"
     :visible="searchReplace"
     :footer="false"
+    :z-index="200"
     width="420px"
     mode="modeless"
-    :z-index="200"
+    draggable
     @close="searchReplace = false"
   >
     <template #header>
