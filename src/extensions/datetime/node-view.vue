@@ -79,7 +79,7 @@ const formatDateToChinese = (dateStr) => {
 
 const datetimeChange = (value) => {
   let selectDate = value
-  if (selectDate && node?.attrs?.capitalize) {
+  if (selectDate && attrs?.capitalize) {
     selectDate = formatDateToChinese(value)
   }
   updateAttributes({ date: selectDate, text: selectDate })

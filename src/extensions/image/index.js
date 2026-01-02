@@ -6,6 +6,7 @@ import NodeView from './node-view.vue'
 
 const baseImageExtend = Image.extend({
   atom: true,
+  selectable: true,
   addAttributes() {
     return {
       vnode: {

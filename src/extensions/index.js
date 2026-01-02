@@ -133,7 +133,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     Placeholder.configure({
       placeholder: () => String(l(doc?.placeholder ?? '')),
     }),
-    NodeSelect,
     FormatPainter,
     Bold.extend({
       renderHTML: ({ HTMLAttributes }) => ['b', HTMLAttributes, 0],
@@ -169,6 +168,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       className: 'umo-text-selection',
     }),
     NodeRange,
+    NodeSelect,
     TableOfContents.configure({
       getIndex: getHierarchicalIndexes,
       scrollParent: () =>

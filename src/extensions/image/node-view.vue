@@ -8,6 +8,7 @@
     }"
     :style="nodeStyle"
     @dblclick="openImageViewer"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
       class="umo-node-container umo-node-image"
@@ -180,6 +181,7 @@ const onResize = ({ width, height }) => {
 const dragRef = $ref(null)
 let isMousedown = $ref(false)
 const onMousedown = (e) => {
+  containerRef.value?.$el.click()
   if (!attrs.draggable) {
     return
   }
@@ -295,13 +297,10 @@ watch(
     display: inline-block !important;
     padding: 2px 6px;
     img {
-      /* 1. 图片宽度不超过父容器宽度（核心约束） */
       max-width: 100% !important;
-      /* 2. 图片高度不超过父容器高度（避免纵向溢出） */
       max-height: 100% !important;
     }
   }
-  /* 关键：控制图片本身的自适应规则 */
   .umo-node-image {
     max-width: 100%;
     width: auto;

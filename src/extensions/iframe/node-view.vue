@@ -4,6 +4,7 @@
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
       class="umo-node-container umo-select-outline umo-node-iframe"
@@ -36,10 +37,11 @@
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 const options = inject('options')
+const editor = inject('editor')
 
 const props = defineProps(nodeViewProps)
 const attrs = $computed(() => props.node.attrs)
-const { updateAttributes } = props
+const { updateAttributes, getPos } = props
 const containerRef = ref(null)
 let selected = $ref(false)
 let maxWidth = $ref(0)

@@ -4,6 +4,7 @@
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
       class="umo-node-container umo-node-echarts umo-select-outline"
@@ -49,8 +50,9 @@ import { loadResource } from '@/utils/load-resource'
 
 const props = defineProps(nodeViewProps)
 const attrs = $computed(() => props.node.attrs)
-const { updateAttributes } = props
+const { updateAttributes, getPos } = props
 const options = inject('options')
+const editor = inject('editor')
 const containerRef = ref(null)
 let maxWidth = $ref(0)
 let selected = $ref(false)

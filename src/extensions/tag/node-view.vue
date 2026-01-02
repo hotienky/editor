@@ -1,5 +1,9 @@
 <template>
-  <node-view-wrapper as="span" class="umo-node-tag">
+  <node-view-wrapper
+    as="span"
+    class="umo-node-tag"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
+  >
     <span
       class="umo-node-tag-text"
       :style="{

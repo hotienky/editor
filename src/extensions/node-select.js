@@ -6,21 +6,7 @@ export default Extension.create({
   name: 'selectNode',
   addOptions() {
     return {
-      types: [
-        'horizontalRule',
-        'tag',
-        'toc',
-        'file',
-        'iframe',
-        'audio',
-        'echarts',
-        'video',
-        'image',
-        'pageBreak',
-        'optionBox',
-        'blockMath',
-        'inlineMath',
-      ],
+      types: ['horizontalRule', 'pageBreak', 'blockMath', 'inlineMath'],
     }
   },
   addProseMirrorPlugins() {

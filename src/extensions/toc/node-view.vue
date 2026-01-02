@@ -1,5 +1,9 @@
 <template>
-  <node-view-wrapper :id="node.attrs.id" class="umo-node-view">
+  <node-view-wrapper
+    :id="node.attrs.id"
+    class="umo-node-view"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
+  >
     <div
       class="umo-node-container umo-hover-shadow umo-select-outline umo-node-toc"
     >
@@ -27,7 +31,9 @@
 
 <script setup>
 import { TextSelection } from '@tiptap/pm/state'
-import { NodeViewWrapper } from '@tiptap/vue-3'
+import { NodeViewWrapper, nodeViewProps } from '@tiptap/vue-3'
+
+const { getPos } = defineProps(nodeViewProps)
 
 const container = inject('container')
 const editor = inject('editor')
@@ -45,7 +51,7 @@ const buildTocTree = (tocArray) => {
       textContent: item.textContent,
       level: item.originalLevel,
       id: item.id,
-      actived: false, // item.isActive,
+      actived: false,
       children: [],
     }
     while (

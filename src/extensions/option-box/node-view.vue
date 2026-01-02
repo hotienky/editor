@@ -1,5 +1,9 @@
 <template>
-  <node-view-wrapper as="span" class="umo-node-option-box">
+  <node-view-wrapper
+    as="span"
+    class="umo-node-option-box"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
+  >
     <span
       v-if="attrs.target === 'radio'"
       class="umo-option-box-radio-container"
@@ -53,7 +57,7 @@ const options = inject('options')
 const page = inject('page')
 const editor = inject('editor')
 const props = defineProps(nodeViewProps)
-const { updateAttributes } = props
+const { updateAttributes, getPos } = props
 const attrs = $computed(() => props.node.attrs)
 
 // 统一的禁用状态计算
