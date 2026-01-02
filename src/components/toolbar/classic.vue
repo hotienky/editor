@@ -81,6 +81,7 @@
           <menus-toolbar-insert-video v-if="!disableMenu('video')" />
           <menus-toolbar-insert-audio v-if="!disableMenu('audio')" />
           <menus-toolbar-insert-file v-if="!disableMenu('file')" />
+          <menus-toolbar-insert-details v-if="!disableMenu('details')" />
           <menus-toolbar-insert-code-block v-if="!disableMenu('code-block')" />
           <menus-toolbar-insert-symbol v-if="!disableMenu('symbol')" />
           <menus-toolbar-insert-chinese-date

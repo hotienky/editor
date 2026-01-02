@@ -52,6 +52,9 @@
       <t-dropdown-item v-if="!disableMenu('file')">
         <menus-toolbar-insert-file :huge="false" :tooltip="false" />
       </t-dropdown-item>
+      <t-dropdown-item v-if="!disableMenu('details')">
+        <menus-toolbar-insert-details :huge="false" :tooltip="false" />
+      </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('code-block')">
         <menus-toolbar-insert-code-block
           :huge="false"

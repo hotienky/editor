@@ -1,4 +1,9 @@
 import Bold from '@tiptap/extension-bold'
+import {
+  Details,
+  DetailsContent,
+  DetailsSummary,
+} from '@tiptap/extension-details'
 import Link from '@tiptap/extension-link'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import Mathematics from '@tiptap/extension-mathematics'
@@ -147,6 +152,13 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
 
     // 插入
     File,
+    Details.configure({
+      HTMLAttributes: {
+        class: 'umo-node-details',
+      },
+    }),
+    DetailsContent,
+    DetailsSummary,
 
     // 表格
     Table.configure({
