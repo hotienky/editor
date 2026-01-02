@@ -511,7 +511,6 @@
   "blockMenu": {
     "insert": "插入新内容",
     "template": "插入模板",
-    "toogleNode": "切换类型",
     "common": "常用操作",
     "clearFormat": "清除格式",
     "duplicate": "复制节点",

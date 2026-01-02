@@ -14,21 +14,6 @@
       hide-text
     />
     <t-dropdown-menu>
-      <t-dropdown-item
-        v-if="
-          options.ai?.assistant?.enabled &&
-          (editor?.isActive('paragraph') || editor?.isActive('heading')) &&
-          editor?.state?.selection?.$from?.nodeAfter
-        "
-        divider
-      >
-        <menus-button
-          ico="assistant"
-          :text="t('assistant.text')"
-          :tooltip="false"
-          @menu-click="openAssistant"
-        />
-      </t-dropdown-item>
       <t-dropdown-item class="umo-block-menu-group-name" disabled>
         {{ t('blockMenu.insert') }}
       </t-dropdown-item>
@@ -41,7 +26,12 @@
         />
       </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('image')">
-        <menus-toolbar-insert-image :huge="false" :tooltip="false" />
+        <menus-button
+          ico="image"
+          :text="t('insert.image.text')"
+          :tooltip="false"
+          @menu-click="insertImage"
+        />
       </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('video')">
         <menus-toolbar-insert-video :huge="false" :tooltip="false" />
@@ -148,16 +138,15 @@ const props = defineProps({
 const emits = defineEmits(['dropdownVisible'])
 
 const container = inject('container')
-const editor = inject('editor')
-const blockMenu = inject('blockMenu')
-const assistant = inject('assistant')
 const options = inject('options')
+const editor = inject('editor')
+const uploadFileMap = inject('uploadFileMap')
+const blockMenu = inject('blockMenu')
 
 let menuActive = $ref(false)
 const popupProps = {
   attach: `${container} .umo-main-container`,
   onVisibleChange(visible) {
-    editor.value.commands.focus(props.pos)
     blockMenu.value = visible
     menuActive = visible
     emits('dropdownVisible', visible)
@@ -168,12 +157,12 @@ const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
-const openAssistant = () => {
-  assistant.value = true
-  editor.value?.commands.selectParentNode()
-  editor.value?.commands.focus()
-  const { from, to } = editor.value?.state.selection || {}
-  editor.value?.commands.setTextSelection({ from: from || 0, to: to || 0 })
+const insertImage = () => {
+  editor.value
+    ?.chain()
+    .focus()
+    .selectFiles('image', container, uploadFileMap.value)
+    .run()
 }
 
 const setTemplate = ({ content }) => {

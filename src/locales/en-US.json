@@ -511,7 +511,6 @@
   "blockMenu": {
     "insert": "Insert Content",
     "template": "Insert Template",
-    "toogleNode": "Switch Node Type",
     "common": "Common actions",
     "clearFormat": "Clear formatting",
     "duplicate": "Duplicate",

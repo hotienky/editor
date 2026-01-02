@@ -51,7 +51,7 @@ const insertImage = (type) => {
   editor.value
     ?.chain()
     .focus()
-    .selectFiles(type, container.value, uploadFileMap.value)
+    .selectFiles(type, container, uploadFileMap.value)
     .run()
 }
 </script>

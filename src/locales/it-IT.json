@@ -496,7 +496,6 @@
   "blockMenu": {
     "insert": "Inserisci contenuto",
     "template": "Inserisci modello",
-    "toogleNode": "Cambia tipo di nodo",
     "common": "Azioni comuni",
     "clearFormat": "Cancella formattazione",
     "duplicate": "Duplica",

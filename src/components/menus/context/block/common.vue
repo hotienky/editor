@@ -14,99 +14,22 @@
       style="cursor: grab"
     />
     <t-dropdown-menu>
-      <t-dropdown-item class="umo-block-menu-group-name" disabled>
-        {{ t('blockMenu.common') }}
-      </t-dropdown-item>
       <t-dropdown-item
-        v-if="editor?.isActive('paragraph') || editor?.isActive('heading')"
+        v-if="
+          options.ai?.assistant?.enabled &&
+          (editor?.isActive('paragraph') || editor?.isActive('heading'))
+        "
+        divider
       >
         <menus-button
-          ico="node-switch"
-          :text="t('blockMenu.toogleNode')"
+          ico="assistant"
+          :text="t('assistant.text')"
           :tooltip="false"
+          @menu-click="openAssistant"
         />
-        <t-dropdown-menu
-          overlay-class-name="umo-block-menu-dropdown"
-          placement="right"
-        >
-          <t-dropdown-item>
-            <menus-button
-              ico="paragraph"
-              :text="t('base.heading.paragraph')"
-              :tooltip="false"
-              shortcut-text="ctrl+alt+0"
-              @menu-click="toggleNodeType('paragraph')"
-            />
-          </t-dropdown-item>
-          <t-dropdown-item>
-            <menus-button
-              ico="heading"
-              :text="t('base.heading.text')"
-              :tooltip="false"
-            />
-            <t-dropdown-menu
-              overlay-class-name="umo-block-menu-dropdown"
-              placement="right"
-            >
-              <t-dropdown-item
-                v-for="item in headings"
-                :key="item"
-                :disabled="editor?.isActive('heading', { level: item })"
-              >
-                <menus-button
-                  :tooltip="false"
-                  :shortcut-text="`ctrl+alt+${item}`"
-                  @menu-click="toggleNodeType('heading', { level: item })"
-                >
-                  <span class="umo-heading">
-                    <span class="icon-heading">H{{ item }}</span>
-                    {{ t('base.heading.text', { level: item }) }}
-                  </span>
-                </menus-button>
-              </t-dropdown-item>
-            </t-dropdown-menu>
-          </t-dropdown-item>
-          <t-dropdown-item>
-            <menus-button
-              ico="ordered-list-2"
-              :text="t('list.ordered.text')"
-              :tooltip="false"
-              shortcut-text="Ctrl+Shift+7"
-              :menu-active="editor?.isActive('orderedList')"
-              @menu-click="toggleNodeType('orderedList')"
-            />
-          </t-dropdown-item>
-          <t-dropdown-item>
-            <menus-button
-              ico="bullet-list-2"
-              :text="t('list.bullet.text')"
-              :tooltip="false"
-              shortcut-text="Ctrl+Shift+8"
-              :menu-active="editor?.isActive('bulletList')"
-              @menu-click="toggleNodeType('bulletList')"
-            />
-          </t-dropdown-item>
-          <t-dropdown-item>
-            <menus-button
-              ico="task-list-2"
-              :text="t('list.task.text')"
-              :tooltip="false"
-              shortcut-text="Ctrl+Shift+9"
-              :menu-active="editor?.isActive('taskList')"
-              @menu-click="toggleNodeType('taskList')"
-            />
-          </t-dropdown-item>
-          <t-dropdown-item>
-            <menus-button
-              ico="quote"
-              :text="t('base.quote')"
-              :tooltip="false"
-              shortcut-text="Ctrl+Shift+B"
-              :menu-active="editor?.isActive('blockquote')"
-              @menu-click="toggleNodeType('blockquote')"
-            />
-          </t-dropdown-item>
-        </t-dropdown-menu>
+      </t-dropdown-item>
+      <t-dropdown-item class="umo-block-menu-group-name" disabled>
+        {{ t('blockMenu.common') }}
       </t-dropdown-item>
       <t-dropdown-item>
         <menus-button
@@ -166,47 +89,28 @@ const props = defineProps({
 const emits = defineEmits(['dropdownVisible'])
 
 const container = inject('container')
+const options = inject('options')
 const editor = inject('editor')
 const blockMenu = inject('blockMenu')
+const assistant = inject('assistant')
 
 let menuActive = $ref(false)
 
 const popupProps = {
   attach: `${container} .umo-main-container`,
   onVisibleChange(visible) {
-    editor.value.commands.focus(props.pos)
     blockMenu.value = visible
     menuActive = visible
     emits('dropdownVisible', visible)
   },
 }
 
-const headings = $ref([1, 2, 3, 4, 5, 6])
-
-const toggleNodeType = (type, propsData) => {
-  editor.value?.chain().focus().run()
-  switch (type) {
-    case 'paragraph':
-      editor.value?.commands.setParagraph()
-      break
-    case 'heading':
-      if (propsData) {
-        editor.value?.commands.setHeading(propsData)
-      }
-      break
-    case 'orderedList':
-      editor.value?.commands.toggleOrderedList()
-      break
-    case 'bulletList':
-      editor.value?.commands.toggleBulletList()
-      break
-    case 'taskList':
-      editor.value?.commands.toggleTaskList()
-      break
-    case 'blockquote':
-      editor.value?.commands.toggleBlockquote()
-      break
-  }
+const openAssistant = () => {
+  assistant.value = true
+  editor.value?.commands.selectParentNode()
+  editor.value?.commands.focus()
+  const { from, to } = editor.value?.state.selection || {}
+  editor.value?.commands.setTextSelection({ from: from || 0, to: to || 0 })
 }
 
 const clearTextFormatting = () => {
