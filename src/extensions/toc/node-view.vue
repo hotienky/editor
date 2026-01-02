@@ -109,7 +109,7 @@ const headingActive = (value) => {
     background-color: #fff;
     width: 100%;
     &-head {
-      font-weight: 600;
+      font-weight: 500;
       margin: 0;
       position: absolute;
       top: 0;
@@ -117,7 +117,6 @@ const headingActive = (value) => {
       padding: 0.25em 0.5em;
       border-bottom-left-radius: 3px;
       border-bottom-right-radius: 3px;
-      font-size: 16px;
       background: rgba(black, 0.05);
       color: var(--umo-primary-color);
     }
@@ -125,12 +124,18 @@ const headingActive = (value) => {
     &-body {
       .umo-tree__label {
         margin-left: 0 !important;
-        font-weight: 600;
-        font-size: 16px;
         padding: 5px;
         &:hover {
           color: var(--umo-primary-color);
         }
+      }
+      .umo-tree__empty {
+        height: 60px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--umo-text-color-light);
       }
     }
   }
