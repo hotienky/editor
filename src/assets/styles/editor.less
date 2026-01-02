@@ -596,10 +596,14 @@
 
   .tiptap-mathematics {
     &-render {
+      overflow: hidden;
       &[data-type='inline-math'] {
         padding: 0 0.25em;
       }
       &[data-type='block-math'] {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         .block-math-inner {
           padding: 0.5em;
         }

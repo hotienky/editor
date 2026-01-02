@@ -140,9 +140,6 @@
     <menus-bubble-node-delete />
   </template>
   <template v-else-if="is('blockMath') || is('inlineMath')">
-    <menus-toolbar-base-align-left />
-    <menus-toolbar-base-align-center />
-    <menus-toolbar-base-align-right />
     <menus-bubble-math />
     <menus-bubble-node-delete />
   </template>
