@@ -67,7 +67,9 @@
           ico="hr"
           :text="t('insert.hr.text')"
           :tooltip="false"
-          @menu-click="editor?.chain().focus().setHr({ type: 'signle' }).run()"
+          @menu-click="
+            editor?.chain().focus().setHorizontalRule({ type: 'signle' }).run()
+          "
         />
       </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('toc')">
