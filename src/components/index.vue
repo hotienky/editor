@@ -25,7 +25,7 @@
       <header class="umo-toolbar">
         <toolbar
           :key="toolbarKey"
-          @menu-change="(event) => emits('menuChange', event)"
+          @menu-change="(event) => emits('changed:menu', event)"
         >
           <template
             v-for="item in options.toolbar?.menus"
@@ -103,9 +103,11 @@ const emits = defineEmits([
   'print',
   'focus',
   'blur',
+  'paste',
+  'drop',
+  'delete',
   'saved',
   'destroy',
-  'menuChange',
 ])
 // 撤销重做的记录步骤
 const historyRecords = ref({
@@ -311,6 +313,40 @@ watch(
     editor.value.on('blur', ({ editor, event }) => {
       emits('blur', { editor, event })
     })
+    editor.value.on('paste', ({ event, slice }) => {
+      emits('paste', { event, slice })
+    })
+    editor.value.on('drop', ({ event, slice, moved }) => {
+      emits('drop', { event, slice, moved })
+    })
+    editor.value.on(
+      'delete',
+      ({
+        type,
+        deletedRange,
+        newRange,
+        partial,
+        node,
+        mark,
+        from,
+        to,
+        newFrom,
+        newTo,
+      }) => {
+        emits('delete', {
+          type,
+          deletedRange,
+          newRange,
+          partial,
+          node,
+          mark,
+          from,
+          to,
+          newFrom,
+          newTo,
+        })
+      },
+    )
     editor.value.on('destroy', () => {
       emits('destroy')
     })
