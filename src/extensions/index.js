@@ -61,7 +61,7 @@ import Tag from './tag'
 import TextAlign from './text-align'
 import TextBox from './text-box'
 import Toc from './toc'
-import typeWriter from './type-writer'
+import TypeWriter from './type-writer'
 import Video from './video'
 
 const nodeTypes = [
@@ -268,7 +268,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       types: nodeTypes,
       generateID: () => shortId(10),
     }),
-    typeWriter,
+    TypeWriter,
   ]
 
   // 合并扩展
