@@ -4,7 +4,7 @@
     :editor="editor"
     class="umo-block-menu-drag-handle"
     :class="{
-      'is-empty': editor.isEmpty,
+      'is-empty': editor?.isEmpty,
       'is-visible': selectedNodePos !== null,
     }"
     @node-change="nodeChange"
@@ -19,11 +19,7 @@
         @dropdown-visible="dropdownVisible"
       />
       <menus-context-block-common
-        v-if="
-          !editor.isEmpty ||
-          editor.isActive('table') ||
-          editor.isActive('callout')
-        "
+        v-if="!editor?.isEmpty"
         :node="selectedNode"
         :pos="selectedNodePos"
         @dropdown-visible="dropdownVisible"
@@ -57,6 +53,7 @@ const dropdownVisible = (visible) => {
     color: var(--umo-text-color-light) !important;
   }
   &-drag-handle {
+    z-index: 10;
     &.is-empty {
       z-index: 20;
       .umo-block-menu-hander {
