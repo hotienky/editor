@@ -58,6 +58,7 @@ const buildConfig = {
     ],
     external: [
       'vue',
+      /^tdesign-vue-next\/.*/,
       /^@vueuse\/.*/,
       /^@tiptap\/.*/,
       /^nzh\/.*/,
