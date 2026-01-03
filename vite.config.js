@@ -58,10 +58,10 @@ const buildConfig = {
     ],
     external: [
       'vue',
-      ...Object.keys(pkg.dependencies ?? {}),
       /^@vueuse\/.*/,
       /^@tiptap\/.*/,
       /^nzh\/.*/,
+      ...Object.keys(pkg.dependencies ?? {}),
     ],
     onwarn(warning, warn) {
       if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return
