@@ -76,6 +76,10 @@ export default Extension.create({
         'orderedList',
         'taskList',
         'echarts',
+        'callout',
+        'columns',
+        'blockMath',
+        'codeBlock',
       ],
       margin: { top: 0, bottom: 0 },
     }
