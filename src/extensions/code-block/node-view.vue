@@ -108,7 +108,7 @@ const updateAttribute = (attr, value) => {
 
 const copyCode = () => {
   const { copy } = useClipboard({
-    source: node.textContent,
+    source: props.node.textContent,
   })
   copy()
   useMessage('success', {
