@@ -313,6 +313,7 @@
       "block": "块级公式",
       "placeholder": "请输入 LaTex 公式或从右侧选择",
       "preview": "公式预览区域",
+      "template": "常用公式",
       "cancel": "取消",
       "confirm": "插入公式"
     },

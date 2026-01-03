@@ -313,6 +313,7 @@
       "block": "Block Math",
       "placeholder": "Enter LaTeX or select from the right",
       "preview": "Math Preview Area",
+      "template": "Math templates",
       "cancel": "Cancel",
       "confirm": "Insert Math"
     },

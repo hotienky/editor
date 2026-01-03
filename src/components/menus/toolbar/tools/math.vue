@@ -37,12 +37,16 @@
         </div>
         <div class="umo-math-select">
           <div
+            v-show="latexLoaded"
             v-for="(item, index) in templates"
             :key="index"
             class="umo-math-select-item"
             @click="selectMath(item)"
           >
             {{ item }}
+          </div>
+          <div v-if="!latexLoaded" class="umo-math-select-loading">
+            {{ t('tools.math.template') }}
           </div>
         </div>
       </div>
@@ -182,6 +186,7 @@ const templates = [
 
 let dialogVisible = $ref(false)
 const containerRef = $ref()
+let latexLoaded = $ref(false)
 let latexValue = $ref('')
 
 const loadKatex = async () => {
@@ -192,6 +197,9 @@ const loadKatex = async () => {
     'katex-script',
   )
   await loadResource(`${cdnUrl}/libs/katex/katex.min.css`, 'css', 'katex-style')
+  setTimeout(() => {
+    latexLoaded = true
+  }, 100)
 }
 
 watch(
@@ -301,10 +309,11 @@ const updateMath = () => {
     padding: 10px;
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-start;
-    height: 100%;
+    justify-content: center;
     box-sizing: border-box;
-    max-height: 380px;
+    align-items: center;
+    height: 380px;
+    color: var(--umo-text-color-light);
     &-item {
       flex-grow: 1;
       display: flex;
