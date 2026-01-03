@@ -45,6 +45,7 @@ import HorizontalRule from './horizontal-rule'
 import Iframe from './iframe'
 import { BlockImage, InlineImage } from './image'
 import Indent from './indent'
+import LineHeight from './line-height'
 import Margin from './margin'
 import Mention from './mention'
 import getUsersSuggestion from './mention/suggestion'
@@ -154,13 +155,14 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       codeBlock: false,
       horizontalRule: false,
       undoRedo: false,
-      history: false,
       link: false,
       placeholder: false,
       dropcursor: false,
       selection: false,
     }),
-    TextStyleKit,
+    TextStyleKit.configure({
+      lineHeight: false,
+    }),
     UndoRedo.extend({
       addKeyboardShortcuts() {
         // 返回空对象表示移除所有默认快捷键
@@ -184,6 +186,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     TextAlign,
     NodeAlign,
     TaskItem.configure({ nested: true }),
+    LineHeight,
     SearchReplace,
 
     // 插入
