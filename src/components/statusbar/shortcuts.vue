@@ -293,6 +293,7 @@ if ($document.value.enableMarkdown) {
   blockquote {
     padding-left: 10px;
     border-left: solid 3px var(--umo-border-color);
+    margin: 0;
   }
   code {
     border: solid 1px var(--umo-border-color);
