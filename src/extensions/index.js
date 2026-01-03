@@ -63,10 +63,50 @@ import Toc from './toc'
 import typeWriter from './type-writer'
 import Video from './video'
 
+const nodeTypes = [
+  'paragraph',
+  'heading',
+  'blockquote',
+  'codeBlock',
+  'hardBreak',
+  'horizontalRule',
+  'bulletList',
+  'orderedList',
+  'listItem',
+  'taskList',
+  'taskItem',
+  'details',
+  'detailsSummary',
+  'detailsContent',
+  'table',
+  'tableRow',
+  'tableHeader',
+  'tableCell',
+  'image',
+  'inlineImage',
+  'video',
+  'audio',
+  'file',
+  'callout',
+  'column',
+  'columnBlock',
+  'textBox',
+  'datetime',
+  'optionBox',
+  'iframe',
+  'echarts',
+  'toc',
+  'tag',
+  'pageBreak',
+  'mention',
+  'blockMath',
+  'inlineMath',
+]
+
 export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
   const { page, document: doc, users, file, disableExtensions } = options.value
 
-  const EXTENSIONS = {
+  const extensions = {
     'ordered-list': OrderedList,
     'bullet-list': BulletList,
     'task-list': TaskList.configure({
@@ -106,7 +146,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     'web-page': Iframe,
   }
 
-  const extensions = [
+  const buildInExtensions = [
     StarterKit.configure({
       bold: false,
       bulletList: false,
@@ -176,7 +216,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       getIndex: getHierarchicalIndexes,
       scrollParent: () =>
         document.querySelector(`${container} .umo-zoomable-container`),
-      getId: () => shortId(6),
+      getId: () => shortId(10),
     }),
     Typography.configure(doc?.typographyRules),
     CharacterCount.configure({
@@ -222,23 +262,24 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       color: 'var(--umo-primary-color)',
     }),
     UniqueID.configure({
+      types: nodeTypes,
       generateID: () => shortId(10),
     }),
     typeWriter,
   ]
 
   // 合并扩展
-  Object.values(EXTENSIONS).forEach((item) => {
+  Object.values(extensions).forEach((item) => {
     if (!disableExtensions?.includes(item.name)) {
       if (Array.isArray(item)) {
-        extensions.push(...item)
+        buildInExtensions.push(...item)
         return
       }
-      extensions.push(item)
+      buildInExtensions.push(item)
     }
   })
 
-  return extensions
+  return buildInExtensions
 }
 
 export const inputAndPasteRules = (options) => {
