@@ -20,7 +20,7 @@
   <template
     v-if="editor && !destroyed && !page.preview?.enabled && editor.isEditable"
   >
-    <menus-context-block
+    <menus-block
       v-if="options.document?.enableBlockMenu && page.zoomLevel === 100"
     />
     <menus-bubble

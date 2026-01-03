@@ -13,12 +13,12 @@
       class="umo-block-menu-hander"
       :class="`umo-selected-node-${selectedNode?.type?.name || 'unknown'} `"
     >
-      <menus-context-block-node
+      <menus-block-node
         :node="selectedNode"
         :pos="selectedNodePos"
         @dropdown-visible="dropdownVisible"
       />
-      <menus-context-block-common
+      <menus-block-common
         v-if="!editor?.isEmpty"
         :node="selectedNode"
         :pos="selectedNodePos"
