@@ -69,7 +69,11 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
   const EXTENSIONS = {
     'ordered-list': OrderedList,
     'bullet-list': BulletList,
-    'task-list': TaskList,
+    'task-list': TaskList.configure({
+      HTMLAttributes: {
+        class: 'umo-task-list',
+      },
+    }),
     margin: Margin,
     link: Link.configure({
       openOnClick: false,
@@ -139,7 +143,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     Indent,
     TextAlign,
     NodeAlign,
-    TaskItem,
+    TaskItem.configure({ nested: true }),
     SearchReplace,
 
     // 插入
