@@ -39,7 +39,7 @@ const extractStyles = (styleText) => {
 }
 
 // 扩展表格能力
-Table.extend({
+const CustomTable = Table.extend({
   addOptions() {
     return {
       ...this.parent?.(),
@@ -115,7 +115,7 @@ Table.extend({
 const TableCellOptions = {
   addAttributes() {
     return {
-      ...this.parent?.(),
+      ...(this.parent?.() ?? {}),
       align: {
         default: null,
         parseHTML: (element) => element.getAttribute('align') ?? null,
@@ -148,7 +148,12 @@ const TableCellOptions = {
   },
 }
 
-TableHeader.extend(TableCellOptions)
-TableCell.extend(TableCellOptions)
+const CustomTableHeader = TableHeader.extend(TableCellOptions)
+const CustomTableCell = TableCell.extend(TableCellOptions)
 
-export { Table, TableCell, TableHeader, TableRow }
+export {
+  CustomTable as Table,
+  CustomTableCell as TableCell,
+  CustomTableHeader as TableHeader,
+  TableRow,
+}
