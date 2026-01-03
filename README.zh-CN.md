@@ -13,11 +13,11 @@
 
 ## 基本介绍
 
-Umo Editor 是一个基于 Vue3 和 Tiptap 的本土化开源文档编辑器，提供类似于 Microsoft Word 的在线编辑功能和浏览体验，专为国人用户设计。它提供了强大的文档编辑能力和 AI 创作功能，支持分页模式和普通 Web 模式、Markdown 语法、富文本编辑、多种格式的节点插入、页面样式设置、文档导出与打印等功能。
+Umo Editor 是一个基于 Vue3 和 Tiptap3 的本土化开源文档编辑器，提供类似于 Microsoft Word 的在线编辑功能和浏览体验，专为国人用户设计。它提供了强大的文档编辑能力和 AI 创作功能，支持分页模式和普通 Web 模式、Markdown 语法、富文本编辑、多种格式的节点插入、页面样式设置、文档导出与打印等功能。
 
 此外，Umo Editor 还支持自定义扩展、多语言设置和暗色主题。同时我们提供了单独的文本预览组件[Umo Viewer](https://github.com/umodoc/viewer)，用户可以在项目中使用该组件来预览文档。
 
-Umo Editor 最大的特点是代码完全开源且自主可控，支持私有部署，您可以内网环境中使用，而无需担心数据安全问题。同时 Umo Editor 基于 Vue3 和 Tiptap，两者都有丰富的生态系统和社区支持，在遇到问题时可以迅速得到解决。
+Umo Editor 最大的特点是代码完全开源且自主可控，支持私有部署，您可以内网环境中使用，而无需担心数据安全问题。同时 Umo Editor 基于 Vue3 和 Tiptap3，两者都有丰富的生态系统和社区支持，在遇到问题时可以迅速得到解决。
 
 ![Umo Editor](https://unpkg.com/@umoteam/editor-external@latest/static/umo-editor-cn@2x.png)
 
@@ -82,10 +82,10 @@ Umo Editor 的诞生旨在解决 Web 应用中文档编辑的复杂性，为 Web
 
 ## 环境支持
 
-- **Node.js** (>=v18.0.0)
+- **Node.js** (>=v18.x)
 - **Vue** (>=v3.x)
 - **Vite** (>=v5.x)
-- **Tiptap** (>=v2.6)
+- **Tiptap** (>=v3.x)
 
 ## 加入社区
 
@@ -136,7 +136,7 @@ Umo Editor 的发展离不开社区的支持，以下是为 Umo Editor 贡献过
 
 ## Umo Team 出品
 
-- [Umo Editor](https://dev.umodoc.com/cn/docs/editor): 基于 Vue3 和 Tiptap 的本土化开源文档编辑器，专为国人用户设计。
+- [Umo Editor](https://dev.umodoc.com/cn/docs/editor): 基于 Vue3 和 Tiptap3 的本土化开源文档编辑器，专为国人用户设计。
 - [Umo Viewer](https://dev.umodoc.com/cn/docs/viewer): PDF 文档查看器，基于 Vue3 和 PDF.js 实现，支持在浏览器中直接预览 PDF 文档，同时也支持预览 Umo Editor 文档内容。
 - [Umo Editor Next](https://dev.umodoc.com/cn/docs/next): Umo Editor 的增强版，在包含最新版本的 Umo Editor 所有功能的基础上，重点增加或者增强了对多用户在线协作编辑、文档批注(评论)、文档历史版本管理、AI 创作、文档导入导出、表格等功能的支持，同时增强了工具栏和页边栏等区域的自定义能力。
 - [Umo Editor Server](https://dev.umodoc.com/cn/docs/server): 为增强 Umo Editor 功能，如多用户在线协作编辑、文档批注(评论)、文档导入导出等功能而开发的配套服务器端软件。
