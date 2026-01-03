@@ -45,13 +45,6 @@
       <t-dropdown-item v-if="!disableMenu('details')">
         <menus-toolbar-insert-details :huge="false" :tooltip="false" />
       </t-dropdown-item>
-      <t-dropdown-item v-if="!disableMenu('code-block')">
-        <menus-toolbar-insert-code-block
-          :huge="false"
-          shortcut-text="Ctrl+Alt+C"
-          :tooltip="false"
-        />
-      </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('callout')">
         <menus-toolbar-insert-callout :huge="false" :tooltip="false" />
       </t-dropdown-item>
@@ -85,6 +78,9 @@
       </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('diagrams')">
         <menus-toolbar-tools-diagrams :huge="false" :tooltip="false" />
+      </t-dropdown-item>
+      <t-dropdown-item v-if="!disableMenu('math')">
+        <menus-toolbar-tools-math :huge="false" :tooltip="false" />
       </t-dropdown-item>
       <t-dropdown-item v-if="!disableMenu('echarts')">
         <menus-toolbar-tools-echarts
@@ -132,7 +128,7 @@ const props = defineProps({
     default: null,
   },
 })
-const emits = defineEmits(['dropdownVisible'])
+const emits = defineEmits(['dropdown-visible'])
 
 const container = inject('container')
 const options = inject('options')
@@ -146,7 +142,13 @@ const popupProps = {
   onVisibleChange(visible) {
     blockMenu.value = visible
     menuActive = visible
-    emits('dropdownVisible', visible)
+    editor.value
+      ?.chain()
+      .selectTextblockEnd()
+      .selectNodeForward()
+      .focus(props.pos)
+      .run()
+    emits('dropdown-visible', visible)
   },
 }
 

@@ -86,7 +86,7 @@ const props = defineProps({
     default: null,
   },
 })
-const emits = defineEmits(['dropdownVisible'])
+const emits = defineEmits(['dropdown-visible'])
 
 const container = inject('container')
 const options = inject('options')
@@ -101,7 +101,7 @@ const popupProps = {
   onVisibleChange(visible) {
     blockMenu.value = visible
     menuActive = visible
-    emits('dropdownVisible', visible)
+    emits('dropdown-visible', visible)
   },
 }
 
