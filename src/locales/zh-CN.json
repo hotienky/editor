@@ -655,11 +655,12 @@
   },
   "about": {
     "title": "关于 Umo Editor",
-    "poweredBy": "由 <a href=\"https://www.umodoc.com\" target=\"_blank\">Umodoc</a> 提供技术支持",
+    "poweredBy": "由 <a href=\"https://www.umodoc.com\" target=\"_blank\">Umodoc</a> 用爱发电",
     "version": "当前版本",
     "openSource": "开源版",
     "documentation": "开发文档",
-    "thanks": "感谢每一位贡献者"
+    "thanks": "感谢每一位贡献者",
+    "next": "了解功能更强大的 <a href=\"https://www.umodoc.com/business\" target=\"_blank\">Umo Editor Next</a>"
   },
   "wordCount": {
     "characters": "字符",
