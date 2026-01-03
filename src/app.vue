@@ -84,7 +84,7 @@ const options = $ref({
     { id: 'testuser', label: '测试用户' },
   ],
   // https://dev.umodoc.com/cn/docs/options/extensions#disableextensions
-  disableExtensions: ['file'],
+  disableExtensions: [],
   async onSave(content, page, document) {
     localStorage.setItem('document.content', document.content)
     return new Promise((resolve, reject) => {
