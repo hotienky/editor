@@ -58,9 +58,9 @@ const buildConfig = {
     ],
     external: [
       'vue',
-      /^tdesign-vue-next\/.*/,
       /^@vueuse\/.*/,
       /^@tiptap\/.*/,
+      /^prosemirror-*/,
       /^nzh\/.*/,
       ...Object.keys(pkg.dependencies ?? {}),
     ],
