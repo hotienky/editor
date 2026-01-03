@@ -7,7 +7,7 @@
   >
     <modal
       :visible="dialogVisible"
-      width="720px"
+      width="714px"
       @confirm="setBarcode"
       @close="dialogVisible = false"
     >
