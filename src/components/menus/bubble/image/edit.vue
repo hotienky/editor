@@ -1,16 +1,30 @@
 <template>
-  <menus-toolbar-tools-qrcode v-if="type === 'qrcode'" :content="content" />
-  <menus-toolbar-tools-barcode v-if="type === 'barcode'" :content="content" />
-  <menus-toolbar-tools-diagrams v-if="type === 'diagrams'" :content="content" />
-  <menus-toolbar-tools-mermaid v-if="type === 'mermaid'" :content="content" />
+  <menus-toolbar-tools-qrcode
+    v-if="attrs.type === 'qrcode'"
+    :content="attrs.content"
+  />
+  <menus-toolbar-tools-barcode
+    v-if="attrs.type === 'barcode'"
+    :content="attrs.content"
+  />
+  <menus-toolbar-tools-diagrams
+    v-if="attrs.type === 'diagrams'"
+    :content="attrs.content"
+  />
+  <menus-toolbar-tools-mermaid
+    v-if="attrs.type === 'mermaid'"
+    :content="attrs.content"
+    :config="JSON.parse(attrs.config || '{}')"
+  />
 </template>
 
 <script setup>
+import { getSelectionNode } from '@/utils/selection'
+
 const editor = inject('editor')
-const type = computed(() => {
-  return editor.value?.getAttributes('image').type
-})
-const content = computed(() => {
-  return editor.value?.getAttributes('image').content
+
+const attrs = computed(() => {
+  const node = editor.value ? getSelectionNode(editor?.value) : null
+  return node?.attrs || {}
 })
 </script>

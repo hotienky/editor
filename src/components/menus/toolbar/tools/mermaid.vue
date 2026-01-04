@@ -3,7 +3,7 @@
     :ico="content ? 'edit' : 'mermaid'"
     :text="content ? t('tools.mermaid.edit') : t('tools.mermaid.text')"
     huge
-    @menu-click="menuClick"
+    @menu-click="dialogVisible = true"
   >
     <modal
       :visible="dialogVisible"
@@ -17,12 +17,43 @@
         {{ content ? t('tools.mermaid.edit') : t('tools.mermaid.text') }}
       </template>
       <div class="umo-mermaid-container">
-        <t-textarea
-          v-model="mermaidCode"
-          class="umo-mermaid-code"
-          autofocus
-          :placeholder="t('tools.mermaid.placeholder')"
-        />
+        <div class="umo-mermaid-editor">
+          <div class="umo-mermaid-toolbar">
+            <menus-button
+              style="width: 100px"
+              menu-type="select"
+              :text="t('tools.mermaid.theme')"
+              :select-options="themes"
+              :select-value="config.theme"
+              @menu-click="(value) => (config.theme = value)"
+            />
+            <menus-button
+              ico="hand-drawn"
+              :tooltip="t('tools.mermaid.handDrawn')"
+              :menu-active="config.look === 'handDrawn'"
+              @menu-click="
+                config.look =
+                  config.look === 'handDrawn' ? 'classic' : 'handDrawn'
+              "
+            />
+            <menus-button
+              ico="copy"
+              :tooltip="t('tools.mermaid.copy')"
+              @menu-click="copyCode"
+            />
+            <menus-button
+              ico="node-delete"
+              :tooltip="t('tools.mermaid.clear')"
+              @menu-click="mermaidCode = ''"
+            />
+          </div>
+          <t-textarea
+            v-model="mermaidCode"
+            class="umo-mermaid-code"
+            autofocus
+            :placeholder="t('tools.mermaid.placeholder')"
+          />
+        </div>
         <div class="umo-mermaid-render">
           <div
             class="umo-mermaid-title"
@@ -46,9 +77,16 @@ import svg64 from 'svg64'
 import { shortId } from '@/utils/short-id'
 
 const props = defineProps({
+  config: {
+    type: Object,
+    default: () => ({
+      theme: 'default',
+      look: 'classic',
+    }),
+  },
   content: {
     type: String,
-    default: '',
+    default: undefined,
   },
 })
 
@@ -57,25 +95,39 @@ const editor = inject('editor')
 const container = inject('container')
 const uploadFileMap = inject('uploadFileMap')
 
+// 工具栏
+const themes = [
+  { label: t('tools.mermaid.themes.default'), value: 'default' },
+  { label: t('tools.mermaid.themes.base'), value: 'base' },
+  { label: t('tools.mermaid.themes.dark'), value: 'dark' },
+  { label: t('tools.mermaid.themes.forest'), value: 'forest' },
+  { label: t('tools.mermaid.themes.neutral'), value: 'neutral' },
+]
+let config = $ref({})
+const copyCode = () => {
+  const { copy } = useClipboard({
+    source: mermaidCode,
+  })
+  copy()
+  useMessage('success', {
+    attach: container,
+    content: t('tools.mermaid.copied'),
+  })
+}
+
 //  初始化 Mermaid
 const mermaidInit = () => {
   mermaid.initialize({
     darkMode: false,
     startOnLoad: false,
     fontSize: 12,
-    theme: 'default',
     securityLevel: 'loose',
+    ...config,
   })
 }
 
-const menuClick = () => {
-  dialogVisible = true
-  mermaidInit()
-}
-
 // 渲染 Mermaid
-const defaultCode = 'graph TB\na-->b'
-let mermaidCode = $ref('')
+let mermaidCode = $ref(props.content)
 let svgCode = $ref('')
 const mermaidRef = $ref(null)
 const renderMermaid = async () => {
@@ -88,22 +140,23 @@ const renderMermaid = async () => {
 }
 watch(
   () => dialogVisible,
-  (val) => {
-    if (val) {
-      mermaidCode = props.content || defaultCode
+  async (visible) => {
+    if (visible) {
+      config = { ...props.config }
+      mermaidCode = props.content || 'graph TB\na-->b'
     }
   },
   { immediate: true },
 )
 watch(
-  () => mermaidCode,
+  () => [config, mermaidCode],
   async () => {
-    if (dialogVisible) {
-      await nextTick()
-      renderMermaid()
-    }
+    if (!mermaidCode || mermaidCode === '') return
+    await nextTick()
+    mermaidInit()
+    renderMermaid()
   },
-  { immediate: true },
+  { deep: true },
 )
 
 // 创建或更新 Mermaid
@@ -127,24 +180,19 @@ const setMermaid = () => {
       type: 'image/svg+xml',
     })
     uploadFileMap.value.set(id, file)
-    editor.value
-      ?.chain()
-      .focus()
-      .setImage(
-        {
-          id,
-          type: 'mermaid',
-          name,
-          size: file.size,
-          src: svg64(svgCode),
-          content: mermaidCode,
-          width,
-          height,
-          equalProportion: false,
-        },
-        !!props.content,
-      )
-      .run()
+    const imageOptions = {
+      id,
+      type: 'mermaid',
+      name,
+      size: file.size,
+      src: svg64(svgCode),
+      config: JSON.stringify(config),
+      content: mermaidCode,
+      width,
+      height,
+      equalProportion: false,
+    }
+    editor.value?.chain().focus().setImage(imageOptions, !!props.content).run()
   }
   dialogVisible = false
 }
@@ -153,9 +201,20 @@ const setMermaid = () => {
 <style lang="less" scoped>
 .umo-mermaid-container {
   display: flex;
+  .umo-mermaid-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .umo-mermaid-toolbar {
+    display: flex;
+    align-items: center;
+    padding: 2px;
+  }
   .umo-mermaid-code {
     width: 320px;
     margin-left: 2px;
+    flex: 1;
     :deep(.umo-textarea__inner) {
       height: 100%;
       resize: none;

@@ -325,6 +325,18 @@
     "mermaid": {
       "text": "Mermaid",
       "edit": "Edit Mermaid",
+      "theme": "Select Theme",
+      "themes": {
+        "default": "Default Theme",
+        "base": "Simple Theme",
+        "dark": "Dark Theme",
+        "forest": "Forest Theme",
+        "neutral": "Neutral Theme"
+      },
+      "handDrawn": "Hand Drawn",
+      "copy": "Copy Code",
+      "clear": "Clear Code",
+      "copied": "Code Copied to Clipboard",
       "placeholder": "Enter or paste Mermaid code",
       "preview": "Preview",
       "notEmpty": "Mermaid content cannot be empty"

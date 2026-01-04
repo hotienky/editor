@@ -27,6 +27,9 @@ const customImage = Image.extend({
       src: {
         default: null,
       },
+      config: {
+        default: null,
+      },
       content: {
         default: null,
       },
