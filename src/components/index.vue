@@ -1343,6 +1343,9 @@ defineExpose({
     .umo-toolbar {
       display: none;
     }
+    .umo-page-container {
+      padding: 45px 0;
+    }
   }
   &.umo-editor-is-fullscreen {
     position: fixed !important;
