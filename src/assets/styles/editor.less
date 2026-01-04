@@ -171,7 +171,6 @@
 
   ul,
   ol {
-    counter-reset: section;
     list-style-type: none;
     li {
       word-break: break-all;
@@ -190,39 +189,40 @@
     }
   }
   ol {
-    &[type='decimal'] li > p:before {
+    counter-reset: section calc(attr(data-start number, 1) - 1);
+    &[data-type='decimal'] li > p:before {
       content: counters(section, '.') '. ';
     }
-    &[type='decimal-leading-zero'] li > p:before {
+    &[data-type='decimal-leading-zero'] li > p:before {
       content: counters(section, '.', decimal-leading-zero) '.';
     }
-    &[type='lower-roman'] li > p:before {
+    &[data-type='lower-roman'] li > p:before {
       content: counters(section, '.', lower-roman) '.';
     }
-    &[type='upper-roman'] li > p:before {
+    &[data-type='upper-roman'] li > p:before {
       content: counters(section, '.', upper-roman) '.';
     }
-    &[type='lower-latin'] li > p:before {
+    &[data-type='lower-latin'] li > p:before {
       content: counters(section, '.', lower-latin) '.';
     }
-    &[type='upper-latin'] li > p:before {
+    &[data-type='upper-latin'] li > p:before {
       content: counters(section, '.', upper-latin) '.';
     }
-    &[type='trad-chinese-informal'] li > p:before {
+    &[data-type='trad-chinese-informal'] li > p:before {
       content: counters(section, '.', trad-chinese-informal) '.';
     }
-    &[type='simp-chinese-formal'] li > p:before {
+    &[data-type='simp-chinese-formal'] li > p:before {
       content: counters(section, '.', simp-chinese-formal) '.';
     }
   }
   ul {
-    &[type='disc'] li > p:before {
+    &[data-type='disc'] li > p:before {
       content: '•';
     }
-    &[type='circle'] li > p:before {
+    &[data-type='circle'] li > p:before {
       content: '◦';
     }
-    &[type='square'] li > p:before {
+    &[data-type='square'] li > p:before {
       content: '▪';
     }
   }

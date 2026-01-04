@@ -118,11 +118,9 @@ const changeOrderedListStart = () => {
 }
 watch(
   () => popupVisible.value,
-  (val) => {
-    if (val && editor.value) {
-      startAt = editor.value.getAttributes('orderedList').start
-    } else {
-      startAt = 1
+  (visible) => {
+    if (visible && editor.value) {
+      startAt = editor.value.getAttributes('orderedList').start || 1
     }
   },
 )

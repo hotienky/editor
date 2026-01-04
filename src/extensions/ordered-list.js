@@ -12,7 +12,22 @@ export default OrderedList.extend({
         renderHTML: ({ listType }) => {
           return {
             style: `list-style-type: ${listType}`,
-            type: listType,
+            'data-type': listType,
+          }
+        },
+      },
+      start: {
+        default: 1,
+        parseHTML: (element) => {
+          const start = element.getAttribute('data-start')
+          return start ? Number(start) : 1
+        },
+        renderHTML: (attributes) => {
+          if (attributes['data-start'] === 1) {
+            return {}
+          }
+          return {
+            'data-start': attributes.start,
           }
         },
       },
