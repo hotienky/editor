@@ -11,6 +11,7 @@
     "table": "表格",
     "tools": "工具",
     "page": "页面",
+    "view": "视图",
     "export": "导出"
   },
   "base": {
@@ -427,7 +428,6 @@
       "landscape": "横向",
       "portrait": "纵向"
     },
-    "preview": "演示模式",
     "size": {
       "text": "页面大小",
       "cm": "厘米",
@@ -444,6 +444,11 @@
       "spacious": "宽松型",
       "clear": "清除水印"
     }
+  },
+  "view": {
+    "zoom": "缩放比例",
+    "zoomOriginal": "原始比例",
+    "zoomAuto": "最佳比例"
   },
   "export": {
     "embed": {

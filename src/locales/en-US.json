@@ -11,6 +11,7 @@
     "table": "Table",
     "tools": "Tools",
     "page": "Page",
+    "view": "View",
     "export": "Export"
   },
   "base": {
@@ -444,6 +445,11 @@
       "spacious": "Spacious",
       "clear": "Remove Watermark"
     }
+  },
+  "view": {
+    "zoom": "Zoom",
+    "zoomOriginal": "Original Size",
+    "zoomAuto": "Best Fit"
   },
   "export": {
     "embed": {

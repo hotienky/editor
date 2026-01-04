@@ -22,7 +22,7 @@ const defaultOptions = {
   toolbar: {
     showSaveLabel: true,
     defaultMode: 'ribbon',
-    menus: ['base', 'insert', 'table', 'tools', 'page', 'export'],
+    menus: ['base', 'insert', 'table', 'tools', 'page', 'view', 'export'],
   },
   page: {
     layouts: ['page', 'web'],

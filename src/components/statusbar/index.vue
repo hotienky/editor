@@ -219,7 +219,7 @@
         </tooltip>
         <tooltip :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`">
           <t-button
-            class="umo-status-bar-button"
+            class="umo-status-bar-button umo-auto-width-button"
             :class="{ active: page.autoWidth }"
             variant="text"
             size="small"

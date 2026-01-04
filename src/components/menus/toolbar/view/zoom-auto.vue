@@ -1,0 +1,24 @@
+<template>
+  <menus-button
+    ico="zoom-auto"
+    :text="t('view.zoomAuto')"
+    huge
+    shortcut="Ctrl+0"
+    :disabled="page.layout === 'web'"
+    @menu-click="autoWidth"
+  />
+</template>
+
+<script setup>
+const page = inject('page')
+const container = inject('container')
+
+const autoWidth = () => {
+  const autoWidthBtn = document.querySelector(
+    `${container} .umo-auto-width-button`,
+  )
+  if (autoWidthBtn) {
+    autoWidthBtn.click()
+  }
+}
+</script>

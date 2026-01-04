@@ -151,6 +151,7 @@ const defaultToolbarMenus = [
   { label: t('toolbar.table'), value: 'table' },
   { label: t('toolbar.tools'), value: 'tools' },
   { label: t('toolbar.page'), value: 'page' },
+  { label: t('toolbar.view'), value: 'view' },
   { label: t('toolbar.export'), value: 'export' },
 ]
 let toolbarMenus = defaultToolbarMenus

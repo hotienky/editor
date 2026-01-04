@@ -211,9 +211,6 @@
         </template>
         <template v-if="currentMenu === 'page'">
           <div class="umo-virtual-group">
-            <menus-toolbar-page-toggle-toc />
-          </div>
-          <div class="umo-virtual-group">
             <div class="umo-virtual-group-row">
               <menus-toolbar-page-margin />
               <div>
@@ -235,11 +232,29 @@
             <menus-toolbar-page-watermark v-if="!disableMenu('watermark')" />
             <menus-toolbar-page-background v-if="!disableMenu('background')" />
           </div>
-          <div class="umo-virtual-group">
-            <menus-toolbar-page-preview v-if="!disableMenu('preview')" />
-          </div>
           <div class="virtual-group is-slot">
             <slot name="toolbar_page" toolbar-mode="ribbon" />
+          </div>
+        </template>
+        <template v-if="currentMenu === 'view'">
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-toc v-if="!disableMenu('toc')" />
+            <menus-toolbar-view-fullscreen v-if="!disableMenu('fullscreen')" />
+            <menus-toolbar-view-preview v-if="!disableMenu('preview')" />
+          </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-page v-if="!disableMenu('layout-page')" />
+            <menus-toolbar-view-web v-if="!disableMenu('layout-web')" />
+          </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-zoom v-if="!disableMenu('zoom')" />
+            <menus-toolbar-view-zoom-original
+              v-if="!disableMenu('zoom-original')"
+            />
+            <menus-toolbar-view-zoom-auto v-if="!disableMenu('zoom-auto')" />
+          </div>
+          <div class="virtual-group is-slot">
+            <slot name="toolbar_view" toolbar-mode="ribbon" />
           </div>
         </template>
         <template v-if="currentMenu === 'export'">

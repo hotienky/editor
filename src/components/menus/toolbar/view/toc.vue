@@ -1,9 +1,8 @@
 <template>
   <menus-button
     ico="toc"
-    :text="t('toc.show')"
+    :text="page.showToc ? t('toc.hide') : t('toc.show')"
     huge
-    :menu-active="page.showToc"
     @menu-click="page.showToc = !page.showToc"
   />
 </template>
