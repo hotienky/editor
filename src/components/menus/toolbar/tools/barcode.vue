@@ -23,11 +23,7 @@
             :select-options="formats"
             menu-type="select"
             :select-value="config.format"
-            @menu-click="
-              (value) => {
-                config.format = value
-              }
-            "
+            @menu-click="(value) => (config.format = value)"
           ></menus-button>
           <t-divider layout="vertical" />
           <menus-button
@@ -36,11 +32,7 @@
             :select-options="fonts ?? []"
             menu-type="select"
             :select-value="config.font"
-            @menu-click="
-              (value) => {
-                config.font = value
-              }
-            "
+            @menu-click="(value) => (config.font = value)"
           ></menus-button>
           <t-divider layout="vertical" />
           <menus-toolbar-base-color
