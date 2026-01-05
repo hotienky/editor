@@ -238,7 +238,6 @@ const setContentFromCache = () => {
   display: flex;
   justify-content: space-between;
   user-select: none;
-  border-bottom: solid 1px var(--umo-border-color);
   position: relative;
 }
 .umo-toolbar-actions {

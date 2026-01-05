@@ -16,6 +16,8 @@
         'laser-pointer': page.preview?.enabled && page.preview?.laserPointer,
         'umo-editor-is-fullscreen': fullscreen,
         'umo-editor-is-typerwriter-runing': !typeWriterIsRunning,
+        'umo-skin-default': options.skin === 'default',
+        'umo-skin-modern': options.skin === 'modern',
       }"
       :style="{
         height: options.height,
@@ -1347,9 +1349,20 @@ defineExpose({
   color: var(--umo-text-color);
   font-family: var(--umo-font-family);
   position: relative !important;
-  .umo-toolbar,
+  background-color: var(--umo-container-background);
   .umo-footer {
     background-color: var(--umo-color-white);
+  }
+  &.umo-skin-default {
+    .umo-toolbar {
+      border-bottom: solid 1px var(--umo-border-color);
+      background-color: var(--umo-color-white);
+    }
+  }
+  &.umo-skin-default {
+    .umo-toolbar {
+      background-color: var(--umo-color-white);
+    }
   }
   .umo-main {
     flex: 1;

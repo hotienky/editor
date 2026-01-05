@@ -16,6 +16,7 @@ const defaultOptions = {
   editorKey: 'default',
   locale: 'zh-CN',
   theme: 'light',
+  skin: 'default',
   height: '100%',
   fullscreenZIndex: 10,
   dicts: defaultDicts,
@@ -187,6 +188,15 @@ const ojbectSchema = new ObjectSchema({
         throw new Error(
           'Key "theme": must be one of "dark", "light" or "auto".',
         )
+      }
+    },
+    required: false,
+  },
+  skin: {
+    merge: 'replace',
+    validate(value) {
+      if (value && !['default', 'modern'].includes(value)) {
+        throw new Error('Key "skin": must be one of "default" or "modern".')
       }
     },
     required: false,

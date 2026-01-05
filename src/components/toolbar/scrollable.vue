@@ -1,12 +1,5 @@
 <template>
-  <div
-    ref="wraperRef"
-    class="umo-scrollable-container"
-    :style="{
-      paddingLeft: hidePrev ? '10px' : '32px',
-      paddingRight: hideNext ? '10px' : '32px',
-    }"
-  >
+  <div ref="wraperRef" class="umo-scrollable-container">
     <div
       v-if="!hidePrev"
       class="umo-scrollable-control scrollable-left"
@@ -36,7 +29,7 @@ let hideNext = $ref(true)
 const checkScrollPosition = () => {
   const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = contentRef || {}
   hidePrev = scrollLeft === 0
-  hideNext = scrollLeft + clientWidth + 100 >= scrollWidth
+  hideNext = scrollLeft + clientWidth + 20 >= scrollWidth
 }
 
 const scrollLeft = () => {
@@ -87,7 +80,7 @@ defineExpose({
     align-items: center;
     justify-content: center;
     border: solid 1px var(--umo-border-color);
-    border-radius: var(--umo-radius);
+    border-radius: 5px;
     cursor: pointer;
     color: var(--umo-text-color-light);
     overflow: visible;
@@ -98,14 +91,15 @@ defineExpose({
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    height: calc(100% - 20px);
+    height: calc(100% - 40px);
+    outline: solid 10px var(--umo-color-white);
     &:hover {
       border-color: var(--umo-primary-color);
       background-color: var(--umo-primary-color);
       color: var(--umo-color-white);
     }
     &.scrollable-left {
-      left: 10px;
+      left: 20px;
       :deep(.umo-icon) {
         transform: rotate(90deg);
       }
@@ -118,15 +112,15 @@ defineExpose({
           var(--umo-color-white)
         );
         position: absolute;
-        left: 21px;
+        left: 31px;
         top: 0;
         bottom: 0;
-        width: 20px;
+        width: 30px;
         pointer-events: none;
       }
     }
     &.scrollable-right {
-      right: 10px;
+      right: 20px;
       :deep(.umo-icon) {
         transform: rotate(-90deg);
       }
@@ -139,10 +133,10 @@ defineExpose({
           var(--umo-color-white)
         );
         position: absolute;
-        right: 21px;
+        right: 31px;
         top: 0;
         bottom: 0;
-        width: 20px;
+        width: 30px;
         pointer-events: none;
       }
     }
@@ -155,6 +149,27 @@ defineExpose({
     &::-webkit-scrollbar {
       display: none;
     }
+  }
+}
+</style>
+
+<style lang="less">
+.umo-skin-modern {
+  .umo-scrollable-container {
+    padding-bottom: 2px !important;
+  }
+  .umo-scrollable-content {
+    border-radius: 8px;
+    background-color: var(--umo-color-white);
+    padding: 10px 0 10px 10px;
+    box-shadow:
+      0 0 0 1px hsla(0, 0%, 5%, 0.03),
+      0 2px 5px hsla(0, 0%, 5%, 0.05);
+  }
+
+  .umo-scrollable-control {
+    height: calc(100% - 32px) !important;
+    margin-top: 4px;
   }
 }
 </style>

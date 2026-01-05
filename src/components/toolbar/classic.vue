@@ -279,9 +279,11 @@ const toggoleMenu = async (menu) => {
   padding: 10px;
 }
 .umo-classic-menu {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  flex: 1;
+  &:last-child {
+    margin-right: 10px;
+  }
   .umo-virtual-group {
     display: flex;
     align-items: center;

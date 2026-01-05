@@ -29,6 +29,7 @@ const templates = [
 ]
 const options = $ref({
   theme: 'auto',
+  skin: 'modern',
   toolbar: {
     // defaultMode: 'classic',
     // menus: ['base'],
