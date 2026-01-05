@@ -196,4 +196,7 @@ defineExpose({
     }
   }
 }
+[theme-mode='dark'] .umo-scrollable-content {
+  outline: solid 1px var(--umo-border-color-light);
+}
 </style>

@@ -356,4 +356,11 @@ const setContentFromCache = () => {
     }
   }
 }
+[theme-mode='dark'] .umo-skin-modern {
+  &.toolbar-classic {
+    .umo-toolbar-actions {
+      outline: solid 1px var(--umo-border-color-light);
+    }
+  }
+}
 </style>
