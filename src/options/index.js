@@ -59,6 +59,7 @@ const defaultOptions = {
     enableMarkdown: true,
     enableBubbleMenu: true,
     enableBlockMenu: true,
+    enableNodeId: false,
     readOnly: false,
     autofocus: true,
     characterLimit: 0,
@@ -578,6 +579,11 @@ const ojbectSchema = new ObjectSchema({
         required: false,
       },
       enableBlockMenu: {
+        merge: 'replace',
+        validate: 'boolean',
+        required: false,
+      },
+      enableNodeId: {
         merge: 'replace',
         validate: 'boolean',
         required: false,

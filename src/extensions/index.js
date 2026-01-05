@@ -264,10 +264,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     Dropcursor.configure({
       color: 'var(--umo-primary-color)',
     }),
-    UniqueID.configure({
-      types: nodeTypes,
-      generateID: () => shortId(10),
-    }),
     TypeWriter,
   ]
 
@@ -281,6 +277,15 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       buildInExtensions.push(item)
     }
   })
+
+  if (doc?.enableNodeId) {
+    buildInExtensions.push(
+      UniqueID.configure({
+        types: nodeTypes,
+        generateID: () => shortId(10),
+      }),
+    )
+  }
 
   return buildInExtensions
 }
