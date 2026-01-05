@@ -28,22 +28,15 @@
               @menu-click="(value) => (config.theme = value)"
             />
             <menus-button
-              ico="hand-drawn"
-              :tooltip="t('tools.mermaid.handDrawn')"
-              :menu-active="config.look === 'handDrawn'"
-              @menu-click="
-                config.look =
-                  config.look === 'handDrawn' ? 'classic' : 'handDrawn'
-              "
-            />
-            <menus-button
               ico="copy"
               :tooltip="t('tools.mermaid.copy')"
+              hide-text
               @menu-click="copyCode"
             />
             <menus-button
               ico="node-delete"
               :tooltip="t('tools.mermaid.clear')"
+              hide-text
               @menu-click="mermaidCode = ''"
             />
           </div>
@@ -71,7 +64,6 @@
 </template>
 
 <script setup>
-import mermaid from 'mermaid'
 import svg64 from 'svg64'
 
 import { shortId } from '@/utils/short-id'
@@ -81,7 +73,6 @@ const props = defineProps({
     type: Object,
     default: () => ({
       theme: 'default',
-      look: 'classic',
     }),
   },
   content: {
@@ -90,10 +81,11 @@ const props = defineProps({
   },
 })
 
-let dialogVisible = $ref(false)
 const editor = inject('editor')
 const container = inject('container')
 const uploadFileMap = inject('uploadFileMap')
+
+let dialogVisible = $ref(false)
 
 // 工具栏
 const themes = [
@@ -104,6 +96,7 @@ const themes = [
   { label: t('tools.mermaid.themes.neutral'), value: 'neutral' },
 ]
 let config = $ref({})
+
 const copyCode = () => {
   const { copy } = useClipboard({
     source: mermaidCode,
@@ -132,8 +125,7 @@ let svgCode = $ref('')
 const mermaidRef = $ref(null)
 const renderMermaid = async () => {
   try {
-    const { svg } = await mermaid.render('mermaid-svg', mermaidCode)
-    svgCode = svg
+    svgCode = await mermaid.render('mermaid-svg', mermaidCode)
   } catch {
     svgCode = ''
   }

@@ -103,11 +103,21 @@ watch(
 )
 
 onMounted(() => {
-  loadResource(
-    `${options.value.cdnUrl}/libs/katex/katex.min.css`,
-    'css',
-    'katex-style',
-  )
+  const { disableExtensions } = options.value
+  if (!disableExtensions.includes('math')) {
+    loadResource(
+      `${options.value.cdnUrl}/libs/katex/katex.min.css`,
+      'css',
+      'katex-style',
+    )
+  }
+  if (!disableExtensions.includes('mermaid')) {
+    loadResource(
+      `${options.value.cdnUrl}/libs/mermaid/mermaid.min.js`,
+      'script',
+      'mermaid-script',
+    )
+  }
 })
 
 // 销毁编辑器实例
