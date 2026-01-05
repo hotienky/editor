@@ -39,6 +39,7 @@
               <menus-toolbar-base-color />
               <menus-toolbar-base-background-color />
               <menus-toolbar-base-highlight v-if="!disableMenu('highlight')" />
+              <menus-toolbar-base-letter-spacing />
             </div>
           </div>
           <div class="umo-virtual-group">

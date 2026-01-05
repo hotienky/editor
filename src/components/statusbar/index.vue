@@ -624,19 +624,6 @@ watch(
     .umo-zoom-level-bar {
       width: 240px;
       display: flex;
-      --td-comp-size-xxxs: 8px;
-      --td-size-2: 3px;
-      --td-brand-color: var(--umo-text-color);
-      .umo-zoom-level-slider {
-        :deep(.umo-slider__button) {
-          background: var(--td-brand-color);
-          border: none;
-          box-shadow: none;
-        }
-        :deep(.umo-slider__track) {
-          background: none;
-        }
-      }
     }
     @media screen and (max-width: 720px) {
       .umo-zoom-level-bar {

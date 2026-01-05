@@ -45,6 +45,7 @@ import HorizontalRule from './horizontal-rule'
 import Iframe from './iframe'
 import { BlockImage, InlineImage } from './image'
 import Indent from './indent'
+import LetterSpacing from './letter-spacing'
 import LineHeight from './line-height'
 import Margin from './margin'
 import Mention from './mention'
@@ -185,6 +186,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     Indent,
     TextAlign,
     NodeAlign,
+    LetterSpacing,
     TaskItem.configure({ nested: true }),
     LineHeight,
     SearchReplace,

@@ -25,6 +25,11 @@
     },
     "bgColor": "Background Color of Text",
     "bold": "Bold",
+    "letterSpacing": {
+      "text": "Letter Spacing",
+      "tip": "Current Spacing: {value} Character",
+      "reset": "Reset Letter Spacing"
+    },
     "clearFormat": "Clear Text Formatting",
     "code": "Code",
     "color": "Font Color",

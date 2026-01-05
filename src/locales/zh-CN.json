@@ -25,6 +25,11 @@
     },
     "bgColor": "字体背景颜色",
     "bold": "粗体",
+    "letterSpacing": {
+      "text": "字间距",
+      "tip": "当前间距: {value} 字符",
+      "reset": "重置字间距"
+    },
     "clearFormat": "清除文本格式",
     "code": "代码",
     "color": "字体颜色",
