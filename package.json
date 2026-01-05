@@ -105,7 +105,6 @@
     "katex": "^0.16.27",
     "lowlight": "^3.3.0",
     "nzh": "^1.0.14",
-    "plyr": "^3.8.4",
     "pretty-bytes": "^7.1.0",
     "pure-svg-code": "^1.0.6",
     "smooth-signature": "^1.0.15",

@@ -28,6 +28,7 @@
         @focus="selected = true"
       >
         <video
+          v-show="playerShow"
           ref="videoRef"
           :src="attrs.src"
           preload="metadata"
@@ -64,6 +65,7 @@ const containerRef = ref(null)
 let selected = $ref(false)
 const videoRef = $ref(null)
 let playerInstance = $ref(null)
+let playerShow = $ref(false)
 let maxWidth = $ref(0)
 let maxHeight = $ref(0)
 
@@ -82,7 +84,8 @@ const nodeStyle = $computed(() => {
 
 onMounted(async () => {
   await nextTick()
-  playerInstance = player(videoRef)
+  playerInstance = await player(videoRef, options.value.cdnUrl)
+  playerInstance.on('ready', () => (playerShow = true))
   if (attrs.uploaded || !attrs.id) {
     return
   }

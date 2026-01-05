@@ -103,20 +103,14 @@ watch(
 )
 
 onMounted(() => {
-  const { disableExtensions } = options.value
-  if (!disableExtensions.includes('math')) {
-    loadResource(
-      `${options.value.cdnUrl}/libs/katex/katex.min.css`,
-      'css',
-      'katex-style',
-    )
+  const { disableExtensions, cdnUrl } = options.value
+  const has = (name) => !disableExtensions.includes(name)
+  const libUrl = `${cdnUrl}/libs`
+  if (has('math')) {
+    loadResource(`${libUrl}/katex/katex.min.css`, 'css', 'katex-style')
   }
-  if (!disableExtensions.includes('mermaid')) {
-    loadResource(
-      `${options.value.cdnUrl}/libs/mermaid/mermaid.min.js`,
-      'script',
-      'mermaid-script',
-    )
+  if (has('mermaid')) {
+    loadResource(`${libUrl}/mermaid/mermaid.min.js`, 'script', 'mermaid-script')
   }
 })
 

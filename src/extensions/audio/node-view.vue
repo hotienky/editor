@@ -11,6 +11,7 @@
     >
       <audio
         ref="audioRef"
+        v-show="playerShow"
         :src="attrs.src"
         controls
         crossorigin="anonymous"
@@ -38,6 +39,7 @@ const uploadFileMap = inject('uploadFileMap')
 const containerRef = ref(null)
 const audioRef = $ref(null)
 let playerInstance = $ref(null)
+let playerShow = $ref(false)
 let selected = $ref(false)
 
 const nodeStyle = $computed(() => {
@@ -54,7 +56,8 @@ const nodeStyle = $computed(() => {
 })
 
 onMounted(async () => {
-  playerInstance = player(audioRef)
+  playerInstance = await player(audioRef, options.value.cdnUrl)
+  playerInstance.on('ready', () => (playerShow = true))
   if (attrs.uploaded || !attrs.id) {
     return
   }

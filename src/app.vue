@@ -44,7 +44,7 @@ const options = $ref({
     showBookmark: true,
   },
   templates,
-  cdnUrl: 'https://cdn.umodoc.com',
+  cdnUrl: 'https://beta.cdn.umodoc.com',
   shareUrl: 'https://www.umodoc.com',
   file: {
     // allowedMimeTypes: [
