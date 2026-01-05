@@ -85,18 +85,9 @@
     <container-search-replace />
     <container-print />
   </div>
-  <div v-if="viewerVisible" class="umo-viewer-container">
-    <umo-viewer
-      v-bind="viewerOptions"
-      @edit="viewer = false"
-      @close="viewer = false"
-    />
-  </div>
 </template>
 
 <script setup>
-import UmoViewer from '@umoteam/viewer'
-
 const container = inject('container')
 const imageViewer = inject('imageViewer')
 const pageOptions = inject('page')
@@ -208,27 +199,6 @@ watch(
     })
   },
 )
-
-// 文档预览
-const options = inject('options')
-const viewer = inject('viewer')
-let viewerVisible = $ref(false)
-const { locale } = useI18n()
-const getVanillaHTML = inject('getVanillaHTML')
-const viewerOptions = $ref({
-  lang: locale.value,
-  theme: options.value.theme,
-  mode: ['html'],
-  title: options.value.document.title,
-  html: '',
-  editable: true,
-  closeable: true,
-  showAside: false,
-})
-watch(viewer, async (visible) => {
-  viewerOptions.html = visible ? await getVanillaHTML() : ''
-  viewerVisible = visible
-})
 </script>
 
 <style lang="less">

@@ -95,7 +95,6 @@
     "@tiptap/y-tiptap": "^3.0.1",
     "@tool-belt/type-predicates": "^1.4.1",
     "@umoteam/editor-external": "^9.0.0",
-    "@umoteam/viewer": "^0.3.0",
     "@vueuse/core": "^14.1.0",
     "dom-to-image-more": "^3.7.2",
     "es-drager": "1.2.11",
