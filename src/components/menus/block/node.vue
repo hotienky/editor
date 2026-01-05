@@ -139,6 +139,9 @@ const blockMenu = inject('blockMenu')
 let menuActive = $ref(false)
 const popupProps = {
   attach: `${container} .umo-main-container`,
+  popperOptions: {
+    modifiers: [{ name: 'offset', options: { offset: [2, 0] } }],
+  },
   onVisibleChange(visible) {
     blockMenu.value = visible
     menuActive = visible
