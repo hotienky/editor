@@ -19,5 +19,8 @@ export const useState = (key, options) => {
   if (key === 'theme') {
     return useStorage(storageKey, 'light')
   }
+  if (key === 'skin') {
+    return useStorage(storageKey, 'default')
+  }
   throw new Error('[useStorage]', { cause: 'Key is not valid' })
 }

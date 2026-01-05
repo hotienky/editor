@@ -101,6 +101,7 @@ const emits = defineEmits([
   'changed:pageWatermark',
   'changed:locale',
   'changed:theme',
+  'changed:skin',
   'contentError',
   'print',
   'focus',
@@ -212,7 +213,9 @@ watch(
 // Lifecycle Hooks
 onMounted(() => {
   const theme = useStorage('umo-editor:theme', options.value.theme)
+  const skin = useStorage('umo-editor:skin', options.value.skin)
   setTheme(theme.value)
+  setSkin(skin.value)
 })
 onBeforeUnmount(() => {
   clearAutoSaveInterval()
@@ -535,6 +538,17 @@ const setTheme = (theme) => {
   window.matchMedia(darkScheme).addEventListener('change', (e) => {
     setTheme(e.matches ? 'dark' : 'light')
   })
+}
+
+// Skin Setup
+const setSkin = (skin) => {
+  if (!isString(skin) || !['modern', 'default'].includes(skin)) {
+    throw new Error('"skin" must be one of "modern" or "default".')
+  }
+  const $skin = useStorage('umo-editor:skin', options.value.skin)
+  $skin.value = skin
+  options.value.skin = skin
+  emits('changed:skin', skin)
 }
 
 // Toolbar and Page Setup Methods
@@ -1264,6 +1278,7 @@ watch(
 provide('saveContent', saveContent)
 
 provide('setTheme', setTheme)
+provide('setSkin', setSkin)
 provide('setLocale', setLocale)
 provide('reset', reset)
 provide('getVanillaHTML', getVanillaHTML)
@@ -1285,6 +1300,7 @@ defineExpose({
   getTypewriterState,
   setLocale,
   setTheme,
+  setSkin,
   getPage: () => page.value,
   getContent,
   getImage,
