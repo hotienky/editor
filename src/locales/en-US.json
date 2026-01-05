@@ -455,9 +455,12 @@
     "zoom": "Zoom",
     "zoomOriginal": "Original Size",
     "zoomAuto": "Best Fit",
-    "theme": "Appearance",
+    "theme": "Theme",
     "themeLight": "Light mode",
     "themeDark": "Dark mode",
+    "skin": "Appearance",
+    "skinDefault": "Default",
+    "skinModern": "Modern",
     "locale": "Language"
   },
   "export": {

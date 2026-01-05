@@ -454,9 +454,12 @@
     "zoom": "缩放比例",
     "zoomOriginal": "原始比例",
     "zoomAuto": "最佳比例",
-    "theme": "外观设置",
+    "theme": "主题设置",
     "themeLight": "浅色主题",
     "themeDark": "深色主题",
+    "skin": "外观设置",
+    "skinDefault": "默认外观",
+    "skinModern": "现代外观",
     "locale": "语言设置"
   },
   "export": {

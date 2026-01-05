@@ -217,6 +217,9 @@
     "theme": "Тема",
     "themeLight": "светлая",
     "themeDark": "тёмная",
+    "skin": "Внешний вид",
+    "skinDefault": "По умолчанию",
+    "skinModern": "Современный",
     "locale": "Языки"
   },
   "table": {
