@@ -255,6 +255,7 @@
             <menus-toolbar-view-zoom-auto v-if="!disableMenu('zoom-auto')" />
           </div>
           <div class="umo-virtual-group">
+            <menus-toolbar-view-skin v-if="!disableMenu('skin')" />
             <menus-toolbar-view-theme v-if="!disableMenu('theme')" />
             <menus-toolbar-view-locale v-if="!disableMenu('locale')" />
             <menus-toolbar-view-reset v-if="!disableMenu('reset')" />
@@ -391,5 +392,11 @@ const changeMenu = async (menu) => {
       }
     }
   }
+}
+</style>
+
+<style lang="less">
+.umo-skin-modern .umo-ribbon-tabs {
+  padding: 14px 15px 0 !important;
 }
 </style>

@@ -80,7 +80,7 @@ defineExpose({
     align-items: center;
     justify-content: center;
     border: solid 1px var(--umo-border-color);
-    border-radius: 5px;
+    border-radius: var(--umo-radius);
     cursor: pointer;
     color: var(--umo-text-color-light);
     overflow: visible;
@@ -91,7 +91,7 @@ defineExpose({
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    height: calc(100% - 40px);
+    height: calc(100% - 20px);
     outline: solid 10px var(--umo-color-white);
     &:hover {
       border-color: var(--umo-primary-color);
@@ -99,7 +99,7 @@ defineExpose({
       color: var(--umo-color-white);
     }
     &.scrollable-left {
-      left: 20px;
+      left: 10px;
       :deep(.umo-icon) {
         transform: rotate(90deg);
       }
@@ -112,7 +112,7 @@ defineExpose({
           var(--umo-color-white)
         );
         position: absolute;
-        left: 31px;
+        left: 30px;
         top: 0;
         bottom: 0;
         width: 30px;
@@ -120,7 +120,7 @@ defineExpose({
       }
     }
     &.scrollable-right {
-      right: 20px;
+      right: 10px;
       :deep(.umo-icon) {
         transform: rotate(-90deg);
       }
@@ -133,7 +133,7 @@ defineExpose({
           var(--umo-color-white)
         );
         position: absolute;
-        right: 31px;
+        right: 30px;
         top: 0;
         bottom: 0;
         width: 30px;
@@ -155,21 +155,45 @@ defineExpose({
 
 <style lang="less">
 .umo-skin-modern {
-  .umo-scrollable-container {
-    padding-bottom: 2px !important;
+  &.toolbar-ribbon {
+    .umo-scrollable-container {
+      padding: 10px 15px 2px 15px !important;
+    }
+    .umo-scrollable-control {
+      height: calc(100% - 32px) !important;
+      margin-top: 4px;
+    }
+  }
+  &.toolbar-classic {
+    .umo-scrollable-container {
+      padding: 15px 15px 2px 15px !important;
+    }
+    .umo-scrollable-control {
+      height: calc(100% - 38px) !important;
+      margin-top: 6px;
+    }
   }
   .umo-scrollable-content {
-    border-radius: 8px;
+    border-radius: 6px;
     background-color: var(--umo-color-white);
     padding: 10px 0 10px 10px;
     box-shadow:
-      0 0 0 1px hsla(0, 0%, 5%, 0.03),
-      0 2px 5px hsla(0, 0%, 5%, 0.05);
+      0 0 0 1px hsla(0, 0%, 5%, 0.04),
+      0 2px 5px hsla(0, 0%, 5%, 0.06);
+    &:hover {
+      box-shadow:
+        0 0 0 1px hsla(0, 0%, 5%, 0.06),
+        0 2px 5px hsla(0, 0%, 5%, 0.1);
+    }
   }
-
   .umo-scrollable-control {
-    height: calc(100% - 32px) !important;
-    margin-top: 4px;
+    border-radius: 5px !important;
+    &.scrollable-left {
+      left: 25px !important;
+    }
+    &.scrollable-right {
+      right: 25px !important;
+    }
   }
 }
 </style>

@@ -28,7 +28,10 @@
         <slot :name="`toolbar_${item}`" v-bind="props" />
       </template>
     </toolbar-classic>
-    <div class="umo-toolbar-actions" :class="$toolbar.mode">
+    <div
+      class="umo-toolbar-actions"
+      :class="`umo-toolbar-actions-${$toolbar.mode}`"
+    >
       <t-popup
         v-if="
           options.toolbar.showSaveLabel && options.document.readOnly !== true
@@ -244,7 +247,7 @@ const setContentFromCache = () => {
   padding: 6px 10px;
   display: flex;
   align-items: center;
-  &.ribbon {
+  &-ribbon {
     position: absolute;
     right: 0;
     top: 1px;
@@ -325,6 +328,32 @@ const setContentFromCache = () => {
     margin: 8px 0 4px;
     display: flex;
     gap: 8px;
+  }
+}
+</style>
+
+<style lang="less">
+.umo-skin-modern {
+  &.toolbar-classic {
+    .umo-toolbar-actions {
+      margin: 15px 15px 2px 0;
+      border-radius: 6px;
+      background-color: var(--umo-color-white);
+      box-shadow:
+        0 0 0 1px hsla(0, 0%, 5%, 0.04),
+        0 2px 5px hsla(0, 0%, 5%, 0.06);
+      &:hover {
+        box-shadow:
+          0 0 0 1px hsla(0, 0%, 5%, 0.06),
+          0 2px 5px hsla(0, 0%, 5%, 0.1);
+      }
+    }
+  }
+  &.toolbar-ribbon {
+    .umo-toolbar-actions {
+      right: 5px !important;
+      top: 6px !important;
+    }
   }
 }
 </style>

@@ -229,7 +229,7 @@ watch(
 .umo-search-replace-dialog {
   .t-dialog {
     position: absolute;
-    right: 25px;
+    right: 15px;
     top: 131px;
     user-select: none;
   }
@@ -238,6 +238,21 @@ watch(
   .umo-search-replace-dialog {
     .t-dialog {
       top: 65px;
+    }
+  }
+}
+
+.umo-editor-container.umo-skin-modern {
+  .umo-search-replace-dialog {
+    .t-dialog {
+      top: 146px;
+    }
+  }
+  &.toolbar-classic {
+    .umo-search-replace-dialog {
+      .t-dialog {
+        top: 80px;
+      }
     }
   }
 }
