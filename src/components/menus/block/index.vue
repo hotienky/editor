@@ -7,12 +7,10 @@
       'is-empty': editor?.isEmpty,
       'is-visible': selectedNodePos !== null,
     }"
+    :node-type="selectedNode?.type?.name || 'unknown'"
     @node-change="nodeChange"
   >
-    <div
-      class="umo-block-menu-hander"
-      :class="`umo-selected-node-${selectedNode?.type?.name || 'unknown'} `"
-    >
+    <div class="umo-block-menu-hander">
       <menus-block-node
         :node="selectedNode"
         :pos="selectedNodePos"
@@ -54,11 +52,29 @@ const dropdownVisible = (visible) => {
   }
   &-drag-handle {
     z-index: 10;
+    outline: solid 1px var(--umo-border-color);
+    transform: translateX(-15px);
+    padding: 2px;
+    border-radius: 3px;
+    background-color: #fff;
+    margin-top: -5px;
+    &:hover {
+      outline: none;
+      box-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(0, 0, 0, 0.1);
+    }
+    &[node-type='table'],
+    &[node-type='horizontalRule'],
+    &[node-type='codeBlock'],
+    &[node-type='ProseMirror-gapcursor'] {
+      margin-top: 0;
+    }
+    &[node-type='pageBreak'] {
+      margin-top: -14px;
+    }
     &.is-empty {
       z-index: 20;
-      .umo-block-menu-hander {
-        margin-top: -3px;
-      }
     }
     &.is-visible {
       visibility: visible !important;
@@ -66,30 +82,24 @@ const dropdownVisible = (visible) => {
   }
   &-hander {
     display: flex;
-    right: 0;
-    margin-top: -5px;
-    padding-right: 15px;
     @media print {
       display: none;
     }
-    &.umo-selected-node {
-      &-table,
-      &-horizontalRule,
-      &-codeBlock,
-      &-ProseMirror-gapcursor {
-        margin-top: 0;
-      }
-      &-pageBreak {
-        margin-top: -11px;
-      }
-    }
     .umo-menu-button {
-      background-color: var(--umo-page-background);
+      background-color: #fff;
+      width: 20px;
+      height: 20px;
+      &-wrap {
+        margin: 0 !important;
+      }
       .umo-button-content {
         color: rgba(0, 0, 0, 0.5);
       }
       &:not(.active):hover {
         background-color: var(--umo-content-node-selected-background);
+        .umo-button-content {
+          color: var(--umo-primary-color);
+        }
       }
       &.active {
         &:hover {
