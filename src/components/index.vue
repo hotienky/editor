@@ -209,7 +209,8 @@ watch(
 
 // Lifecycle Hooks
 onMounted(() => {
-  setTheme(options.value.theme)
+  const theme = useStorage('umo-editor:theme', options.value.theme)
+  setTheme(theme.value)
 })
 onBeforeUnmount(() => {
   clearAutoSaveInterval()
@@ -520,6 +521,9 @@ const setTheme = (theme) => {
   }
   if (theme !== 'auto') {
     document.querySelector('html')?.setAttribute('theme-mode', theme)
+
+    const $theme = useStorage('umo-editor:theme', options.value.theme)
+    $theme.value = theme
     emits('changed:theme', theme)
     return
   }
@@ -816,15 +820,32 @@ const getContent = (format = 'html') => {
 }
 
 // Locale Methods
-const setLocale = (params) => {
-  if (!['zh-CN', 'en-US'].includes(params)) {
+const setLocale = (lang, silent = true) => {
+  if (!['zh-CN', 'en-US'].includes(lang)) {
     throw new Error('"params" must be one of "zh-CN" or "en-US".')
   }
-  if (locale.value === params) {
+  if (locale.value === lang) {
     return
   }
-  $locale.value = params
-  location.reload()
+  if (silent) {
+    $locale.value = lang
+    location.reload()
+    return
+  }
+  const dialog = useConfirm({
+    attach: container,
+    theme: 'warning',
+    header: t('changeLocale.title'),
+    body: t('changeLocale.message'),
+    confirmBtn: {
+      theme: 'warning',
+      content: t('changeLocale.confirm'),
+    },
+    onConfirm() {
+      dialog.destroy()
+      setTimeout(() => setLocale(lang), 300)
+    },
+  })
 }
 
 const getLocale = () => locale.value
@@ -1240,6 +1261,7 @@ watch(
 // Methods Exposed to Descendants
 provide('saveContent', saveContent)
 
+provide('setTheme', setTheme)
 provide('setLocale', setLocale)
 provide('reset', reset)
 provide('getVanillaHTML', getVanillaHTML)

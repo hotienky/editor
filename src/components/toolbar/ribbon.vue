@@ -253,6 +253,11 @@
             />
             <menus-toolbar-view-zoom-auto v-if="!disableMenu('zoom-auto')" />
           </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-theme v-if="!disableMenu('theme')" />
+            <menus-toolbar-view-locale v-if="!disableMenu('locale')" />
+            <menus-toolbar-view-reset v-if="!disableMenu('reset')" />
+          </div>
           <div class="virtual-group is-slot">
             <slot name="toolbar_view" toolbar-mode="ribbon" />
           </div>

@@ -28,6 +28,7 @@ const templates = [
   },
 ]
 const options = $ref({
+  theme: 'auto',
   toolbar: {
     // defaultMode: 'classic',
     // menus: ['base'],

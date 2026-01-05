@@ -448,7 +448,11 @@
   "view": {
     "zoom": "缩放比例",
     "zoomOriginal": "原始比例",
-    "zoomAuto": "最佳比例"
+    "zoomAuto": "最佳比例",
+    "theme": "外观设置",
+    "themeLight": "浅色主题",
+    "themeDark": "深色主题",
+    "locale": "语言设置"
   },
   "export": {
     "embed": {
@@ -666,7 +670,7 @@
     "confirm": "立即切换"
   },
   "resetAll": {
-    "title": "重置编辑器",
+    "title": "重置设置",
     "message": "此操作会清空所有的编辑器设置数据，包括当前编辑的内容，并刷新页面，建议保存内容后再重置，确定要现在重置吗？",
     "reset": "立即重置"
   },

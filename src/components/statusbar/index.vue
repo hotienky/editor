@@ -152,6 +152,18 @@
     </div>
     <div class="umo-status-bar-right">
       <tooltip
+        :content="`${fullscreen?.isFullscreen ? t('fullscreen.disable') : t('fullscreen.title')} (${getShortcut('Ctrl+F11')})`"
+      >
+        <t-button
+          class="umo-status-bar-button"
+          variant="text"
+          size="small"
+          @click="toggleFullscreen"
+        >
+          <icon :name="fullscreen ? 'full-screen-exit' : 'full-screen'" />
+        </t-button>
+      </tooltip>
+      <tooltip
         :content="
           page.preview?.enabled ? t('preview.disable') : t('preview.title')
         "
@@ -164,18 +176,6 @@
           @click="togglePreview"
         >
           <icon name="preview" />
-        </t-button>
-      </tooltip>
-      <tooltip
-        :content="`${fullscreen?.isFullscreen ? t('fullscreen.disable') : t('fullscreen.title')} (${getShortcut('Ctrl+F11')})`"
-      >
-        <t-button
-          class="umo-status-bar-button"
-          variant="text"
-          size="small"
-          @click="toggleFullscreen"
-        >
-          <icon :name="fullscreen ? 'full-screen-exit' : 'full-screen'" />
         </t-button>
       </tooltip>
       <div class="umo-status-bar-split"></div>
@@ -524,20 +524,7 @@ const changeLang = (dropdownItem) => {
   if (lang.value === value) {
     return
   }
-  const dialog = useConfirm({
-    attach: container,
-    theme: 'warning',
-    header: t('changeLocale.title'),
-    body: t('changeLocale.message'),
-    confirmBtn: {
-      theme: 'warning',
-      content: t('changeLocale.confirm'),
-    },
-    onConfirm() {
-      dialog.destroy()
-      setTimeout(() => setLocale(value), 300)
-    },
-  })
+  setLocale(value, false)
 }
 
 const toggleSpellcheck = () => {

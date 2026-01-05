@@ -449,7 +449,11 @@
   "view": {
     "zoom": "Zoom",
     "zoomOriginal": "Original Size",
-    "zoomAuto": "Best Fit"
+    "zoomAuto": "Best Fit",
+    "theme": "Appearance",
+    "themeLight": "Light mode",
+    "themeDark": "Dark mode",
+    "locale": "Language"
   },
   "export": {
     "embed": {
@@ -667,7 +671,7 @@
     "confirm": "Switch"
   },
   "resetAll": {
-    "title": "Reset Editor",
+    "title": "Reset Settings",
     "message": "This action will clear all editor settings and current content, and refresh the page. It's recommended to save your content before resetting. Are you sure you want to reset now?",
     "reset": "Reset"
   },

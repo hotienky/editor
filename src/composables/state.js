@@ -10,17 +10,14 @@ export const useState = (key, options) => {
       colors: [],
     })
   }
-  if (key === 'print') {
-    return useStorage(storageKey, {
-      singleColumn: true,
-      showPageNumber: true,
-    })
-  }
   if (key === 'toolbar') {
     return useStorage(storageKey, {
       mode: options?.value?.toolbar?.defaultMode ?? 'classic',
       show: true,
     })
+  }
+  if (key === 'theme') {
+    return useStorage(storageKey, 'light')
   }
   throw new Error('[useStorage]', { cause: 'Key is not valid' })
 }
