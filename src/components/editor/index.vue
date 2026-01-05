@@ -77,6 +77,7 @@ const editorInstance = new Editor({
     },
     ...options.value.document?.editorProps,
   },
+  enableContentCheck: true,
   parseOptions: options.value.document?.parseOptions,
   extensions: [...extensions, ...options.value.extensions],
   onCreate: ({ editor }) => {
