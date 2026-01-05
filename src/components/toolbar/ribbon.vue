@@ -258,6 +258,8 @@
             <menus-toolbar-view-skin v-if="!disableMenu('skin')" />
             <menus-toolbar-view-theme v-if="!disableMenu('theme')" />
             <menus-toolbar-view-locale v-if="!disableMenu('locale')" />
+          </div>
+          <div class="umo-virtual-group">
             <menus-toolbar-view-reset v-if="!disableMenu('reset')" />
           </div>
           <div class="virtual-group is-slot">
