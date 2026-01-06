@@ -37,7 +37,6 @@ const options = $ref({
   document: {
     title: '测试文档',
     content: localStorage.getItem('document.content') ?? '<p>测试文档</p>',
-    characterLimit: 10000,
   },
   page: {
     layouts: ['page', 'web'],

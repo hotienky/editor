@@ -126,14 +126,12 @@ const setPageZoomHeight = async () => {
 
 // 编辑器内容发生变化后，自动调整页面高度
 const editorInstance = inject('editor')
+const pageHeightDebounceFn = useDebounceFn(setPageZoomHeight, 300)
 onMounted(() => {
-  const throttleFn = useThrottleFn(setPageZoomHeight, 200)
-  editorInstance.value.on('update', () => {
-    throttleFn()
-  })
+  editorInstance.value.on('update', pageHeightDebounceFn)
 })
-onBeforeUnmount(() => {
-  editorInstance.value.off('update')
+onUnmounted(() => {
+  editorInstance.value.off('update', pageHeightDebounceFn)
 })
 
 // 页面变化后，更新页面高度

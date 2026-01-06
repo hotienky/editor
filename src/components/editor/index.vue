@@ -84,11 +84,10 @@ const editorInstance = new Editor({
     migrateMathStrings(editor)
   },
   onUpdate({ editor }) {
-    const throttleFn = useThrottleFn(() => {
+    addHistory(historyRecords, 'editor', editor?.state?.history$)
+    useDebounceFn(() => {
       $document.value.content = editor.getHTML()
-      addHistory(historyRecords, 'editor', editor?.state?.history$)
-    }, 1000)
-    throttleFn()
+    }, 3000)()
   },
 })
 const editor = inject('editor')

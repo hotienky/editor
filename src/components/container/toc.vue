@@ -9,7 +9,7 @@
     <div class="umo-toc-content umo-scrollbar">
       <t-tree
         class="umo-toc-tree"
-        :data="tocTreeData"
+        :data="tocData"
         :keys="{
           label: 'textContent',
           value: 'id',
@@ -36,8 +36,7 @@ const page = inject('page')
 defineEmits(['close'])
 
 // 最终可视化数据
-let tocTreeData = $ref([])
-let watchTreeData = [] // 可视化监听数据
+let tocData = $ref([])
 const buildTocTree = (tocArray) => {
   const root = []
   const stack = []
@@ -71,20 +70,14 @@ const buildTocTree = (tocArray) => {
   return root
 }
 
-const throttleTocTreeData = (toc) =>
-  useThrottleFn(() => {
-    // 每次都监听 但不是每次发生变化，重复赋值导致toc数据双击生效
-    const curTocTreeData = buildTocTree(toc)
-    if (JSON.stringify(watchTreeData) !== JSON.stringify(curTocTreeData)) {
-      watchTreeData = curTocTreeData
-      tocTreeData = JSON.parse(JSON.stringify(curTocTreeData))
-    }
-  }, 200)()
+const tocDebounceFn = useDebounceFn((toc) => {
+  tocData = buildTocTree(toc)
+}, 1000)
 
 watch(
   () => editor.value?.storage.tableOfContents.content,
   (toc) => {
-    throttleTocTreeData(toc)
+    tocDebounceFn(toc)
   },
   { immediate: true },
 )

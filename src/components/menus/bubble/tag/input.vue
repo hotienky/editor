@@ -32,7 +32,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  editor.value?.off('selectionUpdate')
+  editor.value?.off('selectionUpdate', setValue)
 })
 
 const onInput = (value) => {
