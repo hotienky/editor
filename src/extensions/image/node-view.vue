@@ -288,7 +288,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  options.value.onFileDelete(attrs.id, attrs.src, attrs.type)
+  options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
 })
 </script>
 
