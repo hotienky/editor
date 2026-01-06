@@ -91,6 +91,7 @@ import prettyBytes from 'pretty-bytes'
 import { getFileExtname, getFileIcon } from '@/utils/file'
 
 import { updateAttributesWithoutHistory } from './'
+import { onBeforeUnmount } from 'vue'
 
 const props = defineProps(nodeViewProps)
 const attrs = $computed(() => props.node.attrs)
@@ -157,6 +158,10 @@ onMounted(async () => {
     }
   }
   setPreviewURL(attrs.name)
+})
+
+onBeforeUnmount(() => {
+  options.value.onFileDelete(attrs.id, attrs.url, 'file')
 })
 
 const supportPreview = $computed(() => {

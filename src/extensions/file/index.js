@@ -229,45 +229,6 @@ export default Node.create({
         },
     }
   },
-  onUpdate({ editor, transaction }) {
-    transaction.steps.forEach((step) => {
-      const { name } = step.constructor
-      if (!['_ReplaceStep', '_ReplaceAroundStep'].includes(name)) {
-        return
-      }
-
-      const { firstChild, lastChild } = step.slice.content
-      if (firstChild !== null || lastChild !== null) {
-        return
-      }
-
-      // 使用事务前的文档状态来获取被删除或替换的节点
-      const deletedNodes = transaction?.before?.content?.cut(step.from, step.to)
-      deletedNodes?.content?.forEach((node) => {
-        // 如果是文件节点，调用删除方法删除文件
-        if (['image', 'video', 'audio', 'file'].includes(node.type.name)) {
-          const { id, src, url } = node.attrs
-          const { onFileDelete } = editor.storage.options ?? {}
-          if (!transaction.getMeta('convert')) {
-            onFileDelete(id, src ?? url, node.type.name)
-          }
-        }
-        // 如果是文件节点，清除行内图片
-        if (node.lastChild?.type?.name === 'inlineImage') {
-          const { id, src, url } = node.attrs
-          const { onFileDelete } = editor.storage.options ?? {}
-          if (!transaction.getMeta('convert')) {
-            onFileDelete(
-              id,
-              src ?? url,
-              node.type.name,
-              node.lastChild?.type?.name,
-            )
-          }
-        }
-      })
-    })
-  },
 })
 
 export const updateAttributesWithoutHistory = (editor, attrs, pos) => {

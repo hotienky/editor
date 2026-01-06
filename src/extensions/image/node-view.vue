@@ -286,6 +286,10 @@ watch(
     )
   },
 )
+
+onBeforeUnmount(() => {
+  options.value.onFileDelete(attrs.id, attrs.src, 'image')
+})
 </script>
 
 <style lang="less">

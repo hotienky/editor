@@ -81,9 +81,8 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (playerInstance) {
-    playerInstance.destroy()
-  }
+  options.value.onFileDelete(attrs.id, attrs.src, 'audio')
+  playerInstance?.destroy?.()
 })
 
 onClickOutside(containerRef, () => {

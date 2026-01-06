@@ -127,9 +127,8 @@ const onResize = ({ width, height }) => {
   updateAttributes({ width, height })
 }
 onBeforeUnmount(() => {
-  if (playerInstance) {
-    playerInstance.destroy()
-  }
+  options.value.onFileDelete(attrs.id, attrs.src, 'video')
+  playerInstance?.destroy?.()
 })
 
 onClickOutside(containerRef, () => {
