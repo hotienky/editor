@@ -91,7 +91,6 @@ For more details, see [Features](https://dev.umodoc.com/en/docs/editor/features)
 
 - **Node.js** (>=v18.x)
 - **Vue** (>=v3.x)
-- **Vite** (>=v5.x)
 - **Tiptap** (>=v3.x)
 
 ## Join the Community
