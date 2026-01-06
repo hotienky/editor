@@ -93,6 +93,10 @@ const setChineseCase = (fn) => {
   }
   const text = getSelectionText(editor.value)
   if (text === '') {
+    useMessage('error', {
+      attach: container,
+      content: '请先选中要转换的文本',
+    })
     return
   }
   try {
@@ -101,7 +105,7 @@ const setChineseCase = (fn) => {
   } catch {
     useMessage('error', {
       attach: container,
-      content: '大小写转化失败，请检查当前选中的文本。',
+      content: '大小写转化失败，请检查当前选中的文本',
     })
   }
 }
