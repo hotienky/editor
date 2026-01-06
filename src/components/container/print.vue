@@ -86,6 +86,9 @@ const getIframeCode = () => {
         background-color: ${background};
         -webkit-print-color-adjust: exact;
       }
+      .umo-editor-container{
+        background-color: ${background} !important;
+      }
       .umo-page-content{
         transform: scale(1) !important;
         overflow: hidden;
@@ -94,6 +97,7 @@ const getIframeCode = () => {
         size: ${orientation === 'portrait' ? size?.width : size?.height}cm ${orientation === 'portrait' ? size?.height : size?.width}cm;
         padding: ${margin?.top}cm 0 ${margin?.bottom}cm;
         margin: 0;
+        background-color: ${background};
       }
       @page:first {
         padding-top: 0;
