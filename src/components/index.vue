@@ -920,7 +920,7 @@ const getVanillaHTML = async () => {
 
   // 移除所有换行和回车标记
   const breakNodes = pageNode.querySelectorAll(
-    '.Tiptap-invisible-character, .ProseMirror-separator',
+    '.tiptap-invisible-character, .ProseMirror-separator',
   )
   breakNodes.forEach((el) => el.remove())
 
@@ -960,7 +960,7 @@ const getVanillaHTML = async () => {
   })
 
   // 公式样式
-  const mathNodes = pageNode.querySelectorAll('.Tiptap-mathematics-render')
+  const mathNodes = pageNode.querySelectorAll('.tiptap-mathematics-render')
   if (mathNodes.length > 0) {
     const katexStyle = document.querySelector('#katex-style')
     if (katexStyle) {
