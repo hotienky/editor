@@ -1,5 +1,5 @@
 import { Extension } from '@tiptap/core'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Plugin } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 
 const getRegex = (s, disableRegex, caseSensitive) => {
@@ -136,7 +136,7 @@ const replaceAll = (replaceTerm, results, { tr, dispatch }) => {
 }
 
 export const SearchAndReplace = Extension.create({
-  name: new PluginKey('search-replace'),
+  name: 'searchAndReplace',
   addOptions() {
     return {
       searchResultClass: 'umo-search-result',
@@ -249,7 +249,7 @@ export const SearchAndReplace = Extension.create({
 
     return [
       new Plugin({
-        key: searchAndReplacePluginKey,
+        key: 'search-replace',
         state: {
           init: () => DecorationSet.empty,
           apply({ doc, docChanged }, oldState) {
