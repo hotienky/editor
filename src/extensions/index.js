@@ -52,6 +52,7 @@ import Mention from './mention'
 import getUsersSuggestion from './mention/suggestion'
 import NodeAlign from './node-align'
 import NodeSelect from './node-select'
+import OfficePaste from './office-paste'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
@@ -269,6 +270,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       color: 'var(--umo-primary-color)',
     }),
     TypeWriter,
+    OfficePaste,
   ]
 
   // 合并扩展
