@@ -28,6 +28,7 @@
             <div class="umo-virtual-group-row">
               <menus-toolbar-base-font-family />
               <menus-toolbar-base-font-size />
+              <menus-toolbar-base-word-wrap />
             </div>
             <div class="umo-virtual-group-row">
               <menus-toolbar-base-bold />

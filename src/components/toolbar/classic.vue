@@ -36,6 +36,7 @@
           <menus-toolbar-base-heading />
           <menus-toolbar-base-font-family borderless />
           <menus-toolbar-base-font-size borderless />
+          <menus-toolbar-base-word-wrap />
           <menus-toolbar-base-bold />
           <menus-toolbar-base-italic />
           <menus-toolbar-base-underline />

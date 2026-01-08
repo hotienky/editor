@@ -64,6 +64,7 @@ import TextBox from './text-box'
 import Toc from './toc'
 import TypeWriter from './type-writer'
 import Video from './video'
+import WordWrap from './word-wrap'
 
 const nodeTypes = [
   'paragraph',
@@ -178,6 +179,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       placeholder: () => String(l(doc?.placeholder ?? '')),
     }),
     FormatPainter,
+    WordWrap,
     Bold.extend({
       renderHTML: ({ HTMLAttributes }) => ['b', HTMLAttributes, 0],
     }),

@@ -64,6 +64,12 @@
       "text": "格式刷",
       "tip": "格式刷：双击可重复使用，按 ESC 退出"
     },
+    "wordWrap": {
+      "text": "文字换行方式",
+      "normal": "正常换行",
+      "breakWord": "按词换行",
+      "breakAll": "强制换行"
+    },
     "heading": {
       "text": "标题 {level}",
       "paragraph": "正文",

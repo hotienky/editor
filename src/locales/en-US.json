@@ -64,6 +64,12 @@
       "text": "Format Painter",
       "tip": "Format Painter: Double click to reuse, press ESC to exit"
     },
+    "wordWrap": {
+      "text": "Word Wrap",
+      "normal": "Normal",
+      "breakWord": "Break Word",
+      "breakAll": "Break All"
+    },
     "heading": {
       "text": "Title {level}",
       "paragraph": "Normal",

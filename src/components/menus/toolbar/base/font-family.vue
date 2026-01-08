@@ -9,7 +9,7 @@
         ? null
         : editor?.getAttributes('textStyle').fontFamily || null
     "
-    :style="{ width: $toolbar.mode !== 'classic' ? '180px' : '90px' }"
+    :style="{ width: $toolbar.mode !== 'classic' ? '143px' : '90px' }"
     filterable
     @menu-click="setFontFamily"
   >
