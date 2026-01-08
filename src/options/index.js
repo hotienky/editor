@@ -56,6 +56,7 @@ const defaultOptions = {
       en_US: 'Please enter the document content...',
       zh_CN: '请输入文档内容...',
     },
+    structure: 'block*',
     enableSpellcheck: true,
     enableMarkdown: true,
     enableBubbleMenu: true,
@@ -571,6 +572,11 @@ const ojbectSchema = new ObjectSchema({
             )
           }
         },
+        required: false,
+      },
+      structure: {
+        merge: 'replace',
+        validate: 'string',
         required: false,
       },
       enableSpellcheck: {
