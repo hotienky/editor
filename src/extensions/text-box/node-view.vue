@@ -38,7 +38,11 @@
         @click="selected = true"
         @dblclick="editTextBox"
       >
-        <node-view-content ref="contentRef" class="umo-node-text-box-content" />
+        <node-view-content
+          ref="contentRef"
+          class="umo-node-text-box-content"
+          :style="{ writingMode: attrs.writingMode }"
+        />
       </drager>
     </div>
   </node-view-wrapper>
@@ -120,6 +124,7 @@ const editTextBox = () => {
     .umo-node-text-box-content {
       outline: var(--umo-textbox-border-style) var(--umo-textbox-border-width)
         var(--umo-textbox-border-color);
+      width: 100%;
       height: 100%;
       padding: 5px;
       box-sizing: border-box;

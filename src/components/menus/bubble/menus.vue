@@ -168,6 +168,7 @@
     <template v-else>
       <menus-bubble-text-box-border />
       <menus-bubble-text-box-background />
+      <menus-bubble-text-box-writing-mode />
       <div class="umo-bubble-menu-divider"></div>
       <menus-bubble-node-delete />
     </template>

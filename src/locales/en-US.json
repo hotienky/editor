@@ -571,7 +571,11 @@
       "border": "Border Settings",
       "borderColor": "Border Color",
       "borderStyle": "Border Style",
-      "noBorder": "No Border"
+      "noBorder": "No Border",
+      "writingMode": "Writing Mode",
+      "horizontalTb": "Horizontal Text",
+      "verticalLr": "Vertical Text (Left to Right)",
+      "verticalRl": "Vertical Text (Right to Left)"
     },
     "callout": {
       "removeEmoji": "Remove Emoji",

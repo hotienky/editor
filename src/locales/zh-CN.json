@@ -570,7 +570,11 @@
       "border": "边框设置",
       "borderColor": "边框颜色",
       "borderStyle": "边框样式",
-      "noBorder": "不显示边框"
+      "noBorder": "不显示边框",
+      "writingMode": "文字排列方式",
+      "horizontalTb": "默认",
+      "verticalLr": "垂直排列（从左到右）",
+      "verticalRl": "垂直排列（从右到左）"
     },
     "callout": {
       "removeEmoji": "移除表情",

@@ -43,6 +43,15 @@ export default Node.create({
       backgroundColor: {
         default: 'transparent',
       },
+      writingMode: {
+        default: 'horizontal-tb',
+        parseHTML: (element) => {
+          return element.style.writingMode || this.options.writingMode
+        },
+        renderHTML: ({ writingMode }) => {
+          return { style: `writing-mode: ${writingMode}` }
+        },
+      },
     }
   },
   parseHTML() {
