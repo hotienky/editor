@@ -1,6 +1,7 @@
 <template>
   <menus-button
     :text="t('base.fontFamily.text')"
+    :placeholder="t('base.fontFamily.text')"
     menu-type="select"
     hide-text
     :select-value="
