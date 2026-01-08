@@ -73,6 +73,9 @@ const dropdownVisible = (visible) => {
     &[node-type='pageBreak'] {
       margin-top: -14px;
     }
+    &[node-type='footnotes'] {
+      display: none;
+    }
     &.is-empty {
       z-index: 20;
     }

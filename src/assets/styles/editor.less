@@ -66,7 +66,9 @@
         @media screen {
           &:not(.is-editor-empty):not(hr):not(.tableWrapper):not(
               .umo-page-break
-            ):not(table):not(.umo-code-block):not(.umo-floating-node):before {
+            ):not(table):not(.umo-code-block):not(.footnotes):not(
+              .umo-floating-node
+            ):before {
             content: '';
             display: block;
             position: absolute;
@@ -507,6 +509,19 @@
     }
   }
 
+  .umo-editor-bookmark {
+    color: hsl(0, 1%, 68%);
+    &::before {
+      content: '[';
+    }
+    &::after {
+      content: ']';
+    }
+    @media print {
+      display: none;
+    }
+  }
+
   .umo-node-view {
     display: flex;
     position: relative;
@@ -645,6 +660,24 @@
       outline: 2px dashed var(--umo-primary-color);
     }
   }
+
+  ol.footnotes {
+    margin-top: 100px !important;
+    padding: 15px 0 15px 1.5em;
+    position: relative;
+    li {
+      &::before {
+        content: counter(list-item) + '.';
+        position: absolute;
+        left: 0;
+        width: 2em;
+        text-align: left;
+      }
+    }
+    &:has(li) {
+      border-top: 1px solid black;
+    }
+  }
   h1 {
     font-size: 2.5em;
   }
@@ -663,20 +696,6 @@
   h6 {
     font-size: 0.85em;
   }
-}
-.umo-editor-bookmark {
-  color: hsl(0, 1%, 68%);
-  @media print {
-    display: none;
-  }
-}
-
-.umo-editor-bookmark::after {
-  content: '}';
-}
-
-.umo-editor-bookmark::before {
-  content: '{';
 }
 
 :-webkit-any(article, aside, nav, section) {

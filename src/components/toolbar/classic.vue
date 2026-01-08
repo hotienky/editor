@@ -49,10 +49,8 @@
           <menus-toolbar-base-letter-spacing />
         </div>
         <div class="umo-virtual-group">
-          <menus-toolbar-base-ordered-list
-            v-if="!disableMenu('ordered-list')"
-          />
-          <menus-toolbar-base-bullet-list v-if="!disableMenu('bullet-list')" />
+          <menus-toolbar-base-ordered-list />
+          <menus-toolbar-base-bullet-list />
           <menus-toolbar-base-task-list v-if="!disableMenu('task-list')" />
           <menus-toolbar-base-indent />
           <menus-toolbar-base-outdent />
@@ -97,8 +95,9 @@
           <menus-toolbar-insert-tag v-if="!disableMenu('tag')" />
           <menus-toolbar-insert-callout v-if="!disableMenu('callout')" />
           <menus-toolbar-insert-mention v-if="!disableMenu('mention')" />
-          <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
           <menus-toolbar-insert-option-box v-if="!disableMenu('option-box')" />
+          <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
+          <menus-toolbar-insert-footnote v-if="!disableMenu('footnote')" />
         </div>
         <div class="umo-virtual-group">
           <menus-toolbar-insert-hard-break v-if="!disableMenu('hard-break')" />

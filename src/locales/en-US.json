@@ -213,7 +213,8 @@
       "type": "Link Type:",
       "url": "Page URL:",
       "placeholder": "Enter a web address, starting with http:// or https://"
-    }
+    },
+    "footnote": "Footnote"
   },
   "table": {
     "addColumnAfter": "Insert Column After",

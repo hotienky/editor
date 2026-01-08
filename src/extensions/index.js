@@ -4,6 +4,7 @@ import {
   DetailsContent,
   DetailsSummary,
 } from '@tiptap/extension-details'
+import Document from '@tiptap/extension-document'
 import Link from '@tiptap/extension-link'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import Mathematics from '@tiptap/extension-mathematics'
@@ -23,6 +24,7 @@ import {
   UndoRedo,
 } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
+import { Footnote, FootnoteReference, Footnotes } from 'tiptap-footnotes'
 
 import { l } from '@/composables/i18n'
 import { useState } from '@/composables/state'
@@ -32,7 +34,6 @@ import { shortId } from '@/utils/short-id'
 import Audio from './audio'
 import Bookmark from './bookmark'
 import BreakMarks from './break-marks'
-import BulletList from './bullet-list'
 import Callout from './callout'
 import CodeBlock from './code-block'
 import Columns from './columns'
@@ -54,7 +55,6 @@ import NodeAlign from './node-align'
 import NodeSelect from './node-select'
 import OfficePaste from './office-paste'
 import OptionBox from './option-box'
-import OrderedList from './ordered-list'
 import PageBreak from './page-break'
 import SearchReplace from './search-replace'
 import Selection from './selection'
@@ -111,8 +111,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
   const { page, document: doc, users, file, disableExtensions } = options.value
 
   const extensions = {
-    'ordered-list': OrderedList,
-    'bullet-list': BulletList,
     'task-list': TaskList.configure({
       HTMLAttributes: {
         class: 'umo-task-list',
@@ -139,8 +137,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       suggestion: getUsersSuggestion(users ?? [], container),
     }),
     'date-time': Datetime,
-    optionBox: OptionBox,
+    'option-box': OptionBox,
     bookmark: Bookmark,
+    footnote: [Footnotes, FootnoteReference, Footnote],
     'hard-break': BreakMarks.configure({
       visible: page?.showBreakMarks,
     }),
@@ -152,9 +151,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
 
   const buildInExtensions = [
     StarterKit.configure({
+      document: false,
       bold: false,
-      bulletList: false,
-      orderedList: false,
       codeBlock: false,
       horizontalRule: false,
       undoRedo: false,
@@ -162,6 +160,12 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       placeholder: false,
       dropcursor: false,
       selection: false,
+      trailingNode: false,
+    }),
+    Document.extend({
+      content: disableExtensions.includes('footnote')
+        ? doc.structure
+        : `${doc.structure} footnotes?`,
     }),
     TextStyleKit.configure({
       lineHeight: false,
