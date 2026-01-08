@@ -94,10 +94,11 @@
             <menus-toolbar-insert-file v-if="!disableMenu('file')" />
           </div>
           <div class="umo-virtual-group">
+            <menus-toolbar-insert-text-box v-if="!disableMenu('text-box')" />
+            <menus-toolbar-insert-details v-if="!disableMenu('details')" />
             <menus-toolbar-insert-code-block
               v-if="!disableMenu('code-block')"
             />
-            <menus-toolbar-insert-details v-if="!disableMenu('details')" />
             <menus-toolbar-insert-symbol v-if="!disableMenu('symbol')" />
             <menus-toolbar-insert-chinese-date
               v-if="!disableMenu('chinese-date')"
@@ -112,16 +113,15 @@
             <menus-toolbar-insert-option-box
               v-if="!disableMenu('option-box')"
             />
-            <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
-            <menus-toolbar-insert-footnote v-if="!disableMenu('footnote')" />
           </div>
           <div class="umo-virtual-group">
             <menus-toolbar-insert-hard-break
               v-if="!disableMenu('hard-break')"
             />
             <menus-toolbar-insert-hr v-if="!disableMenu('hr')" />
+            <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
+            <menus-toolbar-insert-footnote v-if="!disableMenu('footnote')" />
             <menus-toolbar-insert-toc v-if="!disableMenu('toc')" />
-            <menus-toolbar-insert-text-box v-if="!disableMenu('text-box')" />
           </div>
           <div class="umo-virtual-group">
             <menus-toolbar-insert-template v-if="!disableMenu('template')" />
