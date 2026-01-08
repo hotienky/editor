@@ -49,10 +49,20 @@ useResizeObserver(wraperRef, () => {
   checkScrollPosition()
 })
 
-//
+// 支持鼠标滚轮滚动
+const wheelScroll = (e) => {
+  e.preventDefault()
+  e.deltaY < 0 ? scrollLeft() : scrollRight()
+}
 onMounted(() => {
   if (contentRef) {
     contentRef.addEventListener('scroll', checkScrollPosition)
+    contentRef.addEventListener('wheel', wheelScroll, { passive: false })
+  }
+})
+onUnmounted(() => {
+  if (contentRef) {
+    contentRef.removeEventListener('wheel', wheelScroll)
   }
 })
 
