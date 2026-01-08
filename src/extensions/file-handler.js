@@ -4,7 +4,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state'
 const FileHandlePlugin = (option) => {
   const { key, editor, onPaste, onDrop, allowedMimeTypes } = option
   return new Plugin({
-    key: key || new PluginKey('fileHandler'),
+    key: key || new PluginKey('file-handler'),
     props: {
       handleDrop(view, event) {
         const { dataTransfer } = event

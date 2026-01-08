@@ -37,8 +37,8 @@
         </div>
         <div class="umo-math-select">
           <div
-            v-show="latexLoaded"
             v-for="(item, index) in templates"
+            v-show="latexLoaded"
             :key="index"
             class="umo-math-select-item"
             @click="selectMath(item)"

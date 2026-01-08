@@ -24,8 +24,8 @@
               menu-type="select"
               :text="t('tools.mermaid.theme')"
               :select-options="themes"
-              :select-value="config.theme"
-              @menu-click="(value) => (config.theme = value)"
+              :select-value="localConfig.theme"
+              @menu-click="(value) => (localConfig.theme = value)"
             />
             <menus-button
               ico="copy"
@@ -95,7 +95,7 @@ const themes = [
   { label: t('tools.mermaid.themes.forest'), value: 'forest' },
   { label: t('tools.mermaid.themes.neutral'), value: 'neutral' },
 ]
-let config = $ref({})
+let localConfig = $ref({})
 
 const copyCode = () => {
   const { copy } = useClipboard({
@@ -115,7 +115,7 @@ const mermaidInit = () => {
     startOnLoad: false,
     fontSize: 12,
     securityLevel: 'loose',
-    ...config,
+    ...localConfig,
   })
 }
 
@@ -134,14 +134,14 @@ watch(
   () => dialogVisible,
   async (visible) => {
     if (visible) {
-      config = { ...props.config }
+      localConfig = { ...props.config }
       mermaidCode = props.content || 'graph TB\na-->b'
     }
   },
   { immediate: true },
 )
 watch(
-  () => [config, mermaidCode],
+  () => [localConfig, mermaidCode],
   async () => {
     if (!mermaidCode || mermaidCode === '') return
     await nextTick()
@@ -178,7 +178,7 @@ const setMermaid = () => {
       name,
       size: file.size,
       src: svg64(svgCode),
-      config: JSON.stringify(config),
+      config: JSON.stringify(localConfig),
       content: mermaidCode,
       width,
       height,

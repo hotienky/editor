@@ -14,7 +14,7 @@ export default Extension.create({
 
     return [
       new Plugin({
-        key: new PluginKey('selectNode'),
+        key: new PluginKey('select-node'),
         props: {
           handleDOMEvents: {
             click(view, event) {

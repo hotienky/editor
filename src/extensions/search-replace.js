@@ -135,10 +135,8 @@ const replaceAll = (replaceTerm, results, { tr, dispatch }) => {
   dispatch(tr)
 }
 
-export const searchAndReplacePluginKey = new PluginKey('searchAndReplacePlugin')
-
 export const SearchAndReplace = Extension.create({
-  name: 'searchAndReplace',
+  name: new PluginKey('search-replace'),
   addOptions() {
     return {
       searchResultClass: 'umo-search-result',

@@ -91,7 +91,6 @@ import prettyBytes from 'pretty-bytes'
 import { getFileExtname, getFileIcon } from '@/utils/file'
 
 import { updateAttributesWithoutHistory } from './'
-import { onBeforeUnmount } from 'vue'
 
 const props = defineProps(nodeViewProps)
 const attrs = $computed(() => props.node.attrs)

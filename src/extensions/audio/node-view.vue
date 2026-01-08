@@ -10,8 +10,8 @@
       class="umo-node-container umo-hover-shadow umo-select-outline umo-node-audio"
     >
       <audio
-        ref="audioRef"
         v-show="playerShow"
+        ref="audioRef"
         :src="attrs.src"
         controls
         crossorigin="anonymous"

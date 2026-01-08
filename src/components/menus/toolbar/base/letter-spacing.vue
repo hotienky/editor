@@ -76,11 +76,7 @@ watch(
 )
 
 const setLetterSpacing = () => {
-  editor.value
-    ?.chain()
-    .focus()
-    .setLetterSpacing(spacing + 'em')
-    .run()
+  editor.value?.chain().focus().setLetterSpacing(`${spacing}em`).run()
 }
 const resetLetterSpacing = () => {
   spacing = 0
