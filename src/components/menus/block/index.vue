@@ -67,6 +67,7 @@ const dropdownVisible = (visible) => {
     &[node-type='table'],
     &[node-type='horizontalRule'],
     &[node-type='codeBlock'],
+    &[node-type='details'],
     &[node-type='ProseMirror-gapcursor'] {
       margin-top: 0;
     }
