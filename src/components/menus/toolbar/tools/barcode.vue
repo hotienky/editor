@@ -197,7 +197,7 @@
             class="umo-barcode-title"
             v-text="t('tools.barcode.preview')"
           ></div>
-          <div class="umo-barcode-svg narrow-scrollbar">
+          <div class="umo-barcode-svg umo-scrollbar">
             <div
               v-if="renderError"
               class="umo-barcode-empty"

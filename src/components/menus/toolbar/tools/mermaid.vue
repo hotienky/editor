@@ -54,7 +54,7 @@
           ></div>
           <div
             ref="mermaidRef"
-            class="umo-mermaid-svg narrow-scrollbar"
+            class="umo-mermaid-svg umo-scrollbar"
             v-html="svgCode"
           ></div>
         </div>

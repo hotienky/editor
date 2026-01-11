@@ -97,7 +97,7 @@
             class="umo-qrcode-title"
             v-text="t('tools.qrcode.preview')"
           ></div>
-          <div class="umo-qrcode-svg narrow-scrollbar">
+          <div class="umo-qrcode-svg umo-scrollbar">
             <div
               v-if="!svgCode"
               class="umo-qrcode-empty"
