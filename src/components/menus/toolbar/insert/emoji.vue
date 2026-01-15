@@ -8,7 +8,7 @@
     @toggle-popup="togglePopup"
   >
     <template #content>
-      <div class="umo-emojis-container narrow-scrollbar">
+      <div class="umo-emojis-container umo-scrollbar">
         <template v-for="(group, index) in options.dicts?.emojis" :key="index">
           <div class="umo-emojis-group-title" v-text="l(group.label)"></div>
           <div class="umo-emojis-group-container">

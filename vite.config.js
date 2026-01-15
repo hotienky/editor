@@ -52,7 +52,7 @@ const buildConfig = {
     output: [
       {
         banner: copyright,
-        intro: `import './style.css'`,
+        intro: `import './umo-editor.css'`,
         format: 'es',
       },
     ],

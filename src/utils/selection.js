@@ -1,3 +1,5 @@
+import { TextSelection } from '@tiptap/pm/state'
+
 export const getSelectionNode = (editor) => {
   const { $anchor, node } = editor.state.selection
   if (node?.type?.isAtom) {

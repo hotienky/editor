@@ -1,25 +1,30 @@
 .umo-scrollbar() {
   overflow: auto;
+  @-moz-document url-prefix() {
+    scrollbar-color: var(--umo-scrollbar-thumb-color) transparent;
+    scrollbar-width: thin;
+  }
   &::-webkit-scrollbar {
-    width: var(--umo-scrollbar-size) !important;
-    height: var(--umo-scrollbar-size) !important;
-    position: absolute;
+    width: var(--umo-scrollbar-size);
+    height: var(--umo-scrollbar-size);
   }
   &::-webkit-scrollbar-track {
-    width: var(--umo-scrollbar-size) !important;
-    background: transparent;
+    background-color: transparent;
   }
-  &:hover::-webkit-scrollbar-thumb {
+  &::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    background-clip: content-box;
     background-color: var(--umo-scrollbar-thumb-color);
-    background-clip: padding-box;
-    border-radius: 1em;
+    border-radius: 15px;
     transition: background-color 0.3s;
     cursor: pointer;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background-color: var(--umo-scrollbar-thumb-hover-color);
+    &:vertical:hover,
+    &:horizontal:hover {
+      background-color: var(--umo-scrollbar-thumb-hover-color);
+    }
   }
 }
+
 .umo-page-divider() {
   display: block;
   white-space: nowrap;

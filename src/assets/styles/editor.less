@@ -4,7 +4,7 @@
   accent-color: var(--umo-primary-color);
   &.show-line-number {
     .umo-editor {
-      > *:not([data-line-number='false']):not(div) {
+      > *:not([data-line-number='false'], div) {
         position: relative;
 
         &::before {
@@ -64,9 +64,15 @@
       &.umo-node-focused,
       &.ProseMirror-selectednoderange {
         @media screen {
-          &:not(.is-editor-empty):not(hr):not(.tableWrapper):not(
-              .umo-page-break
-            ):not(table):not(.umo-code-block):not(.footnotes):not(
+          &:not(
+              .is-editor-empty,
+              hr,
+              table,
+              .tableWrapper,
+              .umo-page-break,
+              .umo-code-block,
+              .footnotes,
+              .umo-node-details,
               .umo-floating-node
             ):before {
             content: '';
@@ -117,9 +123,13 @@
   }
 
   &.is-empty
-    .is-editor-empty:not(.umo-node-view):not(.tableWrapper):not(
-      .umo-column-block
-    ):not(ul):not(ol) {
+    .is-editor-empty:not(
+      .umo-node-view,
+      .tableWrapper,
+      .umo-column-block,
+      ul,
+      ol
+    ) {
     &::after {
       display: inline-block;
       vertical-align: text-top;
@@ -363,31 +373,6 @@
     }
   }
 
-  .indent-1,
-  .umo-indent-1 {
-    text-indent: 2em;
-  }
-
-  .indent-2,
-  .umo-indent-2 {
-    text-indent: 4em;
-  }
-
-  .indent-3,
-  .umo-indent-3 {
-    text-indent: 6em;
-  }
-
-  .indent-4,
-  .umo-indent-4 {
-    text-indent: 8em;
-  }
-
-  .indent-5,
-  .umo-indent-5 {
-    text-indent: 10em;
-  }
-
   .tableWrapper {
     max-width: 100%;
     overflow-x: auto;
@@ -553,7 +538,8 @@
     border-radius: var(--umo-radius);
     padding: 10px;
 
-    &:hover {
+    &:hover,
+    &.umo-node-focused {
       border-color: var(--umo-primary-color);
     }
 
