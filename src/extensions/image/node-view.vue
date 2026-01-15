@@ -153,11 +153,11 @@ const uploadImage = async () => {
 }
 const onLoad = async () => {
   // updateAttributes({ error: false })
+  const { clientWidth = 1, clientHeight = 1 } = imageRef ?? {}
+  const ratio = clientWidth / clientHeight
+  maxWidth = containerRef.value?.$el.clientWidth
+  maxHeight = maxWidth / ratio
   if (attrs.width === null) {
-    const { clientWidth = 1, clientHeight = 1 } = imageRef ?? {}
-    const ratio = clientWidth / clientHeight
-    maxWidth = containerRef.value?.$el.clientWidth
-    maxHeight = maxWidth / ratio
     updateAttributes({ width: maxWidth })
   }
   if ([null, 'auto', 0].includes(attrs.height)) {
