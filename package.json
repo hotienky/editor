@@ -45,7 +45,7 @@
       "import": "./dist/umo-editor.js"
     },
     "./style": {
-      "import": "./dist/style.css"
+      "import": "./dist/umo-editor.css"
     }
   },
   "scripts": {
