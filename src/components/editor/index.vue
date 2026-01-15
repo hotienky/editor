@@ -80,7 +80,7 @@ const editorInstance = new Editor({
   // enableContentCheck: true,
   parseOptions: options.value.document?.parseOptions,
   extensions: [...extensions, ...options.value.extensions],
-  onCreate: ({ editor }) => {
+  onCreate({ editor }) {
     migrateMathStrings(editor)
   },
   onUpdate({ editor }) {

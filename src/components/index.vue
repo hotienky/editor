@@ -700,53 +700,10 @@ const setDocument = (params) => {
   if (!isRecord(params)) {
     throw new Error('params must be an object.')
   }
-  options.value.document ??= {}
-
-  if (params.title) {
-    if (!isString(params.title)) {
-      throw new Error('"params.title" must be a string.')
-    }
-    const title = params.title !== '' ? params.title : t('document.untitled')
-    $document.value.title = title
-    options.value.document.title = title
-  }
-  if (isDefined(params.enableBubbleMenu)) {
-    if (!isBoolean(params.enableBubbleMenu)) {
-      throw new Error('"params.enableBubbleMenu" must be a boolean.')
-    }
-    options.value.document.enableBubbleMenu = params.enableBubbleMenu
-  }
-  if (isDefined(params.enableBlockMenu)) {
-    if (!isBoolean(params.enableBlockMenu)) {
-      throw new Error('"params.enableBlockMenu" must be a boolean.')
-    }
-    options.value.document.enableBlockMenu = params.enableBlockMenu
-  }
-  if (isDefined(params.enableMarkdown)) {
-    if (!isBoolean(params.enableMarkdown)) {
-      throw new Error('"params.enableMarkdown" must be a boolean.')
-    }
-    $document.value.enableMarkdown = params.enableMarkdown
-  }
-  if (isDefined(params.enableSpellcheck)) {
-    if (!isBoolean(params.enableSpellcheck)) {
-      throw new Error('"params.spellcheck" must be a boolean.')
-    }
-    $document.value.enableSpellcheck = params.enableSpellcheck
-  }
-  if (params.autoSave) {
-    if (!isBoolean(params.autoSave.enabled)) {
-      throw new Error('"params.autoSave.enabled" must be a boolean.')
-    }
-    if (!isNumber(params.autoSave.interval)) {
-      throw new Error('"params.autoSave.interval" must be a number.')
-    }
-
-    options.value.document ??= {}
-    options.value.document.autoSave ??= {}
-    options.value.document.autoSave.enabled = params.autoSave.enabled
-    options.value.document.autoSave.interval = params.autoSave.interval
-  }
+  Object.keys(params).forEach((key) => {
+    options.value.document[key] = params[key]
+    $document.value[key] = params[key]
+  })
 }
 
 // Content Methods
