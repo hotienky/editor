@@ -367,6 +367,7 @@ watch(
       newData: pageLayout,
       oldData: oldPageLayout,
     })
+    setSkin('default')
   },
   { deep: true },
 )
