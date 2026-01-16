@@ -36,7 +36,7 @@ const options = $ref({
   },
   document: {
     title: '测试文档',
-    content: localStorage.getItem('document.content') ?? '<p>测试文档</p>',
+    content: localStorage.getItem('document.content') || '<p>测试文档</p>',
     structure: 'heading block*',
   },
   page: {
@@ -109,7 +109,7 @@ const options = $ref({
     await new Promise((resolve) => setTimeout(resolve, 3000))
     return {
       id: shortId(),
-      url: file.url ?? URL.createObjectURL(file),
+      url: file.url || URL.createObjectURL(file),
       name: file.name,
       type: file.type,
       size: file.size,

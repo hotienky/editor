@@ -21,17 +21,14 @@
     >
       <t-option
         v-for="item in group.children"
-        :key="item.value ?? ''"
+        :key="item.value"
         class="umo-font-family-item"
-        :value="item.value ?? ''"
+        :value="item.value"
         :label="l(item.label)"
       >
+        <span :style="{ fontFamily: item.value }" v-text="l(item.label)"></span>
         <span
-          :style="{ fontFamily: item.value ?? undefined }"
-          v-text="l(item.label)"
-        ></span>
-        <span
-          v-if="!fontDetect(item.value ?? '')"
+          v-if="!fontDetect(item.value)"
           class="umo-font-family-unsupport"
           :title="t('base.fontFamily.unsupport')"
           >!</span
@@ -99,17 +96,13 @@ const allFonts = computed(() => {
   const all = [
     {
       label: t('base.fontFamily.all'),
-      children: options.value.dicts?.fonts ?? [],
+      children: options.value.dicts?.fonts,
     },
   ]
   // 通过字体值获取字体列表
   const getFontsByValues = (values) => {
-    return values.map(
-      (item) =>
-        options.value.dicts?.fonts.find(({ value }) => value === item) ?? {
-          label: item,
-          item,
-        },
+    return values.map((item) =>
+      options.value.dicts?.fonts.find(({ value }) => value === item),
     )
   }
   if ($recent.value.fonts.length > 0) {

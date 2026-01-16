@@ -19,12 +19,10 @@
           :style="{
             '--umo-page-orientation': pageOptions.orientation,
             '--umo-page-background': pageOptions.background,
-            '--umo-page-margin-top': (pageOptions.margin?.top ?? '0') + 'cm',
-            '--umo-page-margin-bottom':
-              (pageOptions.margin?.bottom ?? '0') + 'cm',
-            '--umo-page-margin-left': (pageOptions.margin?.left ?? '0') + 'cm',
-            '--umo-page-margin-right':
-              (pageOptions.margin?.right ?? '0') + 'cm',
+            '--umo-page-margin-top': pageOptions.margin?.top + 'cm',
+            '--umo-page-margin-bottom': pageOptions.margin?.bottom + 'cm',
+            '--umo-page-margin-left': pageOptions.margin?.left + 'cm',
+            '--umo-page-margin-right': pageOptions.margin?.right + 'cm',
             '--umo-page-width':
               pageOptions.layout === 'page' ? pageSize.width + 'cm' : 'auto',
             '--umo-page-height':

@@ -15,7 +15,7 @@
           class="umo-background-item"
           :class="{ active: page.background === item.value }"
           :style="{ backgroundColor: item.value }"
-          @click="backgroundChange(item.value ?? '')"
+          @click="backgroundChange(item.value || '')"
         >
           {{ item.label }}
         </div>

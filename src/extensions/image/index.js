@@ -82,7 +82,7 @@ const customImage = Image.extend({
   },
   addPasteRules() {
     return [
-      ...(this.parent?.() ?? []),
+      ...(this.parent?.() || []),
       nodePasteRule({
         find: /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]+)"?)?\)/g,
         type: this.type,
@@ -95,7 +95,7 @@ const customImage = Image.extend({
   },
   addInputRules() {
     return [
-      ...(this.parent?.() ?? []),
+      ...(this.parent?.() || []),
       nodeInputRule({
         find: /!\[([\S]+)\]\(([^)\s]+)(?:\s+"([\S]+)"?)?\)/g,
         type: this.type,
@@ -143,7 +143,7 @@ export const InlineImage = customImage.extend({
   group: 'inline',
   addAttributes() {
     return {
-      ...(this.parent?.() ?? {}),
+      ...this.parent?.(),
       inline: {
         default: true,
       },

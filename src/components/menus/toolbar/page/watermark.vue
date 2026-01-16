@@ -14,7 +14,7 @@
             style="width: 140px"
             :tooltip="t('page.watermark.fontFamily')"
             menu-type="select"
-            :select-options="fonts ?? []"
+            :select-options="fonts"
             :select-value="page.watermark?.fontFamily"
             @menu-click="
               (value) => {

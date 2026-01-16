@@ -17,10 +17,10 @@ export const addHistory = (records, stepType, data) => {
 /* ================= 编辑器历史 ================= */
 
 const addHistoryEditor = (records, stepType, data) => {
-  const undoneCount = data?.undone?.eventCount ?? 0
+  const undoneCount = data?.undone?.eventCount || 0
   if (undoneCount > 0) return
 
-  const eventCount = data?.done?.eventCount ?? 0
+  const eventCount = data?.done?.eventCount || 0
   if (eventCount === 0) return
 
   const { done } = records.value

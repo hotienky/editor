@@ -29,7 +29,7 @@
           <menus-button
             style="width: 114px"
             :text="t('tools.barcode.font')"
-            :select-options="fonts ?? []"
+            :select-options="fonts"
             menu-type="select"
             :select-value="config.font"
             @menu-click="(value) => (config.font = value)"

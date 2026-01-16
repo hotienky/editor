@@ -43,7 +43,7 @@ export default Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const showText = HTMLAttributes['items'] ?? ''
+    const showText = HTMLAttributes['items'] || ''
 
     return [
       'span',
@@ -59,7 +59,7 @@ export default Node.create({
       insertOptionBox:
         (options) =>
         ({ chain, editor }) => {
-          const { to } = editor?.state.selection ?? {}
+          const { to } = editor?.state?.selection || {}
           return chain()
             .insertContentAt(to - 1, {
               type: this.name,

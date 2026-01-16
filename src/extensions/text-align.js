@@ -3,7 +3,7 @@ import TextAlign from '@tiptap/extension-text-align'
 export default TextAlign.extend({
   addOptions() {
     return {
-      ...(this.parent ?? {}),
+      ...this.parent?.(),
       types: ['heading', 'paragraph'],
       alignments: ['left', 'center', 'right', 'justify', 'distributed'],
     }
@@ -37,7 +37,7 @@ export default TextAlign.extend({
   },
   addKeyboardShortcuts() {
     return {
-      ...(this.parent ?? {}),
+      ...this.parent?.(),
       'Mod-Shift-d': () => this.editor.commands.setTextAlign('distributed'),
     }
   },

@@ -17,7 +17,7 @@ export const getOpitons = (propsOptions, globalOptions) => {
 
   const options = ojbectSchema.merge(
     defaultOptions,
-    globalOptions ?? {},
+    globalOptions,
     componentOptions,
   )
 

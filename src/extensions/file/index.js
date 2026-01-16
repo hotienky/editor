@@ -130,7 +130,7 @@ export default Node.create({
             })
             return false
           }
-          const position = pos ?? editor.state.selection.anchor
+          const position = pos || editor.state.selection.anchor
           let previewType = 'file'
           // 图片
           if (type.startsWith('image/') && mimeTypes.image.includes(type)) {
@@ -152,14 +152,14 @@ export default Node.create({
             id,
             [previewType === 'file' ? 'url' : 'src']: URL.createObjectURL(file),
             name,
-            type: type ?? 'unknown', // Ensure type is never null
+            type: type || 'unknown', // Ensure type is never null
             size,
             previewType,
           }
 
           // 图片处理
           if (previewType === 'image') {
-            const { width, height, inline } = fileDim ?? {}
+            const { width, height, inline } = fileDim
             if (width && width > 0) {
               nodeData = {
                 ...nodeData,
@@ -211,7 +211,7 @@ export default Node.create({
           let bool = false
           // 插入文件
           onChange((fileList) => {
-            const files = Array.from(fileList ?? [])
+            const files = Array.from(fileList)
             for (const file of files) {
               bool = editor
                 .chain()

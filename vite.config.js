@@ -62,7 +62,7 @@ const buildConfig = {
       /^@tiptap\/.*/,
       /^prosemirror-*/,
       /^nzh\/.*/,
-      ...Object.keys(pkg.dependencies ?? {}),
+      ...Object.keys(pkg.dependencies),
     ],
     onwarn(warning, warn) {
       if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return

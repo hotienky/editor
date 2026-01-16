@@ -4,7 +4,7 @@ export default OrderedList.extend({
   content: 'listItem*',
   addAttributes() {
     return {
-      ...(this.parent ?? {}),
+      ...this.parent?.(),
       listType: {
         default: 'decimal',
         parseHTML: (element) =>

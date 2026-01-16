@@ -246,7 +246,7 @@ const selectPageSize = (value) => {
   pageOptions.size = options.value?.dicts?.pageSizes[value]
 }
 const inputPageSize = (value, field) => {
-  pageOptions.size ??= {
+  pageOptions.size = {
     width: 0,
     height: 0,
   }
@@ -262,7 +262,7 @@ const selectPageMargin = (margin) => {
   pageOptions.margin = margin
 }
 const inputPageMargin = (value, field) => {
-  pageOptions.margin ??= {
+  pageOptions.margin = {
     right: 0,
     left: 0,
     bottom: 0,

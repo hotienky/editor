@@ -21,7 +21,7 @@ export default Mark.create({
         default: 'bookmarkName',
       },
       class: {
-        default: this.options.class ?? undefined,
+        default: this.options.class,
       },
     }
   },
@@ -70,7 +70,7 @@ export default Mark.create({
               })
               const pos = editor.view.posAtDOM(element, 0)
               if (tr) {
-                tr.setSelection(new TextSelection(tr.doc.resolve(pos ?? 0)))
+                tr.setSelection(new TextSelection(tr.doc.resolve(pos)))
                 editor.view.dispatch(tr)
                 editor.view.focus()
               }

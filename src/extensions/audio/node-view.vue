@@ -65,7 +65,7 @@ onMounted(async () => {
     if (uploadFileMap.value.has(attrs.id)) {
       const file = uploadFileMap.value.get(attrs.id)
       const result = await options.value?.onFileUpload?.(file)
-      const { id, url } = result ?? {}
+      const { id, url } = result
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,

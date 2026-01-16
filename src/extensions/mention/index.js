@@ -25,7 +25,7 @@ export default Mention.extend({
         () =>
         ({ commands }) => {
           return commands.insertContent(
-            ` ${this.options?.suggestion?.char ?? '@'}`,
+            ` ${this.options?.suggestion?.char || '@'}`,
           )
         },
     }

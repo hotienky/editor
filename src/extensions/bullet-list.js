@@ -4,7 +4,7 @@ export default BulletList.extend({
   content: 'listItem*',
   addAttributes() {
     return {
-      ...(this.parent ?? {}),
+      ...this.parent?.(),
       listType: {
         default: 'disc',
         parseHTML: (element) =>

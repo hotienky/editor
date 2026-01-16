@@ -134,7 +134,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     columns: Columns,
     callout: Callout,
     mention: Mention.configure({
-      suggestion: getUsersSuggestion(users ?? [], container),
+      suggestion: getUsersSuggestion(users, container),
     }),
     'date-time': Datetime,
     'option-box': OptionBox,
@@ -181,7 +181,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       mode: 'all',
     }),
     Placeholder.configure({
-      placeholder: () => String(l(doc?.placeholder ?? '')),
+      placeholder: () => String(l(doc?.placeholder || '')),
     }),
     FormatPainter,
     WordWrap,

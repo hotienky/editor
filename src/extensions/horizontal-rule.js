@@ -17,14 +17,14 @@ export default HorizontalRule.extend({
   addAttributes() {
     return {
       'data-type': {
-        parseHTML: (element) => element.getAttribute('data-type') ?? 'signle',
+        parseHTML: (element) => element.getAttribute('data-type') || 'single',
       },
       color: {
         parseHTML: (element) => element.getAttribute('data-color'),
         renderHTML: (attributes) => {
           return {
             'data-color': attributes.color,
-            style: `color: ${attributes.color ?? 'inherit'}`,
+            style: `color: ${attributes.color || 'inherit'}`,
           }
         },
       },
@@ -65,7 +65,7 @@ export default HorizontalRule.extend({
                     }
                   } else {
                     const node =
-                      $to.parent.type.contentMatch.defaultType?.create() ?? 0
+                      $to.parent.type.contentMatch.defaultType?.create()
                     if (node) {
                       tr.insert(posAfter, node)
                       tr.setSelection(

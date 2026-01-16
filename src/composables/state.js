@@ -1,8 +1,8 @@
 export const useState = (key, options) => {
-  const storageKey = `umo-editor:${options?.value?.editorKey ?? 'default'}:${key}`
+  const storageKey = `umo-editor:${options?.value?.editorKey || 'default'}:${key}`
 
   if (key === 'document') {
-    return useStorage(storageKey, options?.value?.document ?? {})
+    return useStorage(storageKey, options?.value?.document)
   }
   if (key === 'recent') {
     return useStorage(storageKey, {
@@ -12,7 +12,7 @@ export const useState = (key, options) => {
   }
   if (key === 'toolbar') {
     return useStorage(storageKey, {
-      mode: options?.value?.toolbar?.defaultMode ?? 'classic',
+      mode: options?.value?.toolbar?.defaultMode || 'classic',
       show: true,
     })
   }

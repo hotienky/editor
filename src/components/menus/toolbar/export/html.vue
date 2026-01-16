@@ -15,7 +15,7 @@ const saveHtmlFile = () => {
   const blob = new Blob([editor.value.getHTML()], {
     type: 'text/html;charset=utf-8',
   })
-  const { title } = options.value.document ?? {}
+  const { title } = options.value.document
   const filename =
     title !== '' ? options.value.document?.title : t('document.untitled')
   saveAs(blob, `${filename}.html`)

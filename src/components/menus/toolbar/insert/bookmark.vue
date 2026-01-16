@@ -138,7 +138,7 @@ const rowDelete = (row) => {
   )
   if (element) {
     const pos = editor.value?.view.posAtDOM(element, 0)
-    const { tr } = editor.value?.view.state ?? {}
+    const { tr } = editor.value?.view.state
     if (tr) {
       const marks = editor.value?.view.state.doc.resolve(pos + 1)?.marks()
       if (marks !== null && marks.length > 0) {

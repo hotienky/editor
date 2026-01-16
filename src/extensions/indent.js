@@ -57,7 +57,7 @@ export default Extension.create({
     const setNodeIndentMarkup = (tr, pos, delta) => {
       const node = tr.doc.nodeAt(pos)
       if (!node) return tr
-      const nextLevel = (node.attrs.indent ?? 0) + delta
+      const nextLevel = (node.attrs.indent || 0) + delta
       const { minLevel, maxLevel } = this.options
       let indent = nextLevel
       if (nextLevel < minLevel) indent = minLevel

@@ -35,7 +35,7 @@ const flipXActive = computed(() => {
 
 const setFlip = (flip) => {
   const image = editor.value ? getSelectionNode(editor.value) : null
-  const { flipX, flipY } = image?.attrs ?? {}
+  const { flipX, flipY } = image?.attrs
   if (image && flip === 'flipX') {
     editor.value?.commands.updateAttributes(image.type, {
       flipX: !flipX,

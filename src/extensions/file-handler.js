@@ -28,7 +28,7 @@ const FileHandlePlugin = (option) => {
           })
         }
         if (files.length !== 0) {
-          onDrop(editor, files, (pos === null ? undefined : pos.pos) ?? 0)
+          onDrop(editor, files, pos === null ? undefined : pos.pos)
         }
         event.preventDefault()
         event.stopPropagation()

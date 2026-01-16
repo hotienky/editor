@@ -261,7 +261,7 @@ const clearAutoSaveInterval = () => {
 watch(
   () => contentUpdated,
   (val) => {
-    const { autoSave } = options.value.document ?? {}
+    const { autoSave } = options.value.document
     if (!autoSave?.enabled) {
       return
     }
@@ -483,7 +483,7 @@ const getLocaleMessage = (lang) => {
   return {}
 }
 mergeLocaleMessage(locale.value, getLocaleMessage(locale.value))
-const { appContext } = getCurrentInstance() ?? {}
+const { appContext } = getCurrentInstance()
 if (appContext) {
   appContext.config.globalProperties.t = t
   appContext.config.globalProperties.l = l
@@ -639,7 +639,7 @@ const setWatermark = (params) => {
   if (!isRecord(params)) {
     throw new Error('params must be an object.')
   }
-  page.value.watermark ??= {}
+  page.value.watermark = {}
 
   if (isDefined(params.alpha)) {
     if (!isNumber(params.alpha)) {
@@ -871,7 +871,7 @@ const getVanillaHTML = async () => {
         svg.setAttribute('fill', 'none')
         svg.setAttribute('width', size)
         svg.setAttribute('height', size)
-        svg.innerHTML = iconsNode?.querySelector(iconId)?.innerHTML ?? ''
+        svg.innerHTML = iconsNode?.querySelector(iconId)?.innerHTML || ''
       })
     })
   }
@@ -924,14 +924,14 @@ const getVanillaHTML = async () => {
     if (katexStyle) {
       pageNode.setAttribute(
         'data-katex-style',
-        katexStyle?.getAttribute('href') ?? '',
+        katexStyle?.getAttribute('href') || '',
       )
     }
   }
   mathNodes.forEach((el) => {
     const katexEl = el.querySelector('.katex')
     if (katexEl) {
-      katexEl.innerHTML = katexEl.querySelector('.katex-html')?.innerHTML ?? ''
+      katexEl.innerHTML = katexEl.querySelector('.katex-html')?.innerHTML || ''
     }
   })
 
@@ -1065,7 +1065,7 @@ const saveContent = async (showMessage = true) => {
       if (saveBack.showMessage) {
         useMessage('error', {
           attach: container,
-          content: saveBack.message ?? t('save.failed'),
+          content: saveBack.message || t('save.failed'),
           placement: 'bottom',
           offset: [0, -20],
         })
@@ -1076,7 +1076,7 @@ const saveContent = async (showMessage = true) => {
     if (saveBack.showMessage) {
       useMessage('success', {
         attach: container,
-        content: saveBack.message ?? t('save.success'),
+        content: saveBack.message || t('save.success'),
         placement: 'bottom',
         offset: [0, -20],
       })
@@ -1120,7 +1120,7 @@ const deleteBookmark = (bookmarkName) => {
     return false
   }
   const pos = editor.value?.view.posAtDOM(element, 0)
-  const { tr } = editor.value?.view.state ?? {}
+  const { tr } = editor.value?.view.state
   if (!tr) {
     return false
   }

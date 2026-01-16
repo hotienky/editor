@@ -6,8 +6,8 @@
  * @returns {Promise<void>} 加载成功 resolve，失败 reject
  */
 export const loadResource = (url, type = 'script', id = '') => {
-  const filename = url.split('/').pop() ?? ''
-  const resourceId = id === '' ? `${type ?? 'script'}-${filename}` : id
+  const filename = url.split('/').pop()
+  const resourceId = id === '' ? `${type || 'script'}-${filename}` : id
 
   return new Promise((resolve, reject) => {
     if (document.getElementById(resourceId)) {

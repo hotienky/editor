@@ -30,7 +30,7 @@ export function calbaseConfigOptions(data, config, options) {
   if (config.titleText && config.titleText !== '') {
     resOption.title = {}
     resOption.title.text = config.titleText
-    resOption.title.left = config.titleleft ?? 'center' // 标题位置
+    resOption.title.left = config.titleleft || 'center' // 标题位置
   }
   // 2.0 图例位置 legend
   let colNameList = []

@@ -7,8 +7,8 @@ import UmoTooltip from './tooltip.vue'
 
 const useUmoEditor = {
   install: (app, options) => {
-    app.provide('defaultOptions', options ?? {})
-    app.component(UmoEditor.name ?? 'UmoEditor', UmoEditor)
+    app.provide('defaultOptions', options || {})
+    app.component(UmoEditor.name || 'UmoEditor', UmoEditor)
   },
 }
 

@@ -135,7 +135,7 @@ const uploadImage = async () => {
   try {
     const file = uploadFileMap.value.get(attrs.id)
     const result = await options.value?.onFileUpload?.(file)
-    const { id, url } = result ?? {}
+    const { id, url } = result
     if (containerRef.value) {
       updateAttributesWithoutHistory(
         editor.value,
@@ -153,7 +153,7 @@ const uploadImage = async () => {
 }
 const onLoad = async () => {
   // updateAttributes({ error: false })
-  const { clientWidth = 1, clientHeight = 1 } = imageRef ?? {}
+  const { clientWidth = 1, clientHeight = 1 } = imageRef
   const ratio = clientWidth / clientHeight
   maxWidth = containerRef.value?.$el.clientWidth
   maxHeight = maxWidth / ratio
@@ -162,7 +162,7 @@ const onLoad = async () => {
   }
   if ([null, 'auto', 0].includes(attrs.height)) {
     await nextTick()
-    const rect = imageRef?.getBoundingClientRect() ?? {}
+    const rect = imageRef?.getBoundingClientRect()
     updateAttributes({ height: Number(rect.height?.toFixed(2)) })
   }
 }
@@ -247,8 +247,8 @@ watch(
   () => attrs.equalProportion,
   async (equalProportion) => {
     await nextTick()
-    const width = imageRef?.offsetWidth ?? 1
-    const height = imageRef?.offsetHeight ?? 1
+    const width = imageRef?.offsetWidth
+    const height = imageRef?.offsetHeight
     updateAttributes({ width, height })
     maxHeight = equalProportion ? maxWidth / (width / height) : 0
   },

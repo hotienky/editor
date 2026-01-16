@@ -185,7 +185,7 @@
             class="umo-status-bar-button"
             variant="text"
             size="small"
-            :disabled="(page.zoomLevel ?? 21) <= 20"
+            :disabled="page.zoomLevel <= 20"
             @click="zoomOut"
           >
             <icon name="minus" />

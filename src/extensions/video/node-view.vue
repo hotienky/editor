@@ -93,7 +93,7 @@ onMounted(async () => {
     try {
       const file = uploadFileMap.value.get(attrs.id)
       const result = await options.value?.onFileUpload?.(file)
-      const { id, url } = result ?? {}
+      const { id, url } = result
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,
@@ -109,8 +109,8 @@ onMounted(async () => {
 })
 const onLoad = () => {
   if (attrs.width === null) {
-    const { clientWidth = 0, clientHeight = 0 } = videoRef ?? {}
-    maxWidth = containerRef.value?.$el.clientWidth ?? 0
+    const { clientWidth = 0, clientHeight = 0 } = videoRef
+    maxWidth = containerRef.value?.$el.clientWidth
     const ratio = clientWidth / clientHeight
     maxHeight = containerRef.value?.$el.clientWidth / ratio
     updateAttributes({

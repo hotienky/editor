@@ -35,7 +35,7 @@ const saveImage = async ({ content, value }) => {
     await nextTick()
     const node = document.querySelector(`${container} .umo-page-content`)
     const blob = await toBlob(node, { scale: devicePixelRatio })
-    const { title } = options.value.document ?? {}
+    const { title } = options.value.document
     const filename =
       title !== '' ? options.value?.document?.title : t('document.untitled')
     saveAs(

@@ -28,10 +28,10 @@ const isSameMargin = (a, b) => {
   if (!a && !b) return true
   if (!a || !b) return false
   if (typeof a !== 'object' || typeof b !== 'object') return false
-  const aTop = a.top ?? null
-  const bTop = b.top ?? null
-  const aBottom = a.bottom ?? null
-  const bBottom = b.bottom ?? null
+  const aTop = a.top || null
+  const bTop = b.top || null
+  const aBottom = a.bottom || null
+  const bBottom = b.bottom || null
   return aTop === bTop && aBottom === bBottom
 }
 
@@ -120,7 +120,7 @@ export default Extension.create({
               const { margin } = attributes
               if (!margin || typeof margin !== 'object') return {}
 
-              const { top, bottom } = margin ?? {}
+              const { top, bottom } = margin
               let styleMargin = ''
               if (top !== null && top !== undefined && top !== '') {
                 styleMargin += `margin-top: ${top}px;`

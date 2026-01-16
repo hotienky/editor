@@ -20,8 +20,7 @@ const calculateTotalChars = (content) => {
     if (node.type === 'paragraph' && node.content) {
       return node.content.reduce((paraTotal, textNode) => {
         return (
-          paraTotal +
-          (textNode.type === 'text' ? (textNode.text?.length ?? 0) : 0)
+          paraTotal + (textNode.type === 'text' ? textNode.text?.length : 0)
         )
       }, total)
     }
@@ -56,11 +55,11 @@ export default Extension.create({
 
               // 计算总字符数
               typewriterProgress = {
-                totalChars: calculateTotalChars(content?.content ?? []),
+                totalChars: calculateTotalChars(content?.content),
                 typedChars: 0,
               }
               const focusState =
-                options?.focus === null ? null : (options?.focus ?? 'end')
+                options?.focus === null ? null : options?.focus || 'end'
               // 插入内容
               const typeWriterInsertContent = async (curContent) => {
                 await new Promise((resolve) => {
@@ -77,7 +76,7 @@ export default Extension.create({
                 })
               }
               // 取非负数
-              const speed = Math.max(options?.speed ?? 1, 0)
+              const speed = Math.max(options?.speed || 1, 0)
 
               const isEmptyParagraph = (node) => {
                 return (
@@ -135,7 +134,7 @@ export default Extension.create({
                           node.content,
                           false,
                         )
-                        childIndex = childIndex + (childResultIndex ?? 0)
+                        childIndex = childIndex + (childResultIndex || 0)
                       }
                     } else {
                       editor.commands.enter()
@@ -144,9 +143,9 @@ export default Extension.create({
                   }
                 } else if (node.type === 'text') {
                   // 处理文本节点
-                  const text = node.text ?? ''
-                  const marks = node.marks ?? []
-                  const step = options?.step ?? 1
+                  const text = node.text || ''
+                  const marks = node.marks || []
+                  const step = options?.step || 1
                   for (let i = 0; i < text.length; i += step) {
                     if (!typewriterState.value.isRunning) return // 检查是否被停止
                     const endIndex = Math.min(i + step, text.length)
@@ -212,7 +211,7 @@ export default Extension.create({
               // // 结束当前事务（确保之前的修改已应用）
               // editor.view.dispatch(editor.state.tr) // 应用一个空事务来确保状态更新
               // 处理所有顶级节点
-              const contentNodes = content?.content ?? []
+              const contentNodes = content?.content
               for (let i = 0; i < contentNodes.length; i++) {
                 if (!typewriterState.value.isRunning) break
                 const resultIndex = await processNode(
@@ -221,7 +220,7 @@ export default Extension.create({
                   contentNodes,
                   true,
                 )
-                i = i + (resultIndex ?? 0)
+                i = i + resultIndex
               }
               // 完成回调
               if (typewriterState.value.isRunning && options?.onComplete) {

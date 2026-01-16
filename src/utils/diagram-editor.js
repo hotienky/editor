@@ -23,7 +23,7 @@ class DiagramEditor {
     this.format = 'xmlsvg'
     this.data = null
 
-    this.domain = domain ?? this.domain
+    this.domain = domain || this.domain
     this.params = { ...this.params, ...params }
     this.container = container
   }
@@ -114,7 +114,7 @@ class DiagramEditor {
   startEditing(data, format) {
     if (!this.frame) {
       window.addEventListener('message', this.handleMessageEvent)
-      this.format = format ?? this.format
+      this.format = format || this.format
       this.data = data
       this.frame = this.createFrame()
       const container = document.querySelector(this.container)
