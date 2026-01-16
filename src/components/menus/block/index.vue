@@ -1,6 +1,5 @@
 <template>
   <drag-handle
-    v-if="editor"
     :editor="editor"
     class="umo-block-menu-drag-handle"
     :class="{

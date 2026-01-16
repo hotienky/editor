@@ -17,10 +17,13 @@
       options.document?.enableSpellcheck && $document.enableSpellcheck
     "
   />
-  <template
-    v-if="editor && !destroyed && !page.preview?.enabled && editor.isEditable"
-  >
-    <menus-block v-if="options.document?.enableBlockMenu" v-show="editor" />
+  <template v-if="editor && !destroyed">
+    <menus-block
+      v-if="options.document?.enableBlockMenu"
+      v-show="
+        page.zoomLevel === 100 && !page.preview?.enabled && editor.isEditable
+      "
+    />
     <menus-bubble
       v-if="options.document?.enableBubbleMenu"
       v-show="!editor?.view?.painter?.enabled && !editor?.isEmpty"
