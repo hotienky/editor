@@ -66,6 +66,10 @@ const extensions = getDefaultExtensions({
   uploadFileMap,
 })
 
+const updateDebounce = useDebounceFn((editor) => {
+  $document.value.content = editor.getHTML()
+}, 3000)
+
 const editorInstance = new Editor({
   editable: !options.value.document?.readOnly,
   autofocus: options.value.document?.autofocus,
@@ -88,9 +92,7 @@ const editorInstance = new Editor({
   },
   onUpdate({ editor }) {
     addHistory(historyRecords, 'editor', editor?.state?.history$)
-    useDebounceFn(() => {
-      $document.value.content = editor.getHTML()
-    }, 1000)()
+    updateDebounce(editor)
   },
 })
 const editor = inject('editor')
