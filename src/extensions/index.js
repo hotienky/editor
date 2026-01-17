@@ -242,19 +242,19 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     FileHandler.configure({
       allowedMimeTypes: file?.allowedMimeTypes,
-      onPaste: async (editor, files) => {
+      async onPaste(editor, files) {
         // 记录 已有位置
         const pageContainer = document.querySelector(
           `${container} .umo-zoomable-container`,
         )
         const scrollTop = pageContainer?.scrollTop || 0
         for (const file of files) {
-          const fileDim = await getImageDimensions(file)
+          const dimensions = await getImageDimensions(file)
           editor.commands.insertFile({
             file,
             uploadFileMap: uploadFileMap.value,
             autoType: true,
-            fileDim,
+            dimensions,
           })
         }
         // 恢复滚动位置
@@ -265,13 +265,15 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
           }, 0)
         }
       },
-      onDrop: (editor, files, pos) => {
+      async onDrop(editor, files, pos) {
         for (const file of files) {
+          const dimensions = await getImageDimensions(file)
           editor.commands.insertFile({
             file,
             uploadFileMap: uploadFileMap.value,
             autoType: true,
             pos,
+            dimensions,
           })
         }
       },
