@@ -8,6 +8,7 @@
     hide-text
     :popup-visible="popupVisible"
     :menu-active="editor?.isActive('orderedList')"
+    :disabled="!editor?.can().chain().focus().toggleOrderedList().run()"
     @toggle-popup="togglePopup"
     @menu-click="toggleOrderedList(options[0].value)"
   >

@@ -4,6 +4,7 @@
     ico="indent"
     shortcut="Tab"
     hide-text
+    :disabled="!editor?.can().chain().focus().setIndent().run()"
     @menu-click="editor?.chain().focus().indent().run()"
   />
 </template>

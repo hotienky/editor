@@ -11,6 +11,7 @@
     "
     :style="{ width: $toolbar.mode !== 'classic' ? '143px' : '90px' }"
     filterable
+    :disabled="!editor?.can().chain().focus().setFontFamily().run()"
     @menu-click="setFontFamily"
   >
     <t-option-group

@@ -7,6 +7,7 @@
     popup-handle="arrow"
     hide-text
     :menu-active="editor?.isActive('taskList')"
+    :disabled="!editor?.can().chain().focus().toggleTaskList().run()"
     @menu-click="editor?.chain().focus().toggleTaskList().run()"
   >
     <template #dropmenu>

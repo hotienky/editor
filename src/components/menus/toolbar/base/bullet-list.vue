@@ -8,6 +8,7 @@
     hide-text
     :menu-active="editor?.isActive('bulletList')"
     :popup-visible="popupVisible"
+    :disabled="!editor?.can().chain().focus().toggleBulletList().run()"
     @toggle-popup="togglePopup"
     @menu-click="toggleBulletList(options[0].value)"
   >

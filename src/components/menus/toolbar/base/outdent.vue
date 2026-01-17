@@ -4,7 +4,8 @@
     :text="t('base.outdent')"
     shortcut="Shift+Tab"
     hide-text
-    @menu-click="editor?.chain().focus().outdent().run()"
+    :disabled="!editor?.can().chain().focus().setOutdent().run()"
+    @menu-click="editor?.chain().focus().setOutdent().run()"
   />
 </template>
 

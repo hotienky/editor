@@ -5,6 +5,7 @@
     menu-type="dropdown"
     hide-text
     :select-options="lineHeights"
+    :disabled="!editor?.isActive('paragraph') && !editor?.isActive('heading')"
     @click="setLineHeight"
   />
 </template>

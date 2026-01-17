@@ -6,6 +6,7 @@
     popup-handle="arrow"
     hide-text
     overlay-class-name="umo-highlight-dropdown"
+    :disabled="!editor?.can().chain().focus().setBackgroundColor().run()"
     @menu-click="highlightChange(highlight)"
   >
     <icon

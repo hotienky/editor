@@ -14,6 +14,7 @@
     v-bind="$attrs"
     :placeholder="t('base.fontSize.text')"
     filterable
+    :disabled="!editor?.can().chain().focus().setFontSize().run()"
     @menu-click="setFontSize"
   >
   </menus-button>
@@ -22,6 +23,7 @@
     ico="font-size-increase"
     :text="t('base.fontSize.increase')"
     hide-text
+    :disabled="!editor?.can().chain().focus().setFontSize().run()"
     @menu-click="increaseFontSize"
   />
   <menus-button
@@ -29,6 +31,7 @@
     ico="font-size-decrease"
     :text="t('base.fontSize.decrease')"
     hide-text
+    :disabled="!editor?.can().chain().focus().setFontSize().run()"
     @menu-click="decreaseFontSize"
   />
 </template>
