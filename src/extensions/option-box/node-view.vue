@@ -29,7 +29,7 @@
           key="checkallInxex"
           :checked="attrs.checked"
           :disabled="isDisabled"
-          @click="checkboxAll"
+          @change="checkboxAll"
         ></t-checkbox>
         <span>{{ t('insert.option.check') }}</span>
       </span>
@@ -73,8 +73,6 @@ const isDisabled = $computed(() => {
 const checkboxChange = (index) => {
   // 如果是禁用状态，则忽略此次调用
   if (isDisabled) return
-  // 如果正在处理中，则忽略此次调用
-  if (attrs.updated) return
 
   const newOptions = [...attrs.items]
   newOptions[index].checked = !newOptions[index].checked
@@ -86,12 +84,12 @@ const checkboxChange = (index) => {
   }, 0)
 }
 
-const checkboxAll = () => {
+const checkboxAll = (check) => {
   // 如果是禁用状态，则忽略此次调用
   if (isDisabled) return
 
   // 更新所有选项的选中状态
-  const checked = !attrs.checked
+  const checked = check
   const newOptions = attrs.items.map((option) => ({
     ...option,
     checked,
@@ -101,6 +99,7 @@ const checkboxAll = () => {
   updateAttributes({
     items: newOptions,
     checked,
+    updated: true,
   })
 
   // 使用 setTimeout 重置标志位
