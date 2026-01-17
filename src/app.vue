@@ -94,9 +94,9 @@ const options = $ref({
         const success = true
         if (success) {
           console.log('onSave', { content, page, document })
-          resolve('操作成功')
+          resolve('文档保存成功')
         } else {
-          reject(new Error('操作失败'))
+          reject(new Error('文档保存失败'))
         }
       }, 2000)
     })
