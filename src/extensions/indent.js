@@ -102,8 +102,8 @@ export default Extension.create({
         return false
       }
     return {
-      indent: applyIndent(1),
-      outdent: applyIndent(-1),
+      setIndent: applyIndent(1),
+      setOutdent: applyIndent(-1),
     }
   },
   addKeyboardShortcuts() {
