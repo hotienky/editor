@@ -183,6 +183,8 @@
 </template>
 
 <script setup>
+import { CellSelection } from '@tiptap/pm/tables'
+
 const editor = inject('editor')
 const options = inject('options')
 
@@ -190,7 +192,15 @@ const disable = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 const is = (type) => {
-  return editor.value.isActive(type)
+  const editorIns = editor.value
+  if (!editorIns) return false
+
+  if (type === 'table') {
+    const { selection } = editorIns.state
+    return selection instanceof CellSelection
+  }
+
+  return editorIns.isActive(type)
 }
 const attrs = (type) => {
   return editor.value.getAttributes(type)
