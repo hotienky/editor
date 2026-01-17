@@ -90,6 +90,9 @@ export default Node.create({
       height: {
         default: 200,
       },
+      fitWidth: {
+        default: false,
+      },
     }
   },
   parseHTML() {

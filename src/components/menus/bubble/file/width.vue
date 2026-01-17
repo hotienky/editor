@@ -2,7 +2,7 @@
   <menus-button
     ico="auto-width"
     :text="t('bubbleMenu.file.autoWidth')"
-    :menu-active="!!editor?.getAttributes('file')?.width"
+    :menu-active="editor?.getAttributes('file')?.fitWidth"
     @menu-click="changeWidth"
   />
 </template>
@@ -11,9 +11,9 @@
 const editor = inject('editor')
 
 const changeWidth = () => {
-  const { width } = editor.value.getAttributes('file')
+  const { fitWidth } = editor.value.getAttributes('file')
   editor.value?.commands.updateAttributes('file', {
-    width: width ? null : '100%',
+    fitWidth: !fitWidth,
   })
 }
 </script>
