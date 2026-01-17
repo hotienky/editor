@@ -57,8 +57,8 @@
           <menus-toolbar-base-line-height v-if="!disableMenu('line-height')" />
           <menus-toolbar-base-margin v-if="!disableMenu('margin')" />
           <menus-toolbar-base-align-dropdown />
-          <menus-toolbar-base-quote v-if="!disableMenu('quote')" />
           <menus-toolbar-base-code v-if="!disableMenu('code')" />
+          <menus-toolbar-base-quote v-if="!disableMenu('quote')" />
           <menus-toolbar-base-select-all v-if="!disableMenu('select-all')" />
         </div>
         <div class="umo-virtual-group">

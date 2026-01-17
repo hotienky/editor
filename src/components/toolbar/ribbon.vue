@@ -61,8 +61,8 @@
               <menus-toolbar-base-align-right />
               <menus-toolbar-base-align-justify />
               <menus-toolbar-base-align-distributed />
-              <menus-toolbar-base-quote v-if="!disableMenu('quote')" />
               <menus-toolbar-base-code v-if="!disableMenu('code')" />
+              <menus-toolbar-base-quote v-if="!disableMenu('quote')" />
               <menus-toolbar-base-select-all
                 v-if="!disableMenu('select-all')"
               />

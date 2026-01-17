@@ -39,7 +39,7 @@
         <div class="umo-node-code-block-toolbar-right">
           <menus-button
             class="umo-word-wrap-button"
-            :menu-active="attrs.wordWrap"
+            :menu-active="!!attrs.wordWrap"
             :text="t('bubbleMenu.code.wordWrap')"
             ico="code-word-wrap"
             hide-text
