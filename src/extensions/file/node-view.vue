@@ -9,7 +9,7 @@
     <div
       class="umo-node-container hover-shadow umo-select-outline umo-node-file"
       :style="{
-        width: attrs.width ? attrs.width : supportPreview ? '260px' : '220px',
+        width: attrs.width ? '100%' : supportPreview ? '260px' : '220px',
       }"
     >
       <div class="umo-file-icon">
