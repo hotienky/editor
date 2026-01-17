@@ -34,6 +34,7 @@ import { shortId } from '@/utils/short-id'
 import Audio from './audio'
 import Bookmark from './bookmark'
 import BreakMarks from './break-marks'
+import BulletList from './bullet-list'
 import Callout from './callout'
 import CodeBlock from './code-block'
 import Columns from './columns'
@@ -55,6 +56,7 @@ import NodeAlign from './node-align'
 import NodeSelect from './node-select'
 import OfficePaste from './office-paste'
 import OptionBox from './option-box'
+import OrderedList from './ordered-list'
 import PageBreak from './page-break'
 import SearchReplace from './search-replace'
 import Selection from './selection'
@@ -111,6 +113,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
   const { page, document: doc, users, file, disableExtensions } = options.value
 
   const extensions = {
+    'ordered-list': OrderedList,
+    'bullet-list': BulletList,
     'task-list': TaskList.configure({
       HTMLAttributes: {
         class: 'umo-task-list',
@@ -160,6 +164,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       placeholder: false,
       dropcursor: false,
       selection: false,
+      bulletList: false,
+      orderedList: false,
       trailingNode: false,
     }),
     Document.extend({
