@@ -90,7 +90,7 @@ const editorInstance = new Editor({
     addHistory(historyRecords, 'editor', editor?.state?.history$)
     useDebounceFn(() => {
       $document.value.content = editor.getHTML()
-    }, 3000)()
+    }, 1000)()
   },
 })
 const editor = inject('editor')
