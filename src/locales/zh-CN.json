@@ -557,6 +557,7 @@
       "wordWrap": "自动换行"
     },
     "file": {
+      "autoWidth":"自动宽度",
       "download": "下载文件"
     },
     "image": {

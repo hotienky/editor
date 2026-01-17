@@ -558,6 +558,7 @@
       "wordWrap": "Word Wrap"
     },
     "file": {
+      "autoWidth":"Fit Width",
       "download": "Download File"
     },
     "image": {

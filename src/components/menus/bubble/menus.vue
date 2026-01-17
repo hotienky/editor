@@ -64,6 +64,9 @@
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
+    <template v-if="is('file')">
+      <menus-bubble-file-width />
+    </template>
     <div class="umo-bubble-menu-divider"></div>
     <template v-if="is('iframe')">
       <menus-bubble-webpage-clickable />

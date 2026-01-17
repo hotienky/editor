@@ -8,16 +8,14 @@
   >
     <div
       class="umo-node-container hover-shadow umo-select-outline umo-node-file"
+      :style="{
+        width: attrs.width ? attrs.width : supportPreview ? '260px' : '220px',
+      }"
     >
       <div class="umo-file-icon">
         <img :src="fileIcon" class="icon-file" />
       </div>
-      <div
-        class="umo-file-info"
-        :style="{
-          width: supportPreview ? '200px' : '237px',
-        }"
-      >
+      <div class="umo-file-info">
         <div class="umo-file-name" :title="attrs.name || t('file.unknownName')">
           {{ attrs.name || t('file.unknownName') }}
         </div>
@@ -193,11 +191,15 @@ const togglePreview = () => {
     background-color: var(--umo-color-white);
     border-radius: var(--umo-content-node-radius);
 
+    .umo-file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
     .umo-file-icon {
       width: 32px;
       height: 32px;
       margin-right: 8px;
-      flex: 1;
       .icon-file {
         width: 32px;
         display: block;
@@ -225,7 +227,6 @@ const togglePreview = () => {
     }
 
     .umo-file-action {
-      flex: 1;
       display: flex;
       align-items: center;
       color: var(--umo-text-color-light);
