@@ -82,7 +82,9 @@ const editorInstance = new Editor({
   parseOptions: options.value.document?.parseOptions,
   extensions: [...extensions, ...options.value.extensions],
   onCreate({ editor }) {
-    migrateMathStrings(editor)
+    if (options.value.disableExtensions.includes('math')) {
+      migrateMathStrings(editor)
+    }
   },
   onUpdate({ editor }) {
     addHistory(historyRecords, 'editor', editor?.state?.history$)
