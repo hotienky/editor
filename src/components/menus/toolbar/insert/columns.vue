@@ -36,7 +36,13 @@ const setActiveColumn = (column) => {
   activeColumn = column
 }
 const setColumns = (column) => {
-  editor.value?.chain().focus().setColumns(column, true).run()
+  let content = '<div class="umo-node-column-container">'
+  for (let i = 0; i < column; i++) {
+    content += '<div class="prosemirror-column"><p></p></div>'
+  }
+  content += '</div>'
+  editor.value?.chain().focus().insertContent(content).run()
+  // editor.value?.chain().focus().setColumns(column, true).run()
   popupVisible.value = false
 }
 
