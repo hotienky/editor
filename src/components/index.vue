@@ -135,6 +135,11 @@ const uploadFileMap = ref(new Map())
 // const bookmark = ref(false)
 const destroyed = ref(false)
 const typeWriterIsRunning = ref(false)
+
+const $toolbar = useState('toolbar', options)
+const $document = useState('document', options)
+const $layout = useState('layout', options.value.page.layouts[0])
+
 provide('container', container)
 provide('options', options)
 provide('editor', editor)
@@ -167,7 +172,7 @@ watch(
     showToc,
   }) => {
     page.value = {
-      layout: layouts[0],
+      layout: $layout.value || layouts[0],
       size: options.value.dicts?.pageSizes.find((item) => item.default),
       margin: defaultMargin,
       background: defaultBackground,
@@ -195,9 +200,6 @@ watch(
     editor.value?.setEditable(!val)
   },
 )
-
-const $toolbar = useState('toolbar', options)
-const $document = useState('document', options)
 
 let toolbarKey = $ref(shortId())
 watch(
@@ -368,7 +370,7 @@ watch(
       oldData: oldPageLayout,
     })
     setSkin('default')
-    $
+    $layout.value = pageLayout
   },
   { deep: true },
 )
