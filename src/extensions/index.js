@@ -166,7 +166,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       selection: false,
       bulletList: false,
       orderedList: false,
-      trailingNode: false,
+      trailingNode: true,
     }),
     Document.extend({
       content: disableExtensions.includes('footnote')
