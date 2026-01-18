@@ -2,7 +2,7 @@
   <template v-if="is('link') && attrs('link').href">
     <menus-bubble-link-open />
     <div class="umo-bubble-menu-divider"></div>
-    <menus-toolbar-insert-link ico="edit" />
+    <menus-toolbar-insert-link ico="edit" :text="t('insert.link.edit')" />
     <menus-bubble-link-copy />
     <menus-bubble-link-unlink />
     <div class="umo-bubble-menu-divider"></div>
