@@ -448,6 +448,14 @@ watch(
   () => page.value.preview?.enabled,
   (previewEnabled) => {
     emits('changed:pagePreview', previewEnabled)
+    try {
+      setTimeout(() => {
+        const containerEl = document.querySelector(
+          `${container} .umo-zoomable-container`,
+        )
+        containerEl.scrollTop = 0
+      }, 200)
+    } catch {}
   },
 )
 
