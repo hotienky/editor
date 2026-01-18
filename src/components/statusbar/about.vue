@@ -6,7 +6,7 @@
     @close="emits('close')"
   >
     <template #header>
-      <icon name="about" />
+      <icon name="copyright" />
       {{ t('about.title') }}
     </template>
     <div
