@@ -11,6 +11,8 @@ const CustomTable = Table.extend({
       HTMLAttributes: {
         class: 'umo-node-table',
       },
+      allowTableNodeSelection: true,
+      resizable: true,
     }
   },
 })
