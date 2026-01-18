@@ -537,14 +537,20 @@
     border: 1px solid var(--umo-content-node-border);
     border-radius: var(--umo-radius);
     padding: 10px;
+    box-sizing: border-box;
 
     &.umo-node-focused {
       border-color: var(--umo-primary-color);
     }
 
-    summary {
+    &-summary {
+      width: calc(100% - 15px);
       font-weight: 600;
       font-size: 16px;
+    }
+
+    &-content {
+      width: calc(100% - 15px);
     }
 
     > button {

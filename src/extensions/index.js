@@ -211,8 +211,16 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
         class: 'umo-node-details',
       },
     }),
-    DetailsContent,
-    DetailsSummary,
+    DetailsContent.configure({
+      HTMLAttributes: {
+        class: 'umo-node-details-content',
+      },
+    }),
+    DetailsSummary.configure({
+      HTMLAttributes: {
+        class: 'umo-node-details-summary',
+      },
+    }),
 
     // 表格
     Table,
