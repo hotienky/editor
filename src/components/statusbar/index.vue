@@ -285,12 +285,18 @@
         <icon name="laser-pointer" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`"
+    >
       <div class="item" @click="zoomOut">
         <icon name="minus" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`"
+    >
       <div
         class="item"
         :class="{ active: page.autoWidth }"
@@ -299,7 +305,10 @@
         <icon name="auto-width" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.zoomIn')} (${getShortcut('Ctrl+')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.zoomIn')} (${getShortcut('Ctrl+')})`"
+    >
       <div class="item" @click="zoomIn">
         <icon name="plus" />
       </div>

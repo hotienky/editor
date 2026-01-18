@@ -20,7 +20,7 @@
         <div class="umo-web-page-tip" v-text="t('insert.web.tip')"></div>
         <t-form :data="formData" label-align="top">
           <t-form-item :label="t('insert.web.type')" name="type">
-            <t-select v-model="formData.type" clearable>
+            <t-select v-model="formData.type">
               <t-option
                 v-for="(item, index) in webPages"
                 :key="index"
