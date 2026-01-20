@@ -118,7 +118,7 @@ export default Extension.create({
         if (this.editor.isActive('taskList')) {
           return this.editor.commands.sinkListItem('taskItem')
         }
-        return this.editor.commands.indent()
+        return this.editor.commands.setIndent()
       },
       'Shift-Tab': () => {
         if (
@@ -130,7 +130,7 @@ export default Extension.create({
         if (this.editor.isActive('taskList')) {
           return this.editor.commands.liftListItem('taskItem')
         }
-        return this.editor.commands.outdent()
+        return this.editor.commands.setOutdent()
       },
     }
   },
