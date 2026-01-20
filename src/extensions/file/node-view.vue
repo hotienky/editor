@@ -83,6 +83,7 @@
 </template>
 
 <script setup>
+import { isAsyncFunction, isFunction } from '@tool-belt/type-predicates'
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import prettyBytes from 'pretty-bytes'
 
@@ -118,12 +119,17 @@ const fileIcon = $computed(() => {
 
 let previewModal = $ref(false)
 let previewURL = $ref(null)
-const setPreviewURL = (fileName) => {
+
+const getPreviewInfo = () => {
   const { preview } = options.value.file
-  const extname = getFileExtname(fileName)
+  const extname = getFileExtname(attrs.name)
   const match = preview.find(
     (item) => extname && item.extensions.includes(extname),
   )
+  return match
+}
+const setPreviewURL = () => {
+  const match = getPreviewInfo()
   if (match?.url.includes('{url}')) {
     previewURL = match.url
       .replace(/{{url}}/g, encodeURIComponent(attrs.url))
@@ -149,7 +155,7 @@ onMounted(async () => {
       useMessage('error', { attach: container, content: e.message })
     }
   }
-  setPreviewURL(attrs.name)
+  setPreviewURL()
 })
 
 onBeforeUnmount(() => {
@@ -161,6 +167,14 @@ const supportPreview = $computed(() => {
   return supportNodes.includes(attrs.previewType) || previewURL !== null
 })
 const togglePreview = () => {
+  const match = getPreviewInfo(attrs.name)
+  const onPreview = match?.onPreview
+  if (isFunction(onPreview) || isAsyncFunction(onPreview)) {
+    try {
+      onPreview(attrs)
+      return
+    } catch {}
+  }
   if (previewURL !== null) {
     previewModal = true
     return
