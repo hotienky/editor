@@ -24,7 +24,6 @@ import {
   UndoRedo,
 } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
-import { Footnote, FootnoteReference, Footnotes } from 'tiptap-footnotes'
 
 import { l } from '@/composables/i18n'
 import { useState } from '@/composables/state'
@@ -42,6 +41,7 @@ import Datetime from './datetime'
 import Echarts from './echarts'
 import File from './file'
 import FileHandler from './file-handler'
+import { Footnote, FootnoteReference, Footnotes } from './foonotes'
 import FormatPainter from './format-painter'
 import HorizontalRule from './horizontal-rule'
 import Iframe from './iframe'
