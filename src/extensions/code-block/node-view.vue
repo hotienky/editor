@@ -39,12 +39,12 @@
         <div class="umo-node-code-block-toolbar-right">
           <menus-button
             class="umo-word-wrap-button"
-            :menu-active="attrs.wordWrap"
+            :menu-active="attrs.textWrap"
             :text="t('bubbleMenu.code.wordWrap')"
             ico="code-word-wrap"
             hide-text
             force-enabled
-            @menu-click="updateAttribute('wordWrap', !attrs.wordWrap)"
+            @menu-click="updateAttribute('textWrap', !attrs.textWrap)"
           />
           <menus-button
             class="umo-copy-button"
@@ -67,11 +67,11 @@
       <pre
         class="umo-node-code-block-content"
         :class="{
-          'umo-node-code-block-word-wrap': attrs.wordWrap,
+          'umo-node-code-block-word-wrap': attrs.textWrap,
         }"
       ><node-view-content
         :class="`hljs language-${attrs.language}`"
-        :style="`white-space: pre${attrs.wordWrap ? '-wrap' : ''} !important;`"
+        :style="`white-space: pre${attrs.textWrap ? '-wrap' : ''} !important;`"
         as="code"
       /></pre>
     </div>

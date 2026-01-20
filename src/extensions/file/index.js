@@ -90,6 +90,9 @@ export default Node.create({
       height: {
         default: 200,
       },
+      fitWidth: {
+        default: false,
+      },
     }
   },
   parseHTML() {
@@ -115,7 +118,7 @@ export default Node.create({
           })
         },
       insertFile:
-        ({ file, uploadFileMap, autoType, pos, fileDim }) =>
+        ({ file, uploadFileMap, autoType, pos, dimensions }) =>
         ({ editor, commands }) => {
           const { type, name, size } = file
           const { options } = editor.storage
@@ -159,19 +162,19 @@ export default Node.create({
 
           // 图片处理
           if (previewType === 'image') {
-            const { width, height, inline } = fileDim
+            const { width, height, inline } = dimensions
             if (width && width > 0) {
               nodeData = {
                 ...nodeData,
                 width,
               }
             }
-            if (height && height > 0) {
-              nodeData = {
-                ...nodeData,
-                height,
-              }
-            }
+            // if (height && height > 0) {
+            //   nodeData = {
+            //     ...nodeData,
+            //     height,
+            //   }
+            // }
             if (inline) {
               previewType = 'inlineImage'
               nodeData = {
@@ -220,7 +223,7 @@ export default Node.create({
                   file,
                   uploadFileMap,
                   autoType,
-                  fileDim: { inline: type === 'inlineImage' ? true : false },
+                  dimensions: { inline: type === 'inlineImage' ? true : false },
                 })
                 .run()
             }

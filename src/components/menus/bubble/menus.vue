@@ -2,7 +2,7 @@
   <template v-if="is('link') && attrs('link').href">
     <menus-bubble-link-open />
     <div class="umo-bubble-menu-divider"></div>
-    <menus-toolbar-insert-link ico="edit" />
+    <menus-toolbar-insert-link ico="edit" :text="t('insert.link.edit')" />
     <menus-bubble-link-copy />
     <menus-bubble-link-unlink />
     <div class="umo-bubble-menu-divider"></div>
@@ -64,6 +64,9 @@
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
+    <template v-if="is('file')">
+      <menus-bubble-file-width />
+    </template>
     <div class="umo-bubble-menu-divider"></div>
     <template v-if="is('iframe')">
       <menus-bubble-webpage-clickable />
@@ -183,6 +186,8 @@
 </template>
 
 <script setup>
+import { CellSelection } from '@tiptap/pm/tables'
+
 const editor = inject('editor')
 const options = inject('options')
 
@@ -190,7 +195,15 @@ const disable = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 const is = (type) => {
-  return editor.value.isActive(type)
+  const editorIns = editor.value
+  if (!editorIns) return false
+
+  if (type === 'table') {
+    const { selection } = editorIns.state
+    return selection instanceof CellSelection
+  }
+
+  return editorIns.isActive(type)
 }
 const attrs = (type) => {
   return editor.value.getAttributes(type)

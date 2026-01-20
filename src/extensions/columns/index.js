@@ -1,24 +1,77 @@
-import { Extension } from '@tiptap/core'
+import { Extension, mergeAttributes, Node } from '@tiptap/core'
 
-import { Column } from './column'
-import { ColumnBlock } from './column-block'
+import { columnsKeymap } from './keymap'
+import { gridResizingPlugin } from './resize'
 
-export default Extension.create({
-  name: 'columns',
-
-  addExtensions() {
-    const extensions = []
-
-    if (this.options.column !== false) {
-      extensions.push(Column)
+const Column = Node.create({
+  name: 'column',
+  group: 'block',
+  content: 'block+',
+  addAttributes() {
+    return {
+      colWidth: {
+        default: 200,
+        parseHTML: (element) => {
+          const width = element.style.width.replace('px', '')
+          return Number(width) || 200
+        },
+        renderHTML: (attributes) => {
+          const style = attributes.colWidth
+            ? `width: ${attributes.colWidth}px;`
+            : ''
+          return { style }
+        },
+      },
     }
-
-    if (this.options.columnBlock !== false) {
-      extensions.push(ColumnBlock)
-    }
-
-    return extensions
+  },
+  parseHTML() {
+    return [
+      {
+        tag: 'div.umo-node-column',
+      },
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, { class: 'umo-node-column' }),
+      0,
+    ]
   },
 })
 
-export { Column, ColumnBlock }
+const ColumnContainer = Node.create({
+  name: 'columnContainer',
+  group: 'block',
+  content: 'column+',
+  parseHTML() {
+    return [
+      {
+        tag: 'div.umo-node-column-container',
+      },
+    ]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        class: 'umo-node-column-container',
+      }),
+      0,
+    ]
+  },
+})
+
+export default Extension.create({
+  name: 'columns',
+  addExtensions() {
+    return [Column, ColumnContainer]
+  },
+  addCommands() {},
+  addProseMirrorPlugins() {
+    return [
+      gridResizingPlugin({ handleWidth: 2, columnMinWidth: 50 }),
+      columnsKeymap,
+    ]
+  },
+})

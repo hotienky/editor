@@ -6,6 +6,7 @@
     popup-handle="arrow"
     hide-text
     :popup-visible="popupVisible"
+    :disabled="!editor?.can().chain().focus().setColor().run()"
     @toggle-popup="togglePopup"
     @menu-click="colorChange(currentColor)"
   >

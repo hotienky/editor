@@ -22,5 +22,8 @@ export const useState = (key, options) => {
   if (key === 'skin') {
     return useStorage(storageKey, 'default')
   }
+  if (key === 'layout') {
+    return useStorage(storageKey, 'page')
+  }
   throw new Error('[useStorage]', { cause: 'Key is not valid' })
 }

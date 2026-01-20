@@ -56,7 +56,7 @@ const defaultOptions = {
       en_US: 'Please enter the document content...',
       zh_CN: '请输入文档内容...',
     },
-    structure: 'block*',
+    structure: 'block+',
     enableSpellcheck: true,
     enableMarkdown: true,
     enableBubbleMenu: true,

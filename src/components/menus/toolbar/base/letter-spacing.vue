@@ -6,6 +6,7 @@
     menu-type="popup"
     :menu-active="editor?.isActive('spacing')"
     :popup-visible="popupVisible"
+    :disabled="!editor?.can().chain().focus().setLetterSpacing().run()"
     @toggle-popup="togglePopup"
   >
     <template #content>

@@ -5,7 +5,10 @@
     menu-type="dropdown"
     hide-text
     :select-options="wordWraps"
-    :disabled="!editor?.can().chain().focus().setWordWrap('normal').run()"
+    :disabled="
+      !editor?.can().chain().focus().setWordWrap().run() ||
+      editor?.isActive('image')
+    "
     @click="setWordWrap"
   >
   </menus-button>

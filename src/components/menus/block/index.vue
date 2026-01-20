@@ -1,6 +1,5 @@
 <template>
   <drag-handle
-    v-if="editor"
     :editor="editor"
     class="umo-block-menu-drag-handle"
     :class="{
@@ -66,6 +65,7 @@ const dropdownVisible = (visible) => {
     }
     &[node-type='table'],
     &[node-type='horizontalRule'],
+    &[node-type='columnContainer'],
     &[node-type='codeBlock'],
     &[node-type='details'],
     &[node-type='ProseMirror-gapcursor'] {

@@ -50,17 +50,6 @@
           <icon name="clear-cache" />
         </t-button>
       </tooltip>
-      <!-- 请遵循开源协议，勿删除或隐藏版权信息！ -->
-      <tooltip :content="t('about.title')">
-        <t-button
-          class="umo-status-bar-button"
-          variant="text"
-          size="small"
-          @click="about = !about"
-        >
-          <icon name="about" />
-        </t-button>
-      </tooltip>
       <div class="umo-status-bar-split"></div>
       <t-dropdown
         :attach="container"
@@ -149,6 +138,16 @@
           </div>
         </template>
       </t-popup>
+      <div class="umo-status-bar-split"></div>
+      <!-- 请遵循开源协议，勿删除或隐藏版权信息！ -->
+      <t-button
+        class="umo-status-bar-button auto-width"
+        variant="text"
+        size="small"
+        @click="about = !about"
+      >
+        <icon name="copyright" /> Umodoc
+      </t-button>
     </div>
     <div class="umo-status-bar-right">
       <tooltip
@@ -286,12 +285,18 @@
         <icon name="laser-pointer" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`"
+    >
       <div class="item" @click="zoomOut">
         <icon name="minus" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`"
+    >
       <div
         class="item"
         :class="{ active: page.autoWidth }"
@@ -300,7 +305,10 @@
         <icon name="auto-width" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.zoomIn')} (${getShortcut('Ctrl+')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.zoomIn')} (${getShortcut('Ctrl+')})`"
+    >
       <div class="item" @click="zoomIn">
         <icon name="plus" />
       </div>
@@ -551,7 +559,7 @@ watch(
 
 <style lang="less" scoped>
 .umo-status-bar {
-  padding: 6px 10px;
+  padding: 6px;
   display: flex;
   justify-content: space-between;
   font-size: var(--umo-font-size-small);

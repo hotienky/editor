@@ -34,6 +34,7 @@ import { shortId } from '@/utils/short-id'
 import Audio from './audio'
 import Bookmark from './bookmark'
 import BreakMarks from './break-marks'
+import BulletList from './bullet-list'
 import Callout from './callout'
 import CodeBlock from './code-block'
 import Columns from './columns'
@@ -55,6 +56,7 @@ import NodeAlign from './node-align'
 import NodeSelect from './node-select'
 import OfficePaste from './office-paste'
 import OptionBox from './option-box'
+import OrderedList from './ordered-list'
 import PageBreak from './page-break'
 import SearchReplace from './search-replace'
 import Selection from './selection'
@@ -111,6 +113,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
   const { page, document: doc, users, file, disableExtensions } = options.value
 
   const extensions = {
+    'ordered-list': OrderedList,
+    'bullet-list': BulletList,
     'task-list': TaskList.configure({
       HTMLAttributes: {
         class: 'umo-task-list',
@@ -160,7 +164,10 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       placeholder: false,
       dropcursor: false,
       selection: false,
-      trailingNode: false,
+      bulletList: false,
+      orderedList: false,
+      trailingNode: true,
+      listKeymap: true,
     }),
     Document.extend({
       content: disableExtensions.includes('footnote')
@@ -205,8 +212,16 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
         class: 'umo-node-details',
       },
     }),
-    DetailsContent,
-    DetailsSummary,
+    DetailsContent.configure({
+      HTMLAttributes: {
+        class: 'umo-node-details-content',
+      },
+    }),
+    DetailsSummary.configure({
+      HTMLAttributes: {
+        class: 'umo-node-details-summary',
+      },
+    }),
 
     // 表格
     Table,
@@ -236,19 +251,19 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     FileHandler.configure({
       allowedMimeTypes: file?.allowedMimeTypes,
-      onPaste: async (editor, files) => {
+      async onPaste(editor, files) {
         // 记录 已有位置
         const pageContainer = document.querySelector(
           `${container} .umo-zoomable-container`,
         )
         const scrollTop = pageContainer?.scrollTop || 0
         for (const file of files) {
-          const fileDim = await getImageDimensions(file)
+          const dimensions = await getImageDimensions(file)
           editor.commands.insertFile({
             file,
             uploadFileMap: uploadFileMap.value,
             autoType: true,
-            fileDim,
+            dimensions,
           })
         }
         // 恢复滚动位置
@@ -259,13 +274,15 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
           }, 0)
         }
       },
-      onDrop: (editor, files, pos) => {
+      async onDrop(editor, files, pos) {
         for (const file of files) {
+          const dimensions = await getImageDimensions(file)
           editor.commands.insertFile({
             file,
             uploadFileMap: uploadFileMap.value,
             autoType: true,
             pos,
+            dimensions,
           })
         }
       },

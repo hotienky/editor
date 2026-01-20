@@ -4,6 +4,7 @@
     menu-type="popup"
     popup-handle="arrow"
     hide-text
+    :disabled="!editor?.can().chain().focus().setBackgroundColor().run()"
     :popup-visible="popupVisible"
     @toggle-popup="togglePopup"
   >

@@ -17,11 +17,12 @@
       options.document?.enableSpellcheck && $document.enableSpellcheck
     "
   />
-  <template
-    v-if="editor && !destroyed && !page.preview?.enabled && editor.isEditable"
-  >
+  <template v-if="editor && !destroyed">
     <menus-block
-      v-if="options.document?.enableBlockMenu && page.zoomLevel === 100"
+      v-if="options.document?.enableBlockMenu"
+      v-show="
+        page.zoomLevel === 100 && !page.preview?.enabled && editor.isEditable
+      "
     />
     <menus-bubble
       v-if="options.document?.enableBubbleMenu"
@@ -65,6 +66,10 @@ const extensions = getDefaultExtensions({
   uploadFileMap,
 })
 
+const updateDebounce = useDebounceFn((editor) => {
+  $document.value.content = editor.getHTML()
+}, 3000)
+
 const editorInstance = new Editor({
   editable: !options.value.document?.readOnly,
   autofocus: options.value.document?.autofocus,
@@ -81,13 +86,13 @@ const editorInstance = new Editor({
   parseOptions: options.value.document?.parseOptions,
   extensions: [...extensions, ...options.value.extensions],
   onCreate({ editor }) {
-    migrateMathStrings(editor)
+    if (options.value.disableExtensions.includes('math')) {
+      migrateMathStrings(editor)
+    }
   },
   onUpdate({ editor }) {
     addHistory(historyRecords, 'editor', editor?.state?.history$)
-    useDebounceFn(() => {
-      $document.value.content = editor.getHTML()
-    }, 3000)()
+    updateDebounce(editor)
   },
 })
 const editor = inject('editor')

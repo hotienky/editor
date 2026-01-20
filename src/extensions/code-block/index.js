@@ -14,7 +14,7 @@ const customCodeBlock = CodeBlock.extend({
       theme: {
         default: 'light',
       },
-      wordWrap: {
+      textWrap: {
         default: true,
       },
     }
