@@ -27,7 +27,7 @@
       </div>
       <div class="umo-file-action">
         <div
-          v-if="!attrs.uploaded && attrs.id !== null"
+          v-if="!attrs.uploaded"
           class="umo-action-item"
           :title="t('file.uploading')"
         >
@@ -77,7 +77,7 @@
           <icon name="close" size="18" />
         </t-button>
       </div>
-      <div class="umo-file-preview-modal-body">
+      <div v-if="previewModal" class="umo-file-preview-modal-body">
         <iframe :src="previewURL"></iframe>
       </div>
     </modal>
@@ -100,8 +100,6 @@ const options = inject('options')
 const container = inject('container')
 const uploadFileMap = inject('uploadFileMap')
 const containerRef = ref(null)
-
-// FIXME: 保存刷新后预览失效
 
 const nodeStyle = $computed(() => {
   const { nodeAlign, margin } = attrs
@@ -136,10 +134,7 @@ const setPreviewURL = (fileName) => {
 }
 
 onMounted(async () => {
-  if (attrs.uploaded || !attrs.id) {
-    return
-  }
-  if (uploadFileMap.value.has(attrs.id)) {
+  if (!attrs.uploaded && uploadFileMap.value.has(attrs.id)) {
     try {
       const file = uploadFileMap.value.get(attrs.id)
       const result = await options.value?.onFileUpload?.(file)
@@ -147,7 +142,7 @@ onMounted(async () => {
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,
-          { id, src: url, uploaded: true },
+          { id, url, uploaded: true },
           getPos(),
         )
       }
@@ -260,7 +255,7 @@ const togglePreview = () => {
 .umo-file-preview-modal {
   padding: 0 !important;
   overflow: hidden;
-  .umo-dialog {
+  .t-dialog {
     &__header {
       display: none !important;
     }
