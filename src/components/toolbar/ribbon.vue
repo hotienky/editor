@@ -72,9 +72,6 @@
             <menus-toolbar-base-heading />
           </div>
           <div class="umo-virtual-group">
-            <menus-toolbar-base-import-word
-              v-if="!disableMenu('import-word')"
-            />
             <menus-toolbar-base-markdown v-if="!disableMenu('markdown')" />
             <menus-toolbar-base-search-replace />
           </div>

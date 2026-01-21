@@ -99,17 +99,6 @@
       "default": "默认",
       "reset": "自动间距"
     },
-    "importWord": {
-      "text": "导入 Word",
-      "loadScript": {
-        "title": "错误提示",
-        "message": "正在加载转换的脚本，请稍后重试。"
-      },
-      "limitSize": "文件大小不能超过 {limitSize}MB。",
-      "converting": "正在转换Word文档，请稍后...",
-      "convertError": "解析 Word 文档出错",
-      "importError": "导入 Word 文档出错"
-    },
     "markdown": {
       "text": "Markdown",
       "enable": "开启 Markdown 模式",
@@ -557,7 +546,7 @@
       "wordWrap": "自动换行"
     },
     "file": {
-      "autoWidth":"自动宽度",
+      "autoWidth": "自动宽度",
       "download": "下载文件"
     },
     "image": {

@@ -99,17 +99,6 @@
       "default": "Default",
       "reset": "Auto Spacing"
     },
-    "importWord": {
-      "text": "Import Word",
-      "loadScript": {
-        "title": "Error Message",
-        "message": "Loading the transformed script, please try again later."
-      },
-      "limitSize": "File size cannot exceed {limitSize}MB.",
-      "converting": "Converting Word document, please wait...",
-      "convertError": "Error parsing Word document",
-      "importError": "Error importing Word document"
-    },
     "markdown": {
       "text": "Markdown",
       "enable": "Enable Markdown",
@@ -558,7 +547,7 @@
       "wordWrap": "Word Wrap"
     },
     "file": {
-      "autoWidth":"Fit Width",
+      "autoWidth": "Fit Width",
       "download": "Download File"
     },
     "image": {

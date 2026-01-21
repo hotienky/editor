@@ -105,21 +105,6 @@ const defaultOptions = {
       },
     ],
   },
-  importWord: {
-    enabled: true,
-    maxSize: 1024 * 1024 * 5, // 100M
-    options: {},
-    useCustomMethod: false,
-    async onCustomImportMethod() {
-      return await new Promise((_, reject) => {
-        reject(
-          new Error(
-            'Key "importWord": Key "onCustomImportMethod": Please set the onCustomImportMethod method',
-          ),
-        )
-      })
-    },
-  },
   user: {},
   users: [],
   extensions: [],
@@ -861,11 +846,6 @@ const ojbectSchema = new ObjectSchema({
         required: false,
       },
     },
-  },
-  importWord: {
-    merge: 'replace',
-    validate: 'object',
-    required: false,
   },
   user: {
     merge: 'assign',

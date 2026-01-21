@@ -62,7 +62,6 @@
           <menus-toolbar-base-select-all v-if="!disableMenu('select-all')" />
         </div>
         <div class="umo-virtual-group">
-          <menus-toolbar-base-import-word v-if="!disableMenu('import-word')" />
           <menus-toolbar-base-markdown v-if="!disableMenu('markdown')" />
           <menus-toolbar-base-search-replace />
         </div>

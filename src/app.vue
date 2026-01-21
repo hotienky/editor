@@ -54,14 +54,6 @@ const options = $ref({
     //   'audio/*',
     // ],
   },
-  importWord: {
-    enabled: true,
-    // async onCustomImportMethod() {
-    //   return await Promise.resolve({
-    //     value: '<p>测试导入word</p>',
-    //   })
-    // },
-  },
   ai: {
     assistant: {
       enabled: true,

@@ -120,7 +120,7 @@ const insertBookmark = () => {
       attach: container,
       theme: 'warning',
       header: t('insert.bookmark.text'),
-      body: t('insert.bookmark.emptyError'), // "请输入书签名称！",//t('base.importWord.loadScript.message'),
+      body: t('insert.bookmark.emptyError'),
       onConfirm() {
         dialog.destroy()
       },

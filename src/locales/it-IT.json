@@ -87,17 +87,6 @@
       "default": "Predefinito",
       "reset": "Spaziatura automatica"
     },
-    "importWord": {
-      "text": "Importa da Word",
-      "loadScript": {
-        "title": "Messaggio di errore",
-        "message": "Caricamento dello script di importazione, riprova più tardi."
-      },
-      "limitSize": "La dimensione del file non può superare {limitSize}MB.",
-      "converting": "Conversione del documento Word in corso, attendere...",
-      "convertError": "Errore durante l'analisi del documento Word",
-      "importError": "Errore durante l'importazione del documento Word"
-    },
     "markdown": {
       "text": "Markdown",
       "enable": "Abilita Markdown",
