@@ -14,20 +14,6 @@
       style="cursor: grab"
     />
     <t-dropdown-menu>
-      <t-dropdown-item
-        v-if="
-          options.ai?.assistant?.enabled &&
-          (editor?.isActive('paragraph') || editor?.isActive('heading'))
-        "
-        divider
-      >
-        <menus-button
-          ico="assistant"
-          :text="t('assistant.text')"
-          :tooltip="false"
-          @menu-click="openAssistant"
-        />
-      </t-dropdown-item>
       <t-dropdown-item class="umo-block-menu-group-name" disabled>
         {{ t('blockMenu.common') }}
       </t-dropdown-item>
@@ -89,10 +75,8 @@ const props = defineProps({
 const emits = defineEmits(['dropdown-visible'])
 
 const container = inject('container')
-const options = inject('options')
 const editor = inject('editor')
 const blockMenu = inject('blockMenu')
-const assistant = inject('assistant')
 
 let menuActive = $ref(false)
 
@@ -106,14 +90,6 @@ const popupProps = {
     menuActive = visible
     emits('dropdown-visible', visible)
   },
-}
-
-const openAssistant = () => {
-  assistant.value = true
-  editor.value?.commands.selectParentNode()
-  editor.value?.commands.focus()
-  const { from, to } = editor.value?.state.selection || {}
-  editor.value?.commands.setTextSelection({ from: from || 0, to: to || 0 })
 }
 
 const clearTextFormatting = () => {

@@ -7,7 +7,6 @@ import {
   isString,
 } from '@tool-belt/type-predicates'
 
-import defaultAiOptions from './ai'
 import defaultDicts from './dicts'
 import defaultWebPages from './web-pages'
 
@@ -77,7 +76,6 @@ const defaultOptions = {
       interval: 300000,
     },
   },
-  ai: defaultAiOptions,
   echarts: {
     mode: 1,
     renderImage: false,
@@ -641,73 +639,6 @@ const ojbectSchema = new ObjectSchema({
           interval: {
             merge: 'replace',
             validate: 'number',
-            required: false,
-          },
-        },
-      },
-    },
-  },
-  ai: {
-    merge: 'replace',
-    validate: 'object',
-    required: false,
-    schema: {
-      assistant: {
-        merge: 'assign',
-        validate: 'object',
-        required: false,
-        schema: {
-          enabled: {
-            merge: 'replace',
-            validate: 'boolean',
-            required: false,
-          },
-          maxlength: {
-            merge: 'replace',
-            validate(value) {
-              if (!isNumber(value) || !Number.isInteger(value) || value <= 0) {
-                throw new Error(
-                  'Key "assistant": Key "maxlength" must be a number.',
-                )
-              }
-            },
-            required: false,
-          },
-          commands: {
-            merge: 'replace',
-            validate(value) {
-              if (value && !Array.isArray(value)) {
-                throw new Error(
-                  'Key "assistant": Key "commands" must be a array.',
-                )
-              }
-              value.forEach((item, index) => {
-                if (!item.label || !item.value) {
-                  throw new Error(
-                    'Key "assistant": Key "commands" must be a array of objects with "label" and "value" properties.',
-                  )
-                }
-                if (!isLocale(item.label)) {
-                  throw new Error(
-                    `Key "assistant": Key "commands[${index}]": Key "label" must be string, or a object with "en_US" and "zh_CN" properties.`,
-                  )
-                }
-                if (!isLocale(item.value)) {
-                  throw new Error(
-                    `Key "assistant": Key "commands[${index}]": Key "value" must be string, or a object with "en_US" and "zh_CN" properties.`,
-                  )
-                }
-              })
-            },
-            required: false,
-          },
-          onMessage: {
-            merge: 'replace',
-            validate(value) {
-              if (!isAsyncFunction(value)) {
-                throw new Error('Key "onMessage" must be a async function.')
-              }
-            },
             required: false,
           },
         },

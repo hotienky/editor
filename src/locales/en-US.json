@@ -592,26 +592,6 @@
     "toFile": "Convert to File",
     "delete": "Delete"
   },
-  "assistant": {
-    "text": "AI Assistant",
-    "placeholder": "Enter or select a command...",
-    "send": "Send",
-    "exit": "Exit AI Assistant",
-    "commands": "Common Commands:",
-    "result": "AI Generation Result:",
-    "replace": "Replace",
-    "insertAfter": "Insert After",
-    "insertBelow": "Insert Below",
-    "copy": "Copy Generated Result",
-    "copySuccess": "Result copied to clipboard",
-    "rewrite": "Rewrite",
-    "delete": "Delete Result",
-    "error": {
-      "title": "Error Message",
-      "message": "An error occurred with the AI Document Assistant result. Please try again!",
-      "confirm": "OK"
-    }
-  },
   "pageOptions": {
     "title": "Page Settings",
     "size": {

@@ -534,26 +534,6 @@
     "toFile": "Converti in file",
     "delete": "Elimina"
   },
-  "assistant": {
-    "text": "Assistente IA",
-    "placeholder": "Inserisci o seleziona un comando...",
-    "send": "Invia",
-    "exit": "Esci dall'Assistente IA",
-    "commands": "Comandi comuni:",
-    "result": "Risultato generato dall'IA:",
-    "replace": "Sostituisci",
-    "insertAfter": "Inserisci dopo",
-    "insertBelow": "Inserisci sotto",
-    "copy": "Copia risultato generato",
-    "copySuccess": "Risultato copiato negli appunti",
-    "rewrite": "Riscrivi",
-    "delete": "Elimina risultato",
-    "error": {
-      "title": "Messaggio di errore",
-      "message": "Si è verificato un errore con il risultato dell'Assistente IA. Riprova!",
-      "confirm": "OK"
-    }
-  },
   "pageOptions": {
     "title": "Impostazioni pagina",
     "size": {

@@ -7,7 +7,6 @@
       'format-painter': editor?.view?.painter?.enabled,
       'is-empty': editor?.isEmpty && editor?.state.doc.childCount <= 1,
       'is-readonly': !editor?.editable,
-      'show-model': assistant,
     }"
     :editor="editor"
     :style="{
@@ -48,10 +47,7 @@ const destroyed = inject('destroyed')
 const page = inject('page')
 const options = inject('options')
 const uploadFileMap = inject('uploadFileMap')
-
 const historyRecords = inject('historyRecords')
-// 助手
-const assistant = inject('assistant')
 
 const $document = useState('document', options)
 

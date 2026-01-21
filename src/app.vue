@@ -54,14 +54,6 @@ const options = $ref({
     //   'audio/*',
     // ],
   },
-  ai: {
-    assistant: {
-      enabled: true,
-      async onMessage() {
-        return await Promise.resolve('<p>AI助手测试</p>')
-      },
-    },
-  },
   user: {
     id: 'umoeditor',
     label: 'Umo Editor',
