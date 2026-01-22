@@ -151,10 +151,8 @@ const stopResize = () => {
 }
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
 .umo-toc-container {
-  background-color: var(--umo-color-white);
-  border-right: solid 1px var(--umo-border-color);
   width: 320px;
   box-sizing: border-box;
   display: flex;
@@ -173,36 +171,42 @@ const stopResize = () => {
       cursor: col-resize;
     }
   }
+  &:hover {
+    .umo-dialog__close {
+      display: flex !important;
+    }
+  }
   .umo-toc-title {
-    border-bottom: solid 1px var(--umo-border-color-light);
     display: flex;
     align-items: center;
     position: relative;
-    padding: 10px 15px;
+    padding: 20px 15px 10px;
     .icon-toc {
       margin-right: 5px;
       font-size: 20px;
     }
     .umo-dialog__close {
       position: absolute;
-      right: 15px;
+      right: -4px;
       display: flex;
       align-items: center;
       justify-content: center;
+      display: none;
     }
   }
   .umo-toc-content {
     flex: 1;
     display: flex;
-    padding: 10px;
+    padding: 10px 10px 10px 15px;
     flex-direction: column;
     .umo-toc-tree {
-      --td-comp-size-m: 28px;
-      --td-comp-paddingLR-xs: 8px;
-      --td-comp-margin-xs: 0;
-      --td-brand-color-light: var(--umo-button-hover-background);
       user-select: none;
-      :deep(.umo-tree__empty) {
+      --td-brand-color-light: rgba(0, 0, 0, 0.03);
+      --td-bg-color-container-hover: var(0, 0, 0, 0.02);
+      .umo-tree__label {
+        --td-comp-paddingLR-xs: 5px;
+      }
+      .umo-tree__empty {
         height: 60px;
         font-size: 12px;
         flex: 1;
@@ -211,9 +215,30 @@ const stopResize = () => {
         justify-content: center;
         color: var(--umo-text-color-light);
       }
-      :deep(.umo-is-active) {
+      .umo-is-active {
         font-weight: 400;
         color: var(--umo-primary-color);
+      }
+    }
+  }
+}
+.umo-editor-container.umo-skin-default {
+  .umo-toc-container {
+    background-color: var(--umo-color-white);
+    border-right: solid 1px var(--umo-border-color);
+    .umo-toc-title {
+      border-bottom: solid 1px var(--umo-border-color-light);
+      padding: 10px 15px;
+      .umo-dialog__close {
+        right: 15px;
+      }
+    }
+    .umo-toc-content {
+      .umo-toc-tree {
+        --td-comp-size-m: 30px;
+        --td-comp-paddingLR-xs: 8px;
+        --td-comp-margin-xs: 0;
+        --td-brand-color-light: var(--umo-button-hover-background);
       }
     }
   }
