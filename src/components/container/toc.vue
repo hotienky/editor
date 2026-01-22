@@ -202,18 +202,26 @@ const stopResize = () => {
     .umo-toc-tree {
       user-select: none;
       --td-brand-color-light: rgba(0, 0, 0, 0.03);
-      --td-bg-color-container-hover: var(0, 0, 0, 0.02);
-      .umo-tree__label {
-        --td-comp-paddingLR-xs: 5px;
-      }
-      .umo-tree__empty {
-        height: 60px;
-        font-size: 12px;
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--umo-text-color-light);
+      .umo-tree {
+        &__item {
+          height: 32px;
+          &--open .t-icon {
+            color: var(--umo-text-color-light);
+          }
+        }
+        &__label {
+          --td-comp-paddingLR-xs: 5px;
+          --td-bg-color-container-hover: rgba(0, 0, 0, 0.03);
+        }
+        &__empty {
+          height: 60px;
+          font-size: 12px;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--umo-text-color-light);
+        }
       }
       .umo-is-active {
         font-weight: 400;
