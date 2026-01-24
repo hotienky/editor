@@ -76,6 +76,7 @@ import {
 import { getOpitons } from '@/utils/options'
 import { getSelectionNode, getSelectionText } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
+import { getCurrentInstance } from 'vue'
 const { toBlob, toJpeg, toPng } = domToImage
 
 defineOptions({ name: 'UmoEditor' })
@@ -1034,14 +1035,18 @@ const saveContent = async (showMessage = true) => {
     showMessage: true, // 是否展示message
   }
   try {
-    useMessage('loading', {
-      attach: container,
-      content: t('save.saving'),
-      placement: 'bottom',
-      closeBtn: true,
-      duration: 0, // 需要手工关闭，不会自动关闭了
-      offset: [0, -20],
-    })
+    useMessage(
+      'loading',
+      {
+        attach: container,
+        content: t('save.saving'),
+        placement: 'bottom',
+        closeBtn: true,
+        duration: 0, // 需要手工关闭，不会自动关闭了
+        offset: [0, -20],
+      },
+      getCurrentInstance(),
+    )
     const _saveBack = await options.value?.onSave?.(
       {
         html: editor.value?.getHTML(),

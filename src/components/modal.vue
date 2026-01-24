@@ -1,6 +1,12 @@
 <template>
   <component
-    :is="h(Dialog, { ...$attrs, attach: container, ref: changeRef }, $slots)"
+    :is="
+      h(
+        Dialog,
+        { placement: 'center', attach: container, ...$attrs, ref: changeRef },
+        $slots,
+      )
+    "
   />
 </template>
 

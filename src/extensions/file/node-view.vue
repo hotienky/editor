@@ -270,7 +270,7 @@ const togglePreview = () => {
 .umo-file-preview-modal {
   padding: 0 !important;
   overflow: hidden;
-  .t-dialog {
+  .umo-dialog {
     &__header {
       display: none !important;
     }

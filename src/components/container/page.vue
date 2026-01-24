@@ -69,9 +69,11 @@
       </div>
     </div>
     <t-image-viewer
+      :attach="container"
       v-model:visible="imageViewer.visible"
       v-model:index="currentImageIndex"
       :images="previewImages"
+      :trigger="() => {}"
       @close="imageViewer.visible = false"
     />
     <t-back-top
