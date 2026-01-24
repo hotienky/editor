@@ -6,7 +6,7 @@ export default Selection.extend({
   addOptions() {
     return {
       ...this.parent?.(),
-      className: 'umo-node-selection',
+      className: 'umo-selection',
     }
   },
   addCommands() {
