@@ -77,17 +77,17 @@ const cssConfig = {
       modifyVars: { '@prefix': 'umo' },
       javascriptEnabled: true,
       // 添加 Less 插件来排除特定类名
-      // plugins: [
-      //   {
-      //     install(less, pluginManager) {
-      //       pluginManager.addPostProcessor({
-      //         process(css) {
-      //           return css.replace(/\.flex-center(\s|\{|,)[^}]*\}/g, '')
-      //         },
-      //       })
-      //     },
-      //   },
-      // ],
+      plugins: [
+        {
+          install(less, pluginManager) {
+            pluginManager.addPostProcessor({
+              process(css) {
+                return css.replace(/\.flex-center(\s|\{|,)[^}]*\}/g, '')
+              },
+            })
+          },
+        },
+      ],
     },
   },
 }
