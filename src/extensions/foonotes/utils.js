@@ -5,12 +5,55 @@ export const updateFootnoteReferences = (tr) => {
   const nodes = []
   tr.doc.descendants((node, pos) => {
     if (node.type.name === 'footnoteReference') {
-      tr.setNodeAttribute(pos, 'referenceNumber', `${count}`)
+      const next = `${count}`
+      if (node.attrs.referenceNumber !== next) {
+        tr.setNodeAttribute(pos, 'referenceNumber', next)
+      }
       nodes.push(node)
       count += 1
     }
   })
   return nodes
+}
+
+const normalizeCaption = (value) => {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const getFootnoteCaptionText = (footnote) => {
+  const parts = []
+  footnote.content.descendants((node) => {
+    if (node.type.name !== 'paragraph') return
+    const text = normalizeCaption(node.textContent)
+    if (text) parts.push(text)
+  })
+  return normalizeCaption(parts.join(' '))
+}
+
+export const syncFootnoteReferenceCaptions = (tr) => {
+  const idToCaption = {}
+  tr.doc.descendants((node) => {
+    if (node.type.name !== 'footnote') return
+    const id = node.attrs?.['data-fn-id']
+    if (!id) return
+    const caption = getFootnoteCaptionText(node)
+    if (caption) idToCaption[id] = caption
+  })
+
+  let changed = false
+  tr.doc.descendants((node, pos) => {
+    if (node.type.name !== 'footnoteReference') return
+    const id = node.attrs?.['data-fn-id']
+    if (!id) return
+    const caption = idToCaption[id]
+    if (!caption) return
+    if (normalizeCaption(node.attrs?.caption) === caption) return
+    tr.setNodeAttribute(pos, 'caption', caption)
+    changed = true
+  })
+  return changed
 }
 
 const getFootnotes = (tr) => {
@@ -28,11 +71,19 @@ const getFootnotes = (tr) => {
   return { footnotesRange, footnotes }
 }
 
+const isEmptyFootnoteContent = (footnote) => {
+  if (!footnote || footnote.childCount !== 1) return false
+  const first = footnote.firstChild
+  if (!first || first.type.name !== 'paragraph') return false
+  return first.content.size === 0
+}
+
 export const updateFootnotesList = (tr, state) => {
   const footnoteReferences = updateFootnoteReferences(tr)
 
   const footnoteType = state.schema.nodes.footnote
   const footnotesType = state.schema.nodes.footnotes
+  const paragraphType = state.schema.nodes.paragraph
 
   const emptyParagraph = state.schema.nodeFromJSON({
     type: 'paragraph',
@@ -65,23 +116,36 @@ export const updateFootnotesList = (tr, state) => {
   }
 
   for (let i = 0; i < footnoteReferences.length; i++) {
-    const refId = footnoteReferences[i].attrs['data-fn-id']
+    const ref = footnoteReferences[i]
+    const refId = ref.attrs['data-fn-id']
     if (deleteFootnoteIds.has(refId)) continue
+    const initialCaption = normalizeCaption(ref.attrs?.caption)
     if (refId in footnoteIds) {
       const footnote = footnoteIds[refId]
+      const nextContent =
+        initialCaption && isEmptyFootnoteContent(footnote)
+          ? Fragment.from([
+              paragraphType.create(undefined, state.schema.text(initialCaption)),
+            ])
+          : footnote.content
       newFootnotes.push(
         footnoteType.create(
           { ...footnote.attrs, id: `fn:${i + 1}` },
-          footnote.content,
+          nextContent,
         ),
       )
     } else {
+      const content = initialCaption
+        ? [
+            paragraphType.create(undefined, state.schema.text(initialCaption)),
+          ]
+        : [emptyParagraph]
       const newNode = footnoteType.create(
         {
           'data-fn-id': refId,
           id: `fn:${i + 1}`,
         },
-        [emptyParagraph],
+        content,
       )
       newFootnotes.push(newNode)
     }

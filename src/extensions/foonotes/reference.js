@@ -7,6 +7,12 @@ import { shortId } from '@/utils/short-id'
 const REFNUM_ATTR = 'data-ref-num'
 const REF_CLASS = 'umo-node-footnote-ref'
 
+const normalizeHoverTitle = (value) => {
+  return String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 export default Node.create({
   name: 'footnoteReference',
   inline: true,
@@ -50,6 +56,9 @@ export default Node.create({
         },
       },
       referenceNumber: {},
+      caption: {
+        default: '',
+      },
       href: {
         renderHTML(attributes) {
           return {
@@ -141,6 +150,26 @@ export default Node.create({
               editor.chain().setNodeSelection(nodePos).run()
               return true
             }
+          },
+        },
+      }),
+      new Plugin({
+        key: new PluginKey('footnoteRefHoverTitle'),
+        props: {
+          handleDOMEvents: {
+            mouseover(view, event) {
+              const target = event?.target
+              if (!(target instanceof Element)) return false
+              const anchor = target.closest(`a.${REF_CLASS}`)
+              if (!anchor) return false
+              const id = anchor.getAttribute('data-fn-id')
+              if (!id) return false
+              const matchedFootnote = editor.$node('footnote', { 'data-fn-id': id })
+              const caption = normalizeHoverTitle(matchedFootnote?.node?.textContent)
+              if (!caption) return false
+              anchor.setAttribute('title', caption)
+              return false
+            },
           },
         },
       }),

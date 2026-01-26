@@ -2,11 +2,26 @@ import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReplaceStep } from '@tiptap/pm/transform'
 
-import { updateFootnotesList } from './utils'
+import { syncFootnoteReferenceCaptions, updateFootnotesList } from './utils'
 
 export default Extension.create({
   name: 'footnoteRules',
   priority: 1000,
+  addCommands() {
+    return {
+      syncFootnoteCaptions:
+        () =>
+        ({ state, dispatch }) => {
+          const {tr} = state
+          const synced = syncFootnoteReferenceCaptions(tr)
+          if (!synced) return false
+          tr.setMeta('addToHistory', false)
+          tr.setMeta('footnoteAutoSync', true)
+          dispatch?.(tr)
+          return true
+        },
+    }
+  },
   addProseMirrorPlugins() {
     return [
       new Plugin({
@@ -30,15 +45,18 @@ export default Extension.create({
           return !overSelected && footnoteCount <= 1
         },
         appendTransaction(transactions, oldState, newState) {
+          if (transactions.some((tr) => tr.getMeta('footnoteAutoSync'))) {
+            return null
+          }
+          if (!transactions.some((tr) => tr.docChanged)) {
+            return null
+          }
           const newTr = newState.tr
           let refsChanged = false
           for (const tr of transactions) {
             if (!tr.docChanged) continue
-            if (refsChanged) break
-
             for (const step of tr.steps) {
               if (!(step instanceof ReplaceStep)) continue
-              if (refsChanged) break
 
               const isDelete = step.from !== step.to
               const isInsert = step.slice.size > 0
@@ -65,11 +83,19 @@ export default Extension.create({
               }
             }
           }
+
+          let changed = false
           if (refsChanged) {
             updateFootnotesList(newTr, newState)
-            return newTr
+            changed = true
           }
-          return null
+
+          const synced = syncFootnoteReferenceCaptions(newTr)
+          if (synced) changed = true
+
+          if (!changed) return null
+          newTr.setMeta('footnoteAutoSync', true)
+          return newTr
         },
       }),
     ]
