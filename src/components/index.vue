@@ -1134,7 +1134,7 @@ const deleteBookmark = (bookmarkName) => {
     return false
   }
   const pos = editor.value?.view.posAtDOM(element, 0)
-  const { tr } = editor.value?.view.state
+  const { tr } = editor.value?.view.state || {}
   if (!tr) {
     return false
   }

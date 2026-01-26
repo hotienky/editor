@@ -1,45 +1,44 @@
 {
   "name": "@umoteam/editor",
   "version": "10.0.0-beta.1",
-  "type": "module",
   "description": "Umo Editor is open-source document editor based on Vue3 and Tiptap3. Umo Editor provides comprehensive document editing capabilities and AI creation features, supports pagination, supports Markdown syntax, offers basic rich text editing functions, allows for the insertion of various node types in multiple formats, provides a variety of practical tools, and supports setting page styles. It also supports exporting in various formats, printing and print preview, block-level document editing, adding custom extensions, multi-language settings, and a dark theme.",
   "keywords": [
+    "docs editor",
+    "document editor",
+    "editor",
+    "office edtior",
+    "online office",
+    "richtext editor",
+    "tiptap",
+    "tiptap3",
     "umo editor",
     "umodoc editor",
-    "document editor",
-    "docs editor",
-    "word editor",
-    "office edtior",
-    "web editor",
-    "richtext editor",
-    "wysiwyg editor",
     "vue editor",
     "vue3 editor",
-    "ai editor",
-    "editor",
+    "web editor",
     "web office",
-    "online office",
-    "tiptap",
-    "tiptap3"
+    "word editor",
+    "wysiwyg editor"
   ],
+  "homepage": "https://www.umodoc.com",
+  "bugs": {
+    "url": "https://github.com/umodoc/editor/issues",
+    "email": "contact@umodoc.com"
+  },
+  "license": "MIT",
   "author": {
     "name": "umodoc",
     "email": "contact@umodoc.com",
     "url": "https://www.umodoc.com"
   },
-  "license": "MIT",
-  "homepage": "https://www.umodoc.com",
   "repository": {
     "type": "git",
     "url": "https://github.com/umodoc/editor.git"
   },
-  "bugs": {
-    "url": "https://github.com/umodoc/editor/issues",
-    "email": "contact@umodoc.com"
-  },
   "files": [
     "dist"
   ],
+  "type": "module",
   "exports": {
     ".": {
       "import": "./dist/umo-editor.js"
@@ -51,17 +50,13 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite --port 9000 --open --force",
-    "format": "prettier --write .",
-    "check:code": "eslint --cache src",
-    "check:style": "stylelint src/**/*.{css,less,vue}",
-    "lint:code": "eslint --cache --fix src",
-    "lint:style": "stylelint --fix src/**/*.{css,less,vue}",
+    "format": "oxfmt --write .",
+    "lint": "oxlint --fix src",
     "analyzer": "vite-bundle-visualizer",
     "prepare": "husky",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@eslint/object-schema": "^3.0.0",
     "@floating-ui/dom": "^1.6.8",
     "@tiptap/core": "^3.17.1",
     "@tiptap/extension-bold": "^3.17.1",
@@ -116,27 +111,16 @@
     "yjs": "^13.6.29"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vue-macros/reactivity-transform": "^3.1.2",
-    "eslint": "^9.39.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.5",
-    "eslint-plugin-simple-import-sort": "^12.1.1",
-    "eslint-plugin-unused-imports": "^4.3.0",
-    "eslint-plugin-vue": "^10.7.0",
-    "globals": "^17.1.0",
     "husky": "^9.1.7",
     "less": "^4.5.1",
     "less-loader": "^12.3.0",
     "lint-staged": "^16.2.7",
+    "oxfmt": "^0.26.0",
+    "oxlint": "^1.41.0",
     "postcss": "^8.5.6",
     "postcss-html": "^1.8.1",
-    "prettier": "^3.8.1",
-    "stylelint": "^17.0.0",
-    "stylelint-config-recommended-less": "^4.0.1",
-    "stylelint-config-recommended-vue": "^1.6.1",
-    "stylelint-less": "^4.0.0",
     "tdesign-vue-next": "^1.18.0",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue": "^7.1.1",
@@ -145,17 +129,15 @@
     "vite": "^7.3.1",
     "vite-bundle-visualizer": "^1.2.1",
     "vite-plugin-svg-icons": "^2.0.1",
-    "vue": "^3.5.27",
-    "vue-eslint-parser": "^10.2.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "vue": "^3.5.27"
   },
   "lint-staged": {
     "*.{js,vue,less}": [
-      "prettier --write src",
-      "eslint --fix src",
-      "stylelint --write src/**/*.{less,vue}"
+      "oxfmt --write src",
+      "oxlint --fix src"
     ]
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

@@ -93,7 +93,7 @@ const setFontSize = (fontSize) => {
 
 // 增大字号
 const increaseFontSize = () => {
-  const { fontSize } = editor.value?.getAttributes('textStyle')
+  const { fontSize } = editor.value?.getAttributes('textStyle') || {}
   if (fontSize) {
     const size = fontSizes.find(({ value }) => value === fontSize)
     if (!size) {
@@ -110,7 +110,7 @@ const increaseFontSize = () => {
 
 // 减小字号
 const decreaseFontSize = () => {
-  const { fontSize } = editor.value?.getAttributes('textStyle')
+  const { fontSize } = editor.value?.getAttributes('textStyle') || {}
   if (fontSize) {
     const size = fontSizes.find(({ value }) => value === fontSize)
     if (!size) {
