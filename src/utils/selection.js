@@ -1,12 +1,15 @@
-import { TextSelection } from '@tiptap/pm/state'
+import { NodeSelection, TextSelection } from '@tiptap/pm/state'
 
 export const getSelectionNode = (editor) => {
-  const { $anchor, node } = editor.state.selection
-  if (node?.type?.isAtom) {
-    return node
+  const { selection } = editor.state
+  if (selection instanceof NodeSelection && selection.node) {
+    return selection.node
   }
-  editor.commands.selectParentNode()
-  return $anchor.node(1) || node
+  const { $from } = selection
+  if ($from.depth >= 1) {
+    return $from.node(1)
+  }
+  return selection.node
 }
 
 export const getSelectionText = (editor) => {
