@@ -33,7 +33,7 @@ const appendTo = computed(() =>
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  padding: 8px 10px;
+  padding: 8px 10px !important;
   box-shadow: var(--umo-shadow);
   border: 1px solid var(--umo-border-color);
   background-color: var(--umo-color-white);
