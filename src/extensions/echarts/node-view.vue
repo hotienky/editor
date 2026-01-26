@@ -169,6 +169,10 @@ watch(
     ) {
       // 如果只有高度和宽度变化，则不走重新加载逻辑
       let isLoad = false
+      onResize({
+        width: attrs.width,
+        height: attrs.height,
+      })
       for (const attr1 in oldAttrs) {
         if (attr1 === 'height' || attr1 === 'width' || attr1 === 'src') {
           continue
