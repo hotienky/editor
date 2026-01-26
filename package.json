@@ -57,6 +57,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@eslint/object-schema": "^3.0.0",
     "@floating-ui/dom": "^1.6.8",
     "@tiptap/core": "^3.17.1",
     "@tiptap/extension-bold": "^3.17.1",
@@ -94,6 +95,7 @@
     "@vueuse/core": "^14.1.0",
     "dom-to-image-more": "^3.7.2",
     "es-drager": "1.2.11",
+    "fast-glob": "^3.3.3",
     "file-saver": "^2.0.5",
     "file64": "^1.0.5",
     "hotkeys-js": "^4.0.0",
