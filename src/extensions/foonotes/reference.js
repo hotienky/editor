@@ -171,7 +171,7 @@ export default Node.create({
                 matchedFootnote?.node?.textContent,
               )
               if (!caption) return false
-              anchor.setAttribute('title', caption)
+              anchor.setAttribute('caption', caption)
               return false
             },
           },
