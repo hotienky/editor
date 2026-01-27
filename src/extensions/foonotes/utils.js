@@ -125,7 +125,10 @@ export const updateFootnotesList = (tr, state) => {
       const nextContent =
         initialCaption && isEmptyFootnoteContent(footnote)
           ? Fragment.from([
-              paragraphType.create(undefined, state.schema.text(initialCaption)),
+              paragraphType.create(
+                undefined,
+                state.schema.text(initialCaption),
+              ),
             ])
           : footnote.content
       newFootnotes.push(
@@ -136,9 +139,7 @@ export const updateFootnotesList = (tr, state) => {
       )
     } else {
       const content = initialCaption
-        ? [
-            paragraphType.create(undefined, state.schema.text(initialCaption)),
-          ]
+        ? [paragraphType.create(undefined, state.schema.text(initialCaption))]
         : [emptyParagraph]
       const newNode = footnoteType.create(
         {

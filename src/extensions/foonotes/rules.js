@@ -12,7 +12,7 @@ export default Extension.create({
       syncFootnoteCaptions:
         () =>
         ({ state, dispatch }) => {
-          const {tr} = state
+          const { tr } = state
           const synced = syncFootnoteReferenceCaptions(tr)
           if (!synced) return false
           tr.setMeta('addToHistory', false)

@@ -164,8 +164,12 @@ export default Node.create({
               if (!anchor) return false
               const id = anchor.getAttribute('data-fn-id')
               if (!id) return false
-              const matchedFootnote = editor.$node('footnote', { 'data-fn-id': id })
-              const caption = normalizeHoverTitle(matchedFootnote?.node?.textContent)
+              const matchedFootnote = editor.$node('footnote', {
+                'data-fn-id': id,
+              })
+              const caption = normalizeHoverTitle(
+                matchedFootnote?.node?.textContent,
+              )
               if (!caption) return false
               anchor.setAttribute('title', caption)
               return false
