@@ -113,3 +113,65 @@ export const getImageDimensions = (file) => {
     return null
   }
 }
+
+export const dataURLToFile = (dataURL, name) => {
+  if (!dataURL || !dataURL.startsWith('data:')) {
+    throw new Error('Invalid dataURL')
+  }
+
+  const [header, data] = dataURL.split(',')
+  const mimeMatch = header.match(/data:(.*?)(;|$)/)
+
+  if (!mimeMatch) {
+    throw new Error('Cannot parse mime type from dataURL')
+  }
+  const [, mime] = mimeMatch
+
+  // mime → 后缀映射
+  const extensionMap = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/jpg': 'jpg',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+    'image/bmp': 'bmp',
+    'image/svg+xml': 'svg',
+    'image/avif': 'avif',
+  }
+
+  const ext = extensionMap[mime] || mime.split('/')[1] || 'png'
+  const filename = `${name}.${ext}`
+
+  let content
+
+  if (header.includes('base64')) {
+    const binary = atob(data)
+    const buffer = new Uint8Array(binary.length)
+
+    for (let i = 0; i < binary.length; i++) {
+      buffer[i] = binary.charCodeAt(i)
+    }
+
+    content = buffer
+  } else {
+    // 非 base64（如 svg+xml;utf8）
+    content = decodeURIComponent(data)
+  }
+
+  const file = new File([content], filename, { type: mime })
+
+  return { file, filename }
+}
+
+export const svgToDataURL = (svg) => {
+  let svgString = svg
+  if (svg instanceof SVGElement) {
+    svgString = new XMLSerializer().serializeToString(svg)
+  }
+  svgString = svgString
+    .replace(/>\s+</g, '><') // 去空格
+    .replace(/\n/g, '')
+    .trim()
+  const encoded = btoa(unescape(encodeURIComponent(svgString)))
+  return `data:image/svg+xml;base64,${encoded}`
+}

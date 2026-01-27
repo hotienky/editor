@@ -91,9 +91,9 @@
 <script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
-import { base64ToFile } from 'file64'
 
 import { shortId } from '@/utils/short-id'
+import { dataURLToFile } from '@/utils/file'
 
 import { updateAttributesWithoutHistory } from '../file'
 
@@ -258,17 +258,15 @@ watch(
   async (src) => {
     if (attrs.uploaded === false && !error.value) {
       if (src?.startsWith('data:image')) {
-        const [data, type] = src.split(';')[0].split(':')
-        let [_, ext] = type.split('/')
-        if (ext === 'jpeg') {
-          ext = 'jpg'
-        }
-        if (ext === 'svg+xml') {
-          ext = 'svg'
-        }
-        const filename = shortId(10)
-        const file = await base64ToFile(src, `${filename}.${ext}`, { type })
-        uploadFileMap.value.set(attrs.id, file)
+        const id = attrs.id || shortId(10)
+        const name = `${attrs.type}-${id}`
+        const { file, filename } = dataURLToFile(src, name)
+        updateAttributes({
+          size: file.size,
+          name: filename,
+          uploaded: false,
+        })
+        uploadFileMap.value.set(id, file)
       }
       await nextTick()
       uploadImage()
@@ -355,6 +353,7 @@ onBeforeUnmount(() => {
       flex-direction: column;
       color: var(--umo-text-color-light);
       font-size: 12px;
+      min-height: 120px;
 
       .error-icon {
         font-size: 72px;

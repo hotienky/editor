@@ -64,9 +64,8 @@
 </template>
 
 <script setup>
-import svg64 from 'svg64'
-
 import { shortId } from '@/utils/short-id'
+import { svgToDataURL } from '@/utils/file'
 
 const props = defineProps({
   config: {
@@ -83,7 +82,6 @@ const props = defineProps({
 
 const editor = inject('editor')
 const container = inject('container')
-const uploadFileMap = inject('uploadFileMap')
 
 let dialogVisible = $ref(false)
 
@@ -161,23 +159,12 @@ const setMermaid = () => {
     return
   }
   if (!props.content || (props.content && props.content !== mermaidCode)) {
-    const id = shortId(10)
     const svg = mermaidRef.querySelector('svg')
     const { width, height } = svg.getBoundingClientRect()
-    const name = `mermaid-${shortId()}.svg`
-    const blob = new Blob([svg.outerHTML], {
-      type: 'image/svg+xml',
-    })
-    const file = new File([blob], name, {
-      type: 'image/svg+xml',
-    })
-    uploadFileMap.value.set(id, file)
     const imageOptions = {
-      id,
+      id: shortId(10),
       type: 'mermaid',
-      name,
-      size: file.size,
-      src: svg64(svgCode),
+      src: svgToDataURL(svgCode),
       config: JSON.stringify(localConfig),
       content: mermaidCode,
       width,

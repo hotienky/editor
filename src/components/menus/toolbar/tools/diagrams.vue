@@ -39,7 +39,6 @@ const props = defineProps({
 const container = inject('container')
 const editor = inject('editor')
 const options = inject('options')
-const uploadFileMap = inject('uploadFileMap')
 
 let dialogVisible = $ref(false)
 let loading = $ref(false)
@@ -62,19 +61,10 @@ const messageListener = async (evt) => {
   }
   if (event === 'export') {
     if (!props.content || (props.content && props.content !== data)) {
-      const id = shortId(10)
       const { width, height } = bounds
-      const name = `diagrams-${shortId()}.svg`
-      // 将 data URL 转换为 Blob
-      const file = await fetch(data)
-        .then((res) => res.blob())
-        .then((blob) => new File([blob], name, { type: blob.type }))
-      uploadFileMap.value.set(id, file)
       image = {
-        id,
+        id: shortId(10),
         type: 'diagrams',
-        name,
-        size: file.size,
         src: data,
         width,
         height,

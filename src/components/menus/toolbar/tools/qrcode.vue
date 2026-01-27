@@ -28,7 +28,7 @@
                 config.ecl = value
               }
             "
-          ></menus-button>
+          />
           <menus-button
             menu-type="input"
             :tooltip="t('tools.qrcode.paddingTip')"
@@ -42,9 +42,9 @@
               :allow-input-over-limit="false"
               placeholder=""
             >
-              <template #label
-                ><span v-text="t('tools.qrcode.padding')"></span
-              ></template>
+              <template #label>
+                <span v-text="t('tools.qrcode.padding')"></span>
+              </template>
             </t-input-number>
           </menus-button>
           <menus-button menu-type="input" :tooltip="t('tools.qrcode.widthTip')">
@@ -57,9 +57,9 @@
               :allow-input-over-limit="false"
               placeholder=""
             >
-              <template #label
-                ><span v-text="t('tools.qrcode.width')"></span
-              ></template>
+              <template #label>
+                <span v-text="t('tools.qrcode.width')"></span>
+              </template>
             </t-input-number>
           </menus-button>
           <t-divider layout="vertical" />
@@ -113,8 +113,8 @@
 
 <script setup>
 import { qrcode } from 'pure-svg-code'
-import svg64 from 'svg64'
 
+import { svgToDataURL } from '@/utils/file'
 import { shortId } from '@/utils/short-id'
 
 const { content } = defineProps({
@@ -127,7 +127,6 @@ const { content } = defineProps({
 let dialogVisible = $ref(false)
 const editor = inject('editor')
 const container = inject('container')
-const uploadFileMap = inject('uploadFileMap')
 
 const menuClick = () => {
   renderQrcode()
@@ -205,27 +204,16 @@ const setQrcode = () => {
     })
     return
   }
-  const id = shortId(10)
   const { width, height } = config
-  const src = svg64(svgCode)
-  const name = `qrcode-${id}.svg`
-  const blob = new Blob([svgCode], {
-    type: 'image/svg+xml',
-  })
-  const file = new File([blob], name, {
-    type: 'image/svg+xml',
-  })
-  uploadFileMap.value.set(id, file)
+  const src = svgToDataURL(svgCode)
   if (changed) {
     editor.value
       ?.chain()
       .focus()
       .setImage(
         {
-          id,
+          id: shortId(10),
           type: 'qrcode',
-          name,
-          size: file.size,
           src,
           content: JSON.stringify(config),
           width,

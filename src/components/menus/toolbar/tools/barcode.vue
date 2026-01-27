@@ -213,8 +213,8 @@
 
 <script setup>
 import JsBarcode from 'jsbarcode'
-import svg64 from 'svg64'
 
+import { svgToDataURL } from '@/utils/file'
 import { shortId } from '@/utils/short-id'
 
 const { content } = defineProps({
@@ -230,7 +230,6 @@ let dialogVisible = $ref(false)
 const container = inject('container')
 const editor = inject('editor')
 const options = inject('options')
-const uploadFileMap = inject('uploadFileMap')
 
 // 工具栏
 const formats = [
@@ -341,17 +340,8 @@ const setBarcode = () => {
     })
     return
   }
-  const id = shortId(10)
-  const name = `barcode-${id}.svg`
   const width = barcodeSvgRef?.width?.animVal?.value
   const height = barcodeSvgRef?.height?.animVal?.value
-  const blob = new Blob([barcodeSvgRef.outerHTML], {
-    type: 'image/svg+xml',
-  })
-  const file = new File([blob], name, {
-    type: 'image/svg+xml',
-  })
-  uploadFileMap.value.set(id, file)
 
   if (changed) {
     editor.value
@@ -359,11 +349,9 @@ const setBarcode = () => {
       .focus()
       .setImage(
         {
-          id,
+          id: shortId(10),
           type: 'barcode',
-          name,
-          size: file.size,
-          src: svg64(barcodeSvgRef?.outerHTML || ''),
+          src: svgToDataURL(barcodeSvgRef.outerHTML),
           content: JSON.stringify(config),
           width,
           height,

@@ -74,7 +74,7 @@ import { shortId } from '@/utils/short-id'
 
 const editor = inject('editor')
 const container = inject('container')
-const uploadFileMap = inject('uploadFileMap')
+
 let dialogVisible = $ref(false)
 let openSmooth = $ref(false)
 
@@ -124,22 +124,14 @@ const changeSmooth = () => {
 
 const setSignature = async () => {
   try {
-    const id = shortId(10)
-    const name = `signature-${id}.png`
     const image = signature.getPNG()
-    const file = await fetch(image)
-      .then((res) => res.blob())
-      .then((blob) => new File([blob], name, { type: blob.type }))
-    uploadFileMap.value.set(id, file)
     editor.value
       ?.chain()
       .focus()
       .setImage({
-        id,
+        id: shortId(10),
         type: 'signature',
-        name,
-        src: image || '',
-        size: file.size,
+        src: image,
         width: 120,
         height: 40,
         draggable: true,
