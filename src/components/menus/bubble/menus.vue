@@ -8,7 +8,12 @@
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
-  <template v-else-if="is('image') && !attrs('image').error">
+  <template
+    v-else-if="
+      (is('image') && !attrs('image').error) ||
+      (is('inlineImage') && !attrs('inlineImage').error)
+    "
+  >
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
@@ -20,8 +25,8 @@
     <div class="umo-bubble-menu-divider"></div>
     <menus-bubble-image-preview
       v-if="
-        attrs('image')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(attrs('image')?.type)
+        attrs('image')?.type?.startsWith('image') ||
+        attrs('inlineImage')?.type?.startsWith('image')
       "
     />
     <menus-bubble-image-edit />
@@ -32,30 +37,11 @@
     <menus-bubble-node-tofile
       v-if="
         attrs('image').previewType !== null &&
-        attrs('image').type.startsWith('image')
+        attrs('inlineImage').previewType !== null
       "
     />
     <menus-bubble-image-convert />
     <div class="umo-bubble-menu-divider"></div>
-    <menus-bubble-node-delete />
-  </template>
-  <template v-else-if="is('inlineImage') && !attrs('inlineImage').error">
-    <menus-toolbar-base-align-left />
-    <menus-toolbar-base-align-center />
-    <menus-toolbar-base-align-right />
-    <div class="umo-bubble-menu-divider"></div>
-    <menus-bubble-image-flip />
-    <menus-bubble-image-proportion />
-    <div class="umo-bubble-menu-divider"></div>
-    <menus-bubble-image-preview
-      v-if="
-        attrs('inlineImage')?.type.startsWith('image') ||
-        ['image/png', 'image/jpeg'].includes(attrs('inlineImage')?.type)
-      "
-    />
-    <menus-bubble-image-open />
-    <div class="umo-bubble-menu-divider"></div>
-    <menus-bubble-image-convert />
     <menus-bubble-node-delete />
   </template>
   <template

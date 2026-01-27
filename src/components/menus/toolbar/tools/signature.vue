@@ -135,6 +135,7 @@ const setSignature = async () => {
         width: 120,
         height: 40,
         draggable: true,
+        nodeAlign: 'left',
         previewType: null,
       })
       .run()

@@ -77,6 +77,7 @@
                 : 'none',
           }"
           :data-id="attrs.id"
+          :data-preview="attrs.previewType"
           loading="lazy"
           @load="onLoad"
         />
@@ -225,6 +226,9 @@ onClickOutside(containerRef, () => {
 })
 
 const openImageViewer = async () => {
+  if (attrs.previewType === null) {
+    return
+  }
   const id = shortId(10)
   if (attrs.id === null) {
     updateAttributesWithoutHistory(editor.value, { id }, getPos())

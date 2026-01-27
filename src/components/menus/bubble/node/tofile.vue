@@ -2,7 +2,7 @@
   <menus-button
     ico="file-view"
     :text="t('bubbleMenu.toFile')"
-    @menu-click="ndoeTofile"
+    @menu-click="nodeTofile"
   />
 </template>
 
@@ -10,7 +10,7 @@
 import { getSelectionNode } from '@/utils/selection'
 const editor = inject('editor')
 
-const ndoeTofile = () => {
+const nodeTofile = () => {
   const { attrs } = getSelectionNode(editor.value)
   if (!attrs) {
     return false
