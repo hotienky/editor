@@ -39,14 +39,6 @@
     "editor.defaultFormatter": "vscode.css-language-features",
     "editor.formatOnSave": true
   },
-  "[scss]": {
-    "editor.defaultFormatter": "vscode.css-language-features",
-    "editor.formatOnSave": true
-  },
-  "[sass]": {
-    "editor.defaultFormatter": "vscode.css-language-features",
-    "editor.formatOnSave": true
-  },
   "[postcss]": {
     "editor.defaultFormatter": "vscode.css-language-features",
     "editor.formatOnSave": true
