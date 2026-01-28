@@ -27,6 +27,7 @@
 
 <script setup>
 import DiagramEditor from '@/utils/diagram-editor'
+import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 
 const props = defineProps({
@@ -62,12 +63,13 @@ const messageListener = async (evt) => {
   if (event === 'export') {
     if (!props.content || (props.content && props.content !== data)) {
       const { width, height } = bounds
+      const { attrs } = getSelectionNode(editor.value) || {}
       image = {
         id: shortId(10),
         type: 'diagrams',
         src: data,
-        width,
-        height,
+        width: attrs?.width || width,
+        height: attrs?.height || height,
         content: data,
       }
     }

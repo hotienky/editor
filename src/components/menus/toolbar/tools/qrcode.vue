@@ -114,6 +114,7 @@
 <script setup>
 import { qrcode } from 'pure-svg-code'
 
+import { getSelectionNode } from '@/utils/selection'
 import { svgToDataURL } from '@/utils/file'
 import { shortId } from '@/utils/short-id'
 
@@ -204,9 +205,10 @@ const setQrcode = () => {
     })
     return
   }
-  const { width, height } = config
-  const src = svgToDataURL(svgCode)
   if (changed) {
+    const { width, height } = config
+    const src = svgToDataURL(svgCode)
+    const { attrs } = getSelectionNode(editor.value) || {}
     editor.value
       ?.chain()
       .focus()
@@ -216,8 +218,8 @@ const setQrcode = () => {
           type: 'qrcode',
           src,
           content: JSON.stringify(config),
-          width,
-          height,
+          width: attrs?.width || width,
+          height: attrs?.height || height,
         },
         !!content,
       )

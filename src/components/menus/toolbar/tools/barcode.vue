@@ -214,6 +214,7 @@
 <script setup>
 import JsBarcode from 'jsbarcode'
 
+import { getSelectionNode } from '@/utils/selection'
 import { svgToDataURL } from '@/utils/file'
 import { shortId } from '@/utils/short-id'
 
@@ -340,10 +341,11 @@ const setBarcode = () => {
     })
     return
   }
-  const width = barcodeSvgRef?.width?.animVal?.value
-  const height = barcodeSvgRef?.height?.animVal?.value
 
   if (changed) {
+    const width = barcodeSvgRef?.width?.animVal?.value
+    const height = barcodeSvgRef?.height?.animVal?.value
+    const { attrs } = getSelectionNode(editor.value) || {}
     editor.value
       ?.chain()
       .focus()
@@ -353,8 +355,8 @@ const setBarcode = () => {
           type: 'barcode',
           src: svgToDataURL(barcodeSvgRef.outerHTML),
           content: JSON.stringify(config),
-          width,
-          height,
+          width: attrs?.width || width,
+          height: attrs?.height || height,
         },
         !!content,
       )

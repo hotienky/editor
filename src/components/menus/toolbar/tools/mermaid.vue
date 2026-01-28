@@ -64,6 +64,7 @@
 </template>
 
 <script setup>
+import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 import { svgToDataURL } from '@/utils/file'
 
@@ -161,14 +162,15 @@ const setMermaid = () => {
   if (!props.content || (props.content && props.content !== mermaidCode)) {
     const svg = mermaidRef.querySelector('svg')
     const { width, height } = svg.getBoundingClientRect()
+    const { attrs } = getSelectionNode(editor.value) || {}
     const imageOptions = {
       id: shortId(10),
       type: 'mermaid',
       src: svgToDataURL(svgCode),
       config: JSON.stringify(localConfig),
       content: mermaidCode,
-      width,
-      height,
+      width: attrs?.width || width,
+      height: attrs?.height || height,
       equalProportion: false,
     }
     editor.value?.chain().focus().setImage(imageOptions, !!props.content).run()
