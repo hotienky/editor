@@ -362,16 +362,20 @@ watch(
 watch(
   () => page.value.layout,
   (pageLayout, oldPageLayout) => {
+    if (pageLayout === oldPageLayout) {
+      return
+    }
     emits('changed:pageLayout', { pageLayout, oldPageLayout })
     addHistory(historyRecords, 'page', {
       proType: 'layout',
       newData: pageLayout,
       oldData: oldPageLayout,
     })
-    setSkin('default')
+    if (pageLayout === 'web') {
+      setSkin('default')
+    }
     $layout.value = pageLayout
   },
-  { deep: true },
 )
 
 watch(
