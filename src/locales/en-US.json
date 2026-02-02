@@ -339,7 +339,8 @@
       "copied": "Code Copied to Clipboard",
       "placeholder": "Enter or paste Mermaid code",
       "preview": "Preview",
-      "notEmpty": "Mermaid content cannot be empty"
+      "notEmpty": "Mermaid content cannot be empty",
+      "keepSize": "Keep Original Size"
     },
     "echarts": {
       "text": "Chart",

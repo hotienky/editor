@@ -59,6 +59,13 @@
           ></div>
         </div>
       </div>
+      <t-checkbox
+        class="umo-mermaid-keep-size"
+        v-if="content && content !== ''"
+        v-model="keepSize"
+      >
+        {{ t('tools.mermaid.keepSize') }}
+      </t-checkbox>
     </modal>
   </menus-button>
 </template>
@@ -151,6 +158,7 @@ watch(
 )
 
 // 创建或更新 Mermaid
+const keepSize = $ref(false)
 const setMermaid = () => {
   if (mermaidCode === '') {
     useMessage('error', {
@@ -169,8 +177,8 @@ const setMermaid = () => {
       src: svgToDataURL(svgCode),
       config: JSON.stringify(localConfig),
       content: mermaidCode,
-      width: attrs?.width || width,
-      height: attrs?.height || height,
+      width: keepSize ? attrs?.width || width : width,
+      height: keepSize ? attrs?.height || height : height,
       equalProportion: false,
     }
     editor.value?.chain().focus().setImage(imageOptions, !!props.content).run()
@@ -225,5 +233,9 @@ const setMermaid = () => {
       justify-content: center;
     }
   }
+}
+.umo-mermaid-keep-size {
+  position: absolute;
+  bottom: 30px;
 }
 </style>
