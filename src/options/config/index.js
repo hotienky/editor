@@ -52,7 +52,7 @@ export default {
     enableBlockMenu: true,
     enableNodeId: false,
     readOnly: false,
-    autofocus: true,
+    autofocus: false,
     characterLimit: 0,
     typographyRules: {},
     // https://prosemirror.net/docs/ref/#view.EditorProps
