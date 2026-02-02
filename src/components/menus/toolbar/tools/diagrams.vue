@@ -63,13 +63,12 @@ const messageListener = async (evt) => {
   if (event === 'export') {
     if (!props.content || (props.content && props.content !== data)) {
       const { width, height } = bounds
-      const { attrs } = getSelectionNode(editor.value) || {}
       image = {
         id: shortId(10),
         type: 'diagrams',
         src: data,
-        width: attrs?.width || width,
-        height: attrs?.height || height,
+        width,
+        height,
         content: data,
       }
     }

@@ -208,7 +208,6 @@ const setQrcode = () => {
   if (changed) {
     const { width, height } = config
     const src = svgToDataURL(svgCode)
-    const { attrs } = getSelectionNode(editor.value) || {}
     editor.value
       ?.chain()
       .focus()
@@ -218,8 +217,8 @@ const setQrcode = () => {
           type: 'qrcode',
           src,
           content: JSON.stringify(config),
-          width: attrs?.width || width,
-          height: attrs?.height || height,
+          width,
+          height,
         },
         !!content,
       )

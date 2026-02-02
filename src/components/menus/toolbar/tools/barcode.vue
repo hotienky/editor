@@ -345,7 +345,6 @@ const setBarcode = () => {
   if (changed) {
     const width = barcodeSvgRef?.width?.animVal?.value
     const height = barcodeSvgRef?.height?.animVal?.value
-    const { attrs } = getSelectionNode(editor.value) || {}
     editor.value
       ?.chain()
       .focus()
@@ -355,8 +354,8 @@ const setBarcode = () => {
           type: 'barcode',
           src: svgToDataURL(barcodeSvgRef.outerHTML),
           content: JSON.stringify(config),
-          width: attrs?.width || width,
-          height: attrs?.height || height,
+          width,
+          height,
         },
         !!content,
       )
