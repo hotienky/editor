@@ -138,7 +138,7 @@ const typeWriterIsRunning = ref(false)
 
 const $toolbar = useState('toolbar', options)
 const $document = useState('document', options)
-const $layout = useState('layout', options.value.page.layouts[0])
+const $layout = useState('layout', options)
 
 provide('container', container)
 provide('options', options)
