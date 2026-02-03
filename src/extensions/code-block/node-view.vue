@@ -9,7 +9,6 @@
             <menus-button
               :text="t('bubbleMenu.code.languages')"
               menu-type="select"
-              style="width: 100px"
               :select-options="languageOptions"
               :select-value="attrs.language"
               :popup-props="{
@@ -18,17 +17,18 @@
               }"
               filterable
               borderless
+              auto-width
               @menu-click="(value) => updateAttribute('language', value)"
             />
             <menus-button
               :text="t('bubbleMenu.code.themes.text')"
               menu-type="select"
-              style="width: 100px"
               :select-options="themeOptions"
               :select-value="attrs.theme"
               :disabled="options.document?.readOnly"
               force-enabled
               borderless
+              auto-width
               @menu-click="(value) => updateAttribute('theme', value)"
             />
           </template>
@@ -136,6 +136,9 @@ const copyCode = () => {
       border-top-left-radius: 2px;
       border-top-right-radius: 2px;
       background-color: var(--umo-content-node-selected-background);
+      .umo-select__wrap {
+        width: auto;
+      }
       &-right {
         display: flex;
         align-items: center;
