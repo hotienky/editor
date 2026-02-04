@@ -90,7 +90,6 @@ const lowlight = createLowlight(common)
 const container = inject('container')
 const options = inject('options')
 const editor = inject('editor')
-const containerRef = ref(null)
 
 const languageOptions = lowlight.listLanguages().map((item) => {
   return { label: item, value: item }
@@ -137,7 +136,16 @@ const copyCode = () => {
       border-top-right-radius: 2px;
       background-color: var(--umo-content-node-selected-background);
       .umo-select__wrap {
+        --td-comp-paddingLR-s: 5px;
+        --td-text-color-primary: #999;
         width: auto;
+        .umo-input--auto-width {
+          min-width: unset;
+        }
+        .umo-input__suffix {
+          margin: 0 -3px 0 3px;
+          --td-text-color-placeholder: #999;
+        }
       }
       &-right {
         display: flex;
