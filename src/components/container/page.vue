@@ -214,6 +214,7 @@ watch(
     box-sizing: border-box;
     .umo-zoomable-content {
       margin: 0 auto;
+      overflow: hidden;
       box-shadow:
         rgba(0, 0, 0, 0.06) 0px 0px 10px 0px,
         rgba(0, 0, 0, 0.04) 0px 0px 0px 1px;
