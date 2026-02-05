@@ -28,11 +28,17 @@ Additionally, Umo Editor supports custom extensions, multi-language settings, an
 
 Umo Editor's largest feature is that its code is completely open source and controllable. It supports private deployment, allowing you to use it in an intranet environment without worrying about data security issues. At the same time, Umo Editor is based on Vue3 and Tiptap3, both of which have rich ecosystems and communities, making it easy to solve problems when needed.
 
-![Umo Editor](https://unpkg.com/@umoteam/editor-external@latest/static/umo-editor-en@2x.png)
-
 As an independent Vue3 plugin, Umo Editor can be easily integrated into various Vue3 projects with zero configuration. For non-Vue3 projects, you can embed Umo Editor into your project via an iframe.
 
 [Website](https://www.umodoc.com/en) | [Documentation](https://dev.umodoc.com/en/docs/editor) | [Playground](https://www.umodoc.com/en/demo) | [GitHub](https://github.com/umodoc/editor) | [NPM](https://www.npmjs.com/package/@umoteam/editor)
+
+## Screenshots
+
+![umo editor](https://s2.umodoc.com/images/umo-editor1-en@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor2-en@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor3-en@2x.png)
 
 ## Online Experience
 
