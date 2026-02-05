@@ -72,16 +72,13 @@ const options = $ref({
   // https://dev.umodoc.com/cn/docs/options/extensions#disableextensions
   disableExtensions: [],
   async onSave(content, page, document) {
-    localStorage.setItem('document.content', document.content)
-    return new Promise((resolve, reject) => {
+    // 将文档和评论线程保存到 localStorage
+    localStorage.setItem('document.content', content.html)
+    // 模拟保存等待过程
+    return new Promise((resolve) => {
       setTimeout(() => {
-        const success = true
-        if (success) {
-          console.log('onSave', { content, page, document })
-          resolve('文档保存成功')
-        } else {
-          reject(new Error('文档保存失败'))
-        }
+        console.log('onSave', { content, page, document })
+        resolve('文档保存成功')
       }, 2000)
     })
   },

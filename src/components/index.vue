@@ -517,11 +517,13 @@ const localeConfig = $ref({
 
 // Options Setup
 const setOptions = (value) => {
-  options.value = getOpitons(value)
-  const $locale = useStorage('umo-editor:locale', options.value.locale)
-  if (!$locale.value) {
-    $locale.value = options.value.locale
-  }
+  try {
+    options.value = getOpitons(value)
+    const $locale = useStorage('umo-editor:locale', options.value.locale)
+    if (!$locale.value) {
+      $locale.value = options.value.locale
+    }
+  } catch {}
   return options.value
 }
 
