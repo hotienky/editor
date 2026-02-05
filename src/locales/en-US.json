@@ -777,15 +777,6 @@
     "message": "Before printing the document, please ensure that all images on the pages have finished loading. To ensure that all content is displayed correctly, please check the 'Background graphics' option in the print dialog box and set the 'Margins' to 'None.'",
     "confirm": "Print Now"
   },
-  "time": {
-    "justNow": "Just now",
-    "past": "{n} ago",
-    "yesterday": "Yesterday",
-    "day": "{n} days",
-    "hour": "{n} hours",
-    "minute": "{n} minutes",
-    "second": "{n} seconds"
-  },
   "dialog": {
     "cancel": "Cancel"
   }
