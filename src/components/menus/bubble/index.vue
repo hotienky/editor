@@ -1,10 +1,5 @@
 <template>
-  <bubble-menu
-    v-if="editor"
-    class="umo-editor-bubble-menu"
-    :editor="editor"
-    :append-to="appendTo"
-  >
+  <bubble-menu v-if="editor" class="umo-editor-bubble-menu" :editor="editor">
     <menus-bubble-menus v-if="options?.document?.enableBubbleMenu">
       <template #bubble_menu="props">
         <slot name="bubble_menu" v-bind="props" />
@@ -16,13 +11,8 @@
 <script setup>
 import { BubbleMenu } from '@tiptap/vue-3/menus'
 
-const container = inject('container')
 const editor = inject('editor')
 const options = inject('options')
-
-const appendTo = computed(() =>
-  document.querySelector(`${container} .umo-zoomable-container`),
-)
 </script>
 
 <style lang="less">
