@@ -903,8 +903,8 @@ const getVanillaHTML = async () => {
     '.umo-node-video, .umo-node-audio',
   )
   mediaNodes.forEach((el) => {
-    const videoNode = el.querySelector('video')
-    if (videoNode) el.querySelector('.plyr')?.replaceWith(videoNode)
+    const mediaNode = el.querySelector('video, audio')
+    if (mediaNode) el.querySelector('.plyr')?.replaceWith(mediaNode)
   })
 
   // 如果存在文件节点，替换文件节点图标
@@ -935,15 +935,6 @@ const getVanillaHTML = async () => {
 
   // 公式样式
   const mathNodes = pageNode.querySelectorAll('.tiptap-mathematics-render')
-  if (mathNodes.length > 0) {
-    const katexStyle = document.querySelector('#katex-style')
-    if (katexStyle) {
-      pageNode.setAttribute(
-        'data-katex-style',
-        katexStyle?.getAttribute('href') || '',
-      )
-    }
-  }
   mathNodes.forEach((el) => {
     const katexEl = el.querySelector('.katex')
     if (katexEl) {
@@ -960,6 +951,12 @@ const getVanillaHTML = async () => {
     ) {
       watermarkNode.remove()
     }
+  }
+
+  // 移除菜单
+  const menuNodes = pageNode.querySelector('.umo-block-menu-drag-handle')
+  if (menuNodes) {
+    menuNodes.remove()
   }
 
   // 移除所有 html 注释
