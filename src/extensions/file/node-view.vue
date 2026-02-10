@@ -159,7 +159,10 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  options.value.onFileDelete(attrs.id, attrs.url, 'file')
+  setTimeout(() => {
+    if (editor.value.isDestroyed) return
+    options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
+  }, 500)
 })
 
 const supportPreview = $computed(() => {

@@ -81,8 +81,11 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  options.value.onFileDelete(attrs.id, attrs.src, 'audio')
   playerInstance?.destroy?.()
+  setTimeout(() => {
+    if (editor.value.isDestroyed) return
+    options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
+  }, 500)
 })
 
 onClickOutside(containerRef, () => {

@@ -290,7 +290,10 @@ watch(
 )
 
 onBeforeUnmount(() => {
-  options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
+  setTimeout(() => {
+    if (editor.value.isDestroyed) return
+    options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
+  }, 500)
 })
 </script>
 
