@@ -15,7 +15,7 @@
         'preview-mode': page.preview?.enabled,
         'laser-pointer': page.preview?.enabled && page.preview?.laserPointer,
         'umo-editor-is-fullscreen': fullscreen,
-        'umo-editor-is-typerwriter-runing': !typeWriterIsRunning,
+        'umo-editor-is-typerwriter-runing': typeWriterIsRunning,
         'umo-skin-default': options.skin === 'default',
         'umo-skin-modern': options.skin === 'modern',
       }"
@@ -1371,9 +1371,8 @@ defineExpose({
     right: 0;
     bottom: 0;
   }
-  &:not(.umo-editor-is-typerwriter-runing) {
+  &.umo-editor-is-typerwriter-runing {
     pointer-events: none;
-    opacity: 0.9;
   }
 }
 </style>
