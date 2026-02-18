@@ -68,6 +68,14 @@
         </t-watermark>
       </div>
     </div>
+    <div class="umo-main-floating-actions">
+      <t-back-top
+        style="position: relative"
+        :container="`${container} .umo-zoomable-container`"
+        :visible-height="800"
+        size="small"
+      />
+    </div>
     <t-image-viewer
       :attach="container"
       v-model:visible="imageViewer.visible"
@@ -75,12 +83,6 @@
       :images="previewImages"
       :trigger="() => {}"
       @close="imageViewer.visible = false"
-    />
-    <t-back-top
-      :container="`${container} .umo-zoomable-container`"
-      :visible-height="800"
-      size="small"
-      :offset="['25px', '30px']"
     />
     <container-search-replace />
     <container-print />
@@ -328,16 +330,29 @@ watch(
   flex-shrink: 1;
 }
 
-.umo-back-top {
+.umo-main-floating-actions {
   position: absolute;
-  &:hover {
+  bottom: 25px;
+  right: 25px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  > * {
+    inset-inline-end: unset !important;
+    inset-block-end: unset !important;
     opacity: 0.9;
-    background-color: var(--umo-color-white) !important;
-    .umo-back-top__icon {
-      color: var(--umo-primary-color);
+    &:hover {
+      opacity: 1;
+      background-color: var(--umo-color-white) !important;
+      border: solid 1px var(--umo-primary-color);
+      * {
+        color: var(--umo-primary-color) !important;
+      }
     }
   }
 }
+
 .umo-viewer-container {
   position: absolute;
   inset: 0;
