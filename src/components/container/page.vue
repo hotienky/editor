@@ -339,6 +339,7 @@ watch(
   flex-direction: column;
   gap: 10px;
   > * {
+    position: relative;
     inset-inline-end: unset !important;
     inset-block-end: unset !important;
     opacity: 0.9;
@@ -346,9 +347,6 @@ watch(
       opacity: 1;
       background-color: var(--umo-color-white) !important;
       border: solid 1px var(--umo-primary-color);
-      * {
-        color: var(--umo-primary-color) !important;
-      }
     }
   }
 }
