@@ -6,7 +6,7 @@
     hide-text
     :select-options="lineHeights"
     :disabled="!editor?.isActive('paragraph') && !editor?.isActive('heading')"
-    @click="setLineHeight"
+    @change="setLineHeight"
   />
 </template>
 
@@ -21,7 +21,9 @@ const lineHeights = computed(() => {
         ? l(item.label) + t('base.lineHeight.default')
         : l(item.label),
       value: item.value,
-      active: editor.value?.isActive({ lineHeight: item.value }),
+      active:
+        editor.value?.isActive('paragraph', { lineHeight: item.value }) ||
+        editor.value?.isActive('heading', { lineHeight: item.value }),
     }
   })
 })
