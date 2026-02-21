@@ -112,28 +112,53 @@ const pageZoomWidth = $computed(() => {
 
 // 页面内容变化后更新页面高度
 let pageZoomHeight = $ref('')
-const setPageZoomHeight = async () => {
-  await nextTick()
+let pageContentEl = $ref(null)
+let pageHeightRaf = 0
+let pageHeightObserver = $ref(null)
+const updatePageZoomHeight = () => {
   if (pageOptions.value.layout === 'web') {
     pageZoomHeight = 'auto'
     return
   }
-  const el = document.querySelector(`${container} .umo-page-content`)
-  if (!el) {
+  if (!pageContentEl) {
     console.warn('The element <.umo-page-content> does not exist.')
     return
   }
-  pageZoomHeight = `${(el.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
+  const height = `${(pageContentEl.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
+  if (pageZoomHeight !== height) {
+    pageZoomHeight = height
+  }
 }
-
-// 编辑器内容发生变化后，自动调整页面高度
-const editorInstance = inject('editor')
-const pageHeightDebounceFn = useDebounceFn(setPageZoomHeight, 300)
-onMounted(() => {
-  editorInstance.value.on('update', pageHeightDebounceFn)
+const schedulePageZoomHeight = () => {
+  if (pageHeightRaf) {
+    cancelAnimationFrame(pageHeightRaf)
+  }
+  pageHeightRaf = requestAnimationFrame(() => {
+    pageHeightRaf = 0
+    updatePageZoomHeight()
+  })
+}
+onMounted(async () => {
+  await nextTick()
+  pageContentEl = document.querySelector(`${container} .umo-page-content`)
+  if (pageContentEl) {
+    pageHeightObserver = new ResizeObserver(() => {
+      schedulePageZoomHeight()
+    })
+    pageHeightObserver.observe(pageContentEl)
+  } else {
+    console.warn('The element <.umo-page-content> does not exist.')
+  }
+  schedulePageZoomHeight()
 })
 onUnmounted(() => {
-  editorInstance.value.off('update', pageHeightDebounceFn)
+  if (pageHeightObserver) {
+    pageHeightObserver.disconnect()
+    pageHeightObserver = null
+  }
+  if (pageHeightRaf) {
+    cancelAnimationFrame(pageHeightRaf)
+  }
 })
 
 // 页面变化后，更新页面高度
@@ -145,7 +170,7 @@ watch(
     pageOptions.value.orientation,
   ],
   () => {
-    setPageZoomHeight()
+    schedulePageZoomHeight()
   },
   { deep: true },
 )

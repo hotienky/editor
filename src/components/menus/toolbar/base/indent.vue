@@ -5,7 +5,7 @@
     shortcut="Tab"
     hide-text
     :disabled="!editor?.can().chain().focus().setIndent().run()"
-    @menu-click="editor?.chain().focus().indent().run()"
+    @menu-click="editor?.chain().focus().setIndent().run()"
   />
 </template>
 

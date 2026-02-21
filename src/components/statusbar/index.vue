@@ -105,9 +105,7 @@
           <span v-if="selectionCharacters > 0">
             {{ selectionCharacters }}/
           </span>
-          <span class="umo-word-count">
-            {{ editor.storage.characterCount.characters() }}</span
-          >
+          <span class="umo-word-count">{{ totalCharacters }}</span>
           {{ t('wordCount.characters') }}
           <icon
             name="arrow-down"
@@ -121,7 +119,7 @@
               <li>
                 {{ t('wordCount.input') }}
                 <span>
-                  {{ editor.storage.characterCount.characters() }}
+                  {{ totalCharacters }}
                 </span>
               </li>
               <li>
@@ -356,18 +354,56 @@ const reset = inject('reset')
 
 // 字数统计
 const showWordCount = $ref(false)
-const selectionCharacters = computed(() => {
-  if (editor.value) {
-    const { selection } = editor.value.state
-    const text = editor.value.state.doc.textBetween(
-      selection.from,
-      selection.to,
-      '',
-    )
-    return text.length
+let totalCharacters = $ref(0)
+let selectionCharacters = $ref(0)
+const updateTotalCharacters = () => {
+  if (!editor.value) {
+    totalCharacters = 0
+    return
   }
-  return 0
-})
+  const count = editor.value.storage?.characterCount?.characters?.()
+  totalCharacters = typeof count === 'number' ? count : 0
+}
+const updateSelectionCharacters = () => {
+  if (!editor.value) {
+    selectionCharacters = 0
+    return
+  }
+  const { selection } = editor.value.state
+  const text = editor.value.state.doc.textBetween(
+    selection.from,
+    selection.to,
+    '',
+  )
+  selectionCharacters = text.length
+}
+const updateTotalCharactersDebounced = useDebounceFn(updateTotalCharacters, 200)
+const updateSelectionCharactersDebounced = useDebounceFn(
+  updateSelectionCharacters,
+  120,
+)
+const handleEditorCreate = () => {
+  updateTotalCharacters()
+  updateSelectionCharacters()
+}
+watch(
+  () => editor.value,
+  (nextEditor, prevEditor) => {
+    if (prevEditor) {
+      prevEditor.off('update', updateTotalCharactersDebounced)
+      prevEditor.off('selectionUpdate', updateSelectionCharactersDebounced)
+      prevEditor.off('create', handleEditorCreate)
+    }
+    if (nextEditor) {
+      nextEditor.on('update', updateTotalCharactersDebounced)
+      nextEditor.on('selectionUpdate', updateSelectionCharactersDebounced)
+      nextEditor.on('create', handleEditorCreate)
+      updateTotalCharacters()
+      updateSelectionCharacters()
+    }
+  },
+  { immediate: true },
+)
 
 // 关于 Umo Editor
 const about = $ref(false)
@@ -441,14 +477,18 @@ const countdownChange = (value) => {
 
 watch(
   () => page.value.preview?.enabled,
-  (enabled) => {
+  async (enabled) => {
     if (enabled) {
-      documentFullscreen.enter()
+      try {
+        await documentFullscreen?.enter?.()
+      } catch {}
       if (page.value.layout === 'page') {
         autoWidth(false, 10)
       }
     } else {
-      documentFullscreen.exit()
+      try {
+        await documentFullscreen?.exit?.()
+      } catch {}
       zoomReset()
     }
   },

@@ -24,14 +24,19 @@ const addHistoryEditor = (records, stepType, data) => {
   if (eventCount === 0) return
 
   const { done } = records.value
-  const currentCount = done.filter((item) => item.type === stepType).length
+  let currentCount =
+    typeof records.value.editorCount === 'number'
+      ? records.value.editorCount
+      : done.filter((item) => item.type === stepType).length
 
   if (currentCount < eventCount) {
     for (let i = currentCount; i < eventCount; i++) {
       done.push({ type: stepType })
     }
+    currentCount = eventCount
   }
 
+  records.value.editorCount = currentCount
   resetUndone(records)
 }
 
@@ -100,6 +105,13 @@ export const undoHistoryRecord = (records, method) => {
     const record = done.pop()
     method(record)
     records.value.undone.unshift(record)
+    if (record?.type === 'editor') {
+      const currentCount =
+        typeof records.value.editorCount === 'number'
+          ? records.value.editorCount
+          : 0
+      records.value.editorCount = Math.max(0, currentCount - 1)
+    }
   })
 }
 
@@ -112,5 +124,12 @@ export const redoHistoryRecord = (records, method) => {
     const record = undone.shift()
     method(record)
     records.value.done.push(record)
+    if (record?.type === 'editor') {
+      const currentCount =
+        typeof records.value.editorCount === 'number'
+          ? records.value.editorCount
+          : 0
+      records.value.editorCount = currentCount + 1
+    }
   })
 }

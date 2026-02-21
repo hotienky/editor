@@ -117,6 +117,7 @@ const historyRecords = ref({
   done: [], // 能撤销的记录数组
   undone: [], // 能重做的记录数组
   isUndoRedo: false, // 标记是否正在执行撤销/重做操作
+  editorCount: 0,
 })
 
 const container = $ref(`#umo-editor-${shortId(4)}`)
