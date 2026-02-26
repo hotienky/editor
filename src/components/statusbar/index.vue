@@ -460,10 +460,10 @@ watch(
   () => page.value.preview?.enabled,
   (enabled) => {
     if (enabled) {
-      page.value.preview.editable = editor.value.isEditable
+      page.value.preview.isEditable = editor.value.isEditable
       editor.value.setEditable(false)
     } else {
-      editor.value.setEditable(page.value.preview.editable)
+      editor.value.setEditable(page.value.preview.isEditable)
     }
   },
 )

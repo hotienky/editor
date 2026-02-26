@@ -6,7 +6,7 @@
       'show-line-number': page.showLineNumber,
       'format-painter': editor?.view?.painter?.enabled,
       'is-empty': editor?.isEmpty && editor?.state.doc.childCount <= 1,
-      'is-readonly': !editor?.editable,
+      'is-readonly': !editor?.isEditable,
     }"
     :editor="editor"
     :style="{
