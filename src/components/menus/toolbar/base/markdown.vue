@@ -36,9 +36,7 @@ const toggleMarkdownMode = () => {
       $document.value.enableMarkdown = !$document.value.enableMarkdown
       dialog.destroy()
       await nextTick()
-      destroyed.value = true
-      await nextTick()
-      destroyed.value = false
+      window.location.reload()
     },
   })
 }
