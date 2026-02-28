@@ -10,6 +10,6 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 </script>

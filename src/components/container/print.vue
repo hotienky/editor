@@ -2,7 +2,7 @@
   <iframe ref="iframeRef" class="umo-print-iframe" :srcdoc="iframeCode" />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const container = inject('container')
 const editor = inject('editor')
 const printing = inject('printing')
@@ -10,7 +10,7 @@ const exportFile = inject('exportFile')
 const page = inject('page')
 const options = inject('options')
 
-const iframeRef = $ref<HTMLIFrameElement | null>(null)
+const iframeRef = $ref(null)
 let iframeCode = $ref('')
 const getStylesHtml = () => {
   return Array.from(document.querySelectorAll('link, style'))
@@ -19,16 +19,16 @@ const getStylesHtml = () => {
 }
 
 const getPlyrSprite = () => {
-  return document.querySelector('#sprite-plyr')?.innerHTML ?? ''
+  return document.querySelector('#sprite-plyr')?.innerHTML || ''
 }
 
 const getContentHtml = () => {
   const originalContent =
-    document.querySelector(`${container} .umo-page-content`)?.outerHTML ?? ''
+    document.querySelector(`${container} .umo-page-content`)?.outerHTML || ''
   return prepareEchartsForPrint(originalContent)
 }
 // 因echart依赖于组件动态展示，打印时效果无法通过html实现，所以通过转成图片方式解决
-const prepareEchartsForPrint = (htmlContent: any) => {
+const prepareEchartsForPrint = (htmlContent) => {
   // 创建一个临时DOM容器用于处理HTML内容
   const tempDiv = document.createElement('div')
   tempDiv.innerHTML = htmlContent
@@ -51,17 +51,16 @@ const prepareEchartsForPrint = (htmlContent: any) => {
       imgElement.style.width = '100%' // 确保图片宽度适合容器，根据实际情况调整
 
       // 替换原图表元素为img元素
-      chartElement?.parentNode?.replaceChild(imgElement, chartElement)
+      if (chartElement && chartElement.parentNode) {
+        chartElement.parentNode.replaceChild(imgElement, chartElement)
+      }
     }
   }
   return tempDiv.innerHTML
 }
 
 const defaultLineHeight = $computed(
-  () =>
-    options.value.dicts?.lineHeights.find(
-      (item: { default: any }) => item.default,
-    )?.value,
+  () => options.value.dicts?.lineHeights.find((item) => item.default)?.value,
 )
 
 const getIframeCode = () => {
@@ -87,14 +86,18 @@ const getIframeCode = () => {
         background-color: ${background};
         -webkit-print-color-adjust: exact;
       }
+      .umo-editor-container{
+        background-color: ${background} !important;
+      }
       .umo-page-content{
         transform: scale(1) !important;
         overflow: hidden;
       }
       @page {
-        size: ${orientation === 'portrait' ? size?.width : size?.height}cm ${orientation === 'portrait' ? size?.height : size?.width}cm; 
+        size: ${orientation === 'portrait' ? size?.width : size?.height}cm ${orientation === 'portrait' ? size?.height : size?.width}cm;
         padding: ${margin?.top}cm 0 ${margin?.bottom}cm;
         margin: 0;
+        background-color: ${background};
       }
       @page:first {
         padding-top: 0;
@@ -147,7 +150,9 @@ const printPage = () => {
     onConfirm() {
       dialog.destroy()
       setTimeout(() => {
-        iframeRef?.contentWindow?.print()
+        if (iframeRef && iframeRef.contentWindow) {
+          iframeRef.contentWindow.print()
+        }
       }, 300)
     },
     onClosed() {
@@ -159,7 +164,7 @@ const printPage = () => {
 
 watch(
   () => [printing.value, exportFile.value.pdf],
-  (value: [boolean, boolean]) => {
+  (value) => {
     if (!value[0] && !value[1]) {
       return
     }

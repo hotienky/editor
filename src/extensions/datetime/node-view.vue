@@ -13,17 +13,16 @@
     >
       <span class="umo-node-datetime-text">
         <icon name="date" class="umo-node-datetime-icon" />
-        <span>{{ node.attrs.text }}</span>
+        <span>{{ attrs.text }}</span>
       </span>
       <template #content>
         <t-date-picker-panel
-          :value="node.attrs.date"
+          :value="attrs.date"
           :format="
-            node.attrs.format ||
-            `YYYY-MM-DD${node.attrs.withTime ? ' HH:mm:ss' : ''}`
+            attrs.format || `YYYY-MM-DD${attrs.withTime ? ' HH:mm:ss' : ''}`
           "
-          :enable-time-picker="node.attrs.withTime"
-          :mode="node.attrs.format === 'YYYY年M月' ? 'month' : 'date'"
+          :enable-time-picker="attrs.withTime"
+          :mode="attrs.format === 'YYYY年M月' ? 'month' : 'date'"
           @change="datetimeChange"
         />
       </template>
@@ -31,16 +30,18 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes } = props
 const container = inject('container')
 const options = inject('options')
 const page = inject('page')
 let popupVisible = $ref(false)
 
-const formatDateToChinese = (dateStr: string) => {
-  const replaceDigits = (num: string) => {
+const formatDateToChinese = (dateStr) => {
+  const replaceDigits = (num) => {
     const digits = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
     return num
       .toString()
@@ -76,9 +77,9 @@ const formatDateToChinese = (dateStr: string) => {
   })
 }
 
-const datetimeChange = (value: any) => {
+const datetimeChange = (value) => {
   let selectDate = value
-  if (selectDate && node?.attrs?.capitalize) {
+  if (selectDate && attrs?.capitalize) {
     selectDate = formatDateToChinese(value)
   }
   updateAttributes({ date: selectDate, text: selectDate })

@@ -20,8 +20,8 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { getSelectionNode } from '@/extensions/selection'
+<script setup>
+import { getSelectionNode } from '@/utils/selection'
 
 const callouts = [
   {
@@ -53,7 +53,7 @@ const callouts = [
 
 const editor = inject('editor')
 
-const selectStyle = (item: (typeof callouts)[0]) => {
+const selectStyle = (item) => {
   const callout = editor.value ? getSelectionNode(editor.value) : null
   if (callout) {
     editor.value?.commands.updateAttributes('callout', {

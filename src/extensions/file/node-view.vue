@@ -1,39 +1,31 @@
 <template>
   <node-view-wrapper
-    :id="node.attrs.id"
+    :id="attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
       class="umo-node-container hover-shadow umo-select-outline umo-node-file"
+      :style="{
+        width: attrs.fitWidth ? '100%' : supportPreview ? '260px' : '220px',
+      }"
     >
       <div class="umo-file-icon">
         <img :src="fileIcon" class="icon-file" />
       </div>
-      <div
-        class="umo-file-info"
-        :style="{
-          width: supportPreview ? '200px' : '237px',
-        }"
-      >
-        <div
-          class="umo-file-name"
-          :title="node.attrs.name || t('file.unknownName')"
-        >
-          {{ node.attrs.name || t('file.unknownName') }}
+      <div class="umo-file-info">
+        <div class="umo-file-name" :title="attrs.name || t('file.unknownName')">
+          {{ attrs.name || t('file.unknownName') }}
         </div>
         <div class="umo-file-meta">
-          {{
-            node.attrs.size
-              ? prettyBytes(node.attrs.size)
-              : t('file.unknownSize')
-          }}
+          {{ attrs.size ? prettyBytes(attrs.size) : t('file.unknownSize') }}
         </div>
       </div>
       <div class="umo-file-action">
         <div
-          v-if="!node.attrs.uploaded && node.attrs.id !== null"
+          v-if="!attrs.uploaded"
           class="umo-action-item"
           :title="t('file.uploading')"
         >
@@ -46,14 +38,14 @@
             :title="t('file.preview')"
             :data-preview-url="previewURL"
             :data-file-icon="fileIcon"
-            :data-file-name="node.attrs.name"
+            :data-file-name="attrs.name"
             @click.stop="togglePreview"
           >
             <icon name="view" />
           </div>
           <a
-            :href="node.attrs.url"
-            :download="node.attrs.name"
+            :href="attrs.url"
+            :download="attrs.name"
             target="_blank"
             class="umo-action-item"
             :title="t('file.download')"
@@ -72,7 +64,7 @@
     >
       <div class="umo-file-preview-modal-header">
         <img :src="fileIcon" class="file-icon" />
-        <h3>{{ node.attrs.name || t('file.unknownName') }}</h3>
+        <h3>{{ attrs.name || t('file.unknownName') }}</h3>
         <t-button
           class="close-btn"
           size="small"
@@ -83,14 +75,15 @@
           <icon name="close" size="18" />
         </t-button>
       </div>
-      <div class="umo-file-preview-modal-body">
+      <div v-if="previewModal" class="umo-file-preview-modal-body">
         <iframe :src="previewURL"></iframe>
       </div>
     </modal>
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
+import { isAsyncFunction, isFunction } from '@tool-belt/type-predicates'
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import prettyBytes from 'pretty-bytes'
 
@@ -98,17 +91,17 @@ import { getFileExtname, getFileIcon } from '@/utils/file'
 
 import { updateAttributesWithoutHistory } from './'
 
-const { node, getPos } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { getPos } = props
 const editor = inject('editor')
 const options = inject('options')
 const container = inject('container')
 const uploadFileMap = inject('uploadFileMap')
 const containerRef = ref(null)
 
-// FIXME: 保存刷新后预览失效
-
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -121,57 +114,74 @@ const nodeStyle = $computed(() => {
 })
 
 const fileIcon = $computed(() => {
-  return `${options.value.cdnUrl}/icons/file/${getFileIcon(node.attrs.name)}.svg`
+  return `${options.value.cdnUrl}/icons/file/${getFileIcon(attrs.name)}.svg`
 })
 
 let previewModal = $ref(false)
 let previewURL = $ref(null)
-const setPreviewURL = (fileName: string) => {
+
+const getPreviewInfo = () => {
   const { preview } = options.value.file
-  const extname = getFileExtname(fileName)
+  const extname = getFileExtname(attrs.name)
   const match = preview.find(
-    (item: any) => extname && item.extensions.includes(extname),
+    (item) => extname && item.extensions.includes(extname),
   )
+  return match
+}
+const setPreviewURL = () => {
+  const match = getPreviewInfo()
   if (match?.url.includes('{url}')) {
     previewURL = match.url
-      .replace(/{{url}}/g, encodeURIComponent(node.attrs.url))
-      .replace(/{url}/g, node.attrs.url)
+      .replace(/{{url}}/g, encodeURIComponent(attrs.url))
+      .replace(/{url}/g, attrs.url)
   }
 }
 
 onMounted(async () => {
-  if (node.attrs.uploaded || !node.attrs.id) {
-    return
-  }
-  if (uploadFileMap.value.has(node.attrs.id)) {
+  if (!attrs.uploaded && uploadFileMap.value.has(attrs.id)) {
     try {
-      const file = uploadFileMap.value.get(node.attrs.id)
-      const { id, url } = (await options.value?.onFileUpload?.(file)) ?? {}
+      const file = uploadFileMap.value.get(attrs.id)
+      const result = await options.value?.onFileUpload?.(file)
+      const { id, url } = result
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,
-          { id, src: url, uploaded: true },
+          { id, url, uploaded: true },
           getPos(),
         )
       }
-      uploadFileMap.value.delete(node.attrs.id)
+      uploadFileMap.value.delete(attrs.id)
     } catch (e) {
-      useMessage('error', { attach: container, content: (e as Error).message })
+      useMessage('error', { attach: container, content: e.message })
     }
   }
-  setPreviewURL(node.attrs.name)
+  setPreviewURL()
+})
+
+onBeforeUnmount(() => {
+  setTimeout(() => {
+    if (editor.value.isDestroyed) return
+    options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
+  }, 500)
 })
 
 const supportPreview = $computed(() => {
   const supportNodes = ['image', 'video', 'audio']
-  return supportNodes.includes(node.attrs.previewType) || previewURL !== null
+  return supportNodes.includes(attrs.previewType) || previewURL !== null
 })
 const togglePreview = () => {
+  const match = getPreviewInfo(attrs.name)
+  const onPreview = match?.onPreview
+  if (isFunction(onPreview) || isAsyncFunction(onPreview)) {
+    try {
+      onPreview(attrs)
+      return
+    } catch {}
+  }
   if (previewURL !== null) {
     previewModal = true
     return
   }
-  const { attrs } = node
   editor.value.commands.insertContent({
     type: attrs.previewType,
     attrs: {
@@ -193,11 +203,15 @@ const togglePreview = () => {
     background-color: var(--umo-color-white);
     border-radius: var(--umo-content-node-radius);
 
+    .umo-file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
     .umo-file-icon {
       width: 32px;
       height: 32px;
       margin-right: 8px;
-      flex: 1;
       .icon-file {
         width: 32px;
         display: block;
@@ -225,7 +239,6 @@ const togglePreview = () => {
     }
 
     .umo-file-action {
-      flex: 1;
       display: flex;
       align-items: center;
       color: var(--umo-text-color-light);

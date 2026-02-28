@@ -8,7 +8,7 @@
     @toggle-popup="togglePopup"
   >
     <template #content>
-      <div class="umo-symbols-container narrow-scrollbar">
+      <div class="umo-symbols-container umo-scrollbar">
         <template v-for="(group, index) in options.dicts?.symbols" :key="index">
           <div class="umo-symbols-group-title" v-text="l(group.label)"></div>
           <div class="umo-symbols-group-container">
@@ -27,12 +27,12 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 const options = inject('options')
 
-const selectSymbol = (char: string) => {
+const selectSymbol = (char) => {
   editor.value?.chain().focus().insertContent(char).run()
   popupVisible.value = false
 }

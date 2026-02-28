@@ -28,13 +28,18 @@
             />
           </t-form-item>
           <t-form-item>
-            <t-button theme="primary" type="submit" @click="insertLink">{{
-              t('insert.link.insert')
-            }}</t-button>
+            <t-button
+              theme="primary"
+              type="submit"
+              :disabled="href === '' || text === ''"
+              @click="insertLink"
+              >{{ t('insert.link.confirm') }}</t-button
+            >
             <t-button
               theme="default"
               variant="text"
               style="margin-left: 10px"
+              :disabled="href === '' || text === ''"
               @click="removeLink"
               >{{ t('insert.link.remove') }}</t-button
             >
@@ -45,8 +50,8 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
-import { getSelectionText } from '@/extensions/selection'
+<script setup>
+import { getSelectionText } from '@/utils/selection'
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
@@ -82,10 +87,10 @@ const removeLink = () => {
 
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
+  (val) => {
     if (val) {
       text = editor.value ? getSelectionText(editor.value) : ''
-      href = editor?.value?.getAttributes('link').href ?? ''
+      href = editor?.value?.getAttributes('link').href || ''
     } else {
       text = ''
       href = ''

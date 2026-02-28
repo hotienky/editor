@@ -6,7 +6,7 @@
     @close="emits('close')"
   >
     <template #header>
-      <icon name="about" />
+      <icon name="copyright" />
       {{ t('about.title') }}
     </template>
     <div
@@ -71,6 +71,11 @@
         ·
         <a href="https://github.com/Mikasa33" target="_blank">Mikasa33</a>
       </p>
+      <t-divider></t-divider>
+      <p
+        style="text-align: center; font-size: 12px"
+        v-html="t('about.next')"
+      ></p>
     </div>
   </modal>
 </template>

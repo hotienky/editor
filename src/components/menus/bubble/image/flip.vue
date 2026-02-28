@@ -14,8 +14,8 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
-import { getSelectionNode } from '@/extensions/selection'
+<script setup>
+import { getSelectionNode } from '@/utils/selection'
 
 const editor = inject('editor')
 
@@ -33,9 +33,9 @@ const flipXActive = computed(() => {
   } else return false
 })
 
-const setFlip = (flip: 'flipX' | 'flipY') => {
+const setFlip = (flip) => {
   const image = editor.value ? getSelectionNode(editor.value) : null
-  const { flipX, flipY } = image?.attrs ?? {}
+  const { flipX, flipY } = image?.attrs || {}
   if (image && flip === 'flipX') {
     editor.value?.commands.updateAttributes(image.type, {
       flipX: !flipX,

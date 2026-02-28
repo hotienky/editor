@@ -11,10 +11,10 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 
-const setFormatPainter = (once: boolean) => {
+const setFormatPainter = (once) => {
   if (editor.value?.view?.painter?.enabled) {
     editor.value?.commands.unsetFormatPainter()
     return

@@ -14,10 +14,10 @@
             style="width: 140px"
             :tooltip="t('page.watermark.fontFamily')"
             menu-type="select"
-            :select-options="fonts ?? []"
+            :select-options="fonts"
             :select-value="page.watermark?.fontFamily"
             @menu-click="
-              (value: string) => {
+              (value) => {
                 updateWatermark({ fontFamily: value })
               }
             "
@@ -49,7 +49,7 @@
             :default-color="page.watermark?.fontColor"
             modeless
             @change="
-              (value: string) => {
+              (value) => {
                 updateWatermark({ fontColor: value })
               }
             "
@@ -110,20 +110,20 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 
 const page = inject('page')
 const options = inject('options')
 
-const fonts = options.value.dicts?.fonts.map((item: any) => {
+const fonts = options.value.dicts?.fonts.map((item) => {
   return {
     label: l(item.label),
-    value: item.value ?? '',
+    value: item.value || '',
   }
 })
 // 公共方法：更新水印属性（生成新对象，改变引用）
-const updateWatermark = (props: any) => {
+const updateWatermark = (props) => {
   if (!page.value.watermark) return
   // 生成新对象，确保引用改变
   page.value.watermark = { ...page.value.watermark, ...props }

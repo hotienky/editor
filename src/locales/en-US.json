@@ -11,6 +11,7 @@
     "table": "Table",
     "tools": "Tools",
     "page": "Page",
+    "view": "View",
     "export": "Export"
   },
   "base": {
@@ -24,6 +25,11 @@
     },
     "bgColor": "Background Color of Text",
     "bold": "Bold",
+    "letterSpacing": {
+      "text": "Letter Spacing",
+      "tip": "Current Spacing: {value} Character",
+      "reset": "Reset Letter Spacing"
+    },
     "clearFormat": "Clear Text Formatting",
     "code": "Code",
     "color": "Font Color",
@@ -58,6 +64,12 @@
       "text": "Format Painter",
       "tip": "Format Painter: Double click to reuse, press ESC to exit"
     },
+    "wordWrap": {
+      "text": "Word Wrap",
+      "normal": "Normal",
+      "breakWord": "Break Word",
+      "breakAll": "Break All"
+    },
     "heading": {
       "text": "Title {level}",
       "paragraph": "Normal",
@@ -87,17 +99,6 @@
       "default": "Default",
       "reset": "Auto Spacing"
     },
-    "importWord": {
-      "text": "Import Word",
-      "loadScript": {
-        "title": "Error Message",
-        "message": "Loading the transformed script, please try again later."
-      },
-      "limitSize": "File size cannot exceed {limitSize}MB.",
-      "converting": "Converting Word document, please wait...",
-      "convertError": "Error parsing Word document",
-      "importError": "Error importing Word document"
-    },
     "markdown": {
       "text": "Markdown",
       "enable": "Enable Markdown",
@@ -112,8 +113,7 @@
     "subscript": "Subscript",
     "superscript": "Superscript",
     "underline": "Underline",
-    "undo": "Undo",
-    "viewer": "Viewer"
+    "undo": "Undo"
   },
   "insert": {
     "audio": "Audio",
@@ -153,14 +153,14 @@
     "image": {
       "text": "Image",
       "block": "Image",
-      "blockdesc": "Insert an image on the node",
+      "blockdesc": "Insert new image node",
       "inline": "Inline Image",
-      "inlinedesc": "Insert an image within the paragraph"
+      "inlinedesc": "Insert inline image in the current line"
     },
     "link": {
       "text": "Link",
-      "insert": "Insert",
-      "remove": "Remove",
+      "confirm": "Confirm",
+      "remove": "Remove Link",
       "hrefText": "Link Text:",
       "hrefTextTip": "Enter or select link text",
       "href": "Link URL:",
@@ -170,8 +170,11 @@
       "open": "Open Link",
       "edit": "Edit Link"
     },
-    "math": "Mathematics",
-    "columns": "Columns",
+    "details": "Details",
+    "columns": {
+      "text": "Columns",
+      "number": "Number of Columns"
+    },
     "tag": "Tag",
     "callout": "Callout",
     "mention": "Mention",
@@ -199,7 +202,8 @@
       "type": "Link Type:",
       "url": "Page URL:",
       "placeholder": "Enter a web address, starting with http:// or https://"
-    }
+    },
+    "footnote": "Footnote"
   },
   "table": {
     "addColumnAfter": "Insert Column After",
@@ -301,6 +305,19 @@
       "text": "Chinese Case",
       "tip": "Chinese Case Conversion"
     },
+    "math": {
+      "text": "Mathematics",
+      "insert": "Insert LaTeX Math",
+      "edit": "Edit LaTeX Math",
+      "update": "Update Math",
+      "inline": "Inline Math",
+      "block": "Block Math",
+      "placeholder": "Enter LaTeX or select from the right",
+      "preview": "Math Preview Area",
+      "template": "Math templates",
+      "cancel": "Cancel",
+      "confirm": "Insert Math"
+    },
     "diagrams": {
       "text": "Diagram",
       "edit": "Edit Diagram",
@@ -309,9 +326,21 @@
     "mermaid": {
       "text": "Mermaid",
       "edit": "Edit Mermaid",
+      "theme": "Select Theme",
+      "themes": {
+        "default": "Default Theme",
+        "base": "Simple Theme",
+        "dark": "Dark Theme",
+        "forest": "Forest Theme",
+        "neutral": "Neutral Theme"
+      },
+      "copy": "Copy Code",
+      "clear": "Clear Code",
+      "copied": "Code Copied to Clipboard",
       "placeholder": "Enter or paste Mermaid code",
       "preview": "Preview",
-      "notEmpty": "Mermaid content cannot be empty"
+      "notEmpty": "Mermaid content cannot be empty",
+      "keepSize": "Keep Original Size"
     },
     "echarts": {
       "text": "Chart",
@@ -367,18 +396,6 @@
       "renderError": "QR Code generation failed",
       "notEmpty": "QR Code content cannot be empty"
     },
-    "seal": {
-      "text": "Official Seal",
-      "title": "Insert Official Seal",
-      "insert": "Insert",
-      "tip": "Select a photocopy or photo of a solid-color background seal; it will be automatically extracted. All operations are completed locally without sending data to the server, so feel free to use.",
-      "insertTip": "Click here to select seal image",
-      "converting1": "Loading component...",
-      "converting2": "Loading component: {percentage}%",
-      "converting3": "Extracting image, please wait...",
-      "convertError": "Electronic seal extraction failed, please retry",
-      "notEmpty": "Please select a seal"
-    },
     "signature": {
       "text": "E-Signature",
       "title": "Insert Electronic Signature",
@@ -428,6 +445,18 @@
       "spacious": "Spacious",
       "clear": "Remove Watermark"
     }
+  },
+  "view": {
+    "zoom": "Zoom",
+    "zoomOriginal": "Original Size",
+    "zoomAuto": "Best Fit",
+    "theme": "Theme",
+    "themeLight": "Light mode",
+    "themeDark": "Dark mode",
+    "skin": "Appearance",
+    "skinDefault": "Default",
+    "skinModern": "Modern",
+    "locale": "Language"
   },
   "export": {
     "embed": {
@@ -496,7 +525,6 @@
   "blockMenu": {
     "insert": "Insert Content",
     "template": "Insert Template",
-    "toogleNode": "Switch Node Type",
     "common": "Common actions",
     "clearFormat": "Clear formatting",
     "duplicate": "Duplicate",
@@ -520,6 +548,7 @@
       "wordWrap": "Word Wrap"
     },
     "file": {
+      "autoWidth": "Fit Width",
       "download": "Download File"
     },
     "image": {
@@ -529,8 +558,6 @@
       "flipY": "Flip Vertically",
       "preview": "Preview Image",
       "proportion": "Lock Image Aspect Ratio",
-      "removeBg": "Remove Image Background",
-      "removingBg": "Removing Image Background...",
       "reset": "Reset Image Position",
       "rotateCC": "Rotate Counter-Clockwise 90°",
       "rotateC": "Rotate Clockwise 90°",
@@ -542,7 +569,11 @@
       "border": "Border Settings",
       "borderColor": "Border Color",
       "borderStyle": "Border Style",
-      "noBorder": "No Border"
+      "noBorder": "No Border",
+      "writingMode": "Writing Mode",
+      "horizontalTb": "Horizontal Text",
+      "verticalLr": "Vertical Text (Left to Right)",
+      "verticalRl": "Vertical Text (Right to Left)"
     },
     "callout": {
       "removeEmoji": "Remove Emoji",
@@ -561,26 +592,6 @@
     },
     "toFile": "Convert to File",
     "delete": "Delete"
-  },
-  "assistant": {
-    "text": "AI Assistant",
-    "placeholder": "Enter or select a command...",
-    "send": "Send",
-    "exit": "Exit AI Assistant",
-    "commands": "Common Commands:",
-    "result": "AI Generation Result:",
-    "replace": "Replace",
-    "insertAfter": "Insert After",
-    "insertBelow": "Insert Below",
-    "copy": "Copy Generated Result",
-    "copySuccess": "Result copied to clipboard",
-    "rewrite": "Rewrite",
-    "delete": "Delete Result",
-    "error": {
-      "title": "Error Message",
-      "message": "An error occurred with the AI Document Assistant result. Please try again!",
-      "confirm": "OK"
-    }
   },
   "pageOptions": {
     "title": "Page Settings",
@@ -648,7 +659,7 @@
     "confirm": "Switch"
   },
   "resetAll": {
-    "title": "Reset Editor",
+    "title": "Reset Settings",
     "message": "This action will clear all editor settings and current content, and refresh the page. It's recommended to save your content before resetting. Are you sure you want to reset now?",
     "reset": "Reset"
   },
@@ -658,7 +669,8 @@
     "version": "Version",
     "openSource": "open-source edition",
     "documentation": "Documentation",
-    "thanks": "Thanks to all contributors"
+    "thanks": "Thanks to all contributors",
+    "next": "Learn more about the more powerful <a href=\"https://www.umodoc.com/business\" target=\"_blank\">Umo Editor Next</a>"
   },
   "layout": {
     "web": "Web View",
@@ -764,15 +776,6 @@
     "title": "Print Document",
     "message": "Before printing the document, please ensure that all images on the pages have finished loading. To ensure that all content is displayed correctly, please check the 'Background graphics' option in the print dialog box and set the 'Margins' to 'None.'",
     "confirm": "Print Now"
-  },
-  "time": {
-    "justNow": "Just now",
-    "past": "{n} ago",
-    "yesterday": "Yesterday",
-    "day": "{n} days",
-    "hour": "{n} hours",
-    "minute": "{n} minutes",
-    "second": "{n} seconds"
   },
   "dialog": {
     "cancel": "Cancel"

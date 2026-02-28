@@ -14,25 +14,31 @@
 
 ## 中文介绍
 
-Umo Editor 是一个基于 Vue3 和 Tiptap 的本土化开源文档编辑器，提供类似于 Microsoft Word 的在线编辑功能和浏览体验，专为国人用户设计。它提供了强大的文档编辑能力和 AI 创作功能，支持分页模式和普通 Web 模式、Markdown 语法、富文本编辑、多种格式的节点插入、页面样式设置、文档导出与打印等功能。
+Umo Editor 是一个基于 Vue3 和 Tiptap3 的本土化开源文档编辑器，提供类似于 Microsoft Word 的在线编辑功能和浏览体验，专为国人用户设计。它提供了强大的文档编辑能力和 AI 创作功能，支持分页模式和普通 Web 模式、Markdown 语法、富文本编辑、多种格式的节点插入、页面样式设置、文档导出与打印等功能。
 
 此外，Umo Editor 还支持自定义扩展、多语言设置和暗色主题。同时我们提供了单独的文本预览组件 [Umo Viewer](https://github.com/umodoc/viewer)，用户可以在项目中使用该组件来预览文档。
 
-Umo Editor 最大的特点是代码完全开源且自主可控，支持私有部署，您可以内网环境中使用，而无需担心数据安全问题。同时 Umo Editor 基于 Vue3 和 Tiptap，两者都有丰富的生态系统和社区支持，在遇到问题时可以迅速得到解决。
+Umo Editor 最大的特点是代码完全开源且自主可控，支持私有部署，您可以内网环境中使用，而无需担心数据安全问题。同时 Umo Editor 基于 Vue3 和 Tiptap3，两者都有丰富的生态系统和社区支持，在遇到问题时可以迅速得到解决。
 
 ## Introduction
 
-Umo Editor is an open-source document editor based on Vue3 and Tiptap, providing an online editing experience similar to Microsoft Word. It provides powerful document editing capabilities and AI-assisted creation features. Umo Editor supports pagination and normal web layout, Markdown syntax, rich text editing, insertion of various node types, page style settings, document export, and printing. Additionally, it supports custom extensions, multi-language settings, and a dark theme. Umo Editor also supports web layout, and you can use it as a regular rich text editor.
+Umo Editor is an open-source document editor based on Vue3 and Tiptap3, providing an online editing experience similar to Microsoft Word. It provides powerful document editing capabilities and AI-assisted creation features. Umo Editor supports pagination and normal web layout, Markdown syntax, rich text editing, insertion of various node types, page style settings, document export, and printing. Additionally, it supports custom extensions, multi-language settings, and a dark theme. Umo Editor also supports web layout, and you can use it as a regular rich text editor.
 
 Additionally, Umo Editor supports custom extensions, multi-language settings, and dark theme. We also provide a standalone text preview component, [Umo Viewer](https://github.com/umodoc/viewer), which users can integrate into their projects to preview documents.
 
-Umo Editor's largest feature is that its code is completely open source and controllable. It supports private deployment, allowing you to use it in an intranet environment without worrying about data security issues. At the same time, Umo Editor is based on Vue3 and Tiptap, both of which have rich ecosystems and communities, making it easy to solve problems when needed.
-
-![Umo Editor](https://unpkg.com/@umoteam/editor-external@latest/static/umo-editor-en@2x.png)
+Umo Editor's largest feature is that its code is completely open source and controllable. It supports private deployment, allowing you to use it in an intranet environment without worrying about data security issues. At the same time, Umo Editor is based on Vue3 and Tiptap3, both of which have rich ecosystems and communities, making it easy to solve problems when needed.
 
 As an independent Vue3 plugin, Umo Editor can be easily integrated into various Vue3 projects with zero configuration. For non-Vue3 projects, you can embed Umo Editor into your project via an iframe.
 
 [Website](https://www.umodoc.com/en) | [Documentation](https://dev.umodoc.com/en/docs/editor) | [Playground](https://www.umodoc.com/en/demo) | [GitHub](https://github.com/umodoc/editor) | [NPM](https://www.npmjs.com/package/@umoteam/editor)
+
+## Screenshots
+
+![umo editor](https://s2.umodoc.com/images/umo-editor1-en@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor2-en@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor3-en@2x.png)
 
 ## Online Experience
 
@@ -65,7 +71,6 @@ Umo Editor aims to simplify document editing in web applications by providing Mi
 - Presentation mode
 - Document export and sharing
 - Page settings
-- AI document assistant
 - Print and print preview support
 - Custom extensions support
 - Shortcut key support
@@ -89,11 +94,9 @@ For more details, see [Features](https://dev.umodoc.com/en/docs/editor/features)
 
 ## Environment Support
 
-- **Node.js** (>=v18.0.0)
+- **Node.js** (>=v18.x)
 - **Vue** (>=v3.x)
-- **Vite** (>=v5.x)
-- **Tiptap** (>=v2.6)
-- **TypeScript** (>=v5.5)
+- **Tiptap** (>=v3.x)
 
 ## Join the Community
 
@@ -108,10 +111,10 @@ Report bugs via [GitHub Issues](https://github.com/umodoc/editor/issues).
 The development of Umo Editor relies on community support. Below is a list of contributors who have contributed code to Umo Editor. We thank them for their efforts:
 
 - [Umo Team](https://github.com/umodoc): 👨‍💻 Core developers
-- [Cassielxd](https://github.com/Cassielxd): 💪🏻 Implemented pagination and many important features
 - [china-wangxu](https://github.com/china-wangxu): 💪🏻 Added many important features
-- [Na'aman Hirschfeld](https://github.com/Goldziher): 💪🏻 Enhanced TypeScript support and added tests
-- [SevenDreamYang](https://github.com/SevenDreamYang): 🛠️ Enhanced TypeScript support and fixed some issues
+- [Cassielxd](https://github.com/Cassielxd): 💪🏻 Added many important features
+- [Na'aman Hirschfeld](https://github.com/Goldziher): 🛠️ Contributed code
+- [SevenDreamYang](https://github.com/SevenDreamYang):🛠️ Contributed code
 - [ChenErik](https://github.com/ChenErik): 🛠️ Contributed code
 - [SerRashin](https://github.com/SerRashin): 🛠️ Added Russian language support
 - [Sunny Wisozk](https://github.com/SunnyWisozk): 🛠️ Contributed code
@@ -131,7 +134,7 @@ If you have any questions or suggestions, please contact us through the followin
 
 ## Technical Exchange
 
-- Discord：[Umo Editor](https://discord.gg/yBwBmm8e)
+- Discord：[Umo Editor](https://discord.gg/k8GjuBBhXD)
 
 ## Support Us
 
@@ -142,8 +145,8 @@ If you find Umo Editor useful, please consider supporting us in the following wa
 
 ## Products from Umo Team
 
-- [Umo Editor](https://dev.umodoc.com/en/docs/editor): A localized open-source document editor based on Vue3 and Tiptap.
-- [Umo Viewer](https://dev.umodoc.com/en/docs/viewer): A PDF viewer built with Vue3 and PDF.js, enabling direct PDF preview in the browser and also supporting preview of Umo Editor documents.
+- [Umo Editor](https://dev.umodoc.com/en/docs/editor): A localized open-source document editor based on Vue3 and Tiptap3.
+- [Umo Viewer](https://dev.umodoc.com/en/docs/viewer): An open-source, lightweight document viewer for Umo Editor.
 - [Umo Editor Next](https://dev.umodoc.com/en/docs/next): An enhanced version of Umo Editor that includes all features of the latest Umo Editor while adding or improving support for multi-user real-time collaborative editing, document annotations (comments), document version history, AI-assisted creation, document import/export, tables, and more. It also enhances customization of toolbars and sidebars.
 - [Umo Editor Server](https://dev.umodoc.com/en/docs/server): A companion server-side software developed to extend Umo Editor capabilities such as multi-user collaborative editing, document annotations, and document import/export.
 - [Umo Office Viewer](https://dev.umodoc.com/en/docs/office-viewer): An Office document viewer that supports previewing over 40 mainstream office document in web pages.

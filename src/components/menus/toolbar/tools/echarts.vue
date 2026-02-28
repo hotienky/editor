@@ -214,15 +214,15 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { Input } from 'tdesign-vue-next'
 
 import {
   calbaseConfigData,
   calbaseConfigOptions,
 } from '@/extensions/echarts/cal-service'
-import { getSelectionNode } from '@/extensions/selection'
 import { loadResource } from '@/utils/load-resource'
+import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 
 const { mode } = defineProps({
@@ -247,17 +247,17 @@ let curNode = $ref(null)
 // sourceOptions 高级模型-配置信息信息
 let sourceOptions = $ref(null)
 
-// 高级模式下 mychart 展示对象
-let sourceChart: any = null
-// 基础模式下 mychart 展示对象，避免响应式
-let settingChart: any = null
+// 高级模式下 chart 展示对象
+let sourceChart = null
+// 基础模式下 chart 展示对象，避免响应式
+let settingChart = null
 
 // 基础模型下默认设置界面，0: 图形界面 1: 数据界面
 let baseModeSet = $ref(0)
 // baseConfig 可视化界面下的配置，需要保存的动态数据
 let baseConfig = $ref({ data: [], config: {} })
 // 基础数据，不会改变的数据
-let baseData: any = {}
+let baseData = {}
 // 弹出窗显示
 const menuClick = () => {
   if (dialogVisible) {
@@ -318,7 +318,7 @@ const setConfirm = () => {
   if (resOptions.mode === 1) {
     // 可配置模式
     const newData = calbaseConfigData(baseConfig.data)
-    resOptions.chartConfig = { data: newData, config: baseConfig.config } as any
+    resOptions.chartConfig = { data: newData, config: baseConfig.config }
 
     if (settingChart === null) {
       const dialog = useAlert({
@@ -467,7 +467,7 @@ const disposeChart = () => {
   }
 }
 // 对输入json处理，属性和单引号需要转换成双引号
-const normalizeJsonString = (jsonString: any) => {
+const normalizeJsonString = (jsonString) => {
   // 正则表达式，用于匹配键名（假设键名是有效的JavaScript标识符）
   const keyPattern = /(\s*)([a-zA-Z_$][\w$]*)(\s*:\s*)/g
   // 正则表达式，用于匹配单引号字符串并将其转为双引号
@@ -510,7 +510,7 @@ const initBaseConfig = () => {
         // 除了点击非自身元素退出编辑态之外，还有哪些事件退出编辑态
         abortEditOnEvent: ['onEnter'],
         // 编辑完成，退出编辑态后触发
-        onEdited: (context: any) => {
+        onEdited: (context) => {
           const newData = context.newRowData
           if (context.rowIndex > 0) {
             for (const artt1 in newData) {
@@ -577,7 +577,7 @@ const initBaseConfig = () => {
   baseConfig.config.titleleft = 'center' // 标题位置
 }
 // 从缓存配置中读取数据到当前展示配置中
-const loadBaseConfig = (cachebaseConfig: any) => {
+const loadBaseConfig = (cachebaseConfig) => {
   if (cachebaseConfig === null) {
     return
   }

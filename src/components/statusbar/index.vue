@@ -50,22 +50,11 @@
           <icon name="clear-cache" />
         </t-button>
       </tooltip>
-      <!-- 请遵循开源协议，勿删除或隐藏版权信息！ -->
-      <tooltip :content="t('about.title')">
-        <t-button
-          class="umo-status-bar-button"
-          variant="text"
-          size="small"
-          @click="about = !about"
-        >
-          <icon name="about" />
-        </t-button>
-      </tooltip>
       <div class="umo-status-bar-split"></div>
       <t-dropdown
         :attach="container"
         :popup-props="{
-          onVisibleChange(visible: boolean) {
+          onVisibleChange(visible) {
             showLayoutSelect = visible
           },
         }"
@@ -116,9 +105,7 @@
           <span v-if="selectionCharacters > 0">
             {{ selectionCharacters }}/
           </span>
-          <span class="umo-word-count">
-            {{ editor.storage.characterCount.characters() }}</span
-          >
+          <span class="umo-word-count">{{ totalCharacters }}</span>
           {{ t('wordCount.characters') }}
           <icon
             name="arrow-down"
@@ -132,7 +119,7 @@
               <li>
                 {{ t('wordCount.input') }}
                 <span>
-                  {{ editor.storage.characterCount.characters() }}
+                  {{ totalCharacters }}
                 </span>
               </li>
               <li>
@@ -149,8 +136,30 @@
           </div>
         </template>
       </t-popup>
+      <div class="umo-status-bar-split"></div>
+      <!-- 请遵循开源协议，勿删除或隐藏版权信息！ -->
+      <t-button
+        class="umo-status-bar-button auto-width"
+        variant="text"
+        size="small"
+        @click="about = !about"
+      >
+        <icon name="copyright" /> Umodoc
+      </t-button>
     </div>
     <div class="umo-status-bar-right">
+      <tooltip
+        :content="`${fullscreen?.isFullscreen ? t('fullscreen.disable') : t('fullscreen.title')} (${getShortcut('Ctrl+F11')})`"
+      >
+        <t-button
+          class="umo-status-bar-button"
+          variant="text"
+          size="small"
+          @click="toggleFullscreen"
+        >
+          <icon :name="fullscreen ? 'full-screen-exit' : 'full-screen'" />
+        </t-button>
+      </tooltip>
       <tooltip
         :content="
           page.preview?.enabled ? t('preview.disable') : t('preview.title')
@@ -166,18 +175,6 @@
           <icon name="preview" />
         </t-button>
       </tooltip>
-      <tooltip
-        :content="`${fullscreen?.isFullscreen ? t('fullscreen.disable') : t('fullscreen.title')} (${getShortcut('Ctrl+F11')})`"
-      >
-        <t-button
-          class="umo-status-bar-button"
-          variant="text"
-          size="small"
-          @click="toggleFullscreen"
-        >
-          <icon :name="fullscreen ? 'full-screen-exit' : 'full-screen'" />
-        </t-button>
-      </tooltip>
       <div class="umo-status-bar-split"></div>
       <div v-if="page.layout === 'page'" class="umo-zoom-level-bar">
         <tooltip :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`">
@@ -185,7 +182,7 @@
             class="umo-status-bar-button"
             variant="text"
             size="small"
-            :disabled="(page.zoomLevel ?? 21) <= 20"
+            :disabled="page.zoomLevel <= 20"
             @click="zoomOut"
           >
             <icon name="minus" />
@@ -219,7 +216,7 @@
         </tooltip>
         <tooltip :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`">
           <t-button
-            class="umo-status-bar-button"
+            class="umo-status-bar-button umo-auto-width-button"
             :class="{ active: page.autoWidth }"
             variant="text"
             size="small"
@@ -263,7 +260,7 @@
     </div>
     <statusbar-countdown
       :visible="countdownSetting"
-      @visible-change="(visible: boolean) => (countdownSetting = visible)"
+      @visible-change="(visible) => (countdownSetting = visible)"
       @countdown-change="countdownChange"
       @exit-preivew="exitPreview"
       @close="countdownSetting = false"
@@ -286,12 +283,18 @@
         <icon name="laser-pointer" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`"
+    >
       <div class="item" @click="zoomOut">
         <icon name="minus" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.autoWidth')} (${getShortcut('Ctrl0')})`"
+    >
       <div
         class="item"
         :class="{ active: page.autoWidth }"
@@ -300,7 +303,10 @@
         <icon name="auto-width" />
       </div>
     </tooltip>
-    <tooltip :content="`${t('zoom.zoomIn')} (${getShortcut('Ctrl+')})`">
+    <tooltip
+      v-if="page.layout === 'page'"
+      :content="`${t('zoom.zoomIn')} (${getShortcut('Ctrl+')})`"
+    >
       <div class="item" @click="zoomIn">
         <icon name="plus" />
       </div>
@@ -331,11 +337,7 @@
   </t-drawer>
 </template>
 
-<script setup lang="ts">
-import type { UseFullscreenReturn } from '@vueuse/core'
-import type { DropdownOption } from 'tdesign-vue-next'
-
-import type { SupportedLocale } from '@/types'
+<script setup>
 import { getShortcut } from '@/utils/shortcut'
 
 const { locale } = useI18n()
@@ -348,22 +350,60 @@ const $document = useState('document', options)
 // 快捷键抽屉
 const showShortcut = $ref(false)
 
-const reset = inject('reset') as (silent: boolean) => void
+const reset = inject('reset')
 
 // 字数统计
 const showWordCount = $ref(false)
-const selectionCharacters = computed(() => {
-  if (editor.value) {
-    const { selection } = editor.value.state
-    const text = editor.value.state.doc.textBetween(
-      selection.from,
-      selection.to,
-      '',
-    )
-    return text.length
+let totalCharacters = $ref(0)
+let selectionCharacters = $ref(0)
+const updateTotalCharacters = () => {
+  if (!editor.value) {
+    totalCharacters = 0
+    return
   }
-  return 0
-})
+  const count = editor.value.storage?.characterCount?.characters?.()
+  totalCharacters = typeof count === 'number' ? count : 0
+}
+const updateSelectionCharacters = () => {
+  if (!editor.value) {
+    selectionCharacters = 0
+    return
+  }
+  const { selection } = editor.value.state
+  const text = editor.value.state.doc.textBetween(
+    selection.from,
+    selection.to,
+    '',
+  )
+  selectionCharacters = text.length
+}
+const updateTotalCharactersDebounced = useDebounceFn(updateTotalCharacters, 200)
+const updateSelectionCharactersDebounced = useDebounceFn(
+  updateSelectionCharacters,
+  120,
+)
+const handleEditorCreate = () => {
+  updateTotalCharacters()
+  updateSelectionCharacters()
+}
+watch(
+  () => editor.value,
+  (nextEditor, prevEditor) => {
+    if (prevEditor) {
+      prevEditor.off('update', updateTotalCharactersDebounced)
+      prevEditor.off('selectionUpdate', updateSelectionCharactersDebounced)
+      prevEditor.off('create', handleEditorCreate)
+    }
+    if (nextEditor) {
+      nextEditor.on('update', updateTotalCharactersDebounced)
+      nextEditor.on('selectionUpdate', updateSelectionCharactersDebounced)
+      nextEditor.on('create', handleEditorCreate)
+      updateTotalCharacters()
+      updateSelectionCharacters()
+    }
+  },
+  { immediate: true },
+)
 
 // 关于 Umo Editor
 const about = $ref(false)
@@ -371,12 +411,12 @@ const about = $ref(false)
 // 页面布局
 const showLayoutSelect = $ref(false)
 const layouts = computed(() => {
-  return options.value.page.layouts.map((item: string) => {
+  return options.value.page.layouts.map((item) => {
     return { content: t(`layout.${item}`), value: item }
   })
 })
 const currentLayout = computed(() => {
-  return layouts.value.find((item: any) => item.value === page.value.layout)
+  return layouts.value.find((item) => item.value === page.value.layout)
 })
 watch(
   () => page.value.layout,
@@ -391,7 +431,7 @@ const toggleFullscreen = () => {
   fullscreen.value = !fullscreen.value
 }
 
-let documentFullscreen: UseFullscreenReturn = $ref(null)
+let documentFullscreen = $ref(null)
 onMounted(() => {
   documentFullscreen = useFullscreen(document.querySelector(container))
 })
@@ -399,7 +439,7 @@ onMounted(() => {
 // 演示模式
 const togglePreview = () => {
   page.value.showToc = false
-  page.value.preview ??= {}
+  page.value.preview = page.value.preview || {}
   page.value.preview.enabled = !page.value.preview.enabled
 
   const zoomableContainer = document.querySelector(
@@ -411,19 +451,19 @@ const togglePreview = () => {
 }
 const exitPreview = () => {
   if (page.value.preview.enabled) {
-    page.value.preview ??= {}
+    page.value.preview = page.value.preview || {}
     page.value.preview.enabled = false
   }
 }
 
 watch(
   () => page.value.preview?.enabled,
-  (enabled: boolean) => {
+  (enabled) => {
     if (enabled) {
-      page.value.preview.editable = editor.value.isEditable
+      page.value.preview.isEditable = editor.value.isEditable
       editor.value.setEditable(false)
     } else {
-      editor.value.setEditable(page.value.preview.editable)
+      editor.value.setEditable(page.value.preview.isEditable)
     }
   },
 )
@@ -431,27 +471,31 @@ watch(
 // 演示模式倒计时
 const countdownSetting = $ref(false)
 let countdownValue = $ref('')
-const countdownChange = (value: string) => {
+const countdownChange = (value) => {
   countdownValue = value
 }
 
 watch(
   () => page.value.preview?.enabled,
-  (enabled: boolean) => {
+  async (enabled) => {
     if (enabled) {
-      void documentFullscreen.enter()
+      try {
+        await documentFullscreen?.enter?.()
+      } catch {}
       if (page.value.layout === 'page') {
         autoWidth(false, 10)
       }
     } else {
-      void documentFullscreen.exit()
+      try {
+        await documentFullscreen?.exit?.()
+      } catch {}
       zoomReset()
     }
   },
 )
 watch(
   () => documentFullscreen?.isFullscreen,
-  (isFullscreen: boolean) => {
+  (isFullscreen) => {
     if (!isFullscreen) {
       exitPreview()
     }
@@ -487,8 +531,8 @@ const autoWidth = (auto = true, padding = 50) => {
       `${container} .umo-zoomable-container`,
     )
     const pageEl = editorEl?.querySelector('.umo-page-content')
-    const editorWidth = editorEl?.clientWidth ?? 0
-    const pageWidth = pageEl?.clientWidth ?? 0
+    const editorWidth = editorEl?.clientWidth || 0
+    const pageWidth = pageEl?.clientWidth || 0
     page.value.zoomLevel = Math.floor(
       Number((editorWidth - padding * 2) / pageWidth) * 100,
     )
@@ -518,30 +562,17 @@ const langs = [
   { content: '🇨🇳 简体中文', value: 'zh-CN' },
   { content: '🇱🇷 English', value: 'en-US' },
 ]
-const setLocale = inject('setLocale') as (value: SupportedLocale) => void
+const setLocale = inject('setLocale')
 
 const lang = computed(
   () => langs.find((item) => item.value === locale.value)?.content,
 )
-const changeLang = (dropdownItem: DropdownOption) => {
-  const value = dropdownItem.value as SupportedLocale
+const changeLang = (dropdownItem) => {
+  const { value } = dropdownItem
   if (lang.value === value) {
     return
   }
-  const dialog = useConfirm({
-    attach: container,
-    theme: 'warning',
-    header: t('changeLocale.title'),
-    body: t('changeLocale.message'),
-    confirmBtn: {
-      theme: 'warning',
-      content: t('changeLocale.confirm'),
-    },
-    onConfirm() {
-      dialog.destroy()
-      setTimeout(() => setLocale(value), 300)
-    },
-  })
+  setLocale(value, false)
 }
 
 const toggleSpellcheck = () => {
@@ -568,7 +599,7 @@ watch(
 
 <style lang="less" scoped>
 .umo-status-bar {
-  padding: 6px 10px;
+  padding: 6px;
   display: flex;
   justify-content: space-between;
   font-size: var(--umo-font-size-small);
@@ -641,19 +672,6 @@ watch(
     .umo-zoom-level-bar {
       width: 240px;
       display: flex;
-      --td-comp-size-xxxs: 8px;
-      --td-size-2: 3px;
-      --td-brand-color: var(--umo-text-color);
-      .umo-zoom-level-slider {
-        :deep(.umo-slider__button) {
-          background: var(--td-brand-color);
-          border: none;
-          box-shadow: none;
-        }
-        :deep(.umo-slider__track) {
-          background: none;
-        }
-      }
     }
     @media screen and (max-width: 720px) {
       .umo-zoom-level-bar {

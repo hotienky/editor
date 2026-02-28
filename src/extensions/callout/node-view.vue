@@ -9,20 +9,20 @@
         bubbleMenu &&
         editor.state.selection.to === editor.state.selection.from
       "
-      @visible-change="(visible: boolean) => (bubbleMenu = visible)"
+      @visible-change="(visible) => (bubbleMenu = visible)"
     >
       <div
         class="umo-node-container hover-shadow umo-node-callout"
         :style="{
-          color: node.attrs.fontColor,
-          backgroundColor: node.attrs.backgroundColor,
+          color: attrs.fontColor,
+          backgroundColor: attrs.backgroundColor,
         }"
       >
         <span
-          v-if="node.attrs.icon"
+          v-if="attrs.icon"
           class="umo-node-callout-icon"
           contenteditable="false"
-          >{{ node.attrs.icon }}</span
+          >{{ attrs.icon }}</span
         >
         <node-view-content
           class="umo-node-callout-content"
@@ -47,14 +47,16 @@
   </node-view-wrapper>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes } = props
 
 const container = inject('container')
 const bubbleMenu = $ref(false)
 
-const selectEmoji = (emoji: string) => {
+const selectEmoji = (emoji) => {
   updateAttributes({
     icon: emoji,
   })
@@ -63,15 +65,15 @@ const selectEmoji = (emoji: string) => {
 
 <style lang="less">
 .umo-node-callout {
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: var(--umo-radius);
   display: flex;
   width: 100%;
-  min-height: 38px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
+  align-items: center;
   &-icon {
-    font-size: 16px;
+    font-size: 18px;
     margin-right: 10px;
   }
   &-content {
@@ -79,19 +81,17 @@ const selectEmoji = (emoji: string) => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
     &.umo-node-callout-empty {
       display: flex;
       align-items: center;
+      line-height: 1.5;
       &::after {
         content: attr(data-placeholder);
         opacity: 0.5;
       }
-      :deep(p) {
-        height: 1em;
-        line-height: 1em;
-        * {
-          display: none;
-        }
+      .tiptap-invisible-character {
+        display: none;
       }
     }
   }

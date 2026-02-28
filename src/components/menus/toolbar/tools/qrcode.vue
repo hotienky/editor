@@ -7,7 +7,7 @@
   >
     <modal
       :visible="dialogVisible"
-      width="695px"
+      width="532px"
       @confirm="setQrcode"
       @close="dialogVisible = false"
     >
@@ -24,11 +24,11 @@
             menu-type="select"
             :select-value="config.ecl"
             @menu-click="
-              (value: string) => {
+              (value) => {
                 config.ecl = value
               }
             "
-          ></menus-button>
+          />
           <menus-button
             menu-type="input"
             :tooltip="t('tools.qrcode.paddingTip')"
@@ -42,9 +42,9 @@
               :allow-input-over-limit="false"
               placeholder=""
             >
-              <template #label
-                ><span v-text="t('tools.qrcode.padding')"></span
-              ></template>
+              <template #label>
+                <span v-text="t('tools.qrcode.padding')"></span>
+              </template>
             </t-input-number>
           </menus-button>
           <menus-button menu-type="input" :tooltip="t('tools.qrcode.widthTip')">
@@ -57,9 +57,9 @@
               :allow-input-over-limit="false"
               placeholder=""
             >
-              <template #label
-                ><span v-text="t('tools.qrcode.width')"></span
-              ></template>
+              <template #label>
+                <span v-text="t('tools.qrcode.width')"></span>
+              </template>
             </t-input-number>
           </menus-button>
           <t-divider layout="vertical" />
@@ -67,13 +67,13 @@
             :text="t('tools.qrcode.color')"
             :default-color="config.color"
             modeless
-            @change="(value: any) => (config.color = value)"
+            @change="(value) => (config.color = value)"
           />
           <menus-toolbar-base-background-color
             :text="t('tools.qrcode.bgColor')"
             :default-color="config.background"
             modeless
-            @change="(value: any) => (config.background = value)"
+            @change="(value) => (config.background = value)"
           />
         </div>
         <div class="umo-qrcode-code">
@@ -97,7 +97,7 @@
             class="umo-qrcode-title"
             v-text="t('tools.qrcode.preview')"
           ></div>
-          <div class="umo-qrcode-svg narrow-scrollbar">
+          <div class="umo-qrcode-svg umo-scrollbar">
             <div
               v-if="!svgCode"
               class="umo-qrcode-empty"
@@ -111,10 +111,11 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { qrcode } from 'pure-svg-code'
-import svg64 from 'svg64'
 
+import { getSelectionNode } from '@/utils/selection'
+import { svgToDataURL } from '@/utils/file'
 import { shortId } from '@/utils/short-id'
 
 const { content } = defineProps({
@@ -127,7 +128,6 @@ const { content } = defineProps({
 let dialogVisible = $ref(false)
 const editor = inject('editor')
 const container = inject('container')
-const uploadFileMap = inject('uploadFileMap')
 
 const menuClick = () => {
   renderQrcode()
@@ -153,7 +153,7 @@ const defaultConfig = {
 let config = $ref({ ...defaultConfig })
 let changed = $ref(false)
 
-let svgCode = $ref<string | null>(null)
+let svgCode = $ref(null)
 let renderError = $ref(false)
 const renderQrcode = () => {
   try {
@@ -168,7 +168,7 @@ const renderQrcode = () => {
 }
 watch(
   () => dialogVisible,
-  (val: boolean) => {
+  (val) => {
     if (val) {
       config = content ? JSON.parse(content) : { ...defaultConfig }
       setTimeout(() => {
@@ -205,27 +205,16 @@ const setQrcode = () => {
     })
     return
   }
-  const id = shortId(10)
-  const { width, height } = config
-  const src = svg64(svgCode)
-  const name = `qrcode-${id}.svg`
-  const blob = new Blob([svgCode], {
-    type: 'image/svg+xml',
-  })
-  const file = new File([blob], name, {
-    type: 'image/svg+xml',
-  })
-  uploadFileMap.value.set(id, file)
   if (changed) {
+    const { width, height } = config
+    const src = svgToDataURL(svgCode)
     editor.value
       ?.chain()
       .focus()
       .setImage(
         {
-          id,
+          id: shortId(10),
           type: 'qrcode',
-          name,
-          size: file.size,
           src,
           content: JSON.stringify(config),
           width,

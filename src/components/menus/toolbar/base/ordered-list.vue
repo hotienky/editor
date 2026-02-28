@@ -8,6 +8,11 @@
     hide-text
     :popup-visible="popupVisible"
     :menu-active="editor?.isActive('orderedList')"
+    :disabled="
+      !editor?.can().chain().focus().toggleBulletList().run() &&
+      !editor?.can().chain().focus().toggleOrderedList().run() &&
+      !editor?.can().chain().focus().toggleTaskList().run()
+    "
     @toggle-popup="togglePopup"
     @menu-click="toggleOrderedList(options[0].value)"
   >
@@ -52,7 +57,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
@@ -80,14 +85,14 @@ const options = [
 let listStyleType = $ref('left')
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
+  (val) => {
     if (val && editor.value) {
       const { listType } = editor.value.getAttributes('orderedList')
       listStyleType = listType
     }
   },
 )
-const toggleOrderedList = (listType: string) => {
+const toggleOrderedList = (listType) => {
   const chain = editor.value?.chain().focus()
   if (editor.value?.isActive('orderedList')) {
     if (editor.value.getAttributes('orderedList').listType === listType) {
@@ -118,11 +123,9 @@ const changeOrderedListStart = () => {
 }
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
-    if (val && editor.value) {
-      startAt = editor.value.getAttributes('orderedList').start
-    } else {
-      startAt = 1
+  (visible) => {
+    if (visible && editor.value) {
+      startAt = editor.value.getAttributes('orderedList').start || 1
     }
   },
 )

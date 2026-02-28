@@ -4,10 +4,11 @@
     ico="indent"
     shortcut="Tab"
     hide-text
-    @menu-click="editor?.chain().focus().indent().run()"
+    :disabled="!editor?.can().chain().focus().setIndent().run()"
+    @menu-click="editor?.chain().focus().setIndent().run()"
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 </script>

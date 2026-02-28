@@ -14,6 +14,7 @@
     v-bind="$attrs"
     :placeholder="t('base.fontSize.text')"
     filterable
+    :disabled="!editor?.can().chain().focus().setFontSize().run()"
     @menu-click="setFontSize"
   >
   </menus-button>
@@ -22,6 +23,7 @@
     ico="font-size-increase"
     :text="t('base.fontSize.increase')"
     hide-text
+    :disabled="!editor?.can().chain().focus().setFontSize().run()"
     @menu-click="increaseFontSize"
   />
   <menus-button
@@ -29,11 +31,12 @@
     ico="font-size-decrease"
     :text="t('base.fontSize.decrease')"
     hide-text
+    :disabled="!editor?.can().chain().focus().setFontSize().run()"
     @menu-click="decreaseFontSize"
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   select: {
     type: Boolean,
@@ -45,7 +48,7 @@ const editor = inject('editor')
 const options = inject('options')
 const typeWriterIsRunning = inject('typeWriterIsRunning')
 
-const disableMenu = (name: string) => {
+const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
@@ -84,13 +87,13 @@ const fontSizes = [
 ]
 
 // 设置字体大小
-const setFontSize = (fontSize: string) => {
+const setFontSize = (fontSize) => {
   editor.value?.chain().focus().setFontSize(fontSize).run()
 }
 
 // 增大字号
 const increaseFontSize = () => {
-  const { fontSize } = editor.value?.getAttributes('textStyle') ?? {}
+  const { fontSize } = editor.value?.getAttributes('textStyle') || {}
   if (fontSize) {
     const size = fontSizes.find(({ value }) => value === fontSize)
     if (!size) {
@@ -107,7 +110,7 @@ const increaseFontSize = () => {
 
 // 减小字号
 const decreaseFontSize = () => {
-  const { fontSize } = editor.value?.getAttributes('textStyle') ?? {}
+  const { fontSize } = editor.value?.getAttributes('textStyle') || {}
   if (fontSize) {
     const size = fontSizes.find(({ value }) => value === fontSize)
     if (!size) {

@@ -28,14 +28,14 @@
   </modal>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const options = inject('options')
 const container = inject('container')
 let dialogVisible = $ref(false)
 
 const copyLink = () => {
   const { copy } = useClipboard({ source: options.value.shareUrl })
-  void copy()
+  copy()
   useMessage('success', {
     attach: container,
     content: t('export.share.copied'),

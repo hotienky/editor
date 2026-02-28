@@ -1,9 +1,10 @@
 <template>
   <node-view-wrapper
-    :id="node.attrs.id"
+    :id="attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
       class="umo-node-container umo-node-video"
@@ -15,8 +16,8 @@
         :selected="selected"
         :rotatable="false"
         :boundary="false"
-        :width="Number(node.attrs.width)"
-        :height="Number(node.attrs.height)"
+        :width="Number(attrs.width)"
+        :height="Number(attrs.height)"
         :min-width="300"
         :min-height="200"
         :max-width="maxWidth"
@@ -27,15 +28,16 @@
         @focus="selected = true"
       >
         <video
+          v-show="playerShow"
           ref="videoRef"
-          :src="node.attrs.src"
+          :src="attrs.src"
           preload="metadata"
           controls
           crossorigin="anonymous"
           @canplay="onLoad"
         ></video>
         <div
-          v-if="!node.attrs.uploaded && node.attrs.id !== null"
+          v-if="!attrs.uploaded && attrs.id !== null"
           class="uploading"
         ></div>
       </drager>
@@ -43,15 +45,17 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 
-import { mediaPlayer } from '@/utils/player'
+import { player } from '@/utils/player'
 
 import { updateAttributesWithoutHistory } from '../file'
 
-const { node, updateAttributes, getPos } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes, getPos } = props
 const options = inject('options')
 const editor = inject('editor')
 const container = inject('container')
@@ -59,13 +63,14 @@ const uploadFileMap = inject('uploadFileMap')
 
 const containerRef = ref(null)
 let selected = $ref(false)
-const videoRef = $ref<HTMLVideoElement | null>(null)
-let player = $ref<Plyr | null>(null)
+const videoRef = $ref(null)
+let playerInstance = $ref(null)
+let playerShow = $ref(false)
 let maxWidth = $ref(0)
 let maxHeight = $ref(0)
 
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -79,14 +84,16 @@ const nodeStyle = $computed(() => {
 
 onMounted(async () => {
   await nextTick()
-  player = mediaPlayer(videoRef)
-  if (node.attrs.uploaded || !node.attrs.id) {
+  playerInstance = await player(videoRef, options.value.cdnUrl)
+  playerInstance.on('ready', () => (playerShow = true))
+  if (attrs.uploaded || !attrs.id) {
     return
   }
-  if (uploadFileMap.value.has(node.attrs.id)) {
+  if (uploadFileMap.value.has(attrs.id)) {
     try {
-      const file = uploadFileMap.value.get(node.attrs.id)
-      const { id, url } = (await options.value?.onFileUpload?.(file)) ?? {}
+      const file = uploadFileMap.value.get(attrs.id)
+      const result = await options.value?.onFileUpload?.(file)
+      const { id, url } = result
       if (containerRef.value) {
         updateAttributesWithoutHistory(
           editor.value,
@@ -94,16 +101,16 @@ onMounted(async () => {
           getPos(),
         )
       }
-      uploadFileMap.value.delete(node.attrs.id)
+      uploadFileMap.value.delete(attrs.id)
     } catch (e) {
-      useMessage('error', { attach: container, content: (e as Error).message })
+      useMessage('error', { attach: container, content: e.message })
     }
   }
 })
 const onLoad = () => {
-  if (node.attrs.width === null) {
-    const { clientWidth = 0, clientHeight = 0 } = videoRef ?? {}
-    maxWidth = containerRef.value?.$el.clientWidth ?? 0
+  if (attrs.width === null) {
+    const { clientWidth = 0, clientHeight = 0 } = videoRef
+    maxWidth = containerRef.value?.$el.clientWidth
     const ratio = clientWidth / clientHeight
     maxHeight = containerRef.value?.$el.clientWidth / ratio
     updateAttributes({
@@ -116,13 +123,16 @@ const onLoad = () => {
     }, 200)
   }
 }
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({ width, height })
 }
+
 onBeforeUnmount(() => {
-  if (player) {
-    player?.destroy()
-  }
+  playerInstance?.destroy?.()
+  setTimeout(() => {
+    if (editor.value.isDestroyed) return
+    options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
+  }, 500)
 })
 
 onClickOutside(containerRef, () => {

@@ -1,24 +1,29 @@
 <template>
-  <node-view-wrapper as="span" class="umo-node-tag">
+  <node-view-wrapper
+    as="span"
+    class="umo-node-tag"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
+  >
     <span
       class="umo-node-tag-text"
       :style="{
-        color: node.attrs.color,
-        backgroundColor: node.attrs.backgroundColor,
+        color: attrs.color,
+        backgroundColor: attrs.backgroundColor,
         cursor:
           !options.document?.readOnly || editor.isEditable
             ? 'pointer'
             : 'default',
       }"
-      v-text="node.attrs.text"
+      v-text="attrs.text"
     ></span>
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 
-const { node } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
 const options = inject('options')
 const editor = inject('editor')
 </script>

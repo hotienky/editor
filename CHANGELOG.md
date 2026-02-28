@@ -1,1 +1,2 @@
-[English Changelog](https://dev.umodoc.com/en/docs/editor/changelog) | [中文更新日志](https://dev.umodoc.com/cn/docs/editor/changelog)
+- [English](https://dev.umodoc.com/en/docs/editor/changelog)
+- [中文](https://dev.umodoc.com/cn/docs/editor/changelog)

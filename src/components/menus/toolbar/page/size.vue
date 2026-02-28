@@ -34,7 +34,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const page = inject('page')
 const options = inject('options')
 const dialogVisible = $ref(false)

@@ -64,7 +64,7 @@
     </div>
   </modal>
 </template>
-<script setup lang="ts">
+<script setup>
 const container = inject('container')
 const editor = inject('editor')
 const page = inject('page')
@@ -74,7 +74,7 @@ let dialogVisible = $ref(false)
 // 书签名称
 let bookmarkText = $ref('')
 // 书签数据
-let bookmarkData: any = []
+let bookmarkData = []
 // 书签表格显示列
 const bookmarkColumns = [
   {
@@ -120,25 +120,25 @@ const insertBookmark = () => {
       attach: container,
       theme: 'warning',
       header: t('insert.bookmark.text'),
-      body: t('insert.bookmark.emptyError'), // "请输入书签名称！",//t('base.importWord.loadScript.message'),
+      body: t('insert.bookmark.emptyError'),
       onConfirm() {
         dialog.destroy()
       },
     })
   }
 }
-const onActiveChange = (highlightRowKeys: any, ctx: any) => {
+const onActiveChange = (highlightRowKeys, ctx) => {
   // 重置文档
   bookmarkText = ctx.currentRowData?.bookmarkRowName
 }
 // 这个方法本来也想封装到addCommands 中，但经过多次验证，每次都会有一个额外的事务异常
-const rowDelete = (row: any) => {
+const rowDelete = (row) => {
   const element = editor.value?.view.dom.querySelector(
     `bookmark[bookmarkName="${row.bookmarkRowName}"]`,
   )
   if (element) {
     const pos = editor.value?.view.posAtDOM(element, 0)
-    const { tr } = editor.value?.view.state ?? {}
+    const { tr } = editor.value?.view.state || {}
     if (tr) {
       const marks = editor.value?.view.state.doc.resolve(pos + 1)?.marks()
       if (marks !== null && marks.length > 0) {
@@ -161,8 +161,8 @@ const rowDelete = (row: any) => {
 const getCurWordAllBookmark = () => {
   try {
     bookmarkText = ''
-    editor.value?.commands.getAllBookmarks(function (_data: any) {
-      bookmarkData = _data
+    editor.value?.commands.getAllBookmarks((data) => {
+      bookmarkData = data
     })
   } catch (e) {
     dialogVisible = false

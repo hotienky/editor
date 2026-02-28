@@ -4,7 +4,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["./types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist"],
-  "types": ["vue/ref-macros"]
+  "include": ["src/**/*.js", "src/**/*.vue"],
+  "exclude": ["node_modules", "dist"]
 }

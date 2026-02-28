@@ -1,15 +1,20 @@
 <template>
   <component
-    :is="h(Dialog, { ...$attrs, attach: container, ref: changeRef }, $slots)"
+    :is="
+      h(
+        Dialog,
+        { placement: 'center', attach: container, ...$attrs, ref: changeRef },
+        $slots,
+      )
+    "
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { Dialog } from 'tdesign-vue-next'
-// @ts-ignore
 import { h } from 'vue'
 
 const container = inject('container', 'body')
 const vm = getCurrentInstance()
-const changeRef = (expose: any) => (vm.expose = expose)
+const changeRef = (expose) => (vm.expose = expose)
 </script>

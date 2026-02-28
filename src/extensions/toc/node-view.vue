@@ -1,5 +1,9 @@
 <template>
-  <node-view-wrapper :id="node.attrs.id" class="umo-node-view">
+  <node-view-wrapper
+    :id="node.attrs.id"
+    class="umo-node-view"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
+  >
     <div
       class="umo-node-container umo-hover-shadow umo-select-outline umo-node-toc"
     >
@@ -25,31 +29,29 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { TextSelection } from '@tiptap/pm/state'
-import { NodeViewWrapper } from '@tiptap/vue-3'
+import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
+
+const { getPos } = defineProps(nodeViewProps)
 
 const container = inject('container')
 const editor = inject('editor')
 
 defineEmits(['close'])
 
-interface TocItem {
-  [key: string]: any
-  children?: TocItem[]
-}
 // 最终可视化数据
 let tocTreeData = $ref([])
-let watchTreeData: TocItem[] = [] // 可视化监听数据
-const buildTocTree = (tocArray: Record<string, any>[]): TocItem[] => {
-  const root: TocItem[] = []
-  const stack: TocItem[] = []
+let watchTreeData = [] // 可视化监听数据
+const buildTocTree = (tocArray) => {
+  const root = []
+  const stack = []
   for (const item of tocArray) {
-    const node: TocItem = {
+    const node = {
       textContent: item.textContent,
       level: item.originalLevel,
       id: item.id,
-      actived: false, // item.isActive,
+      actived: false,
       children: [],
     }
     while (
@@ -61,7 +63,7 @@ const buildTocTree = (tocArray: Record<string, any>[]): TocItem[] => {
     if (stack.length === 0) {
       root.push(node)
     } else {
-      stack[stack.length - 1].children!.push(node)
+      stack[stack.length - 1].children.push(node)
     }
     stack.push(node)
   }
@@ -70,7 +72,7 @@ const buildTocTree = (tocArray: Record<string, any>[]): TocItem[] => {
 
 watch(
   () => editor.value?.storage.tableOfContents.content,
-  (toc: any[]) => {
+  (toc) => {
     // 每次都监听 但不是每次发生变化，重复赋值导致toc数据双击生效
     const curTocTreeData = buildTocTree(toc)
     if (JSON.stringify(watchTreeData) !== JSON.stringify(curTocTreeData)) {
@@ -81,7 +83,7 @@ watch(
   { immediate: true },
 )
 
-const headingActive = (value: any) => {
+const headingActive = (value) => {
   if (!editor.value) {
     return
   }
@@ -90,16 +92,14 @@ const headingActive = (value: any) => {
   )
   const pageContainer = document.querySelector(
     `${container} .umo-zoomable-container`,
-  ) as HTMLElement
-  const pageHeader = pageContainer?.querySelector(
-    '.umo-page-node-header',
-  ) as HTMLElement
+  )
+  const pageHeader = pageContainer?.querySelector('.umo-page-node-header')
   pageContainer.scrollTo({
-    top: nodeElement.offsetTop + pageHeader.offsetHeight,
+    top: nodeElement.offsetTop + (pageHeader?.offsetHeight || 0),
   })
-  const pos = editor.value.view.posAtDOM(nodeElement as Node, 0)
+  const pos = editor.value.view.posAtDOM(nodeElement, 0)
   const { tr } = editor.value.view.state
-  tr.setSelection(new TextSelection(tr.doc.resolve(pos)))
+  tr.setSelection(new TextSelection.create(tr.doc, pos))
   editor.value.view.dispatch(tr)
   editor.value.view.focus()
 }
@@ -115,7 +115,7 @@ const headingActive = (value: any) => {
     background-color: #fff;
     width: 100%;
     &-head {
-      font-weight: 600;
+      font-weight: 500;
       margin: 0;
       position: absolute;
       top: 0;
@@ -123,7 +123,6 @@ const headingActive = (value: any) => {
       padding: 0.25em 0.5em;
       border-bottom-left-radius: 3px;
       border-bottom-right-radius: 3px;
-      font-size: 16px;
       background: rgba(black, 0.05);
       color: var(--umo-primary-color);
     }
@@ -131,12 +130,19 @@ const headingActive = (value: any) => {
     &-body {
       .umo-tree__label {
         margin-left: 0 !important;
-        font-weight: 600;
-        font-size: 16px;
         padding: 5px;
         &:hover {
           color: var(--umo-primary-color);
         }
+      }
+      .umo-tree__empty {
+        height: 40px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--umo-text-color-light);
+        margin-bottom: 15px;
       }
     }
   }

@@ -1,12 +1,5 @@
 <template>
-  <div
-    ref="wraperRef"
-    class="umo-scrollable-container"
-    :style="{
-      paddingLeft: hidePrev ? '10px' : '32px',
-      paddingRight: hideNext ? '10px' : '32px',
-    }"
-  >
+  <div ref="wraperRef" class="umo-scrollable-container">
     <div
       v-if="!hidePrev"
       class="umo-scrollable-control scrollable-left"
@@ -27,26 +20,26 @@
   </div>
 </template>
 
-<script setup lang="ts">
-const wraperRef = ref<HTMLDivElement | null>(null)
-const contentRef = $ref<HTMLDivElement | null>(null)
+<script setup>
+const wraperRef = ref(null)
+const contentRef = $ref(null)
 let hidePrev = $ref(true)
 let hideNext = $ref(true)
 
 const checkScrollPosition = () => {
-  const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = contentRef ?? {}
+  const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = contentRef || {}
   hidePrev = scrollLeft === 0
-  hideNext = scrollLeft + clientWidth + 100 >= scrollWidth
+  hideNext = scrollLeft + clientWidth + 20 >= scrollWidth
 }
 
 const scrollLeft = () => {
-  if (contentRef?.scrollLeft || contentRef.scrollLeft === 0) {
+  if (contentRef && (contentRef.scrollLeft || contentRef.scrollLeft === 0)) {
     contentRef.scrollLeft -= contentRef.offsetWidth - 10 || 100
   }
 }
 
 const scrollRight = () => {
-  if (contentRef?.scrollLeft || contentRef.scrollLeft === 0) {
+  if (contentRef && (contentRef.scrollLeft || contentRef.scrollLeft === 0)) {
     contentRef.scrollLeft += contentRef.offsetWidth - 10 || 100
   }
 }
@@ -56,9 +49,21 @@ useResizeObserver(wraperRef, () => {
   checkScrollPosition()
 })
 
-//
+// 支持鼠标滚轮滚动
+const wheelScroll = (e) => {
+  e.preventDefault()
+  e.deltaY < 0 ? scrollLeft() : scrollRight()
+}
 onMounted(() => {
-  contentRef?.addEventListener('scroll', checkScrollPosition)
+  if (contentRef) {
+    contentRef.addEventListener('scroll', checkScrollPosition)
+    contentRef.addEventListener('wheel', wheelScroll, { passive: false })
+  }
+})
+onUnmounted(() => {
+  if (contentRef) {
+    contentRef.removeEventListener('wheel', wheelScroll)
+  }
 })
 
 // 更新
@@ -97,6 +102,7 @@ defineExpose({
     top: 50%;
     transform: translateY(-50%);
     height: calc(100% - 20px);
+    outline: solid 10px var(--umo-color-white);
     &:hover {
       border-color: var(--umo-primary-color);
       background-color: var(--umo-primary-color);
@@ -116,10 +122,10 @@ defineExpose({
           var(--umo-color-white)
         );
         position: absolute;
-        left: 21px;
+        left: 30px;
         top: 0;
         bottom: 0;
-        width: 20px;
+        width: 30px;
         pointer-events: none;
       }
     }
@@ -137,10 +143,10 @@ defineExpose({
           var(--umo-color-white)
         );
         position: absolute;
-        right: 21px;
+        right: 30px;
         top: 0;
         bottom: 0;
-        width: 20px;
+        width: 30px;
         pointer-events: none;
       }
     }
@@ -154,5 +160,53 @@ defineExpose({
       display: none;
     }
   }
+}
+</style>
+
+<style lang="less">
+.umo-skin-modern {
+  &.toolbar-ribbon {
+    .umo-scrollable-container {
+      padding: 10px 15px 2px 15px !important;
+    }
+    .umo-scrollable-control {
+      height: calc(100% - 32px) !important;
+      margin-top: 4px;
+    }
+  }
+  &.toolbar-classic {
+    .umo-scrollable-container {
+      padding: 15px 15px 2px 15px !important;
+    }
+    .umo-scrollable-control {
+      height: calc(100% - 38px) !important;
+      margin-top: 6px;
+    }
+  }
+  .umo-scrollable-content {
+    border-radius: 6px;
+    background-color: var(--umo-color-white);
+    padding: 10px 0 10px 10px;
+    box-shadow:
+      0 0 0 1px hsla(0, 0%, 5%, 0.04),
+      0 2px 5px hsla(0, 0%, 5%, 0.06);
+    &:hover {
+      box-shadow:
+        0 0 0 1px hsla(0, 0%, 5%, 0.06),
+        0 2px 5px hsla(0, 0%, 5%, 0.1);
+    }
+  }
+  .umo-scrollable-control {
+    border-radius: 5px !important;
+    &.scrollable-left {
+      left: 25px !important;
+    }
+    &.scrollable-right {
+      right: 25px !important;
+    }
+  }
+}
+[theme-mode='dark'] .umo-skin-modern .umo-scrollable-content {
+  outline: solid 1px var(--umo-border-color-light);
 }
 </style>

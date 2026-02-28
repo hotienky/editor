@@ -9,8 +9,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const historyRecords = inject('historyRecords')
-// editor?.chain().focus().undo().run()
-const menuClick = inject('undoHistory') as () => void
+const menuClick = inject('undoHistory')
 </script>

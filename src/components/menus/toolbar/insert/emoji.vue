@@ -8,7 +8,7 @@
     @toggle-popup="togglePopup"
   >
     <template #content>
-      <div class="umo-emojis-container narrow-scrollbar">
+      <div class="umo-emojis-container umo-scrollbar">
         <template v-for="(group, index) in options.dicts?.emojis" :key="index">
           <div class="umo-emojis-group-title" v-text="l(group.label)"></div>
           <div class="umo-emojis-group-container">
@@ -27,7 +27,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   onSelectEmoji: undefined,
 })
@@ -35,7 +35,7 @@ const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 const options = inject('options')
 
-const selectEmoji = (emoji: string) => {
+const selectEmoji = (emoji) => {
   if (props.onSelectEmoji) {
     props.onSelectEmoji(emoji)
   } else {

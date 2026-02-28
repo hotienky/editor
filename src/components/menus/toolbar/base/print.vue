@@ -10,9 +10,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const printing = inject('printing')
 </script>
-
-<style lang="less" scoped></style>

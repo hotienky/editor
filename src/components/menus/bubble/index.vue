@@ -1,82 +1,32 @@
 <template>
-  <bubble-menu
-    class="umo-editor-bubble-menu"
-    :class="{ assistant }"
-    :editor="editor!"
-    :tippy-options="tippyOpitons"
-  >
-    <menus-bubble-menus
-      v-if="options?.document?.enableBubbleMenu && !assistant"
-    >
+  <bubble-menu v-if="editor" class="umo-editor-bubble-menu" :editor="editor">
+    <menus-bubble-menus v-if="options?.document?.enableBubbleMenu">
       <template #bubble_menu="props">
         <slot name="bubble_menu" v-bind="props" />
       </template>
     </menus-bubble-menus>
-    <ai-assistant-input v-if="options?.ai?.assistant?.enabled && assistant" />
   </bubble-menu>
 </template>
 
-<script setup lang="ts">
-import { BubbleMenu } from '@tiptap/vue-3'
-import type { Instance } from 'tippy.js'
+<script setup>
+import { BubbleMenu } from '@tiptap/vue-3/menus'
 
-const container = inject('container')
 const editor = inject('editor')
-const assistant = inject('assistant')
 const options = inject('options')
-
-// 气泡菜单
-let tippyInstance = $ref<Instance | null>(null)
-const tippyOpitons = $ref<Partial<Instance>>({
-  appendTo: () =>
-    document.querySelector(`${container} .umo-zoomable-container`)!,
-  maxWidth: 580,
-  zIndex: 110,
-  onShow(instance: Instance) {
-    tippyInstance = instance
-  },
-  onHide() {
-    assistant.value = false
-  },
-  onDestroy() {
-    tippyInstance = null
-  },
-})
-
-// AI 助手
-watch(
-  () => [assistant.value],
-  (visible: any[]) => {
-    if (tippyInstance) {
-      tippyInstance?.setProps({
-        placement: visible.includes(true) ? 'bottom' : 'top',
-      })
-    }
-  },
-)
-
-// 销毁 tippy
-onUnmounted(() => {
-  if (tippyInstance) {
-    tippyInstance.destroy()
-    tippyInstance = null
-  }
-})
 </script>
 
 <style lang="less">
 .umo-editor-bubble-menu {
+  max-width: 580px;
+  z-index: 110;
   border-radius: var(--umo-radius);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-
-  &:not(.assistant) {
-    padding: 8px 10px;
-    box-shadow: var(--umo-shadow);
-    border: 1px solid var(--umo-border-color);
-    background-color: var(--umo-color-white);
-  }
+  padding: 8px 10px !important;
+  box-shadow: var(--umo-shadow);
+  border: 1px solid var(--umo-border-color);
+  background-color: var(--umo-color-white);
 
   &:empty {
     display: none;

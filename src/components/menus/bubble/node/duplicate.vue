@@ -6,10 +6,8 @@
   />
 </template>
 
-<script setup lang="ts">
-import type { Node } from '@tiptap/pm/model'
-
-import { getSelectionNode } from '@/extensions/selection'
+<script setup>
+import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 
 const editor = inject('editor')
@@ -18,7 +16,7 @@ const duplicateNode = () => {
   const selectionNode = editor.value ? getSelectionNode(editor.value) : null
   const getPosition = () => {
     let point = 0
-    editor.value?.state.doc.descendants((node: Node, pos: number) => {
+    editor.value?.state.doc.descendants((node, pos) => {
       if (node === selectionNode) {
         point = pos + node.nodeSize
       }

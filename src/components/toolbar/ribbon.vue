@@ -28,6 +28,7 @@
             <div class="umo-virtual-group-row">
               <menus-toolbar-base-font-family />
               <menus-toolbar-base-font-size />
+              <menus-toolbar-base-word-wrap />
             </div>
             <div class="umo-virtual-group-row">
               <menus-toolbar-base-bold />
@@ -39,16 +40,13 @@
               <menus-toolbar-base-color />
               <menus-toolbar-base-background-color />
               <menus-toolbar-base-highlight v-if="!disableMenu('highlight')" />
+              <menus-toolbar-base-letter-spacing />
             </div>
           </div>
           <div class="umo-virtual-group">
             <div class="umo-virtual-group-row">
-              <menus-toolbar-base-ordered-list
-                v-if="!disableMenu('ordered-list')"
-              />
-              <menus-toolbar-base-bullet-list
-                v-if="!disableMenu('bullet-list')"
-              />
+              <menus-toolbar-base-ordered-list />
+              <menus-toolbar-base-bullet-list />
               <menus-toolbar-base-task-list v-if="!disableMenu('task-list')" />
               <menus-toolbar-base-indent />
               <menus-toolbar-base-outdent />
@@ -63,8 +61,8 @@
               <menus-toolbar-base-align-right />
               <menus-toolbar-base-align-justify />
               <menus-toolbar-base-align-distributed />
-              <menus-toolbar-base-quote v-if="!disableMenu('quote')" />
               <menus-toolbar-base-code v-if="!disableMenu('code')" />
+              <menus-toolbar-base-quote v-if="!disableMenu('quote')" />
               <menus-toolbar-base-select-all
                 v-if="!disableMenu('select-all')"
               />
@@ -74,14 +72,10 @@
             <menus-toolbar-base-heading />
           </div>
           <div class="umo-virtual-group">
-            <menus-toolbar-base-import-word
-              v-if="!disableMenu('import-word')"
-            />
             <menus-toolbar-base-markdown v-if="!disableMenu('markdown')" />
             <menus-toolbar-base-search-replace />
           </div>
           <div class="umo-virtual-group">
-            <menus-toolbar-base-viewer v-if="!disableMenu('viewer')" />
             <menus-toolbar-base-print v-if="!disableMenu('print')" />
           </div>
           <div class="virtual-group is-slot">
@@ -95,6 +89,10 @@
             <menus-toolbar-insert-video v-if="!disableMenu('video')" />
             <menus-toolbar-insert-audio v-if="!disableMenu('audio')" />
             <menus-toolbar-insert-file v-if="!disableMenu('file')" />
+          </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-insert-text-box v-if="!disableMenu('text-box')" />
+            <menus-toolbar-insert-details v-if="!disableMenu('details')" />
             <menus-toolbar-insert-code-block
               v-if="!disableMenu('code-block')"
             />
@@ -103,14 +101,12 @@
               v-if="!disableMenu('chinese-date')"
             />
             <menus-toolbar-insert-emoji v-if="!disableMenu('emoji')" />
-            <menus-toolbar-insert-math v-if="!disableMenu('math')" />
           </div>
           <div class="umo-virtual-group">
             <menus-toolbar-insert-tag v-if="!disableMenu('tag')" />
             <menus-toolbar-insert-columns v-if="!disableMenu('columns')" />
             <menus-toolbar-insert-callout v-if="!disableMenu('callout')" />
             <menus-toolbar-insert-mention v-if="!disableMenu('mention')" />
-            <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
             <menus-toolbar-insert-option-box
               v-if="!disableMenu('option-box')"
             />
@@ -120,8 +116,9 @@
               v-if="!disableMenu('hard-break')"
             />
             <menus-toolbar-insert-hr v-if="!disableMenu('hr')" />
+            <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
+            <menus-toolbar-insert-footnote v-if="!disableMenu('footnote')" />
             <menus-toolbar-insert-toc v-if="!disableMenu('toc')" />
-            <menus-toolbar-insert-text-box v-if="!disableMenu('text-box')" />
           </div>
           <div class="umo-virtual-group">
             <menus-toolbar-insert-template v-if="!disableMenu('template')" />
@@ -189,12 +186,10 @@
           <div class="umo-virtual-group">
             <menus-toolbar-tools-qrcode v-if="!disableMenu('qrcode')" />
             <menus-toolbar-tools-barcode v-if="!disableMenu('barcode')" />
-          </div>
-          <div class="umo-virtual-group">
             <menus-toolbar-tools-signature v-if="!disableMenu('signature')" />
-            <menus-toolbar-tools-seal v-if="!disableMenu('seal')" />
           </div>
           <div class="umo-virtual-group">
+            <menus-toolbar-tools-math v-if="!disableMenu('math')" />
             <menus-toolbar-tools-diagrams v-if="!disableMenu('diagrams')" />
             <menus-toolbar-tools-echarts v-if="!disableMenu('echarts')" />
             <!-- <menus-toolbar-tools-mind-map v-if="!disableMenu('mind-map')" /> -->
@@ -210,9 +205,6 @@
           </div>
         </template>
         <template v-if="currentMenu === 'page'">
-          <div class="umo-virtual-group">
-            <menus-toolbar-page-toggle-toc />
-          </div>
           <div class="umo-virtual-group">
             <div class="umo-virtual-group-row">
               <menus-toolbar-page-margin />
@@ -235,11 +227,37 @@
             <menus-toolbar-page-watermark v-if="!disableMenu('watermark')" />
             <menus-toolbar-page-background v-if="!disableMenu('background')" />
           </div>
-          <div class="umo-virtual-group">
-            <menus-toolbar-page-preview v-if="!disableMenu('preview')" />
-          </div>
           <div class="virtual-group is-slot">
             <slot name="toolbar_page" toolbar-mode="ribbon" />
+          </div>
+        </template>
+        <template v-if="currentMenu === 'view'">
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-toc v-if="!disableMenu('toc')" />
+            <menus-toolbar-view-fullscreen v-if="!disableMenu('fullscreen')" />
+            <menus-toolbar-view-preview v-if="!disableMenu('preview')" />
+          </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-page v-if="!disableMenu('layout-page')" />
+            <menus-toolbar-view-web v-if="!disableMenu('layout-web')" />
+          </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-zoom v-if="!disableMenu('zoom')" />
+            <menus-toolbar-view-zoom-original
+              v-if="!disableMenu('zoom-original')"
+            />
+            <menus-toolbar-view-zoom-auto v-if="!disableMenu('zoom-auto')" />
+          </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-skin v-if="!disableMenu('skin')" />
+            <menus-toolbar-view-theme v-if="!disableMenu('theme')" />
+            <menus-toolbar-view-locale v-if="!disableMenu('locale')" />
+          </div>
+          <div class="umo-virtual-group">
+            <menus-toolbar-view-reset v-if="!disableMenu('reset')" />
+          </div>
+          <div class="virtual-group is-slot">
+            <slot name="toolbar_view" toolbar-mode="ribbon" />
           </div>
         </template>
         <template v-if="currentMenu === 'export'">
@@ -261,27 +279,32 @@
   </div>
 </template>
 
-<script setup lang="ts">
-const props = defineProps<{
+<script setup>
+const props = defineProps({
   menus: {
-    value: string
-    label: string
-  }[]
-  currentMenu: string
-}>()
+    type: Array,
+    default: () => [],
+  },
+  currentMenu: {
+    type: String,
+    default: '',
+  },
+})
 const emits = defineEmits(['menu-change'])
 
 const options = inject('options')
 const page = inject('page')
-const disableMenu = (name: string) => {
+const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
-const scrollableRef = $ref<{ update: () => void }>()
-const changeMenu = async (menu: string) => {
+const scrollableRef = $ref(null)
+const changeMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()
-  scrollableRef?.update()
+  if (scrollableRef) {
+    scrollableRef.update()
+  }
 }
 </script>
 
@@ -365,5 +388,11 @@ const changeMenu = async (menu: string) => {
       }
     }
   }
+}
+</style>
+
+<style lang="less">
+.umo-skin-modern .umo-ribbon-tabs {
+  padding: 14px 15px 0 !important;
 }
 </style>

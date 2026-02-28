@@ -28,7 +28,10 @@
         <slot :name="`toolbar_${item}`" v-bind="props" />
       </template>
     </toolbar-classic>
-    <div class="umo-toolbar-actions" :class="$toolbar.mode">
+    <div
+      class="umo-toolbar-actions"
+      :class="`umo-toolbar-actions-${$toolbar.mode}`"
+    >
       <t-popup
         v-if="
           options.toolbar.showSaveLabel && options.document.readOnly !== true
@@ -37,7 +40,7 @@
         :attach="container"
         trigger="click"
         placement="bottom-right"
-        @visible-change="(visible: boolean) => (statusPopup = visible)"
+        @visible-change="(visible) => (statusPopup = visible)"
       >
         <t-button
           class="umo-toolbar-actions-button"
@@ -111,7 +114,7 @@
         <template #dropdown>
           <t-dropdown-menu
             v-for="item in editorModeOptions"
-            :key="item.value as string"
+            :key="item.value"
             :content="item.label"
             :value="item.value"
             :divider="item.divider"
@@ -132,9 +135,7 @@
   </tooltip>
 </template>
 
-<script setup lang="ts">
-import type { DropdownOption } from 'tdesign-vue-next'
-
+<script setup>
 import { timeAgo } from '@/utils/time-ago'
 const emits = defineEmits(['menu-change'])
 
@@ -153,23 +154,24 @@ const defaultToolbarMenus = [
   { label: t('toolbar.table'), value: 'table' },
   { label: t('toolbar.tools'), value: 'tools' },
   { label: t('toolbar.page'), value: 'page' },
+  { label: t('toolbar.view'), value: 'view' },
   { label: t('toolbar.export'), value: 'export' },
 ]
 let toolbarMenus = defaultToolbarMenus
 if (options.value.toolbar?.menus) {
   toolbarMenus = options.value.toolbar?.menus.map(
-    (item: any) => defaultToolbarMenus.filter((menu) => menu.value === item)[0],
+    (item) => defaultToolbarMenus.filter((menu) => menu.value === item)[0],
   )
 }
 let currentMenu = $ref(toolbarMenus[0].value)
-const menuChange = (menu: string) => {
+const menuChange = (menu) => {
   currentMenu = menu
   emits('menu-change', menu)
 }
 // 监听如果当前编辑元素为table则切换到table菜单
 watch(
   () => editor.value?.isActive('table'),
-  (val: boolean, oldVal: boolean) => {
+  (val, oldVal) => {
     if (val) {
       currentMenu = 'table'
     } else if (!val && oldVal) {
@@ -197,17 +199,17 @@ const editorModeOptions = [
   },
 ]
 
-const toggleToolbarMode = ({ value }: DropdownOption) => {
+const toggleToolbarMode = ({ value }) => {
   if (value === 'hideToolbar') {
     $toolbar.value.show = false
   } else {
     $toolbar.value.show = true
-    $toolbar.value.mode = value as string
+    $toolbar.value.mode = value
   }
 }
 
 // 保存文档
-const saveContentMethod = inject('saveContent') as () => void
+const saveContentMethod = inject('saveContent')
 const saveContent = () => {
   saveContentMethod()
   statusPopup = false
@@ -239,14 +241,13 @@ const setContentFromCache = () => {
   display: flex;
   justify-content: space-between;
   user-select: none;
-  border-bottom: solid 1px var(--umo-border-color);
   position: relative;
 }
 .umo-toolbar-actions {
   padding: 6px 10px;
   display: flex;
   align-items: center;
-  &.ribbon {
+  &-ribbon {
     position: absolute;
     right: 0;
     top: 1px;
@@ -327,6 +328,39 @@ const setContentFromCache = () => {
     margin: 8px 0 4px;
     display: flex;
     gap: 8px;
+  }
+}
+</style>
+
+<style lang="less">
+.umo-skin-modern {
+  &.toolbar-classic {
+    .umo-toolbar-actions {
+      margin: 15px 15px 2px 0;
+      border-radius: 6px;
+      background-color: var(--umo-color-white);
+      box-shadow:
+        0 0 0 1px hsla(0, 0%, 5%, 0.04),
+        0 2px 5px hsla(0, 0%, 5%, 0.06);
+      &:hover {
+        box-shadow:
+          0 0 0 1px hsla(0, 0%, 5%, 0.06),
+          0 2px 5px hsla(0, 0%, 5%, 0.1);
+      }
+    }
+  }
+  &.toolbar-ribbon {
+    .umo-toolbar-actions {
+      right: 5px !important;
+      top: 6px !important;
+    }
+  }
+}
+[theme-mode='dark'] .umo-skin-modern {
+  &.toolbar-classic {
+    .umo-toolbar-actions {
+      outline: solid 1px var(--umo-border-color-light);
+    }
   }
 }
 </style>

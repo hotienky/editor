@@ -4,6 +4,7 @@
     menu-type="popup"
     popup-handle="arrow"
     hide-text
+    :disabled="!editor?.can().chain().focus().setBackgroundColor().run()"
     :popup-visible="popupVisible"
     @toggle-popup="togglePopup"
   >
@@ -20,7 +21,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   text: {
     type: String,
@@ -40,9 +41,9 @@ const emits = defineEmits(['change'])
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-let currentColor = $ref<string | undefined>()
+let currentColor = $ref()
 
-const colorChange = (color: string) => {
+const colorChange = (color) => {
   currentColor = color
   popupVisible.value = false
 
@@ -52,9 +53,9 @@ const colorChange = (color: string) => {
   }
 
   if (color === '') {
-    editor.value?.chain().focus().unsetHighlight().run()
+    editor.value?.chain().focus().unsetBackgroundColor().run()
   } else {
-    editor.value?.chain().focus().setHighlight({ color }).run()
+    editor.value?.chain().focus().setBackgroundColor(color).run()
   }
 }
 </script>

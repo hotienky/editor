@@ -52,7 +52,7 @@
       :attach="container"
       trigger="click"
       placement="right-bottom"
-      @visible-change="(visible: boolean) => (moreColorPicker = visible)"
+      @visible-change="(visible) => (moreColorPicker = visible)"
     >
       <div class="umo-color-picker-more" :class="{ active: moreColorPicker }">
         <div class="umo-color-picker-more-menu">
@@ -77,7 +77,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   defaultColor: {
     type: String,
@@ -97,11 +97,11 @@ const color = $ref(props.defaultColor)
 
 // 更多颜色
 const moreColorPicker = $ref(false)
-const colorChange = (color: string, ctx?: { trigger: string }) => {
+const colorChange = (color, ctx) => {
   if (ctx && ctx.trigger !== 'palette-saturation-brightness') {
     return
   }
-  $recent.value.colors.forEach((item: string, index: number) => {
+  $recent.value.colors.forEach((item, index) => {
     if (item === color) {
       $recent.value.colors.splice(index, 1)
     }
@@ -114,7 +114,7 @@ const colorChange = (color: string, ctx?: { trigger: string }) => {
 }
 watch(
   () => moreColorPicker,
-  (visible: boolean) => {
+  (visible) => {
     if (visible) {
       editor.value?.commands.focus(undefined, { scrollIntoView: false })
     }
@@ -122,7 +122,7 @@ watch(
 )
 
 // 选择颜色
-const selectColor = (color: string) => {
+const selectColor = (color) => {
   colorChange(color)
   emits('change', color)
 }

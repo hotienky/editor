@@ -6,7 +6,8 @@
     popup-handle="arrow"
     hide-text
     overlay-class-name="umo-highlight-dropdown"
-    @menu-click="highlightChange(highlight as HighlightOption)"
+    :disabled="!editor?.can().chain().focus().setBackgroundColor().run()"
+    @menu-click="highlightChange(highlight)"
   >
     <icon
       name="highlight"
@@ -22,7 +23,7 @@
           :value="item.value"
           :style="{ backgroundColor: item.bgcolor, color: item.color }"
           :divider="item.divider"
-          @click="highlightChange(item as HighlightOption)"
+          @click="highlightChange(item)"
         >
           <icon name="highlight" />
           <span>{{ item.label }}</span>
@@ -39,18 +40,10 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 
-interface HighlightOption {
-  label: string
-  value: number
-  bgcolor?: string
-  color?: string
-  divider?: boolean
-}
-
-const options: HighlightOption[] = [
+const options = [
   { label: t('base.highlight.yellowBg'), value: 1, bgcolor: '#ffff8a' },
   { label: t('base.highlight.greenBg'), value: 2, bgcolor: '#a7ffa7' },
   { label: t('base.highlight.purpleBg'), value: 3, bgcolor: '#e6afff' },
@@ -69,14 +62,14 @@ const options: HighlightOption[] = [
   },
 ]
 
-let highlight = $ref<HighlightOption | undefined>()
-const highlightChange = (item: HighlightOption) => {
+let highlight = $ref()
+const highlightChange = (item) => {
   if (!item) {
     highlightChange(options[0])
     return
   }
   if (item.bgcolor) {
-    editor.value?.chain().focus().setHighlight({ color: item.bgcolor }).run()
+    editor.value?.chain().focus().setBackgroundColor(item.bgcolor).run()
   }
   if (item.color) {
     editor.value?.chain().focus().setColor(item.color).run()
@@ -84,7 +77,7 @@ const highlightChange = (item: HighlightOption) => {
   highlight = item
 }
 const clearFormat = () => {
-  editor.value?.chain().focus().unsetHighlight().run()
+  editor.value?.chain().focus().unsetBackgroundColor().run()
   editor.value?.chain().focus().unsetColor().run()
   highlight = undefined
 }

@@ -19,12 +19,10 @@
           :style="{
             '--umo-page-orientation': pageOptions.orientation,
             '--umo-page-background': pageOptions.background,
-            '--umo-page-margin-top': (pageOptions.margin?.top ?? '0') + 'cm',
-            '--umo-page-margin-bottom':
-              (pageOptions.margin?.bottom ?? '0') + 'cm',
-            '--umo-page-margin-left': (pageOptions.margin?.left ?? '0') + 'cm',
-            '--umo-page-margin-right':
-              (pageOptions.margin?.right ?? '0') + 'cm',
+            '--umo-page-margin-top': pageOptions.margin?.top + 'cm',
+            '--umo-page-margin-bottom': pageOptions.margin?.bottom + 'cm',
+            '--umo-page-margin-left': pageOptions.margin?.left + 'cm',
+            '--umo-page-margin-right': pageOptions.margin?.right + 'cm',
             '--umo-page-width':
               pageOptions.layout === 'page' ? pageSize.width + 'cm' : 'auto',
             '--umo-page-height':
@@ -70,42 +68,35 @@
         </t-watermark>
       </div>
     </div>
+    <div class="umo-main-floating-actions">
+      <t-back-top
+        style="position: relative"
+        :container="`${container} .umo-zoomable-container`"
+        :visible-height="800"
+        size="small"
+      />
+    </div>
     <t-image-viewer
+      :attach="container"
       v-model:visible="imageViewer.visible"
       v-model:index="currentImageIndex"
       :images="previewImages"
+      :trigger="() => {}"
       @close="imageViewer.visible = false"
-    />
-    <t-back-top
-      :container="`${container} .umo-zoomable-container`"
-      :visible-height="800"
-      size="small"
-      :offset="['25px', '30px']"
     />
     <container-search-replace />
     <container-print />
   </div>
-  <div v-if="viewerVisible" class="umo-viewer-container">
-    <umo-viewer
-      v-bind="viewerOptions"
-      @edit="viewer = false"
-      @close="viewer = false"
-    />
-  </div>
 </template>
 
-<script setup lang="ts">
-import UmoViewer from '@umoteam/viewer'
-
-import type { WatermarkOption } from '@/types'
-
+<script setup>
 const container = inject('container')
 const imageViewer = inject('imageViewer')
 const pageOptions = inject('page')
 
 // 页面大小
 const pageSize = $computed(() => {
-  const { width, height } = pageOptions.value.size ?? { width: 0, height: 0 }
+  const { width, height } = pageOptions.value.size || { width: 0, height: 0 }
   return {
     width: pageOptions.value.orientation === 'portrait' ? width : height,
     height: pageOptions.value.orientation === 'portrait' ? height : width,
@@ -121,22 +112,56 @@ const pageZoomWidth = $computed(() => {
 
 // 页面内容变化后更新页面高度
 let pageZoomHeight = $ref('')
-const setPageZoomHeight = async () => {
-  await nextTick()
+let pageContentEl = $ref(null)
+let pageHeightRaf = 0
+let pageHeightObserver = $ref(null)
+const updatePageZoomHeight = () => {
   if (pageOptions.value.layout === 'web') {
     pageZoomHeight = 'auto'
     return
   }
-  const el = document.querySelector(`${container} .umo-page-content`)
-  if (!el) {
+  if (!pageContentEl) {
     console.warn('The element <.umo-page-content> does not exist.')
     return
   }
-  pageZoomHeight = `${(el.clientHeight * (pageOptions.value.zoomLevel ?? 1)) / 100}px`
+  const height = `${(pageContentEl.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
+  if (pageZoomHeight !== height) {
+    pageZoomHeight = height
+  }
 }
-onMounted(() => {
-  void setPageZoomHeight()
+const schedulePageZoomHeight = () => {
+  if (pageHeightRaf) {
+    cancelAnimationFrame(pageHeightRaf)
+  }
+  pageHeightRaf = requestAnimationFrame(() => {
+    pageHeightRaf = 0
+    updatePageZoomHeight()
+  })
+}
+onMounted(async () => {
+  await nextTick()
+  pageContentEl = document.querySelector(`${container} .umo-page-content`)
+  if (pageContentEl) {
+    pageHeightObserver = new ResizeObserver(() => {
+      schedulePageZoomHeight()
+    })
+    pageHeightObserver.observe(pageContentEl)
+  } else {
+    console.warn('The element <.umo-page-content> does not exist.')
+  }
+  schedulePageZoomHeight()
 })
+onUnmounted(() => {
+  if (pageHeightObserver) {
+    pageHeightObserver.disconnect()
+    pageHeightObserver = null
+  }
+  if (pageHeightRaf) {
+    cancelAnimationFrame(pageHeightRaf)
+  }
+})
+
+// 页面变化后，更新页面高度
 watch(
   () => [
     pageOptions.value.layout,
@@ -145,34 +170,23 @@ watch(
     pageOptions.value.orientation,
   ],
   () => {
-    void setPageZoomHeight()
+    schedulePageZoomHeight()
   },
   { deep: true },
 )
 
-// 编辑器内容发生变化后，自动调整页面高度
-const editorInstance = inject('editor')
-watch(
-  () => editorInstance.value?.getHTML(),
-  () => {
-    void setPageZoomHeight()
-  },
-)
-
 // 水印
-const watermarkOptions = $ref<{
-  x: number
-  y?: number
-  width?: number
-  height: number
-  type?: string
-}>({
+const watermarkOptions = $ref({
   x: 0,
+  y: 0,
+  width: 0,
   height: 0,
+  type: undefined,
 })
 watch(
   () => pageOptions.value.watermark,
-  ({ type }: Partial<WatermarkOption> = { type: '' }) => {
+  (watermarkObj = { type: '' }) => {
+    const { type } = watermarkObj
     if (type === 'compact') {
       watermarkOptions.width = 320
       watermarkOptions.y = 240
@@ -185,12 +199,12 @@ watch(
 )
 
 // 图片预览
-let previewImages = $ref<string[]>([])
-let currentImageIndex = $ref<number>(0)
+let previewImages = $ref([])
+let currentImageIndex = $ref(0)
 
 watch(
   () => imageViewer.value.visible,
-  async (visible: boolean) => {
+  async (visible) => {
     if (!visible) {
       previewImages = []
       currentImageIndex = 0
@@ -198,11 +212,11 @@ watch(
     }
     await nextTick()
     const images = document.querySelectorAll(
-      `${container} .umo-page-node-content img[src]:not(.umo-icon)`,
+      `${container} .umo-page-node-content img[src][data-preview]`,
     )
     Array.from(images).forEach((image, index) => {
-      const src = (image as HTMLImageElement).getAttribute('src')
-      const nodeId = (image as HTMLImageElement).getAttribute('data-id')
+      const src = image.getAttribute('src')
+      const nodeId = image.getAttribute('data-id')
       previewImages.push(src)
       if (nodeId === imageViewer.value.current) {
         currentImageIndex = index
@@ -210,27 +224,6 @@ watch(
     })
   },
 )
-
-// 文档预览
-const options = inject('options')
-const viewer = inject('viewer')
-let viewerVisible = $ref(false)
-const { locale } = useI18n()
-const getVanillaHTML = inject('getVanillaHTML')
-const viewerOptions = $ref({
-  lang: locale.value,
-  theme: options.value.theme,
-  mode: ['html'],
-  title: options.value.document.title,
-  html: '',
-  editable: true,
-  closeable: true,
-  showAside: false,
-})
-watch(viewer, async (visible: boolean) => {
-  viewerOptions.html = visible ? await getVanillaHTML() : ''
-  viewerVisible = visible
-})
 </script>
 
 <style lang="less">
@@ -362,16 +355,27 @@ watch(viewer, async (visible: boolean) => {
   flex-shrink: 1;
 }
 
-.umo-back-top {
+.umo-main-floating-actions {
   position: absolute;
-  &:hover {
+  bottom: 25px;
+  right: 25px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  > * {
+    position: relative;
+    inset-inline-end: unset !important;
+    inset-block-end: unset !important;
     opacity: 0.9;
-    background-color: var(--umo-color-white) !important;
-    .umo-back-top__icon {
-      color: var(--umo-primary-color);
+    &:hover {
+      opacity: 1;
+      background-color: var(--umo-color-white) !important;
+      border: solid 1px var(--umo-primary-color);
     }
   }
 }
+
 .umo-viewer-container {
   position: absolute;
   inset: 0;

@@ -25,8 +25,9 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import DiagramEditor from '@/utils/diagram-editor'
+import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 
 const props = defineProps({
@@ -39,31 +40,18 @@ const props = defineProps({
 const container = inject('container')
 const editor = inject('editor')
 const options = inject('options')
-const uploadFileMap = inject('uploadFileMap')
 
 let dialogVisible = $ref(false)
 let loading = $ref(false)
 const diagramEditor = new DiagramEditor({
-  domain: (options.value.diagrams?.domain ?? '') as string,
-  params: (options.value.diagrams?.params ?? {}) as Record<string, any>,
+  domain: options.value.diagrams?.domain || '',
+  params: options.value.diagrams?.params || {},
   container: `${container} .umo-diagrams-container`,
 })
 
-let image = $ref<
-  | {
-      id: string
-      type: string
-      src: string
-      name: string
-      size: number
-      width: number
-      height: number
-      content: string
-    }
-  | undefined
->()
+let image = $ref(undefined)
 
-const messageListener = async (evt: MessageEvent) => {
+const messageListener = async (evt) => {
   if (evt?.type !== 'message' || typeof evt?.data !== 'string') {
     return
   }
@@ -74,19 +62,10 @@ const messageListener = async (evt: MessageEvent) => {
   }
   if (event === 'export') {
     if (!props.content || (props.content && props.content !== data)) {
-      const id = shortId(10)
       const { width, height } = bounds
-      const name = `diagrams-${shortId()}.svg`
-      // 将 data URL 转换为 Blob
-      const file = await fetch(data)
-        .then((res) => res.blob())
-        .then((blob) => new File([blob], name, { type: blob.type }))
-      uploadFileMap.value.set(id, file)
       image = {
-        id,
+        id: shortId(10),
         type: 'diagrams',
-        name,
-        size: file.size,
         src: data,
         width,
         height,
@@ -103,7 +82,7 @@ const messageListener = async (evt: MessageEvent) => {
 
 watch(
   () => dialogVisible,
-  async (val: boolean) => {
+  async (val) => {
     if (!val) {
       window.removeEventListener('message', messageListener)
       diagramEditor.stopEditing()
@@ -114,7 +93,7 @@ watch(
     }
     await nextTick()
     loading = true
-    diagramEditor.edit(props.content ?? '')
+    diagramEditor.edit(props.content || '')
     window.addEventListener('message', messageListener)
     image = undefined
   },

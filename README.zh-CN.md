@@ -13,17 +13,35 @@
 
 ## 基本介绍
 
-Umo Editor 是一个基于 Vue3 和 Tiptap 的本土化开源文档编辑器，提供类似于 Microsoft Word 的在线编辑功能和浏览体验，专为国人用户设计。它提供了强大的文档编辑能力和 AI 创作功能，支持分页模式和普通 Web 模式、Markdown 语法、富文本编辑、多种格式的节点插入、页面样式设置、文档导出与打印等功能。
+Umo Editor 是一个基于 Vue3 和 Tiptap3 的本土化开源文档编辑器，提供类似于 Microsoft Word 的在线编辑功能和浏览体验，专为国人用户设计。它提供了强大的文档编辑能力和 AI 创作功能，支持分页模式和普通 Web 模式、Markdown 语法、富文本编辑、多种格式的节点插入、页面样式设置、文档导出与打印等功能。
 
 此外，Umo Editor 还支持自定义扩展、多语言设置和暗色主题。同时我们提供了单独的文本预览组件[Umo Viewer](https://github.com/umodoc/viewer)，用户可以在项目中使用该组件来预览文档。
 
-Umo Editor 最大的特点是代码完全开源且自主可控，支持私有部署，您可以内网环境中使用，而无需担心数据安全问题。同时 Umo Editor 基于 Vue3 和 Tiptap，两者都有丰富的生态系统和社区支持，在遇到问题时可以迅速得到解决。
-
-![Umo Editor](https://unpkg.com/@umoteam/editor-external@latest/static/umo-editor-cn@2x.png)
+Umo Editor 最大的特点是代码完全开源且自主可控，支持私有部署，您可以内网环境中使用，而无需担心数据安全问题。同时 Umo Editor 基于 Vue3 和 Tiptap3，两者都有丰富的生态系统和社区支持，在遇到问题时可以迅速得到解决。
 
 作为一个独立的 Vue3 插件，Umo Editor 可以轻松集成到各类 Vue3 项目中。对于非 Vue3 项目，您可以通过 Iframe 将 Umo Editor 嵌入到您的项目中。
 
 [官网](https://www.umodoc.com) | [开发文档](https://dev.umodoc.com/cn/docs/editor) | [在线演示](https://www.umodoc.com/demo) | [GitHub](https://github.com/umodoc/editor) | [码云(国内镜像)](https://gitee.com/umodoc/editor) | [NPM](https://www.npmjs.com/package/@umoteam/editor)
+
+## 部分截图
+
+**Umo Editor**
+
+![umo editor](https://s2.umodoc.com/images/umo-editor1-cn@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor2-cn@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor3-cn@2x.png)
+
+**Umo Editor Next**
+
+![umo editor](https://s2.umodoc.com/images/umo-editor-next1-cn@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor-next2-cn@2x.png)
+
+![umo editor](https://s2.umodoc.com/images/umo-editor-next3-cn@2x.png)
+
+了解 Umo Editor Next 更多功能，请访问：[https://www.umodoc.com](https://www.umodoc.com)。
 
 ## 在线体验
 
@@ -56,7 +74,6 @@ Umo Editor 的诞生旨在解决 Web 应用中文档编辑的复杂性，为 Web
 - 演示模式
 - 文档导出与分享
 - 页面设置
-- AI 文档助手
 - 支持打印及打印预览
 - 支持自定义扩展
 - 快捷键支持
@@ -82,11 +99,9 @@ Umo Editor 的诞生旨在解决 Web 应用中文档编辑的复杂性，为 Web
 
 ## 环境支持
 
-- **Node.js** (>=v18.0.0)
+- **Node.js** (>=v18.x)
 - **Vue** (>=v3.x)
-- **Vite** (>=v5.x)
-- **Tiptap** (>=v2.6)
-- **TypeScript** (>=v5.5)
+- **Tiptap** (>=v3.x)
 
 ## 加入社区
 
@@ -101,10 +116,10 @@ Umo Editor 的诞生旨在解决 Web 应用中文档编辑的复杂性，为 Web
 Umo Editor 的发展离不开社区的支持，以下是为 Umo Editor 贡献过代码的贡献者名单，向他们致谢：
 
 - [Umo Team](https://github.com/umodoc)：👨‍💻 核心开发者
-- [Cassielxd](https://github.com/Cassielxd)：💪🏻 实现了分页和许多重要功能
 - [china-wangxu](https://github.com/china-wangxu)：💪🏻 添加了许多重要功能
-- [Na'aman Hirschfeld](https://github.com/Goldziher)：💪🏻 增强了 TypeScript 支持并添加测试
-- [SevenDreamYang](https://github.com/SevenDreamYang)：🛠️ 增强 TypeScript 支持并修复了部分问题
+- [Cassielxd](https://github.com/Cassielxd)：💪🏻 添加了许多重要功能
+- [Na'aman Hirschfeld](https://github.com/Goldziher)：🛠️ 贡献了部分代码
+- [SevenDreamYang](https://github.com/SevenDreamYang)：🛠️ 贡献了部分代码
 - [ChenErik](https://github.com/ChenErik)：🛠️ 贡献了部分代码
 - [SerRashin](https://github.com/SerRashin)：🛠️ 添加了俄语支持
 - [Sunny Wisozk](https://github.com/SunnyWisozk)：🛠️ 贡献了部分代码
@@ -126,7 +141,7 @@ Umo Editor 的发展离不开社区的支持，以下是为 Umo Editor 贡献过
 
 - Umo Editor 技术交流 1 群(即将满员)：[994500039](https://qm.qq.com/q/gFsQShETqE)
 - Umo Editor 技术交流 2 群：[455825557](https://qm.qq.com/q/rzgt2bUcAE)
-- Discord：[Umo Editor](https://discord.gg/yBwBmm8e)
+- Discord：[Umo Editor](https://discord.gg/k8GjuBBhXD)
 
 ## 支持我们
 
@@ -137,8 +152,8 @@ Umo Editor 的发展离不开社区的支持，以下是为 Umo Editor 贡献过
 
 ## Umo Team 出品
 
-- [Umo Editor](https://dev.umodoc.com/cn/docs/editor): 基于 Vue3 和 Tiptap 的本土化开源文档编辑器，专为国人用户设计。
-- [Umo Viewer](https://dev.umodoc.com/cn/docs/viewer): PDF 文档查看器，基于 Vue3 和 PDF.js 实现，支持在浏览器中直接预览 PDF 文档，同时也支持预览 Umo Editor 文档内容。
+- [Umo Editor](https://dev.umodoc.com/cn/docs/editor): 基于 Vue3 和 Tiptap3 的本土化开源文档编辑器，专为国人用户设计。
+- [Umo Viewer](https://dev.umodoc.com/cn/docs/viewer): 开源轻量级的 Umo Editor 文档查看器。
 - [Umo Editor Next](https://dev.umodoc.com/cn/docs/next): Umo Editor 的增强版，在包含最新版本的 Umo Editor 所有功能的基础上，重点增加或者增强了对多用户在线协作编辑、文档批注(评论)、文档历史版本管理、AI 创作、文档导入导出、表格等功能的支持，同时增强了工具栏和页边栏等区域的自定义能力。
 - [Umo Editor Server](https://dev.umodoc.com/cn/docs/server): 为增强 Umo Editor 功能，如多用户在线协作编辑、文档批注(评论)、文档导入导出等功能而开发的配套服务器端软件。
 - [Umo Office Viewer](https://dev.umodoc.com/cn/docs/office-viewer): Umo Office Viewer 是一款 Office 文档查看器，支持在 Web 页面中查看包括 WPS 文档在内的 40 余种主流的办公文档。

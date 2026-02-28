@@ -20,7 +20,7 @@
         <div class="umo-web-page-tip" v-text="t('insert.web.tip')"></div>
         <t-form :data="formData" label-align="top">
           <t-form-item :label="t('insert.web.type')" name="type">
-            <t-select v-model="formData.type" clearable>
+            <t-select v-model="formData.type">
               <t-option
                 v-for="(item, index) in webPages"
                 :key="index"
@@ -56,7 +56,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const props = defineProps({
   pageType: {
     type: Number,
@@ -76,8 +76,7 @@ const webPages = $ref([
   {
     label: t('insert.web.text'),
     icon: '<svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="8" width="40" height="32" rx="3" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M4 11a3 3 0 0 1 3-3h34a3 3 0 0 1 3 3v9H4v-9z" stroke="currentColor" stroke-width="4"/><circle r="2" transform="matrix(0 -1 -1 0 10 14)" fill="currentColor"/><circle r="2" transform="matrix(0 -1 -1 0 16 14)" fill="currentColor"/></svg>',
-    validate: (url: string) =>
-      url.startsWith('http://') || url.startsWith('https://'),
+    validate: (url) => url.startsWith('http://') || url.startsWith('https://'),
   },
 ])
 const formData = $ref({
@@ -88,7 +87,7 @@ const formData = $ref({
 
 onMounted(() => {
   if (options.value.webPages.length > 0) {
-    options.value.webPages.forEach((item: any) => {
+    options.value.webPages.forEach((item) => {
       item.label = l(item.label)
       webPages.push(item)
     })
@@ -118,7 +117,7 @@ const insertWebPage = () => {
 }
 watch(
   () => dialogVisible,
-  (visible: boolean) => {
+  (visible) => {
     if (visible) {
       formData.type = props.pageType
       formData.url = props.pageUrl

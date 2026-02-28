@@ -10,13 +10,13 @@
     "
     :disabled="
       !editor?.can().chain().focus().setTextAlign('left').run() &&
-      !editor?.can().chain().focus().setNodeAlign('left').run()
+      !editor?.can().chain().focus().setNodeAlign('flex-start').run()
     "
     @menu-click="setAlignLeft"
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const setAlignLeft = () => {
   if (editor.value?.can().chain().focus().setTextAlign('left').run()) {

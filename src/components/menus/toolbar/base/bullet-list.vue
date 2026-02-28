@@ -8,6 +8,11 @@
     hide-text
     :menu-active="editor?.isActive('bulletList')"
     :popup-visible="popupVisible"
+    :disabled="
+      !editor?.can().chain().focus().toggleBulletList().run() &&
+      !editor?.can().chain().focus().toggleOrderedList().run() &&
+      !editor?.can().chain().focus().toggleTaskList().run()
+    "
     @toggle-popup="togglePopup"
     @menu-click="toggleBulletList(options[0].value)"
   >
@@ -34,7 +39,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
@@ -47,14 +52,14 @@ const options = [
 let listStyleType = $ref('')
 watch(
   () => popupVisible.value,
-  (val: boolean) => {
+  (val) => {
     if (val && editor.value) {
       const { listType } = editor.value.getAttributes('bulletList')
       listStyleType = listType
     }
   },
 )
-const toggleBulletList = (listType: string) => {
+const toggleBulletList = (listType) => {
   const chain = editor.value?.chain().focus()
   if (editor.value?.isActive('bulletList')) {
     if (editor.value.getAttributes('bulletList').listType === listType) {

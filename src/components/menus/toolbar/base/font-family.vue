@@ -1,6 +1,7 @@
 <template>
   <menus-button
     :text="t('base.fontFamily.text')"
+    :placeholder="t('base.fontFamily.text')"
     menu-type="select"
     hide-text
     :select-value="
@@ -8,8 +9,9 @@
         ? null
         : editor?.getAttributes('textStyle').fontFamily || null
     "
-    :style="{ width: $toolbar.mode !== 'classic' ? '144px' : '90px' }"
+    :style="{ width: $toolbar.mode !== 'classic' ? '143px' : '90px' }"
     filterable
+    :disabled="!editor?.can().chain().focus().setFontFamily().run()"
     @menu-click="setFontFamily"
   >
     <t-option-group
@@ -20,17 +22,14 @@
     >
       <t-option
         v-for="item in group.children"
-        :key="item.value ?? ''"
+        :key="item.value"
         class="umo-font-family-item"
-        :value="item.value ?? ''"
+        :value="item.value"
         :label="l(item.label)"
       >
+        <span :style="{ fontFamily: item.value }" v-text="l(item.label)"></span>
         <span
-          :style="{ fontFamily: item.value ?? undefined }"
-          v-text="l(item.label)"
-        ></span>
-        <span
-          v-if="!fontDetect(item.value ?? '')"
+          v-if="!fontDetect(item.value)"
           class="umo-font-family-unsupport"
           :title="t('base.fontFamily.unsupport')"
           >!</span
@@ -40,7 +39,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { isString } from '@tool-belt/type-predicates'
 
 const editor = inject('editor')
@@ -49,9 +48,9 @@ const $toolbar = useState('toolbar', options)
 const $recent = useState('recent', options)
 const typeWriterIsRunning = inject('typeWriterIsRunning')
 
-const usedFonts = $ref<string[]>([])
+const usedFonts = $ref([])
 // https://www.cnblogs.com/gaidalou/p/8479452.html
-const fontDetect = (font?: string) => {
+const fontDetect = (font) => {
   if (!font) {
     return true
   }
@@ -75,7 +74,7 @@ const fontDetect = (font?: string) => {
     context.textBaseline = 'middle'
   }
 
-  const getImageDataWithFont = (currentFont: string) => {
+  const getImageDataWithFont = (currentFont) => {
     if (!context) {
       return []
     }
@@ -98,31 +97,25 @@ const allFonts = computed(() => {
   const all = [
     {
       label: t('base.fontFamily.all'),
-      children: options.value.dicts?.fonts ?? [],
+      children: options.value.dicts?.fonts,
     },
   ]
   // 通过字体值获取字体列表
-  const getFontsByValues = (values: string[]) => {
-    return values.map(
-      (item) =>
-        options.value.dicts?.fonts.find(
-          ({ value }: { value: string }) => value === item,
-        ) ?? {
-          label: item,
-          item,
-        },
+  const getFontsByValues = (values) => {
+    return values.map((item) =>
+      options.value.dicts?.fonts.find(({ value }) => value === item),
     )
   }
   if ($recent.value.fonts.length > 0) {
     all.unshift({
       label: t('base.fontFamily.recent'),
-      children: getFontsByValues($recent.value.fonts) as any,
+      children: getFontsByValues($recent.value.fonts),
     })
   }
   if (usedFonts.length > 0) {
     all.unshift({
       label: t('base.fontFamily.used'),
-      children: getFontsByValues(usedFonts) as any,
+      children: getFontsByValues(usedFonts),
     })
   }
   return all
@@ -142,7 +135,7 @@ const getUsedFonts = () => {
   }
 }
 
-const setFontFamily = (fontFamily: string) => {
+const setFontFamily = (fontFamily) => {
   if (fontFamily) {
     $recent.value.fonts.forEach((item, index) => {
       if (item === fontFamily) {
@@ -160,7 +153,7 @@ const setFontFamily = (fontFamily: string) => {
 
 watch(
   () => editor.value,
-  (val: any) => {
+  (val) => {
     if (val) {
       getUsedFonts()
     }

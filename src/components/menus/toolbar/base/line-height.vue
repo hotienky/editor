@@ -5,33 +5,30 @@
     menu-type="dropdown"
     hide-text
     :select-options="lineHeights"
-    @click="setLineHeight"
+    :disabled="!editor?.isActive('paragraph') && !editor?.isActive('heading')"
+    @change="setLineHeight"
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const options = inject('options')
 
 const lineHeights = computed(() => {
-  return options.value.dicts?.lineHeights.map((item: any) => {
+  return options.value.dicts?.lineHeights.map((item) => {
     return {
       content: item.default
         ? l(item.label) + t('base.lineHeight.default')
         : l(item.label),
       value: item.value,
-      active: editor.value?.isActive({ lineHeight: item.value }),
+      active:
+        editor.value?.isActive('paragraph', { lineHeight: item.value }) ||
+        editor.value?.isActive('heading', { lineHeight: item.value }),
     }
   })
 })
 
-const setLineHeight = ({
-  content,
-  value,
-}: {
-  content: string
-  value: string
-}) => {
+const setLineHeight = ({ content, value }) => {
   if (!content) {
     return
   }

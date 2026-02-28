@@ -1,7 +1,7 @@
 <template>
   <node-view-wrapper ref="containerRef" class="umo-node-view umo-code-block">
     <div
-      :class="`umo-node-container hover-shadow umo-node-code-block umo-node-code-block-theme-${node.attrs.theme}`"
+      :class="`umo-node-container hover-shadow umo-node-code-block umo-node-code-block-theme-${attrs.theme}`"
     >
       <div class="umo-node-code-block-toolbar">
         <div class="umo-node-code-block-toolbar-left">
@@ -9,44 +9,42 @@
             <menus-button
               :text="t('bubbleMenu.code.languages')"
               menu-type="select"
-              style="width: 100px"
               :select-options="languageOptions"
-              :select-value="node.attrs.language"
+              :select-value="attrs.language"
               :popup-props="{
                 attach: container,
                 overlayClassName: 'umo-code-block-language',
               }"
               filterable
               borderless
-              @menu-click="
-                (value: string) => updateAttribute('language', value)
-              "
+              auto-width
+              @menu-click="(value) => updateAttribute('language', value)"
             />
             <menus-button
               :text="t('bubbleMenu.code.themes.text')"
               menu-type="select"
-              style="width: 100px"
               :select-options="themeOptions"
-              :select-value="node.attrs.theme"
+              :select-value="attrs.theme"
               :disabled="options.document?.readOnly"
               force-enabled
               borderless
-              @menu-click="(value: string) => updateAttribute('theme', value)"
+              auto-width
+              @menu-click="(value) => updateAttribute('theme', value)"
             />
           </template>
           <span v-else class="umo-node-code-block-language">{{
-            node.attrs.language
+            attrs.language
           }}</span>
         </div>
         <div class="umo-node-code-block-toolbar-right">
           <menus-button
             class="umo-word-wrap-button"
-            :menu-active="node.attrs.wordWrap"
+            :menu-active="attrs.textWrap"
             :text="t('bubbleMenu.code.wordWrap')"
             ico="code-word-wrap"
             hide-text
             force-enabled
-            @menu-click="updateAttribute('wordWrap', !node.attrs.wordWrap)"
+            @menu-click="updateAttribute('textWrap', !attrs.textWrap)"
           />
           <menus-button
             class="umo-copy-button"
@@ -69,28 +67,29 @@
       <pre
         class="umo-node-code-block-content"
         :class="{
-          'umo-node-code-block-word-wrap': node.attrs.wordWrap,
+          'umo-node-code-block-word-wrap': attrs.textWrap,
         }"
       ><node-view-content
-        :class="`hljs language-${node.attrs.language}`"
-        :style="`white-space: pre${node.attrs.wordWrap ? '-wrap' : ''} !important;`"
+        :class="`hljs language-${attrs.language}`"
+        :style="`white-space: pre${attrs.textWrap ? '-wrap' : ''} !important;`"
         as="code"
       /></pre>
     </div>
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { NodeViewContent, nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import { common, createLowlight } from 'lowlight'
 
-const { node, updateAttributes, deleteNode } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes, deleteNode } = props
 const lowlight = createLowlight(common)
 
 const container = inject('container')
 const options = inject('options')
 const editor = inject('editor')
-const containerRef = ref(null)
 
 const languageOptions = lowlight.listLanguages().map((item) => {
   return { label: item, value: item }
@@ -100,15 +99,17 @@ const themeOptions = [
   { label: t('bubbleMenu.code.themes.light'), value: 'light' },
 ]
 
-const updateAttribute = (type: string, value: string) => {
-  updateAttributes({ [type]: value })
+const updateAttribute = (attr, value) => {
+  updateAttributes({
+    [attr]: value,
+  })
 }
 
 const copyCode = () => {
   const { copy } = useClipboard({
-    source: node.textContent,
+    source: props.node.textContent,
   })
-  void copy()
+  copy()
   useMessage('success', {
     attach: container,
     content: t('bubbleMenu.code.copy.success'),
@@ -134,6 +135,18 @@ const copyCode = () => {
       border-top-left-radius: 2px;
       border-top-right-radius: 2px;
       background-color: var(--umo-content-node-selected-background);
+      .umo-select__wrap {
+        --td-comp-paddingLR-s: 5px;
+        --td-text-color-primary: #999;
+        width: auto;
+        .umo-input--auto-width {
+          min-width: unset;
+        }
+        .umo-input__suffix {
+          margin: 0 -3px 0 3px;
+          --td-text-color-placeholder: #999;
+        }
+      }
       &-right {
         display: flex;
         align-items: center;
@@ -200,6 +213,9 @@ const copyCode = () => {
     .umo-node-code-block {
       border-color: var(--umo-primary-color);
     }
+  }
+  .tiptap-invisible-character {
+    display: none;
   }
 }
 .umo-code-block-language {

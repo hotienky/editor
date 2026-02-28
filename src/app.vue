@@ -9,7 +9,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { shortId } from '@/utils/short-id'
 
 const editorRef = $ref(null)
@@ -28,21 +28,23 @@ const templates = [
   },
 ]
 const options = $ref({
+  // theme: 'auto',
+  // skin: 'modern',
   toolbar: {
     // defaultMode: 'classic',
     // menus: ['base'],
   },
   document: {
     title: '测试文档',
-    content: localStorage.getItem('document.content') ?? '<p>测试文档</p>',
-    characterLimit: 10000,
+    content: localStorage.getItem('document.content') || '<p>测试文档</p>',
+    // structure: 'heading block*',
   },
   page: {
     layouts: ['page', 'web'],
     showBookmark: true,
   },
   templates,
-  cdnUrl: 'https://cdn.umodoc.com',
+  cdnUrl: 'https://beta.cdn.umodoc.com',
   shareUrl: 'https://www.umodoc.com',
   file: {
     // allowedMimeTypes: [
@@ -51,22 +53,6 @@ const options = $ref({
     //   'video/mp4',
     //   'audio/*',
     // ],
-  },
-  importWord: {
-    enabled: true,
-    // async onCustomImportMethod() {
-    //   return await Promise.resolve({
-    //     value: '<p>测试导入word</p>',
-    //   })
-    // },
-  },
-  ai: {
-    assistant: {
-      enabled: true,
-      async onMessage() {
-        return await Promise.resolve('<p>AI助手测试</p>')
-      },
-    },
   },
   user: {
     id: 'umoeditor',
@@ -84,22 +70,19 @@ const options = $ref({
     { id: 'testuser', label: '测试用户' },
   ],
   // https://dev.umodoc.com/cn/docs/options/extensions#disableextensions
-  disableExtensions: ['file'],
-  async onSave(content: string, page: number, document: { content: string }) {
-    localStorage.setItem('document.content', document.content)
-    return new Promise((resolve, reject) => {
+  disableExtensions: [],
+  async onSave(content, page, document) {
+    // 将文档和评论线程保存到 localStorage
+    localStorage.setItem('document.content', content.html)
+    // 模拟保存等待过程
+    return new Promise((resolve) => {
       setTimeout(() => {
-        const success = true
-        if (success) {
-          console.log('onSave', { content, page, document })
-          resolve('操作成功')
-        } else {
-          reject(new Error('操作失败'))
-        }
+        console.log('onSave', { content, page, document })
+        resolve('文档保存成功')
       }, 2000)
     })
   },
-  async onFileUpload(file: File & { url?: string }) {
+  async onFileUpload(file) {
     if (!file) {
       throw new Error('没有找到要上传的文件')
     }
@@ -107,13 +90,13 @@ const options = $ref({
     await new Promise((resolve) => setTimeout(resolve, 3000))
     return {
       id: shortId(),
-      url: file.url ?? URL.createObjectURL(file),
+      url: file.url || URL.createObjectURL(file),
       name: file.name,
       type: file.type,
       size: file.size,
     }
   },
-  onFileDelete(id: string, url: string, type: string) {
+  onFileDelete(id, url, type) {
     console.log(id, url, type)
   },
 })

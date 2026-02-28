@@ -3,33 +3,34 @@
     ref="containerRef"
     class="umo-node-view"
     :class="{
-      'umo-floating-node': node.attrs.draggable,
-      'is-inline-image': node.attrs.inline,
+      'umo-floating-node': attrs.draggable,
+      'is-inline-image': attrs.inline,
     }"
     :style="nodeStyle"
     @dblclick="openImageViewer"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
       class="umo-node-container umo-node-image"
       :class="{
-        'is-loading': node.attrs.src && isLoading,
-        'is-error': node.attrs.src && error,
+        'is-loading': attrs.src && isLoading,
+        'is-error': attrs.src && error,
         'umo-hover-shadow': !options.document?.readOnly,
-        'umo-select-outline': !node.attrs.draggable,
+        'umo-select-outline': !attrs.draggable,
       }"
     >
       <div
-        v-if="node.attrs.src && isLoading"
+        v-if="attrs.src && isLoading"
         class="loading"
-        :style="{ height: `${node.attrs.height}px` }"
+        :style="{ height: `${attrs.height}px` }"
       >
         <icon name="loading" class="loading-icon" />
         {{ t('node.image.loading') }}
       </div>
       <div
-        v-else-if="node.attrs.src && error"
+        v-else-if="attrs.src && error"
         class="error"
-        :style="{ height: `${node.attrs.height}px` }"
+        :style="{ height: `${attrs.height}px` }"
       >
         <icon name="image-failed" class="error-icon" />
         {{ t('node.image.error') }}
@@ -37,10 +38,10 @@
       <drager
         v-else
         ref="dragRef"
-        :class="{ 'is-draggable': node.attrs.draggable }"
+        :class="{ 'is-draggable': attrs.draggable }"
         :style="{
           cursor:
-            node.attrs.draggable && !options.document?.readOnly
+            attrs.draggable && !options.document?.readOnly
               ? 'move'
               : 'default !important',
         }"
@@ -48,40 +49,39 @@
         :rotatable="true"
         :boundary="false"
         :disabled="options.document?.readOnly"
-        :angle="node.attrs.angle"
-        :width="Number(node.attrs.width)"
-        :height="Number(node.attrs.height)"
-        :left="Number(node.attrs.left)"
-        :top="Number(node.attrs.top)"
+        :angle="attrs.angle"
+        :width="Number(attrs.width)"
+        :height="Number(attrs.height)"
+        :left="Number(attrs.left)"
+        :top="Number(attrs.top)"
         :min-width="14"
         :min-height="14"
         :max-width="maxWidth"
         :max-height="maxHeight"
         :z-index="10"
-        :equal-proportion="node.attrs.equalProportion"
+        :equal-proportion="attrs.equalProportion"
         @rotate="onRotate"
         @resize="onResize"
+        @drag-end="onDragEnd"
         @mousedown="onMousedown"
         @focus="selected = true"
       >
         <img
           ref="imageRef"
-          :src="node.attrs.src"
-          :class="{ 'not-equal-proportion': !node.attrs.equalProportion }"
+          :src="attrs.src"
+          :class="{ 'not-equal-proportion': !attrs.equalProportion }"
           :style="{
             transform:
-              node.attrs.flipX || node.attrs.flipY
-                ? `rotateX(${node.attrs.flipX ? '180' : '0'}deg) rotateY(${node.attrs.flipY ? '180' : '0'}deg)`
+              attrs.flipX || attrs.flipY
+                ? `rotateX(${attrs.flipX ? '180' : '0'}deg) rotateY(${attrs.flipY ? '180' : '0'}deg)`
                 : 'none',
           }"
-          :data-id="node.attrs.id"
+          :data-id="attrs.id"
+          :data-preview="attrs.previewType"
           loading="lazy"
           @load="onLoad"
         />
-        <div
-          v-if="!node.attrs.uploaded && node.attrs.file !== null"
-          class="uploading"
-        >
+        <div v-if="!attrs.uploaded && attrs.file !== null" class="uploading">
           <span></span>
         </div>
       </drager>
@@ -89,12 +89,12 @@
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
-import { base64ToFile } from 'file64'
 
 import { shortId } from '@/utils/short-id'
+import { dataURLToFile } from '@/utils/file'
 
 import { updateAttributesWithoutHistory } from '../file'
 
@@ -102,18 +102,20 @@ const container = inject('container')
 const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
 const imageViewer = inject('imageViewer')
-const { node, updateAttributes, getPos } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes, getPos } = props
 const options = inject('options')
-const { isLoading, error } = useImage({ src: node.attrs.src })
+const { isLoading, error } = useImage({ src: attrs.src })
 
 const containerRef = ref(null)
-const imageRef = $ref<HTMLImageElement | null>(null)
+const imageRef = $ref(null)
 let selected = $ref(false)
 let maxWidth = $ref(0)
 let maxHeight = $ref(0)
 
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -122,22 +124,19 @@ const nodeStyle = $computed(() => {
     justifyContent: nodeAlign,
     marginTop,
     marginBottom,
-    zIndex: selected ? 100 : node.attrs.draggable ? 95 : 0,
+    zIndex: selected ? 100 : attrs.draggable ? 95 : 0,
   }
 })
 
 const uploadImage = async () => {
-  if (
-    node.attrs.uploaded ||
-    !node.attrs.id ||
-    !uploadFileMap.value.has(node.attrs.id)
-  ) {
+  if (attrs.uploaded || !attrs.id || !uploadFileMap.value.has(attrs.id)) {
     updateAttributesWithoutHistory(editor.value, { uploaded: true }, getPos())
     return
   }
   try {
-    const file = uploadFileMap.value.get(node.attrs.id)
-    const { id, url } = (await options.value?.onFileUpload?.(file)) ?? {}
+    const file = uploadFileMap.value.get(attrs.id)
+    const result = await options.value?.onFileUpload?.(file)
+    const { id, url } = result
     if (containerRef.value) {
       updateAttributesWithoutHistory(
         editor.value,
@@ -145,44 +144,45 @@ const uploadImage = async () => {
         getPos(),
       )
     }
-    uploadFileMap.value.delete(node.attrs.id)
+    uploadFileMap.value.delete(attrs.id)
   } catch (error) {
     useMessage('error', {
       attach: container,
-      content: (error as Error).message,
+      content: error.message,
     })
   }
 }
 const onLoad = async () => {
   // updateAttributes({ error: false })
-  if (node.attrs.width === null) {
-    const { clientWidth = 1, clientHeight = 1 } = imageRef ?? {}
-    const ratio = clientWidth / clientHeight
-    maxWidth = containerRef.value?.$el.clientWidth
-    maxHeight = maxWidth / ratio
+  const { clientWidth = 1, clientHeight = 1 } = imageRef
+  const ratio = clientWidth / clientHeight
+  maxWidth = containerRef.value?.$el.clientWidth
+  maxHeight = maxWidth / ratio
+  if (attrs.width === null) {
     updateAttributes({ width: maxWidth })
   }
-  if ([null, 'auto', 0].includes(node.attrs.height)) {
+  if ([null, 'auto', 0].includes(attrs.height)) {
     await nextTick()
-    const { height } = imageRef?.getBoundingClientRect() ?? {}
-    updateAttributes({ height: Number(height.toFixed(2)) })
+    const rect = imageRef?.getBoundingClientRect()
+    updateAttributes({ height: Number(rect.height?.toFixed(2)) })
   }
 }
 
-const onRotate = ({ angle }: { angle: number }) => {
+const onRotate = ({ angle }) => {
   updateAttributes({ angle })
 }
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({
     width: width.toFixed(2),
     height: height.toFixed(2),
   })
 }
 
-const dragRef = $ref<HTMLDivElement | null>(null)
+const dragRef = $ref(null)
 let isMousedown = $ref(false)
-const onMousedown = (e: MouseEvent) => {
-  if (!node.attrs.draggable) {
+const onMousedown = (e) => {
+  containerRef.value?.$el.click()
+  if (!attrs.draggable) {
     return
   }
   isMousedown = true
@@ -192,16 +192,16 @@ const onMousedown = (e: MouseEvent) => {
   const downY = e.clientY
 
   // 鼠标在盒子里的位置
-  const elRect = dragRef.$el!.getBoundingClientRect()
+  const elRect = dragRef.$el.getBoundingClientRect()
   const mouseX = downX - elRect.left
   const mouseY = downY - elRect.top
 
-  const onMousemove = (e: MouseEvent) => {
+  const onMousemove = (e) => {
     const left = e.clientX - mouseX
     const top = e.clientY - mouseY
     updateAttributes({ left, top })
   }
-  const onMouseup = (_e: MouseEvent) => {
+  const onMouseup = (_e) => {
     isMousedown = false
     // 移除document事件
     document.removeEventListener('mousemove', onMousemove)
@@ -212,24 +212,35 @@ const onMousedown = (e: MouseEvent) => {
   // 鼠标抬起事件
   document.addEventListener('mouseup', onMouseup)
 }
+const onDragEnd = () => {
+  if (!attrs.draggable) {
+    setTimeout(() => {
+      dragRef.$el.style.left = 0
+      dragRef.$el.style.top = 0
+    }, 100)
+  }
+}
 
 onClickOutside(containerRef, () => {
   selected = false
 })
 
 const openImageViewer = async () => {
+  if (attrs.previewType === null) {
+    return
+  }
   const id = shortId(10)
-  if (node.attrs.id === null) {
+  if (attrs.id === null) {
     updateAttributesWithoutHistory(editor.value, { id }, getPos())
   }
   await nextTick()
   imageViewer.value.visible = true
-  imageViewer.value.current = node.attrs.id
+  imageViewer.value.current = attrs.id
 }
 
 watch(
-  () => node.attrs.draggable,
-  (draggable: boolean) => {
+  () => attrs.draggable,
+  (draggable) => {
     if (!draggable) {
       updateAttributes({ left: null, top: null })
     }
@@ -237,54 +248,53 @@ watch(
 )
 
 watch(
-  () => node.attrs.equalProportion,
-  async (equalProportion: boolean) => {
+  () => attrs.equalProportion,
+  async (equalProportion) => {
     await nextTick()
-    const width = imageRef?.offsetWidth ?? 1
-    const height = imageRef?.offsetHeight ?? 1
+    const width = imageRef?.offsetWidth
+    const height = imageRef?.offsetHeight
     updateAttributes({ width, height })
     maxHeight = equalProportion ? maxWidth / (width / height) : 0
   },
 )
 watch(
-  () => node.attrs.src,
-  async (src: string) => {
-    if (node.attrs.uploaded === false && !error.value) {
+  () => attrs.src,
+  async (src) => {
+    if (attrs.uploaded === false && !error.value) {
       if (src?.startsWith('data:image')) {
-        const [data, type] = src.split(';')[0].split(':')
-        let [_, ext] = type.split('/')
-        if (ext === 'jpeg') {
-          ext = 'jpg'
-        }
-        if (ext === 'svg+xml') {
-          ext = 'svg'
-        }
-        const filename = shortId(10)
-        const file = await base64ToFile(src, `${filename}.${ext}`, {
-          type,
+        const id = attrs.id || shortId(10)
+        const name = `${attrs.type}-${id}`
+        const { file, filename } = dataURLToFile(src, name)
+        updateAttributes({
+          size: file.size,
+          name: filename,
+          uploaded: false,
         })
-        uploadFileMap.value.set(node.attrs.id, file)
+        uploadFileMap.value.set(id, file)
       }
       await nextTick()
-      void uploadImage()
+      uploadImage()
     }
   },
   { immediate: true },
 )
 watch(
   () => error.value,
-  (errorValue: any) => {
-    if (errorValue?.type) {
-      updateAttributesWithoutHistory(
-        editor.value,
-        { error: errorValue.type === 'error' },
-        getPos(),
-      )
-    } else {
-      updateAttributesWithoutHistory(editor.value, { error: false }, getPos())
-    }
+  (err) => {
+    updateAttributesWithoutHistory(
+      editor.value,
+      { error: err?.type ? err.type === 'error' : false },
+      getPos(),
+    )
   },
 )
+
+onBeforeUnmount(() => {
+  setTimeout(() => {
+    if (editor.value.isDestroyed) return
+    options.value.onFileDelete(attrs.id, attrs.src, `image:${attrs.type}`)
+  }, 500)
+})
 </script>
 
 <style lang="less">
@@ -293,13 +303,10 @@ watch(
     display: inline-block !important;
     padding: 2px 6px;
     img {
-      /* 1. 图片宽度不超过父容器宽度（核心约束） */
       max-width: 100% !important;
-      /* 2. 图片高度不超过父容器高度（避免纵向溢出） */
       max-height: 100% !important;
     }
   }
-  /* 关键：控制图片本身的自适应规则 */
   .umo-node-image {
     max-width: 100%;
     width: auto;
@@ -353,6 +360,7 @@ watch(
       flex-direction: column;
       color: var(--umo-text-color-light);
       font-size: 12px;
+      min-height: 120px;
 
       .error-icon {
         font-size: 72px;

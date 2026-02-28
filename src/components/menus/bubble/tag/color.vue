@@ -13,13 +13,13 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const emits = defineEmits(['change'])
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-const colorChange = (color: any) => {
+const colorChange = (color) => {
   popupVisible.value = false
   const textColor = color === '' ? null : color
   const tag = editor.value?.state?.selection?.$from?.node()

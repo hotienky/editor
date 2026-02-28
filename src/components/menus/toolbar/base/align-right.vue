@@ -16,7 +16,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 
 const setAlignRight = () => {

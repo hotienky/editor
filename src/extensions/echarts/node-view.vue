@@ -1,16 +1,15 @@
 <template>
   <node-view-wrapper
-    :id="'chartNode-' + node.attrs.id"
+    :id="'chartNode-' + attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
-      class="umo-node-container umo-node-echarts"
+      class="umo-node-container umo-node-echarts umo-select-outline"
       :class="{
-        'is-draggable': node.attrs.draggable,
         'umo-hover-shadow': !options.document?.readOnly,
-        'umo-select-outline': !node.attrs.draggable,
       }"
       :data-options="
         options.document?.readOnly ? JSON.stringify(chartOption) : null
@@ -20,26 +19,23 @@
         :selected="selected"
         :rotatable="false"
         :boundary="false"
-        :draggable="
-          Boolean(node.attrs.draggable) && !options.document?.readOnly
-        "
         :disabled="options.document?.readOnly"
         :angle="0"
-        :width="Number(node.attrs.width)"
-        :height="Number(node.attrs.height)"
+        :width="Number(attrs.width)"
+        :height="Number(attrs.height)"
         :max-width="maxWidth"
         :min-height="200"
         :z-index="10"
         @resize="onResize"
         @focus="selected = true"
       >
-        <div :id="'chart-' + node.attrs.id" class="umo-node-echarts-body"></div>
+        <div :id="'chart-' + attrs.id" class="umo-node-echarts-body"></div>
       </drager>
     </div>
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 // tiptap 组件
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 // 拖拽组件
@@ -52,19 +48,22 @@ import {
 // 引入 echart 服务 用此方法初始化加载 cdn echart.js 脚本 否则
 import { loadResource } from '@/utils/load-resource'
 
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes, getPos } = props
 const options = inject('options')
+const editor = inject('editor')
 const containerRef = ref(null)
 let maxWidth = $ref(0)
 let selected = $ref(false)
-let chart: any = null
+let chart = null
 let chartOption = $ref(null)
 
 // 加载数据
 onMounted(async () => {
   await nextTick()
   maxWidth = containerRef.value?.$el.offsetWidth
-  if (node.attrs.width === null) {
+  if (attrs.width === null) {
     updateAttributes({ width: maxWidth })
   }
   await loadData()
@@ -72,7 +71,7 @@ onMounted(async () => {
 
 // 初始化样式，需要在 margin 和 nodeAlign 里面增加 name 才可以
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -83,7 +82,7 @@ const nodeStyle = $computed(() => {
     marginBottom,
   }
 })
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({
     width: Number(width.toFixed(2)),
     height: Number(height.toFixed(2)),
@@ -107,7 +106,7 @@ const loadData = async () => {
 
   // 等待 echarts 加载完成
   const waitForECharts = () => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       let attempts = 0
       const maxAttempts = 40 // 最多等待2秒
       const checkECharts = () => {
@@ -129,7 +128,7 @@ const loadData = async () => {
   await waitForECharts()
   // 接下来的使用就跟之前一样，初始化图表，设置配置项
   if (typeof echarts !== 'undefined') {
-    const { chartOptions, chartConfig, id, mode } = node.attrs
+    const { chartOptions, chartConfig, id, mode } = attrs
     // 根据参数不同 实现效果不同
     if (chart !== null) {
       chart.dispose()
@@ -158,10 +157,10 @@ const loadData = async () => {
   }
 }
 
-// 监听 node.attrs 变化并在变化时重新加载数据
+// 监听 attrs 变化并在变化时重新加载数据
 watch(
-  () => node.attrs,
-  async (newAttrs: any, oldAttrs: any) => {
+  () => attrs,
+  async (newAttrs, oldAttrs) => {
     // 避免初次挂载时重复调用 loadData
     if (
       newAttrs !== undefined &&
@@ -170,6 +169,10 @@ watch(
     ) {
       // 如果只有高度和宽度变化，则不走重新加载逻辑
       let isLoad = false
+      onResize({
+        width: attrs.width,
+        height: attrs.height,
+      })
       for (const attr1 in oldAttrs) {
         if (attr1 === 'height' || attr1 === 'width' || attr1 === 'src') {
           continue
@@ -194,7 +197,7 @@ watch(
     max-width: 100%;
     position: relative;
 
-    &:not(.is-draggable) .es-drager {
+    .es-drager {
       max-width: 100%;
       max-height: 100%;
       transform: translateX(0px) translateY(0px) rotate(0deg) !important;

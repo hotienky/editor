@@ -9,12 +9,12 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 // 月份
-const formDate = (format: string) => useDateFormat(useNow(), format).value
+const formDate = (format) => useDateFormat(useNow(), format).value
 
-const formatDateToChinese = (dateStr: string) => {
-  const replaceDigits = (num: string) => {
+const formatDateToChinese = (dateStr) => {
+  const replaceDigits = (num) => {
     const digits = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九']
     return num
       .toString()
@@ -89,7 +89,7 @@ const options = [
 
 const editor = inject('editor')
 
-const insertDate = ({ content, format, capitalize, value }: any) => {
+const insertDate = ({ content, format, capitalize, value }) => {
   if (!content) {
     return
   }

@@ -36,7 +36,7 @@
               destroyOnClose: true,
               attach: container,
             }"
-            @change="selectPageSize as any"
+            @change="selectPageSize"
           >
             <template #valueDisplay>
               {{ l(pageOptions.size?.label) }}
@@ -72,9 +72,7 @@
                 :suffix="t('page.size.cm')"
                 placeholder=""
                 :allow-input-over-limit="false"
-                @blur="
-                  (val: InputNumberValue) => inputPageSize(Number(val), 'width')
-                "
+                @blur="(val) => inputPageSize(Number(val), 'width')"
               />
             </div>
             <div class="item">
@@ -89,10 +87,7 @@
                 :suffix="t('page.size.cm')"
                 placeholder=""
                 :allow-input-over-limit="false"
-                @blur="
-                  (val: InputNumberValue) =>
-                    inputPageSize(Number(val), 'height')
-                "
+                @blur="(val) => inputPageSize(Number(val), 'height')"
               />
             </div>
           </div>
@@ -163,10 +158,7 @@
                   :suffix="t('page.size.cm')"
                   placeholder=""
                   :allow-input-over-limit="false"
-                  @blur="
-                    (val: InputNumberValue) =>
-                      inputPageMargin(Number(val), 'top')
-                  "
+                  @blur="(val) => inputPageMargin(Number(val), 'top')"
                 />
               </div>
               <div class="item">
@@ -182,10 +174,7 @@
                   :suffix="t('page.size.cm')"
                   placeholder=""
                   :allow-input-over-limit="false"
-                  @blur="
-                    (val: InputNumberValue) =>
-                      inputPageMargin(Number(val), 'bottom')
-                  "
+                  @blur="(val) => inputPageMargin(Number(val), 'bottom')"
                 />
               </div>
               <div class="item">
@@ -201,10 +190,7 @@
                   :suffix="t('page.size.cm')"
                   placeholder=""
                   :allow-input-over-limit="false"
-                  @blur="
-                    (val: InputNumberValue) =>
-                      inputPageMargin(Number(val), 'left')
-                  "
+                  @blur="(val) => inputPageMargin(Number(val), 'left')"
                 />
               </div>
               <div class="item">
@@ -220,10 +206,7 @@
                   :suffix="t('page.size.cm')"
                   placeholder=""
                   :allow-input-over-limit="false"
-                  @blur="
-                    (val: InputNumberValue) =>
-                      inputPageMargin(Number(val), 'right')
-                  "
+                  @blur="(val) => inputPageMargin(Number(val), 'right')"
                 />
               </div>
             </div>
@@ -234,9 +217,7 @@
   </modal>
 </template>
 
-<script setup lang="ts">
-import type { InputNumberValue } from 'tdesign-vue-next'
-
+<script setup>
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -252,7 +233,7 @@ const options = inject('options')
 let pageOptions = $ref({})
 watch(
   () => props.visible,
-  (visible: boolean) => {
+  (visible) => {
     if (visible) {
       pageOptions = JSON.parse(JSON.stringify(page.value))
     }
@@ -261,11 +242,11 @@ watch(
 )
 
 // 页面大小
-const selectPageSize = (value: number) => {
+const selectPageSize = (value) => {
   pageOptions.size = options.value?.dicts?.pageSizes[value]
 }
-const inputPageSize = (value: number, field: 'width' | 'height') => {
-  pageOptions.size ??= {
+const inputPageSize = (value, field) => {
+  pageOptions.size = {
     width: 0,
     height: 0,
   }
@@ -277,20 +258,11 @@ const inputPageSize = (value: number, field: 'width' | 'height') => {
 }
 
 // 页边距
-const selectPageMargin = (margin: {
-  right: number
-  left: number
-  bottom: number
-  top: number
-  layout?: 'narrow' | 'moderate' | 'wide' | 'custom'
-}) => {
+const selectPageMargin = (margin) => {
   pageOptions.margin = margin
 }
-const inputPageMargin = (
-  value: number,
-  field: 'top' | 'bottom' | 'left' | 'right' | 'layout',
-) => {
-  pageOptions.margin ??= {
+const inputPageMargin = (value, field) => {
+  pageOptions.margin = {
     right: 0,
     left: 0,
     bottom: 0,

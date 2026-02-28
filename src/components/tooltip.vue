@@ -11,7 +11,7 @@
   </t-tooltip>
 </template>
 
-<script setup lang="ts">
+<script setup>
 defineProps({
   content: {
     type: String,

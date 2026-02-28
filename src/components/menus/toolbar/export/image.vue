@@ -9,7 +9,7 @@
   />
 </template>
 
-<script setup lang="ts">
+<script setup>
 import domtoimage from 'dom-to-image-more'
 import { saveAs } from 'file-saver'
 
@@ -24,13 +24,7 @@ const formats = [
   { content: t('export.image.jpg'), value: 'jpg' },
 ]
 
-const saveImage = async ({
-  content,
-  value,
-}: {
-  content: string
-  value: string
-}) => {
+const saveImage = async ({ content, value }) => {
   if (!content) {
     return
   }
@@ -39,11 +33,9 @@ const saveImage = async ({
   try {
     page.value.zoomLevel = 100
     await nextTick()
-    const node = document.querySelector(
-      `${container} .umo-page-content`,
-    ) as HTMLElement
+    const node = document.querySelector(`${container} .umo-page-content`)
     const blob = await toBlob(node, { scale: devicePixelRatio })
-    const { title } = options.value.document ?? {}
+    const { title } = options.value.document
     const filename =
       title !== '' ? options.value?.document?.title : t('document.untitled')
     saveAs(

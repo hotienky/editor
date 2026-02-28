@@ -1,5 +1,9 @@
 <template>
-  <div v-if="items.length > 0" class="umo-popup umo-mention-popup">
+  <div
+    v-if="items.length > 0"
+    ref="popupRef"
+    class="umo-popup umo-mention-popup"
+  >
     <div class="umo-popup__content umo-dropdown">
       <div class="umo-dropdown__menu" style="padding: 5px; max-height: 320px">
         <div>
@@ -18,7 +22,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script setup>
 const props = defineProps({
   items: {
     type: Array,
@@ -39,7 +43,7 @@ watch(
   },
 )
 
-const onKeyDown = ({ event }: any) => {
+const onKeyDown = ({ event }) => {
   if (event.key === 'ArrowUp') {
     upHandler()
     return true
@@ -73,7 +77,7 @@ const enterHandler = () => {
   selectItem(selectedIndex)
 }
 
-const selectItem = (index: number) => {
+const selectItem = (index) => {
   const item = props.items[index]
 
   if (item) {

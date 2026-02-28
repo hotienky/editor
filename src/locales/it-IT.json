@@ -87,17 +87,6 @@
       "default": "Predefinito",
       "reset": "Spaziatura automatica"
     },
-    "importWord": {
-      "text": "Importa da Word",
-      "loadScript": {
-        "title": "Messaggio di errore",
-        "message": "Caricamento dello script di importazione, riprova più tardi."
-      },
-      "limitSize": "La dimensione del file non può superare {limitSize}MB.",
-      "converting": "Conversione del documento Word in corso, attendere...",
-      "convertError": "Errore durante l'analisi del documento Word",
-      "importError": "Errore durante l'importazione del documento Word"
-    },
     "markdown": {
       "text": "Markdown",
       "enable": "Abilita Markdown",
@@ -112,8 +101,7 @@
     "subscript": "Pedice",
     "superscript": "Apice",
     "underline": "Sottolineato",
-    "undo": "Annulla",
-    "viewer": "Visualizzatore"
+    "undo": "Annulla"
   },
   "insert": {
     "audio": "Audio",
@@ -367,18 +355,6 @@
       "renderError": "Generazione QR Code fallita",
       "notEmpty": "Il contenuto del QR Code non può essere vuoto"
     },
-    "seal": {
-      "text": "Timbro",
-      "title": "Inserisci timbro",
-      "insert": "Inserisci",
-      "tip": "Seleziona un'immagine del timbro con sfondo a tinta unita; verrà estratto automaticamente. Tutte le operazioni avvengono localmente senza inviare dati al server, quindi puoi caricarlo senza problemi.",
-      "insertTip": "Clicca qui per selezionare l'immagine del timbro",
-      "converting1": "Caricamento...",
-      "converting2": "Caricamento: {percentage}%",
-      "converting3": "Estrazione immagine, attendere...",
-      "convertError": "Estrazione timbro fallita, riprova",
-      "notEmpty": "Seleziona un timbro per favore"
-    },
     "signature": {
       "text": "Firma",
       "title": "Inserisci firma grafometrica",
@@ -496,7 +472,6 @@
   "blockMenu": {
     "insert": "Inserisci contenuto",
     "template": "Inserisci modello",
-    "toogleNode": "Cambia tipo di nodo",
     "common": "Azioni comuni",
     "clearFormat": "Cancella formattazione",
     "duplicate": "Duplica",
@@ -529,8 +504,6 @@
       "flipY": "Capovolgi verticalmente",
       "preview": "Anteprima immagine",
       "proportion": "Blocca proporzioni immagine",
-      "removeBg": "Rimuovi sfondo immagine",
-      "removingBg": "Rimozione sfondo immagine...",
       "reset": "Reimposta posizione immagine",
       "rotateCC": "Ruota 90° antiorario",
       "rotateC": "Ruota 90° orario",
@@ -560,26 +533,6 @@
     },
     "toFile": "Converti in file",
     "delete": "Elimina"
-  },
-  "assistant": {
-    "text": "Assistente IA",
-    "placeholder": "Inserisci o seleziona un comando...",
-    "send": "Invia",
-    "exit": "Esci dall'Assistente IA",
-    "commands": "Comandi comuni:",
-    "result": "Risultato generato dall'IA:",
-    "replace": "Sostituisci",
-    "insertAfter": "Inserisci dopo",
-    "insertBelow": "Inserisci sotto",
-    "copy": "Copia risultato generato",
-    "copySuccess": "Risultato copiato negli appunti",
-    "rewrite": "Riscrivi",
-    "delete": "Elimina risultato",
-    "error": {
-      "title": "Messaggio di errore",
-      "message": "Si è verificato un errore con il risultato dell'Assistente IA. Riprova!",
-      "confirm": "OK"
-    }
   },
   "pageOptions": {
     "title": "Impostazioni pagina",

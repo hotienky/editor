@@ -19,10 +19,10 @@
           }"
           @click="setTemplate(item)"
         >
-          <div class="title">{{ item.title }}</div>
+          <div class="umo-templates-dropdown-title">{{ item.title }}</div>
           <div
             v-if="item.description && item.description !== ''"
-            class="description"
+            class="umo-templates-dropdown-description"
           >
             {{ item.description }}
           </div>
@@ -32,11 +32,11 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 const options = inject('options')
 
-const setTemplate = ({ content }: { content: string }) => {
+const setTemplate = ({ content }) => {
   if (!content || !editor.value) {
     return
   }
@@ -51,12 +51,12 @@ const setTemplate = ({ content }: { content: string }) => {
     min-width: 200px;
     max-width: 320px;
   }
-  .title {
+  &-title {
     display: flex;
     align-items: center;
     font-size: 14px;
   }
-  .description {
+  &-description {
     color: var(--umo-text-color-light);
     white-space: normal;
     line-height: 1.4;
@@ -67,6 +67,7 @@ const setTemplate = ({ content }: { content: string }) => {
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
+    font-size: 12px;
   }
 }
 </style>

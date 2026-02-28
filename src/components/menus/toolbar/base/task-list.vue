@@ -7,6 +7,11 @@
     popup-handle="arrow"
     hide-text
     :menu-active="editor?.isActive('taskList')"
+    :disabled="
+      !editor?.can().chain().focus().toggleBulletList().run() &&
+      !editor?.can().chain().focus().toggleOrderedList().run() &&
+      !editor?.can().chain().focus().toggleTaskList().run()
+    "
     @menu-click="editor?.chain().focus().toggleTaskList().run()"
   >
     <template #dropmenu>
@@ -34,6 +39,6 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 </script>

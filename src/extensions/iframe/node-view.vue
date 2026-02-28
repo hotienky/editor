@@ -1,9 +1,10 @@
 <template>
   <node-view-wrapper
-    :id="node.attrs.id"
+    :id="attrs.id"
     ref="containerRef"
     class="umo-node-view"
     :style="nodeStyle"
+    @click.capture="editor?.commands.setNodeSelection(getPos())"
   >
     <div
       class="umo-node-container umo-select-outline umo-node-iframe"
@@ -14,8 +15,8 @@
       <drager
         :selected="selected"
         :rotatable="false"
-        :width="node.attrs.width"
-        :height="node.attrs.height"
+        :width="attrs.width"
+        :height="attrs.height"
         :min-width="400"
         :min-height="200"
         :max-width="maxWidth"
@@ -24,26 +25,29 @@
         @focus="selected = true"
       >
         <iframe
-          :src="node.attrs.src"
-          :style="{ pointerEvents: node.attrs.clickable ? 'auto' : 'none' }"
+          :src="attrs.src"
+          :style="{ pointerEvents: attrs.clickable ? 'auto' : 'none' }"
         ></iframe>
       </drager>
     </div>
   </node-view-wrapper>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import Drager from 'es-drager'
 const options = inject('options')
+const editor = inject('editor')
 
-const { node, updateAttributes } = defineProps(nodeViewProps)
+const props = defineProps(nodeViewProps)
+const attrs = $computed(() => props.node.attrs)
+const { updateAttributes, getPos } = props
 const containerRef = ref(null)
 let selected = $ref(false)
 let maxWidth = $ref(0)
 
 const nodeStyle = $computed(() => {
-  const { nodeAlign, margin } = node.attrs
+  const { nodeAlign, margin } = attrs
   const marginTop =
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
@@ -61,12 +65,12 @@ onMounted(async () => {
     const { offsetWidth } = containerRef.value.$el
 
     maxWidth = offsetWidth
-    if (node.attrs.width === null) {
+    if (attrs.width === null) {
       updateAttributes({ width: offsetWidth })
     }
   }
 })
-const onResize = ({ width, height }: { width: number; height: number }) => {
+const onResize = ({ width, height }) => {
   updateAttributes({ width, height })
 }
 onClickOutside(containerRef, () => {

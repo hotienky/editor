@@ -18,7 +18,7 @@
           class="umo-page-divider-item"
           :value="item.value"
           :title="item.label"
-          @click="setHr(item)"
+          @click="setHorizontalRule(item)"
         >
           <hr
             class="umo-page-divider"
@@ -52,7 +52,7 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
 const editor = inject('editor')
@@ -71,16 +71,20 @@ const options = [
 
 let currentColor = $ref('#000')
 let colorPickerVisible = $ref(false)
-const colorChange = (color: string) => {
+const colorChange = (color) => {
   currentColor = color
   colorPickerVisible = false
 }
 
-const setHr = ({ value }: { value: string }) => {
+const setHorizontalRule = ({ value }) => {
   if (!value || !editor.value) {
     return
   }
-  editor.value.chain().focus().setHr({ type: value, color: currentColor }).run()
+  editor.value
+    .chain()
+    .focus()
+    .setHorizontalRule({ type: value, color: currentColor })
+    .run()
   popupVisible.value = false
 }
 </script>

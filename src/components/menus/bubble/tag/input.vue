@@ -15,7 +15,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const editor = inject('editor')
 let value = $ref('')
 
@@ -32,10 +32,10 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  editor.value?.off('selectionUpdate')
+  editor.value?.off('selectionUpdate', setValue)
 })
 
-const onInput = (value: string) => {
+const onInput = (value) => {
   if (value === '') {
     return
   }

@@ -15,13 +15,13 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 const emits = defineEmits(['change'])
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-const colorChange = (color: string) => {
+const colorChange = (color) => {
   popupVisible.value = false
   const background = color === '' ? null : color
   editor.value?.chain().focus().setCellAttribute('background', background).run()

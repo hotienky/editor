@@ -7,22 +7,19 @@
   />
 </template>
 
-<script setup lang="ts">
-const emits = defineEmits(['hide-bubble'])
-
+<script setup>
 const container = inject('container')
 const editor = inject('editor')
 
 const copyLink = () => {
-  const { meta } = editor.value.storage.link
+  const { href } = editor.value.getAttributes('link')
   const { copy } = useClipboard({
-    source: ref(meta.href),
+    source: ref(href),
   })
-  void copy()
+  copy()
   useMessage('success', {
     attach: container,
     content: t('insert.link.copySuccess'),
   })
-  emits('hide-bubble')
 }
 </script>

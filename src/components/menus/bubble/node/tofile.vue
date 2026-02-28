@@ -2,15 +2,15 @@
   <menus-button
     ico="file-view"
     :text="t('bubbleMenu.toFile')"
-    @menu-click="ndoeTofile"
+    @menu-click="nodeTofile"
   />
 </template>
 
-<script setup lang="ts">
-import { getSelectionNode } from '@/extensions/selection'
+<script setup>
+import { getSelectionNode } from '@/utils/selection'
 const editor = inject('editor')
 
-const ndoeTofile = () => {
+const nodeTofile = () => {
   const { attrs } = getSelectionNode(editor.value)
   if (!attrs) {
     return false
@@ -19,7 +19,7 @@ const ndoeTofile = () => {
     type: 'file',
     attrs: {
       ...attrs,
-      url: attrs.url ?? attrs.src,
+      url: attrs.url || attrs.src,
     },
   })
   return true

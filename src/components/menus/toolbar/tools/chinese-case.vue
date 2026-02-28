@@ -3,7 +3,6 @@
     ico="chinese-case"
     :text="t('tools.chineseCase.text')"
     :tooltip="t('tools.chineseCase.tip')"
-    :disabled="selectionText === ''"
     menu-type="dropdown"
     huge
     overlay-class-name="umo-chinese-case-dropdown"
@@ -15,7 +14,7 @@
           :key="item.value"
           :value="item.value"
           :divider="item.divider"
-          @click="setChineseCase(item.func)"
+          @click="setChineseCase(item.fn)"
         >
           <div class="label">{{ item.label }}</div>
           <div class="desc">{{ item.desc }}</div>
@@ -25,25 +24,19 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import nzh from 'nzh/cn'
 
-import { getSelectionText } from '@/extensions/selection'
+import { getSelectionText } from '@/utils/selection'
 
 const editor = inject('editor')
 const container = inject('container')
 
-const options: {
-  label: string
-  desc: string
-  func: (text: string) => string
-  divider?: boolean
-  value?: string | number
-}[] = [
+const options = [
   {
     label: '数字小写金额 → 中文大写金额',
     desc: '人民币伍佰肆拾叁元贰角壹分',
-    func(text) {
+    fn(text) {
       const number = text
         .toString()
         .replaceAll(',', '')
@@ -55,18 +48,18 @@ const options: {
   {
     label: '阿拉伯数字 → 中文小写',
     desc: '十万零一百一十一',
-    func: (text) => nzh.encodeS(text),
+    fn: (text) => nzh.encodeS(text),
   },
   {
     label: '科学记数法 → 中文小写',
     desc: '1.23456789e+21',
-    func: (text) => nzh.encodeS(text),
+    fn: (text) => nzh.encodeS(text),
     divider: true,
   },
   {
     label: '中文大写金额 → 数字小写金额',
     desc: '￥54,321.00',
-    func(text) {
+    fn(text) {
       const char = text
         .replaceAll('人民币', '')
         .replaceAll('元', '')
@@ -90,41 +83,31 @@ const options: {
   {
     label: '中文小写 → 阿拉伯数字',
     desc: '54321',
-    func: (text) => nzh.decodeS(text),
+    fn: (text) => nzh.decodeS(text),
   },
 ]
 
-let selectionText = $ref('')
-onMounted(() => {
-  editor.value.on('selectionUpdate', () => {
-    const throttleFn = useThrottleFn(() => {
-      const text = getSelectionText(editor.value)
-      selectionText = text
-    }, 200)
-    void throttleFn()
-  })
-})
-
-const setChineseCase = (func: (text: string) => string) => {
+const setChineseCase = (fn) => {
   if (!editor.value) {
     return
   }
-  if (selectionText === '') {
+  const text = getSelectionText(editor.value)
+  if (text === '') {
+    useMessage('error', {
+      attach: container,
+      content: '请先选中要转换的文本',
+    })
     return
   }
-  let content = ''
   try {
-    content = func(selectionText)
+    const content = fn(text)
+    editor.value.chain().focus().insertContent(content.toString()).run()
   } catch {
     useMessage('error', {
       attach: container,
-      content: '大小写转化失败，请检查当前选中的文本。',
+      content: '大小写转化失败，请检查当前选中的文本',
     })
   }
-  if (!content) {
-    throw new Error('转换失败')
-  }
-  editor.value.chain().focus().insertContent(content.toString()).run()
 }
 </script>
 

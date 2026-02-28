@@ -13,15 +13,15 @@
   </menus-button>
 </template>
 
-<script setup lang="ts">
-import { getSelectionNode } from '@/extensions/selection'
+<script setup>
+import { getSelectionNode } from '@/utils/selection'
 
 const emits = defineEmits(['change'])
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-const colorChange = (color: any) => {
+const colorChange = (color) => {
   popupVisible.value = false
   const backgroundColor = color === '' ? null : color
   const callout = editor.value ? getSelectionNode(editor.value) : null

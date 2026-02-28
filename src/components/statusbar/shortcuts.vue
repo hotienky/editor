@@ -31,25 +31,13 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { getShortcut } from '@/utils/shortcut'
 
 const options = inject('options')
 const $document = useState('document', options)
 
-const shortcuts = $ref<
-  {
-    title: string
-    items: {
-      icon?: string
-      html?: string
-      tag?: string
-      className?: string
-      label: string
-      keys: string[]
-    }[]
-  }[]
->([
+const shortcuts = $ref([
   {
     title: t('shortcut.commonlyUsed'),
     items: [
@@ -205,11 +193,6 @@ if ($document.value.enableMarkdown) {
         keys: ['`', 'TEXT', '`'],
       },
       {
-        icon: 'math',
-        label: t('insert.math'),
-        keys: ['$', 'TEXT', '$'],
-      },
-      {
         icon: 'highlight',
         tag: 'mark',
         label: t('base.highlight.text'),
@@ -310,6 +293,7 @@ if ($document.value.enableMarkdown) {
   blockquote {
     padding-left: 10px;
     border-left: solid 3px var(--umo-border-color);
+    margin: 0;
   }
   code {
     border: solid 1px var(--umo-border-color);
