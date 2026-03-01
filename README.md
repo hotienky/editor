@@ -28,7 +28,7 @@ Additionally, Umo Editor supports custom extensions, multi-language settings, an
 
 Umo Editor's largest feature is that its code is completely open source and controllable. It supports private deployment, allowing you to use it in an intranet environment without worrying about data security issues. At the same time, Umo Editor is based on Vue3 and Tiptap3, both of which have rich ecosystems and communities, making it easy to solve problems when needed.
 
-As an independent Vue3 plugin, Umo Editor can be easily integrated into various Vue3 projects with zero configuration. For non-Vue3 projects, you can embed Umo Editor into your project via an iframe.
+As an independent Vue3 plugin, Umo Editor can be easily integrated into various Vue3 projects with zero configuration. For non-Vue3 projects, you can embed Umo Editor into your project via an iframe. see [Use in Non-Vue3 Projects](https://dev.umodoc.com/en/docs/editor/getting-started#use-in-non-vue3-projects).
 
 [Website](https://www.umodoc.com/en) | [Documentation](https://dev.umodoc.com/en/docs/editor) | [Playground](https://www.umodoc.com/en/demo) | [GitHub](https://github.com/umodoc/editor) | [NPM](https://www.npmjs.com/package/@umoteam/editor)
 
@@ -48,10 +48,11 @@ Visit [Playground](https://www.umodoc.com/en/demo?pane=hide) to try Umo Editor.
 
 To help you get started quickly, we provide a demo project: https://github.com/umodoc/demo. You can view and run Umo Editor sample code in this project.
 
-You can also preview and run it online with StackBlitz or CodeSandbox:
+You can also preview and run it online with StackBlitz, CodeSandbox, or Github Pages:
 
 - View and run on [StackBlitz](https://stackblitz.com/~/github.com/umodoc/demo?file=src/app.vue)
 - View and run on [CodeSandbox](https://codesandbox.io/p/github/umodoc/demo/main?import=true)
+- View and run on [Github Pages](https://umodoc.github.io/demo/)
 
 ## Documentation
 
