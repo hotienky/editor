@@ -47,6 +47,17 @@ Umo Editor 最大的特点是代码完全开源且自主可控，支持私有部
 
 访问[https://www.umodoc.com/demo?pane=hide](https://www.umodoc.com/demo?pane=hide)快速体验。
 
+
+
+## 示例项目
+
+为了方便您快速上手 Umo Editor，我们提供了一个示例项目：https://github.com/umodoc/demo ，您可以在该项目中查看和运行 Umo Editor 的示例代码。
+
+您也可以在 StackBlitz 或 CodeSandbox 上快速查看和运行该项目。
+
+- 在 [StackBlitz](https://stackblitz.com/~/github.com/umodoc/demo?file=src/app.vue) 上查看和运行该项目。
+- 在 [CodeSandbox](https://codesandbox.io/p/github/umodoc/demo/main?import=true) 上查看和运行该项目。
+
 ## 开发文档
 
 请访问[https://dev.umodoc.com/cn/docs/editor](https://dev.umodoc.com/cn/docs/editor)。
