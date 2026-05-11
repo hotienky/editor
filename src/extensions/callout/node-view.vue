@@ -99,10 +99,11 @@ const focusCalloutContent = (event) => {
   &-icon {
     font-size: 18px;
     margin-right: 10px;
+    line-height: 1.25;
   }
   &-content {
     flex: 1;
-    min-height: 28px;
+    min-height: 1em;
     cursor: text;
     white-space: pre-wrap;
     word-break: break-word;
