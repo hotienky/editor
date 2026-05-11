@@ -40,7 +40,35 @@ export default Node.create({
     return {
       insertCallout:
         (options) =>
-        ({ chain }) => {
+        ({ chain, editor, tr, dispatch }) => {
+          const { selection, schema } = editor.state
+          const hasSelection = !selection.empty
+
+          if (hasSelection) {
+            const selectedSlice = selection.content()
+            let calloutContent = selectedSlice.content
+
+            // 当选区不是合法的块级内容时，降级为纯文本段落，避免结构校验失败
+            if (!this.type.validContent(calloutContent)) {
+              const selectedText = editor.state.doc.textBetween(
+                selection.from,
+                selection.to,
+                '\n',
+              )
+              calloutContent = schema.nodes.paragraph.create(
+                null,
+                selectedText ? schema.text(selectedText) : null,
+              ).content
+            }
+
+            const calloutNode = this.type.create(options, calloutContent)
+            tr.replaceSelectionWith(calloutNode, false).scrollIntoView()
+            if (dispatch) {
+              dispatch(tr)
+            }
+            return true
+          }
+
           return chain()
             .insertContent({
               type: this.name,
