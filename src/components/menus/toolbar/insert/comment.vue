@@ -2,6 +2,7 @@
   <menus-button
     ico="comment"
     :text="t('comment.add')"
+    hide-text
     huge
     :active="commentStore.visible"
     @menu-click="onClick"

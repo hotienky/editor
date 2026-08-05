@@ -570,6 +570,11 @@ onClickOutside(
         top: 2px;
       }
     }
+    &:not(.show-text) {
+      .kindy-button-content .kindy-button-text {
+        display: none !important;
+      }
+    }
     &.has-arrow {
       .kindy-button-content {
         min-width: 40px;

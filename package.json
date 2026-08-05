@@ -1,6 +1,6 @@
 {
   "name": "kindy-editor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A powerful document editor based on Vue3 and Tiptap3. Forked from Umo Editor and customized for personal use.",
   "keywords": [
     "docs editor",

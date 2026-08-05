@@ -533,7 +533,17 @@ watch(
 const localeConfig = $ref({
   'zh-CN': cnConfig,
   'en-US': enConfig,
-  'vi-VN': enConfig,
+  'vi-VN': {
+    ...enConfig,
+    dialog: {
+      confirm: 'Xác nhận',
+      cancel: 'Hủy',
+    },
+    popconfirm: {
+      confirm: 'Xác nhận',
+      cancel: 'Hủy',
+    },
+  },
 })
 
 // Options Setup

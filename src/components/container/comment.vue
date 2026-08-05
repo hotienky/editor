@@ -467,13 +467,22 @@ watch(
   }
   .kindy-comment-empty {
     margin-top: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     color: var(--kindy-text-color-light);
     font-size: 13px;
+    gap: 6px;
+
     .kindy-comment-empty-icon {
-      font-size: 40px;
+      font-size: 44px;
       opacity: 0.4;
+      margin: 0 auto 6px auto;
+      display: block;
     }
+
     .kindy-comment-empty-tip {
       font-size: 12px;
       opacity: 0.7;

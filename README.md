@@ -10,10 +10,10 @@ Trình biên tập tài liệu chuẩn Office (Word-like Document Editor) hiện
 ## ✨ Tính năng nổi bật
 
 - 📄 **Phân trang dạng Word (Page-based Pagination)**: Hỗ trợ ngắt trang, căn lề, khổ giấy (A4, A3, Letter, Legal...) chân trang & đầu trang (Header/Footer).
-- 💬 **Hệ thống Bình luận (Word-style Comments)**: Bôi đen văn bản để gắn bình luận, phản hồi (Reply), hoàn thành (Resolve), cuộn mượt và highlight từng người dùng.
+- 💬 **Hệ thống Bình luận (Word-style Comments)**: Bôi đen văn bản để gắn bình luận, phản hồi (Reply), hoàn thành (Resolve), cuộn mượt và highlight từng người dùng theo tọa độ Y.
 - 🇻🇳 **Tiếng Việt 100%**: Chuẩn hóa toàn bộ nhãn giao diện, bộ cỡ chữ tiêu chuẩn (`pt`), từ điển ký hiệu và phông chữ mượt mà.
 - 🎨 **Giao diện hiện đại (Ribbon & Classic)**: Hỗ trợ 2 chế độ thanh công cụ dạng Ribbon (như MS Word) hoặc Classic, chế độ tối (Dark mode).
-- 🔠 **Phông chữ hệ thống & Web Fonts chuẩn**: Tích hợp phông hệ thống mượt nét (`San Francisco`, `Segoe UI`, `Roboto`, `Arial`, `Times New Roman`...) không bị vỡ hay lệch dấu Tiếng Việt.
+- 🌐 **Đa nền tảng**: Tích hợp dễ dàng vào **Vue 3**, **React.js**, **Next.js**, **Nuxt 3**, **Angular**, **Svelte**, hoặc **Vanilla JS (CDN)**.
 - 🗄️ **Lưu trữ linh hoạt**: Tự động mã hóa nhúng bình luận vào HTML/JSON hoặc tách riêng lưu vào cơ sở dữ liệu (Database).
 
 ---
@@ -30,11 +30,11 @@ yarn add kindy-editor
 
 ---
 
-## 🚀 Hướng dẫn tích hợp cho dự án khác (Integration Methods)
+## 🚀 Hướng dẫn tích hợp (Integration Guides)
 
-Thư viện `kindy-editor` hỗ trợ 4 cách tích hợp linh hoạt cho mọi môi trường dự án:
+Thư viện `kindy-editor` hỗ trợ đa dạng môi trường dự án:
 
-### Cách 1: Import Component (Vite / Webpack / Vue 3 SPA)
+### 1. Vue 3 (Vite / Webpack)
 
 ```vue
 <template>
@@ -55,11 +55,14 @@ const editorOptions = ref({
     title: 'Tài liệu mới',
     content: '<h1>Nội dung ban đầu</h1>',
   },
+  async onSave(content) {
+    console.log('Đã lưu:', content)
+  },
 })
 </script>
 ```
 
-### Cách 2: Đăng ký Global Vue Plugin (`main.js`)
+### 2. Vue 3 Global Plugin (`main.js`)
 
 ```javascript
 import { createApp } from 'vue'
@@ -78,44 +81,9 @@ app.use(useKindyEditor, {
 app.mount('#app')
 ```
 
-### Cách 3: Tích hợp SSR / Nuxt 3 (CommonJS Bundle)
+### 3. React.js (SPA)
 
-```javascript
-// Nuxt 3 Plugin hoặc Client-only component
-import { KindyEditor } from 'kindy-editor' // Tự động resolve qua package.json "require"/"import"
-import 'kindy-editor/style'
-```
-
-### Cách 4: Tích hợp qua CDN / Direct Script Tag (IIFE Bundle)
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <!-- 1. CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/kindy-editor/dist/kindy-editor.css">
-  <!-- 2. Vue 3 -->
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <!-- 3. Kindy Editor IIFE Bundle -->
-  <script src="https://unpkg.com/kindy-editor/dist/kindy-editor.iife.js"></script>
-</head>
-<body>
-  <div id="app">
-    <kindy-editor :locale="'vi-VN'"></kindy-editor>
-  </div>
-
-  <script>
-    const { createApp } = Vue;
-    const app = createApp({});
-    app.use(KindyEditor.useKindyEditor);
-    app.mount('#app');
-  </script>
-</body>
-### Cách 5: Tích hợp vào React.js & Next.js (Sử dụng `mountKindyEditor`)
-
-Hàm `mountKindyEditor` cho phép bạn gắn `kindy-editor` vào bất kỳ thẻ HTML nào trong React.js / Next.js / Angular / Svelte mà **không cần cài thêm bất kỳ thư viện phụ thuộc nào**:
-
-#### A. Trong React.js (Component Wrapper):
+Dùng hàm helper `mountKindyEditor`:
 
 ```tsx
 import React, { useEffect, useRef } from 'react'
@@ -127,9 +95,7 @@ export function KindyEditorReact(props) {
 
   useEffect(() => {
     if (!containerRef.current) return
-    // Gắn Editor vào DOM container
     const instance = mountKindyEditor(containerRef.current, props)
-    // Cleanup khi component bị unmount
     return () => instance.unmount()
   }, [])
 
@@ -137,16 +103,15 @@ export function KindyEditorReact(props) {
 }
 ```
 
-#### B. Trong Next.js (App Router / Pages Router):
+### 4. Next.js (App Router / Pages Router)
 
-Do trình biên tập tài liệu Rich Text phụ thuộc vào DOM trình duyệt (`window`, `document`), trong Next.js bạn cần nạp component dưới dạng Client Component với `next/dynamic` (`ssr: false`):
+Vì Rich Text Editor thao tác với DOM trình duyệt, hãy load Client Component bằng `next/dynamic` (`ssr: false`):
 
 ```tsx
 'use client'
 
 import dynamic from 'next/dynamic'
 
-// 1. Tắt SSR cho Editor component
 const KindyEditor = dynamic(
   () => import('./KindyEditorReact').then((mod) => mod.KindyEditorReact),
   { ssr: false }
@@ -161,12 +126,162 @@ export default function DocumentPage() {
 }
 ```
 
+### 5. Angular Component
+
+```typescript
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, Input } from '@angular/core';
+import { mountKindyEditor } from 'kindy-editor';
+import 'kindy-editor/style';
+
+@Component({
+  selector: 'app-kindy-editor',
+  template: `<div #editorContainer style="height: 100vh; width: 100%;"></div>`
+})
+export class KindyEditorComponent implements AfterViewInit, OnDestroy {
+  @ViewChild('editorContainer') editorContainer!: ElementRef;
+  @Input() locale: string = 'vi-VN';
+  private instance: any;
+
+  ngAfterViewInit() {
+    this.instance = mountKindyEditor(this.editorContainer.nativeElement, {
+      locale: this.locale,
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.instance) {
+      this.instance.unmount();
+    }
+  }
+}
+```
+
+### 6. Svelte / SvelteKit Component
+
+```svelte
+<script>
+  import { onMount, onDestroy } from 'svelte';
+  import { mountKindyEditor } from 'kindy-editor';
+  import 'kindy-editor/style';
+
+  export let locale = 'vi-VN';
+  let container;
+  let instance;
+
+  onMount(() => {
+    instance = mountKindyEditor(container, { locale });
+  });
+
+  onDestroy(() => {
+    if (instance) instance.unmount();
+  });
+</script>
+
+<div bind:this={container} style="height: 100vh; width: 100%;"></div>
+```
+
+### 7. SolidJS Component
+
+```tsx
+import { onMount, onCleanup } from 'solid-js';
+import { mountKindyEditor } from 'kindy-editor';
+import 'kindy-editor/style';
+
+export function KindyEditorSolid(props) {
+  let containerRef;
+  let instance;
+
+  onMount(() => {
+    instance = mountKindyEditor(containerRef, {
+      locale: 'vi-VN',
+      ...props,
+    });
+  });
+
+  onCleanup(() => {
+    if (instance) instance.unmount();
+  });
+
+  return <div ref={containerRef} style={{ height: '100vh', width: '100%' }} />;
+}
+```
+
+### 8. Vanilla JS / CDN (Direct Script Tag)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/kindy-editor/dist/kindy-editor.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/kindy-editor/dist/kindy-editor.iife.js"></script>
+</head>
+<body>
+  <div id="editor-container" style="height: 100vh;"></div>
+
+  <script>
+    const { mountKindyEditor } = KindyEditor;
+    mountKindyEditor('#editor-container', {
+      locale: 'vi-VN',
+    });
+  </script>
+</body>
+</html>
+```
+
 ---
 
-## 💬 Hướng dẫn & API Hệ thống Bình luận (Comments)
+## ⚙️ Cấu hình (Props & Options API)
 
-### 1. Cơ chế hoạt động
+| Thuộc tính | Kiểu dữ liệu | Mặc định | Mô tả |
+|---|---|---|---|
+| `locale` | `string` | `'vi-VN'` | Ngôn ngữ giao diện (`vi-VN`, `en-US`, `zh-CN`) |
+| `theme` | `string` | `'light'` | Chế độ giao diện (`light`, `dark`, `auto`) |
+| `skin` | `string` | `'default'` | Phong cách thanh công cụ (`default`, `modern`) |
+| `height` | `string` | `'100%'` | Chiều cao khung biên tập |
+| `toolbar.mode` | `string` | `'ribbon'` | Chế độ thanh công cụ (`ribbon` hoặc `classic`) |
+| `document.title` | `string` | `''` | Tiêu đề tài liệu mặc định |
+| `document.content` | `string` \| `object` | `''` | Nội dung HTML hoặc JSON ban đầu |
+| `document.readOnly` | `boolean` | `false` | Chế độ chỉ đọc (Chỉ xem) |
+| `document.autoSave` | `object` | `{ enabled: false }` | Tự động lưu (`enabled: true, interval: 30000`) |
 
+---
+
+## 🛠️ Danh sách Phương thức (Methods API)
+
+Thông qua `ref` của component (hoặc `mountKindyEditor` instance):
+
+```javascript
+// 1. Lấy nội dung HTML
+const html = editorRef.value.getContent('html')
+
+// 2. Lấy nội dung JSON
+const json = editorRef.value.getContent('json')
+
+// 3. Đặt nội dung mới
+editorRef.value.setContent('<h1>Nội dung mới</h1>')
+
+// 4. Chèn nội dung tại vị trí con trỏ
+editorRef.value.insertContent('<p>Đoạn văn mới</p>')
+
+// 5. Xuất tài liệu PDF
+await editorRef.value.exportPdf('tai-lieu.pdf')
+
+// 6. Xuất trang thành hình ảnh
+await editorRef.value.exportImage('png', 'tai-lieu.png')
+
+// 7. In tài liệu
+editorRef.value.print()
+
+// 8. Đổi giao diện tối / sáng
+editorRef.value.setTheme('dark')
+```
+
+---
+
+## 💬 Hệ thống Bình luận (Word-style Comments)
+
+### Cơ chế lưu trữ:
 Bình luận được lưu trực tiếp dưới dạng thẻ `span` chứa thuộc tính `data-comment` và `data-thread` trong tài liệu HTML/JSON:
 
 ```html
@@ -180,67 +295,16 @@ Bình luận được lưu trực tiếp dưới dạng thẻ `span` chứa thu�
 </span>
 ```
 
-### 2. Các API tương tác với Bình luận
-
-Thông qua `ref` của component `<KindyEditor ref="editorRef" />`:
-
-```javascript
-// 1. Thêm bình luận cho vùng bôi đen hiện tại
-editorRef.value.addComment('Nội dung bình luận mới')
-
-// 2. Thêm phản hồi (Reply) cho 1 bình luận
-editorRef.value.addReply(commentId, 'Nội dung phản hồi')
-
-// 3. Đánh dấu Đã giải quyết (Resolve) hoặc Mở lại
-editorRef.value.resolveComment(commentId, true) // true: Đã giải quyết, false: Mở lại
-
-// 4. Xóa bình luận
-editorRef.value.removeComment(commentId)
-
-// 5. Tập trung con trỏ & cuộn màn hình tới vị trí bình luận
-editorRef.value.focusComment(commentId)
-
-// 6. Lấy danh sách toàn bộ bình luận dưới dạng mảng Object
-const comments = editorRef.value.getComments()
-
-// 7. Đếm tổng số bình luận
-const total = editorRef.value.getCommentCount()
-
-// 8. Ẩn / Hiện thanh Sidebar bình luận
-editorRef.value.toggleCommentSidebar(true) // true: hiện, false: ẩn
-```
+### Lưu trữ Cơ sở dữ liệu (Database Integration):
+- **Cách 1 (Khuyên dùng)**: Lưu toàn bộ chuỗi HTML chứa thẻ `<span data-comment>` vào 1 cột `content TEXT` trong Database. Khi mở lại, bình luận tự động khôi phục 100%.
+- **Cách 2**: Lưu riêng danh sách mảng object comment qua API `editorRef.value.getComments()`.
 
 ---
 
-## 🗄️ Hướng dẫn tích hợp Cơ sở dữ liệu (Database Integration)
+## 💻 Dự án Mẫu (Examples)
 
-### Cách 1: Gộp chung vào Nội dung (Khuyên dùng - Đơn giản nhất)
-
-Khi bạn lưu `content` thu được từ `onSave` hoặc `editorRef.value.getHTML()`, toàn bộ bình luận đã nằm sẵn bên trong thẻ `<span data-comment>`:
-
-- **Lưu DB**: Lưu chuỗi `content` vào cột `content TEXT` trong bảng `documents`.
-- **Đọc DB**: Truyền lại `content` vào `:options="{ document: { content: data.content } }"` ➔ Bình luận tự động hiển thị lại 100%.
-
-### Cách 2: Tách Bình luận ra Bảng Database riêng
-
-Nếu bạn muốn quản lý bình luận riêng trong bảng `comments` (để thông báo, phân quyền):
-
-```javascript
-const saveToBackend = async () => {
-  const htmlContent = editorRef.value.getHTML()
-  const commentsList = editorRef.value.getComments()
-
-  await fetch('/api/documents/save', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      docId: 'doc_123',
-      content: htmlContent,
-      comments: commentsList, // Danh sách mảng comment object
-    }),
-  })
-}
-```
+Thư mục `examples/` chứa các ứng dụng mẫu đầy đủ:
+- ⚛️ **[examples/react-demo](./examples/react-demo)**: React.js + IndexedDB Database Persistence.
 
 ---
 
