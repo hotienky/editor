@@ -15,9 +15,7 @@ biome.json
 eslint.config.mjs
 index.html
 jsconfig.json
-package.json
 TODO
 tsconfig.json
-vite.config.ts
-vitest.config.ts
+vite.config.js
 yarn.lock

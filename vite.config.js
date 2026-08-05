@@ -1,5 +1,7 @@
 import Vue from '@vitejs/plugin-vue'
 import ReactivityTransform from '@vue-macros/reactivity-transform/vite'
+import fs from 'node:fs'
+import path from 'node:path'
 import AutoImport from 'unplugin-auto-import/vite'
 import { TDesignResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
@@ -9,6 +11,19 @@ import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 
 import pkg from './package.json'
 import copyright from './src/utils/copyright'
+
+// Plugin: copy src/kindy-editor.d.ts → dist/kindy-editor.d.ts after build
+const copyDtsPlugin = () => ({
+  name: 'copy-dts',
+  closeBundle() {
+    const src = path.resolve(process.cwd(), 'src/kindy-editor.d.ts')
+    const dest = path.resolve(process.cwd(), 'dist/kindy-editor.d.ts')
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, dest)
+      console.info('✓ Copied kindy-editor.d.ts → dist/')
+    }
+  },
+})
 
 // Plugin configurations
 const vuePlugins = {
@@ -42,19 +57,43 @@ const buildConfig = {
   target: 'es2018',
   lib: {
     entry: `${process.cwd()}/src/components/index.js`,
-    name: pkg.name,
+    name: 'KindyEditor',
     fileName: 'kindy-editor',
   },
   outDir: 'dist',
   copyPublicDir: false,
   minify: 'esbuild',
   cssMinify: true,
+  sourcemap: false,
   rollupOptions: {
     output: [
+      // ESM — for Vue 3 / Vite / modern bundlers
       {
         banner: copyright,
         intro: `import './kindy-editor.css'`,
         format: 'es',
+        entryFileNames: 'kindy-editor.js',
+      },
+      // CJS — for SSR / Nuxt / Node
+      {
+        banner: copyright,
+        format: 'cjs',
+        entryFileNames: 'kindy-editor.cjs',
+        exports: 'named',
+        globals: {
+          vue: 'Vue',
+        },
+      },
+      // IIFE — for CDN <script src> usage
+      {
+        banner: copyright,
+        format: 'iife',
+        name: 'KindyEditor',
+        entryFileNames: 'kindy-editor.iife.js',
+        exports: 'named',
+        globals: {
+          vue: 'Vue',
+        },
       },
     ],
     external: [
@@ -71,6 +110,7 @@ const buildConfig = {
     },
   },
 }
+
 
 const cssConfig = {
   preprocessorOptions: {
@@ -95,7 +135,7 @@ const cssConfig = {
 
 export default defineConfig({
   base: '/kindy-editor',
-  plugins: [ReactivityTransform(), ...Object.values(vuePlugins)],
+  plugins: [ReactivityTransform(), ...Object.values(vuePlugins), copyDtsPlugin()],
   css: cssConfig,
   build: buildConfig,
   esbuild: {

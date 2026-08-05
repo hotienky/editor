@@ -30,12 +30,16 @@ yarn add kindy-editor
 
 ---
 
-## 🚀 Hướng dẫn sử dụng nhanh (Quick Start)
+## 🚀 Hướng dẫn tích hợp cho dự án khác (Integration Methods)
+
+Thư viện `kindy-editor` hỗ trợ 4 cách tích hợp linh hoạt cho mọi môi trường dự án:
+
+### Cách 1: Import Component (Vite / Webpack / Vue 3 SPA)
 
 ```vue
 <template>
   <div style="height: 100vh;">
-    <KindyEditor ref="editorRef" :options="editorOptions" />
+    <KindyEditor ref="editorRef" v-bind="editorOptions" />
   </div>
 </template>
 
@@ -45,22 +49,116 @@ import { KindyEditor } from 'kindy-editor'
 import 'kindy-editor/style'
 
 const editorRef = ref(null)
-
 const editorOptions = ref({
-  locale: 'vi-VN', // Sử dụng tiếng Việt mặc định
+  locale: 'vi-VN',
   document: {
-    title: 'Tài liệu mẫu',
-    content:
-      '<h1>Chào mừng bạn đến với Kindy Editor!</h1><p>Bôi đen đoạn chữ này để thử tính năng bình luận.</p>',
-  },
-  // Sự kiện lưu (Ctrl + S hoặc bấm nút Lưu)
-  async onSave(content, page, document) {
-    console.log('Nội dung HTML/JSON đã lưu:', content)
-    // Tích hợp API lưu vào Database của bạn tại đây
-    return { success: true }
+    title: 'Tài liệu mới',
+    content: '<h1>Nội dung ban đầu</h1>',
   },
 })
 </script>
+```
+
+### Cách 2: Đăng ký Global Vue Plugin (`main.js`)
+
+```javascript
+import { createApp } from 'vue'
+import App from './App.vue'
+import { useKindyEditor } from 'kindy-editor'
+import 'kindy-editor/style'
+
+const app = createApp(App)
+
+// Đăng ký toàn cục component <KindyEditor />
+app.use(useKindyEditor, {
+  locale: 'vi-VN',
+  theme: 'light',
+})
+
+app.mount('#app')
+```
+
+### Cách 3: Tích hợp SSR / Nuxt 3 (CommonJS Bundle)
+
+```javascript
+// Nuxt 3 Plugin hoặc Client-only component
+import { KindyEditor } from 'kindy-editor' // Tự động resolve qua package.json "require"/"import"
+import 'kindy-editor/style'
+```
+
+### Cách 4: Tích hợp qua CDN / Direct Script Tag (IIFE Bundle)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- 1. CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/kindy-editor/dist/kindy-editor.css">
+  <!-- 2. Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- 3. Kindy Editor IIFE Bundle -->
+  <script src="https://unpkg.com/kindy-editor/dist/kindy-editor.iife.js"></script>
+</head>
+<body>
+  <div id="app">
+    <kindy-editor :locale="'vi-VN'"></kindy-editor>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+    const app = createApp({});
+    app.use(KindyEditor.useKindyEditor);
+    app.mount('#app');
+  </script>
+</body>
+### Cách 5: Tích hợp vào React.js & Next.js (Sử dụng `mountKindyEditor`)
+
+Hàm `mountKindyEditor` cho phép bạn gắn `kindy-editor` vào bất kỳ thẻ HTML nào trong React.js / Next.js / Angular / Svelte mà **không cần cài thêm bất kỳ thư viện phụ thuộc nào**:
+
+#### A. Trong React.js (Component Wrapper):
+
+```tsx
+import React, { useEffect, useRef } from 'react'
+import { mountKindyEditor } from 'kindy-editor'
+import 'kindy-editor/style'
+
+export function KindyEditorReact(props) {
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    // Gắn Editor vào DOM container
+    const instance = mountKindyEditor(containerRef.current, props)
+    // Cleanup khi component bị unmount
+    return () => instance.unmount()
+  }, [])
+
+  return <div ref={containerRef} style={{ width: '100%', height: '100vh' }} />
+}
+```
+
+#### B. Trong Next.js (App Router / Pages Router):
+
+Do trình biên tập tài liệu Rich Text phụ thuộc vào DOM trình duyệt (`window`, `document`), trong Next.js bạn cần nạp component dưới dạng Client Component với `next/dynamic` (`ssr: false`):
+
+```tsx
+'use client'
+
+import dynamic from 'next/dynamic'
+
+// 1. Tắt SSR cho Editor component
+const KindyEditor = dynamic(
+  () => import('./KindyEditorReact').then((mod) => mod.KindyEditorReact),
+  { ssr: false }
+)
+
+export default function DocumentPage() {
+  return (
+    <main style={{ height: '100vh' }}>
+      <KindyEditor locale="vi-VN" />
+    </main>
+  )
+}
 ```
 
 ---

@@ -36,13 +36,21 @@
   "files": [
     "dist"
   ],
+  "main": "./dist/kindy-editor.cjs",
+  "module": "./dist/kindy-editor.js",
+  "types": "./dist/kindy-editor.d.ts",
+  "sideEffects": [
+    "*.css"
+  ],
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/kindy-editor.js"
+      "types": "./dist/kindy-editor.d.ts",
+      "import": "./dist/kindy-editor.js",
+      "require": "./dist/kindy-editor.cjs"
     },
     "./style": {
-      "import": "./dist/kindy-editor.css"
+      "default": "./dist/kindy-editor.css"
     }
   },
   "scripts": {
