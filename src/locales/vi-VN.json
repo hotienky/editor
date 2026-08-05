@@ -696,6 +696,27 @@
     "hide": "Ẩn mục lục",
     "empty": "Không có mục lục"
   },
+  "comment": {
+    "title": "Bình luận",
+    "add": "Thêm bình luận",
+    "show": "Hiện bình luận",
+    "hide": "Ẩn bình luận",
+    "empty": "Chưa có bình luận nào",
+    "emptyTip": "Chọn một đoạn văn bản rồi bấm nút \"Thêm bình luận\" để bắt đầu",
+    "placeholder": "Nhập nội dung bình luận...",
+    "noBody": "Nhấp đúp để nhập nội dung bình luận",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa bình luận",
+    "deleteConfirm": "Bạn có chắc chắn muốn xóa bình luận này?",
+    "resolve": "Giải quyết",
+    "reopen": "Mở lại",
+    "resolvedTip": "Đã giải quyết",
+    "reply": "Trả lời",
+    "replyPlaceholder": "Viết câu trả lời...",
+    "selectTextTip": "Vui lòng chọn một đoạn văn bản trong tài liệu trước khi thêm bình luận.",
+    "anonymous": "Người dùng ẩn danh"
+  },
   "spellcheck": {
     "enable": "Bật kiểm tra chính tả",
     "disable": "Tắt kiểm tra chính tả"

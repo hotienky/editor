@@ -185,7 +185,7 @@ const replaceAll = () => editor.value?.commands.replaceAll()
 watch(
   () => searchReplace.value,
   (visible) => {
-    searchText = visible ? getSelectionText(editor.value) : ''
+    searchText = visible && editor.value ? getSelectionText(editor.value) : ''
   },
 )
 </script>

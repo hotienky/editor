@@ -105,14 +105,16 @@ const lineHeights = [
   {
     label: {
       en_US: '1.5 Line Spacing',
-      zh_CN: '1.5 倍行距', vi_VN: 'Giãn dòng 1.5',
+      zh_CN: '1.5 倍行距',
+      vi_VN: 'Giãn dòng 1.5',
     },
     value: 1.5,
   },
   {
     label: {
       en_US: '1.75 Line Spacing',
-      zh_CN: '1.75 倍行距', vi_VN: 'Giãn dòng 1.75',
+      zh_CN: '1.75 倍行距',
+      vi_VN: 'Giãn dòng 1.75',
     },
     value: 1.75,
     default: true,
@@ -124,7 +126,8 @@ const lineHeights = [
   {
     label: {
       en_US: '2.5 Line Spacing',
-      zh_CN: '2.5 倍行距', vi_VN: 'Giãn dòng 2.5',
+      zh_CN: '2.5 倍行距',
+      vi_VN: 'Giãn dòng 2.5',
     },
     value: 2.5,
   },
@@ -138,21 +141,24 @@ const symbols = [
   {
     label: {
       en_US: 'Plain Text',
-      zh_CN: '普通文本', vi_VN: 'Văn bản thuần',
+      zh_CN: '普通文本',
+      vi_VN: 'Văn bản thuần',
     },
     items: '‹›«»‘’“”‚„¡¿‥…‡‰‱‼⁈⁉⁇©®™§¶⁋',
   },
   {
     label: {
       en_US: 'Currency Symbols',
-      zh_CN: '货币符号', vi_VN: 'Ký hiệu tiền tệ',
+      zh_CN: '货币符号',
+      vi_VN: 'Ký hiệu tiền tệ',
     },
     items: '$€¥£¢₠₡₢₣₤¤₿₥₦₧₨₩₪₫₭₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽',
   },
   {
     label: {
       en_US: 'Mathematical Symbols',
-      zh_CN: '数学符号', vi_VN: 'Ký hiệu toán học',
+      zh_CN: '数学符号',
+      vi_VN: 'Ký hiệu toán học',
     },
     items: '<>≤≥–—¯‾°−±÷⁄×ƒ∫∑∞√∼≅≈≠≡∈∉∋∏∧∨¬∩∪∂∀∃∅∇∗∝∠¼½¾',
   },
@@ -163,7 +169,8 @@ const symbols = [
   {
     label: {
       en_US: 'Latin Script',
-      zh_CN: '拉丁语', vi_VN: 'Ký tự Latin',
+      zh_CN: '拉丁语',
+      vi_VN: 'Ký tự Latin',
     },
     items:
       'ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ',
@@ -174,7 +181,8 @@ const emojis = [
   {
     label: {
       en_US: 'Emotions & People',
-      zh_CN: '表情与角色', vi_VN: 'Biểu cảm & Con người',
+      zh_CN: '表情与角色',
+      vi_VN: 'Biểu cảm & Con người',
     },
     items:
       '😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😙 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😶‍ 😏 😒 🙄 😬 😮‍ 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 😵‍💫 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 ☠️ 💩 🤡 👹 👺 👻 👽 👾 🤖 👋 🤚 🖐️ ✋ 🖖 👌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦾 🦿 🦵 🦶 👂 🦻',
@@ -182,7 +190,8 @@ const emojis = [
   {
     label: {
       en_US: 'Animals & Nature',
-      zh_CN: '动物与自然', vi_VN: 'Động vật & Tự nhiên',
+      zh_CN: '动物与自然',
+      vi_VN: 'Động vật & Tự nhiên',
     },
     items:
       '🐵 🐒 🦍 🦧 🐶 🐕 🦮 🐕‍🦺 🐩 🐺 🦊 🦝 🐱 🐈 🐈‍⬛ 🦁 🐯 🐅 🐆 🐴 🐎 🦄 🦓 🦌 🐮 🐂 🐃 🐄 🐷 🐖 🐗 🐽 🐏 🐑 🐐 🐪 🐫 🦙 🦒 🐘 🦏 🦛 🐭 🐁 🐀 🐹 🐰 🐇 🐿️ 🦔 🦇 🐻 🐻‍❄️ 🐨 🐼 🦥 🦦 🦨 🦘 🦡 🐾 🦃 🐔 🐓 🐣 🐤 🐥 🐦 🐧 🕊️ 🦅 🦆 🦢 🦉 🦩 🦚 🦜 🐸 🐊 🐢 🦎 🐍 🐲 🐉 🦕 🦖 🐳 🐋 🐬 🦭 🐟 🐠 🐡 🦈 🐙 🐚 🐌 🦋 🐛 🐜 🐝 🐞 🦗 🕷️ 🕸️ 🦂 🦟 🦠 💐 🌸 💮 🏵️ 🌹 🥀 🌺 🌻 🌼 🌷 🌱 🌲 🌳 🌴 🌵 🌾 🌿 ☘️ 🍀 🍁 🍂 🍃 🌒 🌓 🌔 🌕 🌖 🌗 🌘 🌙 🌚 🌛 🌜 ☀️ 🌝 🌞 🪐 🌟 🌠 🌌 ☁️ ⛅ ⛈️ 🌤️ 🌥️ 🌦️ 🌧️ 🌨️ 🌩️ 🌪️ 🌫️ 🌬️ 🌀 🌈 🌂 ☂️ ☔ ⛱️ ⚡ ❄️ ☃️ ⛄ ☄️ 🔥 💧 🌊',
@@ -190,7 +199,8 @@ const emojis = [
   {
     label: {
       en_US: 'Food & Drink',
-      zh_CN: '食物与食品', vi_VN: 'Thức ăn & Đồ uống',
+      zh_CN: '食物与食品',
+      vi_VN: 'Thức ăn & Đồ uống',
     },
     items:
       '🍇 🍉 🍊 🍋 🍌 🍍 🥭 🍎 🍏 🍐 🍑 🍒 🍓 🥝 🍅 🥥 🥑 🍆 🥔 🥕 🌽 🌶️ 🥬 🥦 🧄 🧅 🍄 🥜 🌰 🍞 🥐 🥖 🥨 🥯 🥞 🧇 🧀 🍖 🍗 🥩 🥓 🍔 🍟 🍕 🌭 🥪 🌮 🌯 🥙 🧆 🥚 🍳 🥘 🍲 🥣 🥗 🍿 🧈 🧂 🥫 🍱 🍘 🍙 🍚 🍛 🍜 🍝 🍠 🍢 🍣 🍤 🍥 🥮 🍡 🥟 🥠 🥡 🦀 🦞 🦐 🦑 🦪 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🥧 🍫 🍬 🍭 🍮 🍯 🍼 🥛 ☕ 🍵 🍶 🍾 🍷 🍸 🍹 🍺 🍻 🥂 🥃 🥤 🧃 🧉 🧊 🥢 🍽️ 🍴 🥄 🔪 🏺',
@@ -203,7 +213,8 @@ const emojis = [
   {
     label: {
       en_US: 'Travel & Places',
-      zh_CN: '旅行与景点', vi_VN: 'Du lịch & Địa điểm',
+      zh_CN: '旅行与景点',
+      vi_VN: 'Du lịch & Địa điểm',
     },
     items:
       '🚈 🚉 🚊 🚝 🚞 🚋 🚌 🚍 🚎 🚐 🚑 🚒 🚓 🚔 🚕 🚖 🚗 🚘 🚙 🚚 🚛 🚜 🏎️ 🏍️ 🛵 🦽 🦼 🛺 🚲 🛴 🛹 🚏 🛣️ 🛤️ 🛢️ ⛽ 🚨 🚥 🚦 🛑 🚧 ⚓ ⛵ 🛶 🚤 🛳️ ⛴️ 🛥️ 🚢 ✈️ 🛩️ 🛫 🛬 🪂 💺 🚁 🚟 🚠 🚡 🛰️ 🚀 🛸 🛎️ 🧳 🧭 ⌚ ⏰ ⏱️ ⏲️ 🕰️ 🕛 🕧 🕐 🕜 🕑 🕝 🕒 🕞 🕓 🕟 🕔 🕠 🕕 🕡 🕖 🕢 🕗 🕣 🕘 🕤 🕙 🕥 🕚 🕦',
@@ -232,7 +243,8 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 5 Envelope',
-      zh_CN: '5号信封', vi_VN: 'Phong bì Số 5',
+      zh_CN: '5号信封',
+      vi_VN: 'Phong bì Số 5',
     },
     width: 10.9,
     height: 12.9,
@@ -240,7 +252,8 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 6 Envelope',
-      zh_CN: '6号信封', vi_VN: 'Phong bì Số 6',
+      zh_CN: '6号信封',
+      vi_VN: 'Phong bì Số 6',
     },
     width: 11.9,
     height: 22.9,
@@ -248,7 +261,8 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 7 Envelope',
-      zh_CN: '7号信封', vi_VN: 'Phong bì Số 7',
+      zh_CN: '7号信封',
+      vi_VN: 'Phong bì Số 7',
     },
     width: 16.1,
     height: 22.8,
@@ -256,7 +270,8 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 9 Envelope',
-      zh_CN: '9号信封', vi_VN: 'Phong bì Số 9',
+      zh_CN: '9号信封',
+      vi_VN: 'Phong bì Số 9',
     },
     width: 22.8,
     height: 32.3,
@@ -264,7 +279,8 @@ const pageSizes = [
   {
     label: {
       en_US: 'Legal Paper',
-      zh_CN: '法律用纸', vi_VN: 'Khổ giấy Pháp lý (Legal)',
+      zh_CN: '法律用纸',
+      vi_VN: 'Khổ giấy Pháp lý (Legal)',
     },
     width: 21.5,
     height: 33.5,
@@ -272,7 +288,8 @@ const pageSizes = [
   {
     label: {
       en_US: 'Letter Paper',
-      zh_CN: '信纸', vi_VN: 'Khổ giấy Thư (Letter)',
+      zh_CN: '信纸',
+      vi_VN: 'Khổ giấy Thư (Letter)',
     },
     width: 21.5,
     height: 27.9,

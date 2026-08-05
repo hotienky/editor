@@ -154,6 +154,7 @@
     <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-base-align-dropdown />
     <menus-toolbar-insert-link v-if="!disable('link')" />
+    <menus-bubble-comment v-if="!disable('comment')" />
     <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-base-color />
     <template v-if="!is('textBox')">

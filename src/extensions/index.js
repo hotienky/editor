@@ -37,6 +37,7 @@ import BulletList from './bullet-list'
 import Callout from './callout'
 import CodeBlock from './code-block'
 import Columns from './columns'
+import Comment from './comment'
 import Datetime from './datetime'
 import Echarts from './echarts'
 import File from './file'
@@ -168,6 +169,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     toc: Toc,
     'text-box': TextBox,
     'web-page': Iframe,
+    comment: Comment,
   }
 
   const buildInExtensions = [

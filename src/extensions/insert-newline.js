@@ -261,7 +261,9 @@ export default Extension.create({
                 return false
               }
 
-              const button = event.target.closest('.kindy-insert-newline-widget')
+              const button = event.target.closest(
+                '.kindy-insert-newline-widget',
+              )
               if (!(button instanceof HTMLElement)) {
                 return false
               }

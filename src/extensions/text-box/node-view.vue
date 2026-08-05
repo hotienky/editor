@@ -123,8 +123,8 @@ const editTextBox = () => {
       }
     }
     .kindy-node-text-box-content {
-      outline: var(--kindy-textbox-border-style) var(--kindy-textbox-border-width)
-        var(--kindy-textbox-border-color);
+      outline: var(--kindy-textbox-border-style)
+        var(--kindy-textbox-border-width) var(--kindy-textbox-border-color);
       width: 100%;
       height: 100%;
       padding: 5px;

@@ -38,7 +38,10 @@ export const ListItemExtension = ListItem.extend({
   addProseMirrorPlugins() {
     const storageState = this.storage.state
     const syncStorageState = (pluginState) => {
-      if (!pluginState || isSameListItemPluginState(storageState, pluginState)) {
+      if (
+        !pluginState ||
+        isSameListItemPluginState(storageState, pluginState)
+      ) {
         return
       }
 

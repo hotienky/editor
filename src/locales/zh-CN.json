@@ -695,6 +695,27 @@
     "hide": "隐藏大纲",
     "empty": "暂无页面大纲"
   },
+  "comment": {
+    "title": "批注",
+    "add": "新建批注",
+    "show": "显示批注",
+    "hide": "隐藏批注",
+    "empty": "暂无批注",
+    "emptyTip": "选中一段文字后点击\"新建批注\"开始",
+    "placeholder": "输入批注内容...",
+    "noBody": "双击输入批注内容",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除批注",
+    "deleteConfirm": "确定要删除这条批注吗？",
+    "resolve": "解决",
+    "reopen": "重新打开",
+    "resolvedTip": "已解决",
+    "reply": "回复",
+    "replyPlaceholder": "写回复...",
+    "selectTextTip": "请先在文档中选中一段文字再添加批注。",
+    "anonymous": "匿名用户"
+  },
   "spellcheck": {
     "enable": "开启拼写检查",
     "disable": "关闭拼写检查"

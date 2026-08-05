@@ -159,6 +159,10 @@ provide('destroyed', destroyed)
 provide('historyRecords', historyRecords)
 provide('typeWriterIsRunning', typeWriterIsRunning)
 
+// Bình luận (giống Word)
+const commentStore = createCommentStore(options, editor)
+provide('commentStore', commentStore)
+
 watch(
   () => options.value.page,
   ({
@@ -1014,7 +1018,9 @@ const toggleFullscreen = (isFullscreen) => {
 const reset = (silent) => {
   const resetLocalStorage = () => {
     const keys = Object.keys(localStorage)
-    const kindyEditorKeys = keys.filter((key) => key.startsWith('kindy-editor:'))
+    const kindyEditorKeys = keys.filter((key) =>
+      key.startsWith('kindy-editor:'),
+    )
     kindyEditorKeys.forEach((key) => localStorage.removeItem(key))
     location.reload()
   }
@@ -1315,6 +1321,14 @@ defineExpose({
     editor.value?.commands.setCurrentNodeSelection(),
   getLocale,
   getI18n,
+  addComment: (text) => commentStore.addComment(text),
+  toggleCommentSidebar: (visible) => commentStore.toggle(visible),
+  getComments: () => commentStore.comments,
+  getCommentCount: () => commentStore.getCommentCount(),
+  removeComment: (id) => commentStore.removeComment(id),
+  resolveComment: (id, resolved) => commentStore.setResolved(id, resolved),
+  focusComment: (id) => commentStore.focus(id),
+  addReply: (id, text) => commentStore.addReply(id, text),
   setReadOnly(readOnly = true) {
     if (options.value.document) {
       options.value.document.readOnly = readOnly

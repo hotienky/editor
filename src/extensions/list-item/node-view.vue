@@ -105,7 +105,9 @@
             :class="{ 'is-active': bulletListType === item.value }"
             @click="changeBulletListType(item.value)"
           >
-            <span class="kindy-list-item-submenu-marker">{{ item.marker }}</span>
+            <span class="kindy-list-item-submenu-marker">{{
+              item.marker
+            }}</span>
             <span>{{ item.label }}</span>
           </t-dropdown-item>
         </t-dropdown-menu>

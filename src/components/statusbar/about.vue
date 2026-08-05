@@ -24,7 +24,9 @@
       </p>
       <p v-html="t('about.poweredBy')"></p>
       <p>
-        <a href="https://github.com/hotienky/editor" target="_blank"> Github </a>
+        <a href="https://github.com/hotienky/editor" target="_blank">
+          Github
+        </a>
       </p>
     </div>
   </modal>

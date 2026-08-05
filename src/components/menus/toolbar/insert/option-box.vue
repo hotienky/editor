@@ -23,7 +23,9 @@
           />
         </t-select>
         <div class="kindy-virtual-group"></div>
-        <div class="kindy-option-box-title">{{ t('insert.option.content') }}</div>
+        <div class="kindy-option-box-title">
+          {{ t('insert.option.content') }}
+        </div>
         <div class="kindy-option-box-container">
           <div class="kindy-option-box-container-center">
             <t-button

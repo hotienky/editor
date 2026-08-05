@@ -15,7 +15,7 @@
 
   &.show-line-number {
     .kindy-editor {
-      >*:not([data-line-number='false'], div) {
+      > *:not([data-line-number='false'], div) {
         position: relative;
 
         &::before {
@@ -56,25 +56,27 @@
     -webkit-font-variant-ligatures: none;
     font-variant-ligatures: none;
     font-feature-settings: 'liga' 0;
-    min-height: calc(var(--kindy-page-height) - var(--kindy-page-margin-top) - var(--kindy-page-margin-bottom));
+    min-height: calc(
+      var(--kindy-page-height) - var(--kindy-page-margin-top) -
+        var(--kindy-page-margin-bottom)
+    );
     float: left;
     font-family: var(--kindy-font-family);
     font-size: var(--kindy-font-size);
     font-display: swap;
 
-    >h1[data-placeholder],
+    > h1[data-placeholder],
     h2[data-placeholder],
     h3[data-placeholder],
     h4[data-placeholder],
     h5[data-placeholder],
     h6[data-placeholder],
-    >h1+p[data-placeholder],
-    h2+p[data-placeholder],
-    h3+p[data-placeholder],
-    h4+p[data-placeholder],
-    h5+p[data-placeholder],
-    h6+p[data-placeholder] {
-
+    > h1 + p[data-placeholder],
+    h2 + p[data-placeholder],
+    h3 + p[data-placeholder],
+    h4 + p[data-placeholder],
+    h5 + p[data-placeholder],
+    h6 + p[data-placeholder] {
       .tiptap-invisible-character,
       .ProseMirror-separator,
       .ProseMirror-trailingBreak {
@@ -88,29 +90,30 @@
       }
     }
 
-    >* {
+    > * {
       position: relative;
       z-index: 1;
 
-      +*:not(.kindy-floating-node) {
+      + *:not(.kindy-floating-node) {
         margin-top: var(--kindy-content-node-bottom);
       }
 
       &.kindy-node-focused,
       &.ProseMirror-selectednoderange {
         @media screen {
-
-          &:not(.is-editor-empty,
-            hr,
-            table,
-            .tableWrapper,
-            .kindy-page-break,
-            .kindy-code-block,
-            .kindy-node-footnotes,
-            .kindy-node-details,
-            .kindy-node-column-container,
-            .kindy-node-column,
-            .kindy-floating-node):before {
+          &:not(
+              .is-editor-empty,
+              hr,
+              table,
+              .tableWrapper,
+              .kindy-page-break,
+              .kindy-code-block,
+              .kindy-node-footnotes,
+              .kindy-node-details,
+              .kindy-node-column-container,
+              .kindy-node-column,
+              .kindy-floating-node
+            ):before {
             content: '';
             display: block;
             position: absolute;
@@ -126,10 +129,14 @@
 
           &.kindy-floating-node {
             outline: solid 1px var(--kindy-primary-color);
-            transform: translateY(calc(var(--kindy-content-node-bottom) / 2 - 1px));
+            transform: translateY(
+              calc(var(--kindy-content-node-bottom) / 2 - 1px)
+            );
 
-            &>* {
-              transform: translateY(calc(-1 * (var(--kindy-content-node-bottom) / 2 - 1px)));
+            & > * {
+              transform: translateY(
+                calc(-1 * (var(--kindy-content-node-bottom) / 2 - 1px))
+              );
             }
           }
         }
@@ -216,32 +223,35 @@
     }
 
     &.kindy-insert-newline-active {
-
-      >*.kindy-node-focused,
-      >*.ProseMirror-selectednoderange {
-
-        &:not(.is-editor-empty,
-          hr,
-          table,
-          .tableWrapper,
-          .kindy-page-break,
-          .kindy-code-block,
-          .kindy-node-footnotes,
-          .kindy-node-details,
-          .kindy-node-column-container,
-          .kindy-node-column,
-          .kindy-floating-node)::before {
+      > *.kindy-node-focused,
+      > *.ProseMirror-selectednoderange {
+        &:not(
+            .is-editor-empty,
+            hr,
+            table,
+            .tableWrapper,
+            .kindy-page-break,
+            .kindy-code-block,
+            .kindy-node-footnotes,
+            .kindy-node-details,
+            .kindy-node-column-container,
+            .kindy-node-column,
+            .kindy-floating-node
+          )::before {
           display: none;
         }
       }
     }
   }
 
-  &.is-empty .is-editor-empty:not(.kindy-node-view,
-    .tableWrapper,
-    .kindy-column-block,
-    ul,
-    ol) {
+  &.is-empty
+    .is-editor-empty:not(
+      .kindy-node-view,
+      .tableWrapper,
+      .kindy-column-block,
+      ul,
+      ol
+    ) {
     &::after {
       display: inline-block;
       vertical-align: text-top;
@@ -253,7 +263,7 @@
     }
 
     &:first-child {
-      >*:not(table) {
+      > *:not(table) {
         display: none;
       }
 
@@ -276,6 +286,38 @@
 
     ::selection {
       background-color: var(--kindy-text-selection-background);
+    }
+  }
+
+  @keyframes kindy-comment-flash-anim {
+    0% {
+      box-shadow: 0 0 0 3px var(--kindy-primary-color);
+    }
+    50% {
+      box-shadow: 0 0 0 5px var(--kindy-primary-color);
+    }
+    100% {
+      box-shadow: none;
+    }
+  }
+
+  .kindy-comment-flash {
+    animation: kindy-comment-flash-anim 1.5s ease-in-out forwards;
+    border-radius: 2px;
+  }
+
+  .kindy-comment {
+    font-size: inherit !important;
+    font-family: inherit !important;
+    font-weight: inherit !important;
+    line-height: inherit !important;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+    &.kindy-comment-resolved {
+      background-color: rgba(128, 128, 128, 0.15) !important;
+      opacity: 0.7;
     }
   }
 
@@ -335,7 +377,7 @@
       box-sizing: border-box;
       position: relative;
 
-      >* {
+      > * {
         margin-bottom: 0;
       }
 
@@ -557,7 +599,7 @@
       width: calc(100% - 15px);
     }
 
-    >button {
+    > button {
       align-items: center;
       background: transparent;
       border-radius: 4px;
@@ -580,11 +622,11 @@
       }
     }
 
-    &.is-open>button::before {
+    &.is-open > button::before {
       transform: rotate(90deg);
     }
 
-    >div {
+    > div {
       display: flex;
       flex-direction: column;
       gap: 0.5em;
@@ -657,7 +699,9 @@
     flex-grow: 1;
 
     &.kindy-node-focused {
-      background-color: var(--kindy-content-table-selected-background) !important;
+      background-color: var(
+        --kindy-content-table-selected-background
+      ) !important;
     }
 
     &-resize-cursor {
@@ -684,7 +728,7 @@
     }
 
     > :not(div.grid-resize-handle):nth-child(1),
-    >div.grid-resize-handle+ :nth-child(2) {
+    > div.grid-resize-handle + :nth-child(2) {
       margin-top: 0;
     }
 

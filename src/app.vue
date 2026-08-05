@@ -60,9 +60,9 @@ const options = $ref({
     // menus: ['base'],
   },
   document: {
-    title: 'Văn bản mẫu',
-    content: localStorage.getItem('document.content') || '<h1>Chào mừng bạn đến với Kindy Editor!</h1><p>Đây là trình soạn thảo văn bản hiện đại dựa trên Vue 3 và Tiptap 3, được hỗ trợ đầy đủ tiếng Việt.</p>',
-    // structure: 'heading block*',
+    title: 'Tài liệu hướng dẫn Kindy Editor',
+    content:
+      '<h1>Chào mừng bạn đến với Kindy Editor!</h1><p><strong>Kindy Editor</strong> là trình soạn thảo văn bản chuẩn Office hiện đại dựa trên <strong>Vue 3</strong> và <strong>Tiptap 3</strong>, hỗ trợ 100% tiếng Việt.</p><h2>✨ Các tính năng nổi bật:</h2><ul><li><strong>Phân trang dạng Word:</strong> Hỗ trợ ngắt trang, căn lề, khổ giấy A4, A3...</li><li><strong>Bình luận văn bản (Word-style Comments):</strong> Bôi đen văn bản để thêm bình luận, phản hồi và giải quyết.</li><li><strong>Phông chữ chuẩn Tiếng Việt:</strong> Hỗ trợ font hệ thống sắc nét, không lo lệch hay vỡ dấu.</li></ul><p><em>Hãy thử bôi đen đoạn văn bản này và chọn biểu tượng Bình luận để trải nghiệm!</em></p>',
   },
   page: {
     layouts: ['page', 'web'],

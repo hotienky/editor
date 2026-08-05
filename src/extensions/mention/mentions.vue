@@ -27,7 +27,9 @@
               >
                 {{ item.label?.slice(0, 1) }}
               </t-avatar>
-              <span class="kindy-mention-popup-item-name">{{ item.label }}</span>
+              <span class="kindy-mention-popup-item-name">{{
+                item.label
+              }}</span>
             </div>
             <span v-if="item.bio" class="kindy-mention-popup-item-bio">
               ({{ item.bio }})

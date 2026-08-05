@@ -103,6 +103,7 @@
           <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
           <menus-toolbar-insert-footnote v-if="!disableMenu('footnote')" />
           <menus-toolbar-insert-toc v-if="!disableMenu('toc')" />
+          <menus-toolbar-insert-comment v-if="!disableMenu('comment')" />
         </div>
         <div class="kindy-virtual-group">
           <menus-toolbar-insert-template v-if="!disableMenu('template')" />
@@ -197,6 +198,7 @@
           <menus-toolbar-view-toc v-if="!disableMenu('toc')" />
           <menus-toolbar-view-fullscreen v-if="!disableMenu('fullscreen')" />
           <menus-toolbar-view-preview v-if="!disableMenu('preview')" />
+          <menus-toolbar-view-comment v-if="!disableMenu('comment')" />
         </div>
         <div class="kindy-virtual-group">
           <menus-toolbar-view-page v-if="!disableMenu('layout-page')" />

@@ -2,7 +2,15 @@
 @import 'tdesign-vue-next/esm/common/style/web/theme/_index.less';
 @import 'tdesign-vue-next/esm/common/style/web/components/time-picker/_index.less';
 
-:root, body, .t-dialog, .t-popup, .t-message, .t-notification, .t-tooltip, .t-dropdown, .t-select__dropdown {
+:root,
+body,
+.t-dialog,
+.t-popup,
+.t-message,
+.t-notification,
+.t-tooltip,
+.t-dropdown,
+.t-select__dropdown {
   font-family: var(--kindy-font-family) !important;
   --td-font-family: var(--kindy-font-family);
 }
@@ -137,7 +145,6 @@ body {
       }
 
       &--fixed {
-
         .kindy-dialog,
         .t-dialog {
           &__mask {
@@ -167,7 +174,7 @@ body {
         font-weight: 400;
         align-items: center;
 
-        >.kindy-icon {
+        > .kindy-icon {
           margin-right: 8px;
           font-size: 24px;
         }
@@ -239,7 +246,6 @@ body {
   }
 
   .kindy-input-number.kindy-is-controls-right {
-
     .kindy-input-number__decrease,
     .kindy-input-number__increase {
       width: 18px;

@@ -56,6 +56,13 @@ const defaultLineHeight = $computed(
 )
 
 const container = inject('container')
+const commentStore = inject('commentStore')
+
+// Bình luận: đọc lại từ document mỗi khi nội dung thay đổi (undo/redo, xóa text...)
+const syncComments = useDebounceFn(() => {
+  commentStore?.syncFromDoc()
+}, 600)
+
 const extensions = getDefaultExtensions({
   container,
   options,
@@ -143,6 +150,7 @@ const editorInstance = new Editor({
   onUpdate({ editor }) {
     addHistory(historyRecords, 'editor', editor?.state?.history$)
     scheduleSyncDocumentContent()
+    syncComments()
   },
   onBlur() {
     flushSyncDocumentContent()
@@ -151,6 +159,8 @@ const editorInstance = new Editor({
 const editor = inject('editor')
 editor.value = editorInstance
 editor.value.storage.container = container
+// Đồng bộ comment từ nội dung document sau khi editor được tạo
+commentStore?.syncFromDoc()
 watch(
   () => options.value,
   () => {

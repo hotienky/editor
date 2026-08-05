@@ -77,7 +77,10 @@
         ></div>
       </div>
       <div class="kindy-qrcode-render">
-        <div class="kindy-qrcode-title" v-text="t('tools.qrcode.preview')"></div>
+        <div
+          class="kindy-qrcode-title"
+          v-text="t('tools.qrcode.preview')"
+        ></div>
         <div class="kindy-qrcode-svg kindy-scrollbar">
           <div
             v-if="!svgCode"

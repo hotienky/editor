@@ -15,6 +15,7 @@
         }"
       >
         <t-watermark
+          v-if="pageOptions.watermark?.text"
           class="kindy-page-content"
           :style="{
             '--kindy-page-orientation': pageOptions.orientation,
@@ -31,9 +32,9 @@
               pageOptions.layout === 'page' ? pageSize.width + 'cm' : '100%',
             transform: `scale(${pageOptions.zoomLevel ? pageOptions.zoomLevel / 100 : 1})`,
           }"
-          :alpha="pageOptions.watermark.alpha"
+          :alpha="pageOptions.watermark?.alpha"
           v-bind="watermarkOptions"
-          :watermark-content="pageOptions.watermark"
+          :watermark-content="pageOptions.watermark?.text"
         >
           <div class="kindy-page-node-header" contenteditable="false">
             <div
@@ -47,7 +48,7 @@
               style="width: var(--kindy-page-margin-right)"
             ></div>
           </div>
-          <div class="kindy-page-node-content">
+          <div class="kindy-page-node-content" @click="onPageClick">
             <editor>
               <template #bubble_menu="props">
                 <slot name="bubble_menu" v-bind="props" />
@@ -66,6 +67,56 @@
             ></div>
           </div>
         </t-watermark>
+        <div
+          v-else
+          class="kindy-page-content"
+          :style="{
+            '--kindy-page-orientation': pageOptions.orientation,
+            '--kindy-page-background': pageOptions.background,
+            '--kindy-page-margin-top': pageOptions.margin?.top + 'cm',
+            '--kindy-page-margin-bottom': pageOptions.margin?.bottom + 'cm',
+            '--kindy-page-margin-left': pageOptions.margin?.left + 'cm',
+            '--kindy-page-margin-right': pageOptions.margin?.right + 'cm',
+            '--kindy-page-width':
+              pageOptions.layout === 'page' ? pageSize.width + 'cm' : 'auto',
+            '--kindy-page-height':
+              pageOptions.layout === 'page' ? pageSize.height + 'cm' : '100%',
+            width:
+              pageOptions.layout === 'page' ? pageSize.width + 'cm' : '100%',
+            transform: `scale(${pageOptions.zoomLevel ? pageOptions.zoomLevel / 100 : 1})`,
+          }"
+        >
+          <div class="kindy-page-node-header" contenteditable="false">
+            <div
+              class="kindy-page-corner corner-tl"
+              style="width: var(--kindy-page-margin-left)"
+            ></div>
+
+            <div class="kindy-page-node-header-content"></div>
+            <div
+              class="kindy-page-corner corner-tr"
+              style="width: var(--kindy-page-margin-right)"
+            ></div>
+          </div>
+          <div class="kindy-page-node-content" @click="onPageClick">
+            <editor>
+              <template #bubble_menu="props">
+                <slot name="bubble_menu" v-bind="props" />
+              </template>
+            </editor>
+          </div>
+          <div class="kindy-page-node-footer" contenteditable="false">
+            <div
+              class="kindy-page-corner corner-bl"
+              style="width: var(--kindy-page-margin-left)"
+            ></div>
+            <div class="kindy-page-node-footer-content"></div>
+            <div
+              class="kindy-page-corner corner-br"
+              style="width: var(--kindy-page-margin-right)"
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="kindy-main-floating-actions">
@@ -86,13 +137,40 @@
     />
     <container-search-replace />
     <container-print />
+    <container-comment v-if="commentStore.visible" />
   </div>
 </template>
 
 <script setup>
+import Editor from '@/components/editor/index.vue'
+
 const container = inject('container')
 const imageViewer = inject('imageViewer')
 const pageOptions = inject('page')
+const editor = inject('editor')
+const commentStore = inject('commentStore')
+
+// Click vào trang giấy: nếu click comment thì mở sidebar, nếu click vùng trắng thì focus trình soạn thảo
+const onPageClick = (event) => {
+  const { target } = event
+  const commentEl = target?.closest?.('[data-comment]')
+  if (commentEl && editor?.value) {
+    const id = commentEl.getAttribute('data-comment')
+    if (id) {
+      commentStore?.toggle(true)
+      commentStore?.focus(id)
+      return
+    }
+  }
+  if (editor?.value) {
+    const isInteractive = target?.closest?.(
+      'button, input, select, textarea, a, .t-popup, .t-dropdown, .kindy-comment-sidebar, .t-dialog',
+    )
+    if (!isInteractive && !editor.value.isFocused) {
+      editor.value.commands.focus()
+    }
+  }
+}
 
 // 页面大小
 const pageSize = $computed(() => {
@@ -181,7 +259,6 @@ const watermarkOptions = $ref({
   y: 0,
   width: 0,
   height: 0,
-  type: undefined,
 })
 watch(
   () => pageOptions.value.watermark,
