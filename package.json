@@ -1,18 +1,16 @@
 {
-  "name": "@umoteam/editor",
-  "version": "11.1.1",
-  "description": "Umo Editor is open-source document editor based on Vue3 and Tiptap3. Umo Editor provides comprehensive document editing capabilities and AI creation features, supports pagination, supports Markdown syntax, offers basic rich text editing functions, allows for the insertion of various node types in multiple formats, provides a variety of practical tools, and supports setting page styles. It also supports exporting in various formats, printing and print preview, block-level document editing, adding custom extensions, multi-language settings, and a dark theme.",
+  "name": "@kindy/editor",
+  "version": "1.0.0",
+  "description": "A powerful document editor based on Vue3 and Tiptap3. Forked from Umo Editor and customized for personal use.",
   "keywords": [
     "docs editor",
     "document editor",
     "editor",
-    "office edtior",
+    "office editor",
     "online office",
     "richtext editor",
     "tiptap",
     "tiptap3",
-    "umo editor",
-    "umodoc editor",
     "vue editor",
     "vue3 editor",
     "web editor",
@@ -20,20 +18,20 @@
     "word editor",
     "wysiwyg editor"
   ],
-  "homepage": "https://www.umodoc.com",
+  "homepage": "https://github.com/kindy/editor",
   "bugs": {
-    "url": "https://github.com/umodoc/editor/issues",
-    "email": "contact@umodoc.com"
+    "url": "https://github.com/kindy/editor/issues",
+    "email": ""
   },
   "license": "MIT",
   "author": {
-    "name": "umodoc",
-    "email": "contact@umodoc.com",
-    "url": "https://www.umodoc.com"
+    "name": "Kindy",
+    "email": "",
+    "url": "https://github.com/kindy"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/umodoc/editor.git"
+    "url": "https://github.com/kindy/editor.git"
   },
   "files": [
     "dist"
