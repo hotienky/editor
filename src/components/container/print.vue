@@ -1,5 +1,5 @@
 <template>
-  <iframe ref="iframeRef" class="umo-print-iframe" :srcdoc="iframeCode" />
+  <iframe ref="iframeRef" class="kindy-print-iframe" :srcdoc="iframeCode" />
 </template>
 
 <script setup>
@@ -24,7 +24,7 @@ const getPlyrSprite = () => {
 
 const getContentHtml = () => {
   const originalContent =
-    document.querySelector(`${container} .umo-page-content`)?.outerHTML || ''
+    document.querySelector(`${container} .kindy-page-content`)?.outerHTML || ''
   return prepareEchartsForPrint(originalContent)
 }
 // 因echart依赖于组件动态展示，打印时效果无法通过html实现，所以通过转成图片方式解决
@@ -34,7 +34,7 @@ const prepareEchartsForPrint = (htmlContent) => {
   tempDiv.innerHTML = htmlContent
 
   // 找到所有需要转换的ECharts实例
-  const charts = tempDiv.querySelectorAll('.umo-node-echarts-body')
+  const charts = tempDiv.querySelectorAll('.kindy-node-echarts-body')
   for (const chartElement of charts) {
     const chartInstance = echarts.getInstanceByDom(chartElement)
     if (chartInstance) {
@@ -86,10 +86,10 @@ const getIframeCode = () => {
         background-color: ${background};
         -webkit-print-color-adjust: exact;
       }
-      .umo-editor-container{
+      .kindy-editor-container{
         background-color: ${background} !important;
       }
-      .umo-page-content{
+      .kindy-page-content{
         transform: scale(1) !important;
         overflow: hidden;
       }
@@ -112,8 +112,8 @@ const getIframeCode = () => {
       <div id="sprite-plyr" style="display: none;">
       ${getPlyrSprite()}
       </div>
-      <div class="umo-editor-container" style="line-height: ${defaultLineHeight};" aria-expanded="false">
-        <div class="tiptap umo-editor" translate="no">
+      <div class="kindy-editor-container" style="line-height: ${defaultLineHeight};" aria-expanded="false">
+        <div class="tiptap kindy-editor" translate="no">
           ${getContentHtml()}
         </div>
       </div>
@@ -123,7 +123,7 @@ const getIframeCode = () => {
             mutations.forEach(mutation => {
               if (mutation.removedNodes) {
                 Array.from(mutation.removedNodes).forEach(node => {
-                  if (node?.classList?.contains('umo-page-watermark')) {
+                  if (node?.classList?.contains('kindy-page-watermark')) {
                     location.reload();
                   }
                 });
@@ -174,7 +174,7 @@ watch(
 </script>
 
 <style lang="less" scoped>
-.umo-print-iframe {
+.kindy-print-iframe {
   position: absolute;
   width: 0;
   height: 0;

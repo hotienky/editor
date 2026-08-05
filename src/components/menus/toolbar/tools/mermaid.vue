@@ -16,9 +16,9 @@
         <icon name="mermaid" />
         {{ content ? t('tools.mermaid.edit') : t('tools.mermaid.text') }}
       </template>
-      <div class="umo-mermaid-container">
-        <div class="umo-mermaid-editor">
-          <div class="umo-mermaid-toolbar">
+      <div class="kindy-mermaid-container">
+        <div class="kindy-mermaid-editor">
+          <div class="kindy-mermaid-toolbar">
             <menus-button
               style="width: 100px"
               menu-type="select"
@@ -42,27 +42,27 @@
           </div>
           <t-textarea
             v-model="mermaidCode"
-            class="umo-mermaid-code"
+            class="kindy-mermaid-code"
             autofocus
             :placeholder="t('tools.mermaid.placeholder')"
           />
         </div>
-        <div class="umo-mermaid-render">
+        <div class="kindy-mermaid-render">
           <div
-            class="umo-mermaid-title"
+            class="kindy-mermaid-title"
             v-text="t('tools.mermaid.preview')"
           ></div>
-          <div class="umo-mermaid-error" v-if="errorTxt">{{ errorTxt }}</div>
+          <div class="kindy-mermaid-error" v-if="errorTxt">{{ errorTxt }}</div>
           <div
             v-else
             ref="mermaidRef"
-            class="umo-mermaid-svg umo-scrollbar"
+            class="kindy-mermaid-svg kindy-scrollbar"
             v-html="svgCode"
           ></div>
         </div>
       </div>
       <t-checkbox
-        class="umo-mermaid-keep-size"
+        class="kindy-mermaid-keep-size"
         v-if="content && content !== ''"
         v-model="keepSize"
       >
@@ -228,51 +228,51 @@ const setMermaid = () => {
 </script>
 
 <style lang="less" scoped>
-.umo-mermaid-container {
+.kindy-mermaid-container {
   display: flex;
-  .umo-mermaid-editor {
+  .kindy-mermaid-editor {
     display: flex;
     flex-direction: column;
     gap: 10px;
   }
-  .umo-mermaid-toolbar {
+  .kindy-mermaid-toolbar {
     display: flex;
     align-items: center;
     padding: 2px;
   }
-  .umo-mermaid-code {
+  .kindy-mermaid-code {
     width: 320px;
     margin-left: 2px;
     flex: 1;
-    :deep(.umo-textarea__inner) {
+    :deep(.kindy-textarea__inner) {
       height: 100%;
       resize: none;
     }
   }
-  .umo-mermaid-render {
+  .kindy-mermaid-render {
     flex: 1;
     margin-left: 20px;
     border: solid 1px var(--td-border-level-2-color);
-    border-radius: var(--umo-radius);
+    border-radius: var(--kindy-radius);
     position: relative;
     overflow: hidden;
     box-sizing: border-box;
-    .umo-mermaid-title {
-      background-color: var(--umo-button-hover-background);
+    .kindy-mermaid-title {
+      background-color: var(--kindy-button-hover-background);
       padding: 0 10px;
       position: absolute;
       font-size: 12px;
-      border-bottom-right-radius: var(--umo-radius);
+      border-bottom-right-radius: var(--kindy-radius);
     }
-    .umo-mermaid-error {
+    .kindy-mermaid-error {
       height: 320px;
       display: flex;
       justify-content: center;
       align-items: center;
-      color: var(--umo-text-color-light);
+      color: var(--kindy-text-color-light);
       font-size: 12px;
     }
-    .umo-mermaid-svg {
+    .kindy-mermaid-svg {
       box-sizing: border-box;
       height: 320px;
       padding: 40px 20px 20px;
@@ -282,7 +282,7 @@ const setMermaid = () => {
     }
   }
 }
-.umo-mermaid-keep-size {
+.kindy-mermaid-keep-size {
   position: absolute;
   bottom: 30px;
 }

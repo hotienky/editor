@@ -1,5 +1,5 @@
 <template>
-  <div v-if="$toolbar.show" class="umo-toolbar-container">
+  <div v-if="$toolbar.show" class="kindy-toolbar-container">
     <toolbar-ribbon
       v-if="$toolbar.mode === 'ribbon'"
       :menus="toolbarMenus"
@@ -29,8 +29,8 @@
       </template>
     </toolbar-classic>
     <div
-      class="umo-toolbar-actions"
-      :class="`umo-toolbar-actions-${$toolbar.mode}`"
+      class="kindy-toolbar-actions"
+      :class="`kindy-toolbar-actions-${$toolbar.mode}`"
     >
       <t-popup
         v-if="
@@ -43,17 +43,17 @@
         @visible-change="(visible) => (statusPopup = visible)"
       >
         <t-button
-          class="umo-toolbar-actions-button"
+          class="kindy-toolbar-actions-button"
           variant="text"
           size="small"
           :class="{ active: statusPopup }"
         >
-          <span class="umo-status">
+          <span class="kindy-status">
             <span
-              class="umo-status-online"
+              class="kindy-status-online"
               :class="{ offline: !online }"
             ></span>
-            <span class="umo-status-saved button-text">
+            <span class="kindy-status-saved button-text">
               <span
                 v-if="savedAt"
                 v-text="t('save.savedAtText', { time: timeAgo(savedAt) })"
@@ -63,7 +63,7 @@
           </span>
         </t-button>
         <template #content>
-          <div class="umo-document-status-container umo-status">
+          <div class="kindy-document-status-container kindy-status">
             <div>
               {{ t('save.network') }}
               {{ online ? t('save.online') : t('save.offline') }}
@@ -76,7 +76,7 @@
               ></span>
               <span v-else v-text="t('save.unsaved')"></span>
             </div>
-            <div class="umo-document-button-container">
+            <div class="kindy-document-button-container">
               <t-button
                 size="small"
                 @click="saveContent"
@@ -104,12 +104,12 @@
         @click="toggleToolbarMode"
       >
         <t-button
-          class="umo-toolbar-actions-button"
+          class="kindy-toolbar-actions-button"
           variant="text"
           size="small"
         >
           <icon name="expand-down" />
-          <span class="umo-button-text">{{ t('toolbar.toggle') }}</span>
+          <span class="kindy-button-text">{{ t('toolbar.toggle') }}</span>
         </t-button>
         <template #dropdown>
           <t-dropdown-menu
@@ -129,7 +129,7 @@
     </div>
   </div>
   <tooltip v-else :content="t('toolbar.show')" placement="bottom-right">
-    <div class="umo-show-toolbar" @click="$toolbar.show = true">
+    <div class="kindy-show-toolbar" @click="$toolbar.show = true">
       <icon name="arrow-down" />
     </div>
   </tooltip>
@@ -240,13 +240,13 @@ const setContentFromCache = () => {
 </script>
 
 <style lang="less" scoped>
-.umo-toolbar-container {
+.kindy-toolbar-container {
   display: flex;
   justify-content: space-between;
   user-select: none;
   position: relative;
 }
-.umo-toolbar-actions {
+.kindy-toolbar-actions {
   padding: 6px 10px;
   display: flex;
   align-items: center;
@@ -257,48 +257,48 @@ const setContentFromCache = () => {
   }
   &-button {
     &.active {
-      background-color: var(--umo-button-hover-background);
+      background-color: var(--kindy-button-hover-background);
     }
     &:not(:last-child) {
       margin-right: 3px;
     }
-    :deep(.umo-button__text) {
+    :deep(.kindy-button__text) {
       display: flex;
       align-items: center;
-      .umo-icon {
+      .kindy-icon {
         margin-right: 3px;
       }
     }
   }
   @media screen and (max-width: 640px) {
     padding-left: 0;
-    .umo-status-online {
+    .kindy-status-online {
       margin-right: 0;
     }
-    .umo-button-text {
+    .kindy-button-text {
       display: none;
     }
   }
 }
-.umo-show-toolbar {
+.kindy-show-toolbar {
   cursor: pointer;
   position: absolute;
   right: 20px;
   font-size: 18px;
   padding: 3px 6px;
   z-index: 99;
-  background-color: var(--umo-color-white);
-  color: var(--umo-text-color-light);
-  border-bottom-left-radius: var(--umo-radius);
-  border-bottom-right-radius: var(--umo-radius);
-  border: solid 1px var(--umo-border-color);
+  background-color: var(--kindy-color-white);
+  color: var(--kindy-text-color-light);
+  border-bottom-left-radius: var(--kindy-radius);
+  border-bottom-right-radius: var(--kindy-radius);
+  border: solid 1px var(--kindy-border-color);
   border-top: none;
   &:hover {
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.08);
-    color: var(--umo-primary-color);
+    color: var(--kindy-primary-color);
   }
 }
-.umo-status {
+.kindy-status {
   font-size: 12px;
   display: flex;
   align-items: center;
@@ -313,21 +313,21 @@ const setContentFromCache = () => {
     }
   }
   &-saved {
-    color: var(--umo-text-color-light);
+    color: var(--kindy-text-color-light);
     margin-left: 5px;
     .unsaved {
-      color: var(--umo-error-color);
+      color: var(--kindy-error-color);
     }
   }
 }
-.umo-document-status-container {
+.kindy-document-status-container {
   flex-direction: column;
   align-items: unset;
   padding: 12px 16px;
-  color: var(--umo-text-color);
+  color: var(--kindy-text-color);
   min-width: 150px;
   cursor: default;
-  .umo-document-button-container {
+  .kindy-document-button-container {
     margin: 8px 0 4px;
     display: flex;
     gap: 8px;
@@ -336,12 +336,12 @@ const setContentFromCache = () => {
 </style>
 
 <style lang="less">
-.umo-skin-modern {
+.kindy-skin-modern {
   &.toolbar-classic {
-    .umo-toolbar-actions {
+    .kindy-toolbar-actions {
       margin: 15px 15px 2px 0;
       border-radius: 6px;
-      background-color: var(--umo-color-white);
+      background-color: var(--kindy-color-white);
       box-shadow:
         0 0 0 1px hsla(0, 0%, 5%, 0.04),
         0 2px 5px hsla(0, 0%, 5%, 0.06);
@@ -353,16 +353,16 @@ const setContentFromCache = () => {
     }
   }
   &.toolbar-ribbon {
-    .umo-toolbar-actions {
+    .kindy-toolbar-actions {
       right: 5px !important;
       top: 6px !important;
     }
   }
 }
-[theme-mode='dark'] .umo-skin-modern {
+[theme-mode='dark'] .kindy-skin-modern {
   &.toolbar-classic {
-    .umo-toolbar-actions {
-      outline: solid 1px var(--umo-border-color-light);
+    .kindy-toolbar-actions {
+      outline: solid 1px var(--kindy-border-color-light);
     }
   }
 }

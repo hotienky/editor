@@ -1,5 +1,5 @@
 {
-  "welcome": "%cСпасибо за использование Umo Editor%cТекущая версия: v{version}, Подробнее: {homepage}",
+  "welcome": "%cСпасибо за использование Kindy Editor%cТекущая версия: v{version}, Подробнее: {homepage}",
   "toolbar": {
     "ribbon": "Профессиональный",
     "classic": "Классический",
@@ -660,7 +660,7 @@
     "reset": "Сбросить"
   },
   "feedback": "Проблемы / Отзыв",
-  "poweredBy": "Работает на базе Umo Editor",
+  "poweredBy": "Работает на базе Kindy Editor",
   "wordCount": {
     "characters": "Символы",
     "title": "Статистика документа",

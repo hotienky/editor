@@ -8,7 +8,7 @@
     @toggle-popup="togglePopup"
   >
     <template #content>
-      <div class="umo-link-container">
+      <div class="kindy-link-container">
         <t-form label-align="top">
           <t-form-item :label="t('insert.link.hrefText')">
             <t-input
@@ -102,11 +102,11 @@ watch(
 </script>
 
 <style lang="less" scoped>
-.umo-link-container {
+.kindy-link-container {
   padding: 0 2px 2px;
   margin-top: -6px;
   width: 320px;
-  :deep(.umo-form__item) {
+  :deep(.kindy-form__item) {
     margin-bottom: 5px;
     &:last-child {
       margin-top: 15px;

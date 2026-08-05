@@ -1,11 +1,11 @@
 <template>
   <template v-if="is('link') && attrs('link').href">
     <menus-bubble-link-open />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-insert-link ico="edit" :text="t('insert.link.edit')" />
     <menus-bubble-link-copy />
     <menus-bubble-link-unlink />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
   <template
@@ -18,17 +18,17 @@
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-image-proportion />
     <menus-bubble-image-draggable />
     <menus-bubble-image-title v-if="is('image')" />
     <menus-bubble-image-crop v-if="is('image')" />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-image-flip />
     <menus-bubble-image-rotate />
     <menus-bubble-image-reset />
     <menus-bubble-image-reset-all />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-image-preview
       v-if="
         attrs('image')?.type?.startsWith('image') ||
@@ -48,7 +48,7 @@
       "
     />
     <menus-bubble-image-convert />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
   <template
@@ -60,7 +60,7 @@
     <template v-if="is('file')">
       <menus-bubble-file-width />
     </template>
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <template v-if="is('iframe')">
       <menus-bubble-webpage-clickable />
       <menus-toolbar-insert-web-page
@@ -70,7 +70,7 @@
         :page-url="attrs('iframe')?.src"
       />
       <menus-bubble-webpage-open />
-      <div class="umo-bubble-menu-divider"></div>
+      <div class="kindy-bubble-menu-divider"></div>
     </template>
     <menus-bubble-file-download
       v-if="is('file') || is('video') || is('audio')"
@@ -82,32 +82,32 @@
     <menus-toolbar-table-cells-align />
     <menus-toolbar-table-cells-background />
     <!-- <menus-toolbar-table-border-color  /> -->
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-table-add-row-before />
     <menus-toolbar-table-add-row-after />
     <menus-toolbar-table-add-column-before />
     <menus-toolbar-table-add-column-after />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-table-delete-row />
     <menus-toolbar-table-delete-column />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-table-merge-cells />
     <menus-toolbar-table-split-cell />
   </template>
   <template v-else-if="is('tag')">
     <menus-bubble-tag-input />
     <menus-bubble-tag-builtin />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-tag-color />
     <menus-bubble-tag-background />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-tag-delete />
   </template>
   <template v-else-if="is('echarts')">
     <menus-toolbar-base-align-left />
     <menus-toolbar-base-align-center />
     <menus-toolbar-base-align-right />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-tools-echarts ico="setting" />
     <menus-bubble-node-delete />
   </template>
@@ -115,12 +115,12 @@
     <menus-toolbar-base-font-size :select="false" />
     <menus-toolbar-base-bold />
     <menus-toolbar-base-italic />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-base-color />
     <menus-toolbar-base-background-color />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-insert-option-box edit />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
   </template>
   <template v-else-if="is('blockMath') || is('inlineMath')">
@@ -145,16 +145,16 @@
     <menus-toolbar-base-font-size :select="false" />
     <div
       v-if="!disable('font-size-increase') || !disable('font-size-decrease')"
-      class="umo-bubble-menu-divider"
+      class="kindy-bubble-menu-divider"
     ></div>
     <menus-toolbar-base-bold />
     <menus-toolbar-base-italic />
     <menus-toolbar-base-underline />
     <menus-toolbar-base-strike />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-base-align-dropdown />
     <menus-toolbar-insert-link v-if="!disable('link')" />
-    <div class="umo-bubble-menu-divider"></div>
+    <div class="kindy-bubble-menu-divider"></div>
     <menus-toolbar-base-color />
     <template v-if="!is('textBox')">
       <menus-toolbar-base-background-color />
@@ -164,7 +164,7 @@
       <menus-bubble-text-box-border />
       <menus-bubble-text-box-background />
       <menus-bubble-text-box-writing-mode />
-      <div class="umo-bubble-menu-divider"></div>
+      <div class="kindy-bubble-menu-divider"></div>
       <menus-bubble-node-delete />
     </template>
   </template>
@@ -219,12 +219,12 @@ const getCurrentNode = (type) => {
 </script>
 
 <style lang="less">
-.umo-bubble-menu-divider {
+.kindy-bubble-menu-divider {
   width: 1px;
-  border-right: solid 1px var(--umo-border-color-light);
+  border-right: solid 1px var(--kindy-border-color-light);
   height: 16px;
   margin: 0 5px 0 0;
-  &:last-child:is(.umo-bubble-menu-divider) {
+  &:last-child:is(.kindy-bubble-menu-divider) {
     display: none;
   }
 }

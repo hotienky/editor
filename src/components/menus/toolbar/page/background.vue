@@ -8,11 +8,11 @@
     @toggle-popup="togglePopup"
   >
     <template #content>
-      <div class="umo-background-container">
+      <div class="kindy-background-container">
         <div
           v-for="(item, index) in backgrounds"
           :key="index"
-          class="umo-background-item"
+          class="kindy-background-item"
           :class="{ active: page.background === item.value }"
           :style="{ backgroundColor: item.value }"
           @click="backgroundChange(item.value || '')"
@@ -26,12 +26,12 @@
         placement="right-bottom"
         @visible-change="(visible) => (moreColorPicker = visible)"
       >
-        <div class="umo-background-more" :class="{ active: moreColorPicker }">
-          <div class="umo-background-more-menu">
+        <div class="kindy-background-more" :class="{ active: moreColorPicker }">
+          <div class="kindy-background-more-menu">
             <icon name="palette-color" />
             <span v-text="t('page.bg.custom')"></span>
           </div>
-          <div class="umo-background-more-arrow">
+          <div class="kindy-background-more-arrow">
             <icon name="arrow-down" />
           </div>
         </div>
@@ -71,23 +71,23 @@ const backgroundChange = (color) => {
 </script>
 
 <style lang="less" scoped>
-.umo-background-container {
+.kindy-background-container {
   display: flex;
   flex-wrap: wrap;
   width: 234px;
   justify-content: space-between;
   gap: 9px;
   user-select: none;
-  .umo-background-item {
+  .kindy-background-item {
     width: 70px;
     height: 90px;
     border: solid 1px rgba(0, 0, 0, 0.1);
-    border-radius: var(--umo-radius);
+    border-radius: var(--kindy-radius);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 10px;
-    color: var(--umo-text-color-light);
+    color: var(--kindy-text-color-light);
     text-align: center;
     cursor: pointer;
     white-space: pre;
@@ -97,12 +97,12 @@ const backgroundChange = (color) => {
       transform: scale(1.02);
     }
     &.active {
-      color: var(--umo-primary-color);
-      border-color: var(--umo-primary-color);
+      color: var(--kindy-primary-color);
+      border-color: var(--kindy-primary-color);
     }
   }
 }
-.umo-background-more {
+.kindy-background-more {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -112,20 +112,20 @@ const backgroundChange = (color) => {
   &:hover,
   &.active {
     background-color: var(--td-bg-color-container-hover);
-    border-radius: var(--umo-radius);
+    border-radius: var(--kindy-radius);
   }
   &-menu {
     display: flex;
     align-items: center;
     font-size: 12px;
     cursor: pointer;
-    .umo-icon {
+    .kindy-icon {
       margin-right: 5px;
       font-size: 16px;
     }
   }
   &-arrow {
-    .umo-icon {
+    .kindy-icon {
       transform: rotate(-90deg);
     }
   }

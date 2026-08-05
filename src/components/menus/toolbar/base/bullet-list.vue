@@ -17,19 +17,19 @@
     @menu-click="toggleBulletList(options[0].value)"
   >
     <template #content>
-      <div class="umo-bullet-list-group">
+      <div class="kindy-bullet-list-group">
         <tooltip
           v-for="item in options"
           :key="item.value"
           :content="item.label"
         >
           <div
-            class="umo-bullet-list-item"
+            class="kindy-bullet-list-item"
             :class="{ active: listStyleType === item.value }"
             @click="toggleBulletList(item.value)"
           >
             <icon
-              class="umo-icon-bullet-list"
+              class="kindy-icon-bullet-list"
               :name="`bullet-list-${item.value}`"
             />
           </div>
@@ -79,26 +79,26 @@ const toggleBulletList = (listType) => {
 </script>
 
 <style lang="less" scoped>
-.umo-bullet-list-group {
+.kindy-bullet-list-group {
   display: flex;
   align-items: center;
   gap: 8px;
-  .umo-bullet-list-item {
+  .kindy-bullet-list-item {
     cursor: pointer;
     padding: 5px;
-    border: solid 1px var(--umo-border-color);
+    border: solid 1px var(--kindy-border-color);
     box-sizing: border-box;
     &:last-child {
       margin-right: 0;
     }
     &:hover {
-      background-color: var(--umo-button-hover-background);
+      background-color: var(--kindy-button-hover-background);
     }
     &.active {
-      border-color: var(--umo-primary-color);
+      border-color: var(--kindy-primary-color);
     }
   }
-  .umo-icon-bullet-list {
+  .kindy-icon-bullet-list {
     font-size: 44px;
   }
 }

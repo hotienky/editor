@@ -1,5 +1,5 @@
 {
-  "welcome": "%cGrazie per aver scelto Umo Editor%cVersione attuale: v{version}, Maggiori info: {homepage}",
+  "welcome": "%cGrazie per aver scelto Kindy Editor%cVersione attuale: v{version}, Maggiori info: {homepage}",
   "toolbar": {
     "ribbon": "Professionale",
     "classic": "Classica",
@@ -605,7 +605,7 @@
     "reset": "Reimposta"
   },
   "feedback": "Problemi / Feedback",
-  "poweredBy": "Realizzato con Umo Editor",
+  "poweredBy": "Realizzato con Kindy Editor",
   "wordCount": {
     "characters": "Caratteri",
     "title": "Statistiche documento",

@@ -1,22 +1,22 @@
 import 'virtual:svg-icons-register'
 
-import UmoEditor from './index.vue'
-import UmoMenuButton from './menus/button.vue'
-import UmoDialog from './modal.vue'
-import UmoTooltip from './tooltip.vue'
+import KindyEditor from './index.vue'
+import KindyMenuButton from './menus/button.vue'
+import KindyDialog from './modal.vue'
+import KindyTooltip from './tooltip.vue'
 
-const useUmoEditor = {
+const useKindyEditor = {
   install: (app, options) => {
     app.provide('defaultOptions', options || {})
-    app.component(UmoEditor.name || 'UmoEditor', UmoEditor)
+    app.component(KindyEditor.name || 'KindyEditor', KindyEditor)
   },
 }
 
 export {
-  UmoEditor as default,
-  UmoDialog,
-  UmoEditor,
-  UmoMenuButton,
-  UmoTooltip,
-  useUmoEditor,
+  KindyEditor as default,
+  KindyDialog,
+  KindyEditor,
+  KindyMenuButton,
+  KindyTooltip,
+  useKindyEditor,
 }

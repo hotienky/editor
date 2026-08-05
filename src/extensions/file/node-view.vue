@@ -2,31 +2,31 @@
   <node-view-wrapper
     :id="attrs.id"
     ref="containerRef"
-    class="umo-node-view"
+    class="kindy-node-view"
     :style="nodeStyle"
     @click.capture="clickCapture"
   >
     <div
-      class="umo-node-container hover-shadow umo-select-outline umo-node-file"
+      class="kindy-node-container hover-shadow kindy-select-outline kindy-node-file"
       :style="{
         width: attrs.fitWidth ? '100%' : supportPreview ? '260px' : '220px',
       }"
     >
-      <div class="umo-file-icon">
+      <div class="kindy-file-icon">
         <img :src="fileIcon" class="icon-file" />
       </div>
-      <div class="umo-file-info">
-        <div class="umo-file-name" :title="attrs.name || t('file.unknownName')">
+      <div class="kindy-file-info">
+        <div class="kindy-file-name" :title="attrs.name || t('file.unknownName')">
           {{ attrs.name || t('file.unknownName') }}
         </div>
-        <div class="umo-file-meta">
+        <div class="kindy-file-meta">
           {{ attrs.size ? prettyBytes(attrs.size) : t('file.unknownSize') }}
         </div>
       </div>
-      <div class="umo-file-action">
+      <div class="kindy-file-action">
         <div
           v-if="!attrs.uploaded"
-          class="umo-action-item"
+          class="kindy-action-item"
           :title="t('file.uploading')"
         >
           <icon class="loading" name="loading" />
@@ -34,7 +34,7 @@
         <template v-else>
           <div
             v-if="supportPreview"
-            class="umo-action-item"
+            class="kindy-action-item"
             :title="t('file.preview')"
             :data-preview-url="previewURL"
             :data-file-icon="fileIcon"
@@ -47,7 +47,7 @@
             :href="attrs.url"
             :download="attrs.name"
             target="_blank"
-            class="umo-action-item"
+            class="kindy-action-item"
             :title="t('file.download')"
           >
             <icon name="download" />
@@ -56,13 +56,13 @@
       </div>
     </div>
     <modal
-      dialog-class-name="umo-file-preview-modal"
+      dialog-class-name="kindy-file-preview-modal"
       :visible="previewModal"
       :header="false"
       :footer="false"
       width="90vw"
     >
-      <div class="umo-file-preview-modal-header">
+      <div class="kindy-file-preview-modal-header">
         <img :src="fileIcon" class="file-icon" />
         <h3>{{ attrs.name || t('file.unknownName') }}</h3>
         <t-button
@@ -75,7 +75,7 @@
           <icon name="close" size="18" />
         </t-button>
       </div>
-      <div v-if="previewModal" class="umo-file-preview-modal-body">
+      <div v-if="previewModal" class="kindy-file-preview-modal-body">
         <iframe :src="previewURL"></iframe>
       </div>
     </modal>
@@ -214,22 +214,22 @@ const togglePreview = () => {
 </script>
 
 <style lang="less">
-.umo-node-view {
-  .umo-node-file {
+.kindy-node-view {
+  .kindy-node-file {
     display: inline-flex;
     align-items: center;
     padding: 12px;
-    outline: solid 1px var(--umo-content-node-border);
+    outline: solid 1px var(--kindy-content-node-border);
     overflow: hidden;
     background-color: #fff;
-    border-radius: var(--umo-content-node-radius);
+    border-radius: var(--kindy-content-node-radius);
 
-    .umo-file-info {
+    .kindy-file-info {
       flex: 1;
       min-width: 0;
     }
 
-    .umo-file-icon {
+    .kindy-file-icon {
       width: 32px;
       height: 32px;
       margin-right: 8px;
@@ -239,7 +239,7 @@ const togglePreview = () => {
       }
     }
 
-    .umo-file-name {
+    .kindy-file-name {
       font-size: 12px;
       font-weight: 500;
       line-height: 1.2;
@@ -252,20 +252,20 @@ const togglePreview = () => {
       box-sizing: border-box;
     }
 
-    .umo-file-meta {
+    .kindy-file-meta {
       font-size: 12px;
       color: #999;
       line-height: 1;
       margin-top: 6px;
     }
 
-    .umo-file-action {
+    .kindy-file-action {
       display: flex;
       align-items: center;
       color: #999;
       gap: 5px;
 
-      .umo-action-item {
+      .kindy-action-item {
         font-size: 18px;
         display: flex;
         align-items: center;
@@ -279,8 +279,8 @@ const togglePreview = () => {
         color: #999;
 
         &:hover {
-          border: solid 1px var(--umo-primary-color);
-          color: var(--umo-primary-color);
+          border: solid 1px var(--kindy-primary-color);
+          color: var(--kindy-primary-color);
         }
 
         .loading {
@@ -291,10 +291,10 @@ const togglePreview = () => {
   }
 }
 
-.umo-file-preview-modal {
+.kindy-file-preview-modal {
   padding: 0 !important;
   overflow: hidden;
-  .umo-dialog,
+  .kindy-dialog,
   .t-dialog {
     &__header {
       display: none !important;
@@ -333,7 +333,7 @@ const togglePreview = () => {
       display: block;
       width: 100%;
       height: calc(90vh - 164px);
-      border: solid 1px var(--umo-border-color-light);
+      border: solid 1px var(--kindy-border-color-light);
       box-sizing: border-box;
     }
   }

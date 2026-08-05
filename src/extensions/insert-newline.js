@@ -83,7 +83,7 @@ const getInsertPosition = (view, event) => {
   }
 
   if (event.target instanceof Element) {
-    const anchor = event.target.closest('.umo-insert-newline-anchor')
+    const anchor = event.target.closest('.kindy-insert-newline-anchor')
     if (anchor instanceof HTMLElement) {
       const pos = Number(anchor.dataset.pos)
       return Number.isInteger(pos) ? pos : null
@@ -130,7 +130,7 @@ const isWithinActiveRow = (view, event, activePos) => {
   }
 
   const anchor = view.dom.querySelector(
-    `.umo-insert-newline-anchor[data-pos="${activePos}"]`,
+    `.kindy-insert-newline-anchor[data-pos="${activePos}"]`,
   )
   if (!(anchor instanceof HTMLElement)) {
     return false
@@ -153,19 +153,19 @@ const syncActiveState = (view) => {
     insertNewlinePluginKey.getState(view.state)?.activePos ?? null
   const isActive = currentActivePos !== null
 
-  view.dom.classList.toggle('umo-insert-newline-active', isActive)
+  view.dom.classList.toggle('kindy-insert-newline-active', isActive)
 }
 
 const createWidget = (pos) => {
   const label = t('insert.newline')
   const anchor = document.createElement('div')
-  anchor.className = 'umo-insert-newline-anchor'
+  anchor.className = 'kindy-insert-newline-anchor'
   anchor.contentEditable = 'false'
   anchor.dataset.pos = String(pos)
 
   const button = document.createElement('button')
   button.type = 'button'
-  button.className = 'umo-insert-newline-widget'
+  button.className = 'kindy-insert-newline-widget'
   button.tabIndex = -1
   button.setAttribute('aria-label', label)
   button.setAttribute('title', label)
@@ -190,7 +190,7 @@ export default Extension.create({
               syncActiveState(updatedView)
             },
             destroy() {
-              view.dom.classList.remove('umo-insert-newline-active')
+              view.dom.classList.remove('kindy-insert-newline-active')
             },
           }
         },
@@ -261,12 +261,12 @@ export default Extension.create({
                 return false
               }
 
-              const button = event.target.closest('.umo-insert-newline-widget')
+              const button = event.target.closest('.kindy-insert-newline-widget')
               if (!(button instanceof HTMLElement)) {
                 return false
               }
 
-              const anchor = button.closest('.umo-insert-newline-anchor')
+              const anchor = button.closest('.kindy-insert-newline-anchor')
               const pos = Number(anchor?.getAttribute('data-pos'))
               if (!Number.isInteger(pos)) {
                 return false

@@ -1,7 +1,7 @@
 <template>
   <drag-handle
     :editor="editor"
-    class="umo-block-menu-drag-handle"
+    class="kindy-block-menu-drag-handle"
     :class="{
       'is-empty': editor?.isEmpty,
       'is-visible': selectedNodePos !== null,
@@ -9,7 +9,7 @@
     :node-type="selectedNode?.type?.name || 'unknown'"
     @node-change="nodeChange"
   >
-    <div class="umo-block-menu-hander">
+    <div class="kindy-block-menu-hander">
       <menus-block-node
         :node="selectedNode"
         :pos="selectedNodePos"
@@ -45,13 +45,13 @@ const dropdownVisible = (visible) => {
 </script>
 
 <style lang="less">
-.umo-block-menu {
-  .umo-menu-button {
-    color: var(--umo-text-color-light) !important;
+.kindy-block-menu {
+  .kindy-menu-button {
+    color: var(--kindy-text-color-light) !important;
   }
   &-drag-handle {
     z-index: 10;
-    outline: solid 1px var(--umo-border-color);
+    outline: solid 1px var(--kindy-border-color);
     transform: translateX(-15px);
     padding: 2px;
     border-radius: 3px;
@@ -89,48 +89,48 @@ const dropdownVisible = (visible) => {
     @media print {
       display: none;
     }
-    .umo-menu-button {
+    .kindy-menu-button {
       background-color: #fff;
       width: 20px;
       height: 20px;
       &-wrap {
         margin: 0 !important;
       }
-      .umo-button-content {
+      .kindy-button-content {
         color: rgba(0, 0, 0, 0.5);
       }
       &:not(.active):hover {
-        background-color: var(--umo-content-node-selected-background);
-        .umo-button-content {
-          color: var(--umo-primary-color);
+        background-color: var(--kindy-content-node-selected-background);
+        .kindy-button-content {
+          color: var(--kindy-primary-color);
         }
       }
       &.active {
         &:hover {
           opacity: 0.8;
         }
-        .umo-button-content {
-          color: var(--umo-text-color-light);
+        .kindy-button-content {
+          color: var(--kindy-text-color-light);
         }
       }
     }
   }
   &-dropdown {
-    .umo-block-menu-group-name {
+    .kindy-block-menu-group-name {
       padding-left: 15px !important;
     }
-    .umo-dropdown__menu,
-    .umo-dropdown__submenu {
+    .kindy-dropdown__menu,
+    .kindy-dropdown__submenu {
       --td-radius-default: 0;
       padding: 8px 0 !important;
-      .umo-divider {
+      .kindy-divider {
         margin: 4px 0 2px;
         opacity: 0.5;
       }
-      .umo-dropdown__item {
+      .kindy-dropdown__item {
         padding: 2px 0;
         min-width: 140px !important;
-        .umo-menu-button {
+        .kindy-menu-button {
           background-color: transparent;
           padding: 0 15px;
           box-sizing: border-box;
@@ -139,31 +139,31 @@ const dropdownVisible = (visible) => {
           &-wrap {
             display: block !important;
           }
-          .umo-button__text {
+          .kindy-button__text {
             width: 100%;
           }
         }
-        .umo-button-content {
+        .kindy-button-content {
           width: 100%;
           justify-content: flex-start;
-          .umo-button-text {
-            color: var(--umo-text-color);
+          .kindy-button-text {
+            color: var(--kindy-text-color);
           }
-          .umo-button-icon {
+          .kindy-button-icon {
             margin-right: 3px;
             font-size: 16px;
             color: #666;
           }
-          .umo-button-kbd {
+          .kindy-button-kbd {
             flex: 1;
             text-align: right;
-            color: var(--umo-text-color-light);
+            color: var(--kindy-text-color-light);
             font-family: Arial, Helvetica, sans-serif;
             font-size: 9px;
           }
-          .umo-heading {
+          .kindy-heading {
             display: flex;
-            color: var(--umo-text-color);
+            color: var(--kindy-text-color);
             .icon-heading {
               font-size: 12px;
               display: inline-block;
@@ -172,7 +172,7 @@ const dropdownVisible = (visible) => {
           }
         }
         &--disabled {
-          .umo-button-content {
+          .kindy-button-content {
             opacity: 0.6;
           }
         }
@@ -181,7 +181,7 @@ const dropdownVisible = (visible) => {
           font-size: 12px !important;
           margin-right: 8px;
         }
-        .umo-dropdown-item-label {
+        .kindy-dropdown-item-label {
           padding: 1px 15px;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -193,10 +193,10 @@ const dropdownVisible = (visible) => {
       }
     }
 
-    .umo-delete-node {
-      .umo-button {
+    .kindy-delete-node {
+      .kindy-button {
         * {
-          color: var(--umo-error-color) !important;
+          color: var(--kindy-error-color) !important;
         }
       }
     }

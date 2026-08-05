@@ -1,6 +1,6 @@
 <template>
   <editor-content
-    class="umo-editor-content"
+    class="kindy-editor-content"
     :class="{
       'show-bookmark': page.showBookmark,
       'show-line-number': page.showLineNumber,
@@ -127,7 +127,7 @@ const editorInstance = new Editor({
   enablePasteRules: inputAndPasteRules(options),
   editorProps: {
     attributes: {
-      class: 'umo-editor',
+      class: 'kindy-editor',
     },
     ...options.value.document?.editorProps,
     handleKeyDown: handleEditorKeyDown,

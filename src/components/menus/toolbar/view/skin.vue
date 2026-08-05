@@ -16,7 +16,7 @@ const page = inject('page')
 const setSkin = inject('setSkin')
 
 const skins = computed(() => {
-  const skin = useStorage('umo-editor:skin', options.value.skin)
+  const skin = useStorage('kindy-editor:skin', options.value.skin)
   return [
     {
       content: t('view.skinDefault'),

@@ -155,7 +155,7 @@ export default {
     },
   ],
   templates: [],
-  cdnUrl: 'https://unpkg.com/@umoteam/editor-external@latest',
+  cdnUrl: 'https://unpkg.com/___KINDYTEAM_EXTERNAL___@latest',
   shareUrl: location.href || '',
   diagrams: {
     domain: 'https://embed.diagrams.net',

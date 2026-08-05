@@ -2,12 +2,12 @@
   <node-view-wrapper
     :id="attrs.id"
     ref="containerRef"
-    class="umo-node-view"
+    class="kindy-node-view"
     :style="nodeStyle"
     @click.capture="clickCapture"
   >
     <div
-      class="umo-node-container umo-hover-shadow umo-select-outline umo-node-audio"
+      class="kindy-node-container kindy-hover-shadow kindy-select-outline kindy-node-audio"
     >
       <audio
         v-show="playerShow"
@@ -109,14 +109,14 @@ onClickOutside(containerRef, () => {
 </script>
 
 <style lang="less">
-.umo-node-view {
-  .umo-node-audio {
+.kindy-node-view {
+  .kindy-node-audio {
     max-width: 100%;
     width: 360px;
     position: relative;
     display: flex;
-    border-radius: var(--umo-radius);
-    outline: solid 1px var(--umo-content-node-border);
+    border-radius: var(--kindy-radius);
+    outline: solid 1px var(--kindy-content-node-border);
     audio {
       width: 100%;
       outline: none;
@@ -129,13 +129,13 @@ onClickOutside(containerRef, () => {
       background: rgba(0, 0, 0, 0.2);
       height: 2px;
       left: 0;
-      border-top-left-radius: var(--umo-radius);
-      border-top-right-radius: var(--umo-radius);
+      border-top-left-radius: var(--kindy-radius);
+      border-top-right-radius: var(--kindy-radius);
       &:after {
         content: '';
         display: block;
         height: 100%;
-        background-color: var(--umo-primary-color);
+        background-color: var(--kindy-primary-color);
         animation: progress 1s linear infinite;
       }
     }

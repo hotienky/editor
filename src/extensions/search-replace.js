@@ -139,7 +139,7 @@ export const SearchAndReplace = Extension.create({
   name: 'searchAndReplace',
   addOptions() {
     return {
-      searchResultClass: 'umo-search-result',
+      searchResultClass: 'kindy-search-result',
       disableRegex: true,
     }
   },

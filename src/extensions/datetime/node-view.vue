@@ -1,8 +1,8 @@
 <template>
-  <node-view-wrapper as="span" class="umo-node-datetime">
+  <node-view-wrapper as="span" class="kindy-node-datetime">
     <t-popup
       v-model="popupVisible"
-      :attach="`${container} .umo-zoomable-container`"
+      :attach="`${container} .kindy-zoomable-container`"
       trigger="click"
       placement="bottom-start"
       :disabled="
@@ -11,8 +11,8 @@
         !editor?.isEditable
       "
     >
-      <span class="umo-node-datetime-text">
-        <icon name="date" class="umo-node-datetime-icon" />
+      <span class="kindy-node-datetime-text">
+        <icon name="date" class="kindy-node-datetime-icon" />
         <span>{{ attrs.text }}</span>
       </span>
       <template #content>
@@ -89,7 +89,7 @@ const datetimeChange = (value) => {
 </script>
 
 <style lang="less">
-.umo-node-datetime {
+.kindy-node-datetime {
   margin: 0;
   padding: 0 0.2em;
   box-sizing: border-box;
@@ -110,7 +110,7 @@ const datetimeChange = (value) => {
     margin-right: 0.3em;
   }
   &:hover {
-    color: var(--umo-primary-color);
+    color: var(--kindy-primary-color);
   }
 }
 </style>

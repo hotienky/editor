@@ -1,14 +1,14 @@
-.umo-scrollbar() {
+.kindy-scrollbar() {
   overflow: auto;
 
   @-moz-document url-prefix() {
-    scrollbar-color: var(--umo-scrollbar-thumb-color) transparent;
+    scrollbar-color: var(--kindy-scrollbar-thumb-color) transparent;
     scrollbar-width: thin;
   }
 
   &::-webkit-scrollbar {
-    width: var(--umo-scrollbar-size);
-    height: var(--umo-scrollbar-size);
+    width: var(--kindy-scrollbar-size);
+    height: var(--kindy-scrollbar-size);
   }
 
   &::-webkit-scrollbar-track {
@@ -18,19 +18,19 @@
   &::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
     background-clip: content-box;
-    background-color: var(--umo-scrollbar-thumb-color);
+    background-color: var(--kindy-scrollbar-thumb-color);
     border-radius: 15px;
     transition: background-color 0.3s;
     cursor: pointer;
 
     &:vertical:hover,
     &:horizontal:hover {
-      background-color: var(--umo-scrollbar-thumb-hover-color);
+      background-color: var(--kindy-scrollbar-thumb-hover-color);
     }
   }
 }
 
-.umo-page-divider() {
+.kindy-page-divider() {
   display: block;
   white-space: nowrap;
   letter-spacing: 100vw;

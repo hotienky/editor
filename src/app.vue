@@ -1,10 +1,10 @@
 <template>
   <div class="examples">
     <div class="box">
-      <umo-editor ref="editorRef" v-bind="options"></umo-editor>
+      <kindy-editor ref="editorRef" v-bind="options"></kindy-editor>
     </div>
     <!-- <div class="box">
-      <umo-editor editor-key="testaaa" :toolbar="{ defaultMode: 'classic' }" />
+      <kindy-editor editor-key="testaaa" :toolbar="{ defaultMode: 'classic' }" />
     </div> -->
   </div>
 </template>
@@ -18,25 +18,25 @@ const remoteMentionUsers = [
     id: 'remote-alice',
     label: 'Alice Chen',
     bio: '远程目录用户',
-    color: 'var(--umo-primary-color)',
+    color: 'var(--kindy-primary-color)',
   },
   {
     id: 'remote-bob',
     label: 'Bob Li',
     bio: '远程目录用户',
-    color: 'var(--umo-primary-color)',
+    color: 'var(--kindy-primary-color)',
   },
   {
     id: 'remote-charlie',
     label: 'Charlie Wang',
     bio: '远程目录用户',
-    color: 'var(--umo-primary-color)',
+    color: 'var(--kindy-primary-color)',
   },
   {
     id: 'remote-dora',
     label: 'Dora Xu',
     bio: '远程目录用户',
-    color: 'var(--umo-primary-color)',
+    color: 'var(--kindy-primary-color)',
   },
 ]
 const templates = [
@@ -81,29 +81,29 @@ const options = $ref({
     // ],
   },
   user: {
-    id: 'umoeditor',
-    label: 'Umo Editor',
+    id: 'kindyeditor',
+    label: 'Kindy Editor',
     avatar: 'https://tdesign.gtimg.com/site/avatar.jpg',
   },
   users: [
     {
-      id: 'umodoc',
-      label: 'Umo Team',
+      id: 'kindydoc',
+      label: 'Kindy Team',
       bio: '核心开发者',
       avatar: 'https://s1.umodoc.com/images/favicon.png',
-      color: 'var(--umo-primary-color)',
+      color: 'var(--kindy-primary-color)',
     },
     {
       id: 'china-wangxu',
       label: 'china-wangxu',
       bio: '重要贡献者',
-      color: 'var(--umo-primary-color)',
+      color: 'var(--kindy-primary-color)',
     },
     {
       id: 'Cassielxd',
       label: 'Cassielxd',
       bio: '重要贡献者',
-      color: 'var(--umo-primary-color)',
+      color: 'var(--kindy-primary-color)',
     },
     { id: 'Goldziher', label: "Na'aman Hirschfeld" },
     { id: 'SerRashin', label: 'SerRashin' },

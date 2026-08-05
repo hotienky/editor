@@ -6,7 +6,7 @@ export default Mention.extend({
     return {
       ...this.parent?.(),
       HTMLAttributes: {
-        class: 'umo-node-mention',
+        class: 'kindy-node-mention',
         contenteditable: 'false',
       },
     }
@@ -36,7 +36,7 @@ export default Mention.extend({
       },
       {
         // 兼容历史错误输出：旧 HTML 缺少 data-type/data-id/data-label
-        tag: 'span.umo-node-mention',
+        tag: 'span.kindy-node-mention',
         getAttrs: (element) => ({
           id:
             element.getAttribute('data-id') ||

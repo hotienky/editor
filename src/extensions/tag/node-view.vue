@@ -1,12 +1,12 @@
 <template>
   <node-view-wrapper
     as="span"
-    class="umo-node-tag"
+    class="kindy-node-tag"
     contenteditable="false"
     @click.capture="clickCapture"
   >
     <span
-      class="umo-node-tag-text"
+      class="kindy-node-tag-text"
       :style="{
         color: attrs.color,
         backgroundColor: attrs.backgroundColor,
@@ -37,7 +37,7 @@ const clickCapture = () => {
 </script>
 
 <style lang="less">
-.umo-node-tag {
+.kindy-node-tag {
   margin: 0;
   padding: 0 0.2em;
   box-sizing: border-box;

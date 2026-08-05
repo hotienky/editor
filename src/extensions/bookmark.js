@@ -12,7 +12,7 @@ export default Mark.create({
   addOptions() {
     return {
       bookmarkName: '',
-      class: 'umo-editor-bookmark',
+      class: 'kindy-editor-bookmark',
     }
   },
   addAttributes() {

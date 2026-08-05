@@ -67,7 +67,7 @@ const createOfficePastePlugin = () =>
         if (!isOfficeHtml(html)) {
           return html
         }
-        const imagePlaceholder = `<span style="color: var(--umo-error-color, #e34d59);">${t('officePaste.imagePlaceholder')}</span>`
+        const imagePlaceholder = `<span style="color: var(--kindy-error-color, #e34d59);">${t('officePaste.imagePlaceholder')}</span>`
         return getOfficePasteResult(html, imagePlaceholder).html
       },
       handlePaste(view, event) {
@@ -84,7 +84,7 @@ const createOfficePastePlugin = () =>
         }
 
         if (event && officeLike) {
-          const imagePlaceholder = `<span style="color: var(--umo-error-color, #e34d59);">${t('officePaste.imagePlaceholder')}</span>`
+          const imagePlaceholder = `<span style="color: var(--kindy-error-color, #e34d59);">${t('officePaste.imagePlaceholder')}</span>`
           const { hasImage } = getOfficePasteResult(html, imagePlaceholder)
           if (hasImage) {
             const dialog = useConfirm({

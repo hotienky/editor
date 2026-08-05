@@ -357,7 +357,7 @@ export const BlockImage = BaseImage.extend({
         getAttrs: (element) =>
           shouldParseImageFigure(element.querySelector('img')) ? null : false,
         contentElement: (element) =>
-          element.querySelector('figcaption, .umo-node-image-alt-content') ||
+          element.querySelector('figcaption, .kindy-node-image-alt-content') ||
           element.ownerDocument.createElement('figcaption'),
       },
       {

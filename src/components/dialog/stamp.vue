@@ -9,39 +9,39 @@
       <icon name="stamp" />
       {{ t('tools.stamp.title') }}
     </template>
-    <div class="umo-stamp-dialog">
-      <div class="umo-stamp-dialog__select">
+    <div class="kindy-stamp-dialog">
+      <div class="kindy-stamp-dialog__select">
         <div
           v-if="selectedImage?.url"
-          class="umo-stamp-dialog__select-workspace"
+          class="kindy-stamp-dialog__select-workspace"
         >
-          <div class="umo-stamp-dialog__select-stage">
-            <div class="umo-stamp-dialog__select-stage-header">
-              <div class="umo-stamp-dialog__select-stage-title">
+          <div class="kindy-stamp-dialog__select-stage">
+            <div class="kindy-stamp-dialog__select-stage-header">
+              <div class="kindy-stamp-dialog__select-stage-title">
                 {{ t('tools.stamp.previewTitle') }}
               </div>
-              <div class="umo-stamp-dialog__select-stage-tip">
+              <div class="kindy-stamp-dialog__select-stage-tip">
                 {{ t('tools.stamp.previewTip') }}
               </div>
             </div>
             <div
               ref="cropperHostRef"
-              class="umo-stamp-dialog__select-preview umo-cropper-surface"
+              class="kindy-stamp-dialog__select-preview kindy-cropper-surface"
             >
               <img
                 ref="cropperImageRef"
                 :key="selectedImage.url"
-                class="umo-stamp-dialog__select-image"
+                class="kindy-stamp-dialog__select-image"
                 :src="selectedImage.url"
                 :alt="selectedImage.name || t('tools.stamp.text')"
               />
             </div>
           </div>
-          <div class="umo-stamp-dialog__select-sidebar">
-            <div class="umo-stamp-dialog__select-name">
+          <div class="kindy-stamp-dialog__select-sidebar">
+            <div class="kindy-stamp-dialog__select-name">
               {{ selectedImage.name || t('tools.stamp.text') }}
             </div>
-            <div class="umo-stamp-dialog__select-source">
+            <div class="kindy-stamp-dialog__select-source">
               <div>
                 {{ t('tools.stamp.fileSize') }}：{{ selectedImageSizeText }}
               </div>
@@ -51,13 +51,13 @@
                 }}
               </div>
             </div>
-            <div class="umo-stamp-dialog__select-field">
-              <div class="umo-stamp-dialog__select-field-label">
+            <div class="kindy-stamp-dialog__select-field">
+              <div class="kindy-stamp-dialog__select-field-label">
                 {{ t('tools.stamp.presetTitle') }}
               </div>
               <t-select
                 :value="selectedPreset"
-                class="umo-stamp-dialog__select-preset"
+                class="kindy-stamp-dialog__select-preset"
                 :popup-props="{
                   destroyOnClose: true,
                   attach: container,
@@ -68,19 +68,19 @@
             </div>
             <t-button
               variant="outline"
-              class="umo-stamp-dialog__select-reselect"
+              class="kindy-stamp-dialog__select-reselect"
               @click="restoreSelectPlaceholder"
             >
               {{ t('tools.stamp.reselect') }}
             </t-button>
           </div>
         </div>
-        <div v-else class="umo-stamp-dialog__select-empty">
-          <div class="umo-stamp-dialog__select-empty-content">
-            <div class="umo-stamp-dialog__select-empty-text">
+        <div v-else class="kindy-stamp-dialog__select-empty">
+          <div class="kindy-stamp-dialog__select-empty-content">
+            <div class="kindy-stamp-dialog__select-empty-text">
               {{ t('tools.stamp.selectEmpty') }}
             </div>
-            <div class="umo-stamp-dialog__select-empty-actions">
+            <div class="kindy-stamp-dialog__select-empty-actions">
               <t-button theme="default" @click="selectLocalImage">
                 <icon name="image" />
                 {{ t('tools.stamp.selectLocal') }}
@@ -476,7 +476,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="less" scoped>
-.umo-stamp-dialog {
+.kindy-stamp-dialog {
   &__select-workspace {
     display: flex;
     gap: 16px;
@@ -486,8 +486,8 @@ onBeforeUnmount(() => {
   &__select-sidebar,
   &__select-empty {
     background: var(--td-bg-color-container);
-    border: 1px solid var(--umo-border-color);
-    border-radius: var(--umo-radius);
+    border: 1px solid var(--kindy-border-color);
+    border-radius: var(--kindy-radius);
   }
 
   &__select-stage {
@@ -526,7 +526,7 @@ onBeforeUnmount(() => {
         16px 16px,
       #fff;
     border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: var(--umo-radius);
+    border-radius: var(--kindy-radius);
     display: flex;
     aspect-ratio: 1 / 1;
     justify-content: center;
@@ -614,11 +614,11 @@ onBeforeUnmount(() => {
     flex-wrap: wrap;
     gap: 12px;
     justify-content: center;
-    :deep(.umo-button__text) {
+    :deep(.kindy-button__text) {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      .umo-icon {
+      .kindy-icon {
         font-size: 16px;
       }
     }

@@ -20,38 +20,38 @@
         <icon name="math" />
         {{ props.latex === '' ? t('tools.math.insert') : t('tools.math.edit') }}
       </template>
-      <div ref="containerRef" class="umo-math-container">
-        <div class="umo-math-input">
+      <div ref="containerRef" class="kindy-math-container">
+        <div class="kindy-math-input">
           <t-textarea
             v-model.trim="latexValue"
             :autosize="{ minRows: 3, maxRows: 6 }"
             :placeholder="t('tools.math.placeholder')"
             @change="previewMath"
           />
-          <div class="umo-math-input-preview umo-scrollbar">
-            <div v-if="latexValue !== ''" class="umo-math-input-render"></div>
-            <div v-else class="umo-math-input-preview-empty">
+          <div class="kindy-math-input-preview kindy-scrollbar">
+            <div v-if="latexValue !== ''" class="kindy-math-input-render"></div>
+            <div v-else class="kindy-math-input-preview-empty">
               {{ t('tools.math.preview') }}
             </div>
           </div>
         </div>
-        <div class="umo-math-select">
+        <div class="kindy-math-select">
           <div
             v-for="(item, index) in templates"
             v-show="latexLoaded"
             :key="index"
-            class="umo-math-select-item"
+            class="kindy-math-select-item"
             @click="selectMath(item)"
           >
             {{ item }}
           </div>
-          <div v-if="!latexLoaded" class="umo-math-select-loading">
+          <div v-if="!latexLoaded" class="kindy-math-select-loading">
             {{ t('tools.math.template') }}
           </div>
         </div>
       </div>
       <template #footer>
-        <div class="umo-math-footer">
+        <div class="kindy-math-footer">
           <t-button
             theme="default"
             variant="base"
@@ -229,13 +229,13 @@ const renderMath = async (type) => {
       output: 'mathml',
     })
   if (type === 'templates') {
-    containerRef.querySelectorAll('.umo-math-select-item').forEach((el) => {
+    containerRef.querySelectorAll('.kindy-math-select-item').forEach((el) => {
       render(el.textContent, el)
     })
   }
   if (type === 'preview' && latexValue !== '') {
     await nextTick()
-    const el = containerRef.querySelector('.umo-math-input-render')
+    const el = containerRef.querySelector('.kindy-math-input-render')
     render(latexValue, el)
   }
 }
@@ -268,7 +268,7 @@ const updateMath = () => {
 </script>
 
 <style lang="less" scoped>
-.umo-math {
+.kindy-math {
   &-container {
     width: 680px;
     display: flex;
@@ -291,13 +291,13 @@ const updateMath = () => {
       flex: 1;
       padding: 10px;
       border: solid 1px var(--td-border-level-2-color);
-      border-radius: var(--umo-radius);
+      border-radius: var(--kindy-radius);
       &-empty {
         display: flex;
         height: 100%;
         align-items: center;
         justify-content: center;
-        color: var(--umo-text-color-light);
+        color: var(--kindy-text-color-light);
       }
     }
   }
@@ -305,7 +305,7 @@ const updateMath = () => {
     flex-shrink: 0;
     width: 330px;
     border: solid 1px var(--td-border-level-2-color);
-    border-radius: var(--umo-radius);
+    border-radius: var(--kindy-radius);
     padding: 10px;
     display: flex;
     flex-wrap: wrap;
@@ -313,20 +313,20 @@ const updateMath = () => {
     box-sizing: border-box;
     align-items: center;
     height: 380px;
-    color: var(--umo-text-color-light);
+    color: var(--kindy-text-color-light);
     &-item {
       flex-grow: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      border-radius: var(--umo-radius);
+      border-radius: var(--kindy-radius);
       padding: 5px;
       min-height: 1em;
       gap: 5px;
       user-select: none;
       &:hover {
-        background-color: var(--umo-button-hover-background);
+        background-color: var(--kindy-button-hover-background);
       }
     }
   }

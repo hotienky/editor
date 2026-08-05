@@ -8,14 +8,14 @@
     @toggle-popup="togglePopup"
   >
     <template #content>
-      <div class="umo-symbols-container umo-scrollbar">
+      <div class="kindy-symbols-container kindy-scrollbar">
         <template v-for="(group, index) in options.dicts?.symbols" :key="index">
-          <div class="umo-symbols-group-title" v-text="l(group.label)"></div>
-          <div class="umo-symbols-group-container">
+          <div class="kindy-symbols-group-title" v-text="l(group.label)"></div>
+          <div class="kindy-symbols-group-container">
             <div
               v-for="(item, i) in group.items.split('')"
               :key="i"
-              class="umo-symbols-group-item"
+              class="kindy-symbols-group-item"
               @click="selectSymbol(item)"
             >
               {{ item }}
@@ -39,18 +39,18 @@ const selectSymbol = (char) => {
 </script>
 
 <style lang="less" scoped>
-.umo-symbols-container {
+.kindy-symbols-container {
   width: 336px;
-  max-height: var(--umo-popup-max-height);
+  max-height: var(--kindy-popup-max-height);
   min-height: 300px;
   overflow: auto;
-  margin: calc(var(--umo-popup-content-padding) * -1);
-  padding: calc(var(--umo-popup-content-padding) - 2px);
+  margin: calc(var(--kindy-popup-content-padding) * -1);
+  padding: calc(var(--kindy-popup-content-padding) - 2px);
 }
 
-.umo-symbols-group {
+.kindy-symbols-group {
   &-title {
-    color: var(--umo-text-color-light);
+    color: var(--kindy-text-color-light);
     font-size: 12px;
     margin: 5px 0 2px 4px;
     &:first-child {
@@ -72,13 +72,13 @@ const selectSymbol = (char) => {
     height: 28px;
     line-height: 1em;
     margin-bottom: 2px;
-    border-radius: var(--umo-radius);
+    border-radius: var(--kindy-radius);
     cursor: pointer;
     transition: background-color 0.2s;
     font-size: 14px;
-    color: var(--umo-text-color);
+    color: var(--kindy-text-color);
     &:hover {
-      background-color: var(--umo-button-hover-background);
+      background-color: var(--kindy-button-hover-background);
     }
   }
 }

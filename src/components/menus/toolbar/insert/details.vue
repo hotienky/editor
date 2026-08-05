@@ -12,8 +12,8 @@ const editor = inject('editor')
 
 <style lang="less" scoped>
 .bookmark-list {
-  border: solid 1px var(--umo-border-color-dark);
-  border-radius: var(--umo-radius);
+  border: solid 1px var(--kindy-border-color-dark);
+  border-radius: var(--kindy-radius);
   margin-bottom: 5px;
   overflow: hidden;
   :deep(table) {
@@ -24,7 +24,7 @@ const editor = inject('editor')
       padding: 4px 10px;
     }
     th {
-      border-bottom: solid 1px var(--umo-border-color) !important;
+      border-bottom: solid 1px var(--kindy-border-color) !important;
     }
   }
 }

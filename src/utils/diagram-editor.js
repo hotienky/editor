@@ -65,7 +65,7 @@ class DiagramEditor {
     const { locale } = useI18n()
     const lang = locales[locale.value]
     const frame = document.createElement('iframe')
-    frame.setAttribute('class', 'umo-diagrams-iframe')
+    frame.setAttribute('class', 'kindy-diagrams-iframe')
     frame.setAttribute('src', `${this.domain}?${params}&lang=${lang}`)
     return frame
   }

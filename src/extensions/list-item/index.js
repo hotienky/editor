@@ -6,7 +6,7 @@ import { shallowReactive } from 'vue'
 import NodeView from './node-view.vue'
 import { getActiveListItemPos, hasListStructureChange } from './utils'
 
-const listItemStatePluginKey = new PluginKey('umo-list-item-state')
+const listItemStatePluginKey = new PluginKey('kindy-list-item-state')
 const addListItemNodeView = () => VueNodeViewRenderer(NodeView)
 
 const createListItemPluginState = (state, structureVersion = 0) => {

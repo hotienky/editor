@@ -27,7 +27,7 @@ export const gridResizingPlugin = (options) => {
       attributes: (state) => {
         const pluginState = gridResizingPluginKey.getState(state)
         if (pluginState && pluginState.activeHandle > -1) {
-          return { class: 'umo-node-column-resize-cursor' }
+          return { class: 'kindy-node-column-resize-cursor' }
         }
         return {}
       },

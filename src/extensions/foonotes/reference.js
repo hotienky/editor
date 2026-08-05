@@ -5,7 +5,7 @@ import { NodeSelection, Plugin, PluginKey } from '@tiptap/pm/state'
 import { shortId } from '@/utils/short-id'
 
 const REFNUM_ATTR = 'data-ref-num'
-const REF_CLASS = 'umo-node-footnote-ref'
+const REF_CLASS = 'kindy-node-footnote-ref'
 
 const normalizeHoverTitle = (value) => {
   return String(value || '')

@@ -1,5 +1,5 @@
 <template>
-  <div class="umo-bubble-tag-input">
+  <div class="kindy-bubble-tag-input">
     <t-input
       v-model.trim="value"
       type="search"
@@ -47,10 +47,10 @@ const onInput = (value) => {
 </script>
 
 <style lang="less" scoped>
-.umo-bubble-tag-input {
+.kindy-bubble-tag-input {
   margin-right: 8px;
   width: 120px;
-  :deep(.umo-input__suffix) {
+  :deep(.kindy-input__suffix) {
     margin-right: -3px;
     cursor: pointer;
   }

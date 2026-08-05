@@ -1,16 +1,16 @@
 <template>
   <node-view-wrapper
     :id="node.attrs.id"
-    class="umo-node-view"
+    class="kindy-node-view"
     @click.capture="clickCapture"
   >
     <div
-      class="umo-node-container umo-hover-shadow umo-select-outline umo-node-toc"
+      class="kindy-node-container kindy-hover-shadow kindy-select-outline kindy-node-toc"
     >
-      <p class="umo-node-toc-head" v-text="t('toc.title')"></p>
-      <div class="umo-node-toc-body">
+      <p class="kindy-node-toc-head" v-text="t('toc.title')"></p>
+      <div class="kindy-node-toc-body">
         <t-tree
-          class="umo-toc-tree"
+          class="kindy-toc-tree"
           :data="tocTreeData"
           :keys="{
             label: 'textContent',
@@ -96,9 +96,9 @@ const headingActive = (value) => {
     `[data-toc-id="${value[0]}"]`,
   )
   const pageContainer = document.querySelector(
-    `${container} .umo-zoomable-container`,
+    `${container} .kindy-zoomable-container`,
   )
-  const pageHeader = pageContainer?.querySelector('.umo-page-node-header')
+  const pageHeader = pageContainer?.querySelector('.kindy-page-node-header')
   pageContainer.scrollTo({
     top: nodeElement.offsetTop + (pageHeader?.offsetHeight || 0),
   })
@@ -111,12 +111,12 @@ const headingActive = (value) => {
 </script>
 
 <style lang="less">
-.umo-node-view {
-  .umo-node-toc {
+.kindy-node-view {
+  .kindy-node-toc {
     padding: 44px 24px 24px 10px;
     position: relative;
-    outline: solid 1px var(--umo-content-node-border);
-    border-radius: var(--umo-content-node-radius);
+    outline: solid 1px var(--kindy-content-node-border);
+    border-radius: var(--kindy-content-node-radius);
     background-color: #fff;
     width: 100%;
     &-head {
@@ -129,7 +129,7 @@ const headingActive = (value) => {
       border-bottom-left-radius: 3px;
       border-bottom-right-radius: 3px;
       background: rgba(black, 0.05);
-      color: var(--umo-primary-color);
+      color: var(--kindy-primary-color);
     }
 
     &-body {
@@ -137,14 +137,14 @@ const headingActive = (value) => {
       --td-text-color-primary: #222;
       --td-border-level-1-color: #ddd;
       --td-brand-color-light: rgba(0, 0, 0, 0.05);
-      .umo-tree__label {
+      .kindy-tree__label {
         margin-left: 0 !important;
         padding: 5px;
         &:hover {
-          color: var(--umo-primary-color);
+          color: var(--kindy-primary-color);
         }
       }
-      .umo-tree__empty {
+      .kindy-tree__empty {
         height: 40px;
         font-size: 12px;
         display: flex;

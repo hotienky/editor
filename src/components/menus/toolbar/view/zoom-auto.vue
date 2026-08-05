@@ -15,7 +15,7 @@ const container = inject('container')
 
 const autoWidth = () => {
   const autoWidthBtn = document.querySelector(
-    `${container} .umo-auto-width-button`,
+    `${container} .kindy-auto-width-button`,
   )
   if (autoWidthBtn) {
     autoWidthBtn.click()

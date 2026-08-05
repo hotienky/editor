@@ -29,14 +29,14 @@ const Column = Node.create({
   parseHTML() {
     return [
       {
-        tag: 'div.umo-node-column',
+        tag: 'div.kindy-node-column',
       },
     ]
   },
   renderHTML({ HTMLAttributes }) {
     return [
       'div',
-      mergeAttributes(HTMLAttributes, { class: 'umo-node-column' }),
+      mergeAttributes(HTMLAttributes, { class: 'kindy-node-column' }),
       0,
     ]
   },
@@ -49,7 +49,7 @@ const ColumnContainer = Node.create({
   parseHTML() {
     return [
       {
-        tag: 'div.umo-node-column-container',
+        tag: 'div.kindy-node-column-container',
       },
     ]
   },
@@ -57,7 +57,7 @@ const ColumnContainer = Node.create({
     return [
       'div',
       mergeAttributes(HTMLAttributes, {
-        class: 'umo-node-column-container',
+        class: 'kindy-node-column-container',
       }),
       0,
     ]

@@ -1,36 +1,36 @@
 <template>
-  <div class="umo-ribbon-menu">
-    <div v-if="menus.length > 1" class="umo-ribbon-tabs">
+  <div class="kindy-ribbon-menu">
+    <div v-if="menus.length > 1" class="kindy-ribbon-tabs">
       <div
         v-for="item in menus"
         :key="item.value"
-        class="umo-ribbon-tabs-item"
+        class="kindy-ribbon-tabs-item"
         :class="{ active: currentMenu === item.value }"
         @click="changeMenu(item.value)"
       >
         {{ item.label }}
       </div>
     </div>
-    <toolbar-scrollable ref="scrollableRef" class="umo-scrollable-container">
-      <div class="umo-ribbon-container">
+    <toolbar-scrollable ref="scrollableRef" class="kindy-scrollable-container">
+      <div class="kindy-ribbon-container">
         <template v-if="currentMenu === 'base'">
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-base-undo />
               <menus-toolbar-base-redo />
             </div>
-            <div class="umo-virtual-group-row">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-base-format-painter />
               <menus-toolbar-base-clear-format />
             </div>
           </div>
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-base-font-family />
               <menus-toolbar-base-font-size />
               <menus-toolbar-base-word-wrap />
             </div>
-            <div class="umo-virtual-group-row">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-base-bold />
               <menus-toolbar-base-italic />
               <menus-toolbar-base-underline />
@@ -43,8 +43,8 @@
               <menus-toolbar-base-letter-spacing />
             </div>
           </div>
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-base-ordered-list />
               <menus-toolbar-base-bullet-list />
               <menus-toolbar-base-task-list v-if="!disableMenu('task-list')" />
@@ -55,7 +55,7 @@
               />
               <menus-toolbar-base-margin v-if="!disableMenu('margin')" />
             </div>
-            <div class="umo-virtual-group-row">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-base-align-left />
               <menus-toolbar-base-align-center />
               <menus-toolbar-base-align-right />
@@ -68,14 +68,14 @@
               />
             </div>
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-base-heading />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-base-markdown v-if="!disableMenu('markdown')" />
             <menus-toolbar-base-search-replace />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-base-print v-if="!disableMenu('print')" />
           </div>
           <div class="virtual-group is-slot">
@@ -83,14 +83,14 @@
           </div>
         </template>
         <template v-if="currentMenu === 'insert'">
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-insert-link v-if="!disableMenu('link')" />
             <menus-toolbar-insert-image v-if="!disableMenu('image')" />
             <menus-toolbar-insert-video v-if="!disableMenu('video')" />
             <menus-toolbar-insert-audio v-if="!disableMenu('audio')" />
             <menus-toolbar-insert-file v-if="!disableMenu('file')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-insert-text-box v-if="!disableMenu('text-box')" />
             <menus-toolbar-insert-details v-if="!disableMenu('details')" />
             <menus-toolbar-insert-code-block
@@ -102,7 +102,7 @@
             />
             <menus-toolbar-insert-emoji v-if="!disableMenu('emoji')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-insert-tag v-if="!disableMenu('tag')" />
             <menus-toolbar-insert-columns v-if="!disableMenu('columns')" />
             <menus-toolbar-insert-callout v-if="!disableMenu('callout')" />
@@ -111,7 +111,7 @@
               v-if="!disableMenu('option-box')"
             />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-insert-hard-break
               v-if="!disableMenu('hard-break')"
             />
@@ -120,7 +120,7 @@
             <menus-toolbar-insert-footnote v-if="!disableMenu('footnote')" />
             <menus-toolbar-insert-toc v-if="!disableMenu('toc')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-insert-template v-if="!disableMenu('template')" />
             <menus-toolbar-insert-web-page v-if="!disableMenu('web-page')" />
           </div>
@@ -129,53 +129,53 @@
           </div>
         </template>
         <template v-if="currentMenu === 'table'">
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-table-insert />
             <menus-toolbar-table-fix />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-table-cells-align />
             <menus-toolbar-table-cells-background />
             <!-- <menus-toolbar-table-border-color /> -->
           </div>
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-add-row-before />
               <menus-toolbar-table-add-row-after />
               <menus-toolbar-table-delete-row />
             </div>
-            <div class="umo-virtual-group-row">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-add-column-before />
               <menus-toolbar-table-add-column-after />
               <menus-toolbar-table-delete-column />
             </div>
           </div>
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-merge-cells />
             </div>
-            <div class="umo-virtual-group-row">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-split-cell />
             </div>
           </div>
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-toggle-header-row />
               <menus-toolbar-table-toggle-header-column />
             </div>
-            <div class="umo-virtual-group-row">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-toggle-header-cell />
             </div>
           </div>
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-next-cell />
             </div>
-            <div class="umo-virtual-group-row">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-table-previous-cell />
             </div>
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-table-delete />
           </div>
           <div class="virtual-group is-slot">
@@ -183,37 +183,37 @@
           </div>
         </template>
         <template v-if="currentMenu === 'tools'">
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-tools-signature v-if="!disableMenu('signature')" />
             <menus-toolbar-tools-stamp v-if="!disableMenu('stamp')" />
             <menus-toolbar-tools-qrcode v-if="!disableMenu('qrcode')" />
             <menus-toolbar-tools-barcode v-if="!disableMenu('barcode')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-tools-math v-if="!disableMenu('math')" />
             <menus-toolbar-tools-diagrams v-if="!disableMenu('diagrams')" />
             <menus-toolbar-tools-echarts v-if="!disableMenu('echarts')" />
             <!-- <menus-toolbar-tools-mind-map v-if="!disableMenu('mind-map')" /> -->
             <menus-toolbar-tools-mermaid v-if="!disableMenu('mermaid')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-tools-chinese-case
               v-if="!disableMenu('chinese-case')"
             />
           </div>
-          <div class="umo-virtual-group is-slot">
+          <div class="kindy-virtual-group is-slot">
             <slot name="toolbar_tools" toolbar-mode="ribbon" />
           </div>
         </template>
         <template v-if="currentMenu === 'page'">
-          <div class="umo-virtual-group">
-            <div class="umo-virtual-group-row">
+          <div class="kindy-virtual-group">
+            <div class="kindy-virtual-group-row">
               <menus-toolbar-page-margin />
               <div>
-                <div class="umo-virtual-group-row">
+                <div class="kindy-virtual-group-row">
                   <menus-toolbar-page-size v-if="page.layout === 'page'" />
                 </div>
-                <div class="umo-virtual-group-row">
+                <div class="kindy-virtual-group-row">
                   <menus-toolbar-page-orientation
                     v-if="page.layout === 'page'"
                   />
@@ -221,7 +221,7 @@
               </div>
             </div>
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-page-break />
             <menus-toolbar-page-break-marks />
             <menus-toolbar-page-line-number />
@@ -233,28 +233,28 @@
           </div>
         </template>
         <template v-if="currentMenu === 'view'">
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-view-toc v-if="!disableMenu('toc')" />
             <menus-toolbar-view-fullscreen v-if="!disableMenu('fullscreen')" />
             <menus-toolbar-view-preview v-if="!disableMenu('preview')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-view-page v-if="!disableMenu('layout-page')" />
             <menus-toolbar-view-web v-if="!disableMenu('layout-web')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-view-zoom v-if="!disableMenu('zoom')" />
             <menus-toolbar-view-zoom-original
               v-if="!disableMenu('zoom-original')"
             />
             <menus-toolbar-view-zoom-auto v-if="!disableMenu('zoom-auto')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-view-skin v-if="!disableMenu('skin')" />
             <menus-toolbar-view-theme v-if="!disableMenu('theme')" />
             <menus-toolbar-view-locale v-if="!disableMenu('locale')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-view-reset v-if="!disableMenu('reset')" />
           </div>
           <div class="virtual-group is-slot">
@@ -262,12 +262,12 @@
           </div>
         </template>
         <template v-if="currentMenu === 'export'">
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-export-image v-if="!disableMenu('export-image')" />
             <menus-toolbar-export-pdf v-if="!disableMenu('export-pdf')" />
             <menus-toolbar-export-text v-if="!disableMenu('export-text')" />
           </div>
-          <div class="umo-virtual-group">
+          <div class="kindy-virtual-group">
             <menus-toolbar-export-share v-if="!disableMenu('share')" />
             <menus-toolbar-export-embed v-if="!disableMenu('embed')" />
           </div>
@@ -310,14 +310,14 @@ const changeMenu = async (menu) => {
 </script>
 
 <style lang="less" scoped>
-.umo-ribbon-menu {
+.kindy-ribbon-menu {
   width: 100%;
 }
-.umo-ribbon-tabs {
+.kindy-ribbon-tabs {
   padding: 10px 10px 0;
   display: flex;
   &-item {
-    font-size: var(--umo-font-size-small);
+    font-size: var(--kindy-font-size-small);
     margin-right: 25px;
     cursor: pointer;
     display: flex;
@@ -331,11 +331,11 @@ const changeMenu = async (menu) => {
         height: 3px;
         width: 100%;
         margin-top: 5px;
-        background-color: var(--umo-border-color);
+        background-color: var(--kindy-border-color);
       }
     }
     &.active {
-      color: var(--umo-primary-color);
+      color: var(--kindy-primary-color);
       font-weight: 600;
       &::after {
         display: block;
@@ -343,7 +343,7 @@ const changeMenu = async (menu) => {
         height: 3px;
         width: 100%;
         margin-top: 5px;
-        background-color: var(--umo-primary-color);
+        background-color: var(--kindy-primary-color);
         transition: width 0.3s;
       }
       &:hover::after {
@@ -355,18 +355,18 @@ const changeMenu = async (menu) => {
     }
   }
 }
-.umo-scrollable-container {
+.kindy-scrollable-container {
   width: 100%;
   padding: 10px;
   box-sizing: border-box;
 }
-.umo-ribbon-container {
+.kindy-ribbon-container {
   display: flex;
   height: 56px;
   flex-shrink: 0;
-  .umo-virtual-group {
+  .kindy-virtual-group {
     padding: 0 20px;
-    border-left: solid 1px var(--umo-border-color-light);
+    border-left: solid 1px var(--kindy-border-color-light);
     flex-shrink: 0;
     &:empty {
       display: none;
@@ -393,7 +393,7 @@ const changeMenu = async (menu) => {
 </style>
 
 <style lang="less">
-.umo-skin-modern .umo-ribbon-tabs {
+.kindy-skin-modern .kindy-ribbon-tabs {
   padding: 14px 15px 0 !important;
 }
 </style>

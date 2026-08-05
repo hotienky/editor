@@ -1,20 +1,20 @@
 <template>
   <t-dropdown
     placement="bottom-right"
-    overlay-class-name="umo-block-menu-dropdown"
+    overlay-class-name="kindy-block-menu-dropdown"
     trigger="click"
     :destroy-on-close="false"
     :popup-props="popupProps"
   >
     <menus-button
-      class="umo-block-menu-button"
+      class="kindy-block-menu-button"
       :menu-active="menuActive"
       ico="block-menu"
       hide-text
       style="cursor: grab"
     />
     <t-dropdown-menu>
-      <t-dropdown-item class="umo-block-menu-group-name" disabled>
+      <t-dropdown-item class="kindy-block-menu-group-name" disabled>
         {{ t('blockMenu.common') }}
       </t-dropdown-item>
       <t-dropdown-item>
@@ -49,7 +49,7 @@
           @menu-click="cutNodeToClipboard"
         />
       </t-dropdown-item>
-      <t-dropdown-item class="umo-delete-node">
+      <t-dropdown-item class="kindy-delete-node">
         <menus-button
           ico="node-delete-2"
           :text="t('blockMenu.delete')"
@@ -81,7 +81,7 @@ const blockMenu = inject('blockMenu')
 let menuActive = $ref(false)
 
 const popupProps = {
-  attach: `${container} .umo-main-container`,
+  attach: `${container} .kindy-main-container`,
   popperOptions: {
     modifiers: [{ name: 'offset', options: { offset: [2, 0] } }],
   },

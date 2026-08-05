@@ -18,7 +18,7 @@
       <icon name="bookmark" />
       {{ t('insert.bookmark.set') }}
     </template>
-    <div class="umo-bookmark-container">
+    <div class="kindy-bookmark-container">
       <t-form label-align="top" colon>
         <t-form-item
           :label="t('insert.bookmark.textName')"
@@ -180,8 +180,8 @@ watch(
 
 <style lang="less" scoped>
 .bookmark-list {
-  border: solid 1px var(--umo-border-color-dark);
-  border-radius: var(--umo-radius);
+  border: solid 1px var(--kindy-border-color-dark);
+  border-radius: var(--kindy-radius);
   margin-bottom: 5px;
   overflow: hidden;
   :deep(table) {
@@ -192,7 +192,7 @@ watch(
       padding: 4px 10px;
     }
     th {
-      border-bottom: solid 1px var(--umo-border-color) !important;
+      border-bottom: solid 1px var(--kindy-border-color) !important;
     }
   }
 }

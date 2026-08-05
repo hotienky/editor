@@ -32,8 +32,8 @@ const vuePlugins = {
   }),
   SvgIcons: createSvgIconsPlugin({
     iconDirs: [`${process.cwd()}/src/assets/icons`],
-    symbolId: 'umo-icon-[name]',
-    customDomId: 'umo-icons',
+    symbolId: 'kindy-icon-[name]',
+    customDomId: 'kindy-icons',
   }),
 }
 
@@ -43,7 +43,7 @@ const buildConfig = {
   lib: {
     entry: `${process.cwd()}/src/components/index.js`,
     name: pkg.name,
-    fileName: 'umo-editor',
+    fileName: 'kindy-editor',
   },
   outDir: 'dist',
   copyPublicDir: false,
@@ -53,7 +53,7 @@ const buildConfig = {
     output: [
       {
         banner: copyright,
-        intro: `import './umo-editor.css'`,
+        intro: `import './kindy-editor.css'`,
         format: 'es',
       },
     ],
@@ -75,7 +75,7 @@ const buildConfig = {
 const cssConfig = {
   preprocessorOptions: {
     less: {
-      modifyVars: { '@prefix': 'umo' },
+      modifyVars: { '@prefix': 'kindy' },
       javascriptEnabled: true,
       // 添加 Less 插件来排除特定类名
       plugins: [
@@ -94,7 +94,7 @@ const cssConfig = {
 }
 
 export default defineConfig({
-  base: '/umo-editor',
+  base: '/kindy-editor',
   plugins: [ReactivityTransform(), ...Object.values(vuePlugins)],
   css: cssConfig,
   build: buildConfig,

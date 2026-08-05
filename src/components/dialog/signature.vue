@@ -9,7 +9,7 @@
       <icon name="signature" />
       {{ t('tools.signature.title') }}
     </template>
-    <div class="umo-signature-dialog">
+    <div class="kindy-signature-dialog">
       <t-radio-group
         v-model="activeTab"
         variant="default-filled"
@@ -23,7 +23,7 @@
         </t-radio-button>
       </t-radio-group>
       <template v-if="activeTab === 'online'">
-        <div class="umo-signature-dialog__toolbar">
+        <div class="kindy-signature-dialog__toolbar">
           <menus-button
             ico="undo"
             :text="t('base.undo')"
@@ -69,45 +69,45 @@
           />
         </div>
         <div
-          class="umo-signature-dialog__canvas"
+          class="kindy-signature-dialog__canvas"
           :data-tip="t('tools.signature.tip')"
         >
           <canvas ref="signatureRef" />
         </div>
       </template>
       <template v-else>
-        <div class="umo-signature-dialog__select">
+        <div class="kindy-signature-dialog__select">
           <div
             v-if="selectedImage?.url"
-            class="umo-signature-dialog__select-workspace"
+            class="kindy-signature-dialog__select-workspace"
           >
-            <div class="umo-signature-dialog__select-stage">
-              <div class="umo-signature-dialog__select-stage-header">
-                <div class="umo-signature-dialog__select-stage-title">
+            <div class="kindy-signature-dialog__select-stage">
+              <div class="kindy-signature-dialog__select-stage-header">
+                <div class="kindy-signature-dialog__select-stage-title">
                   {{ t('tools.signature.cropTitle') }}
                 </div>
-                <div class="umo-signature-dialog__select-stage-tip">
+                <div class="kindy-signature-dialog__select-stage-tip">
                   {{ t('tools.signature.cropTip') }}
                 </div>
               </div>
               <div
                 ref="cropperHostRef"
-                class="umo-signature-dialog__select-cropper umo-cropper-surface"
+                class="kindy-signature-dialog__select-cropper kindy-cropper-surface"
               >
                 <img
                   ref="cropperImageRef"
                   :key="selectedImage.url"
-                  class="umo-signature-dialog__select-cropper-source"
+                  class="kindy-signature-dialog__select-cropper-source"
                   :src="selectedImage.url"
                   :alt="selectedImage.name || t('tools.signature.text')"
                 />
               </div>
             </div>
-            <div class="umo-signature-dialog__select-sidebar">
-              <div class="umo-signature-dialog__select-name">
+            <div class="kindy-signature-dialog__select-sidebar">
+              <div class="kindy-signature-dialog__select-name">
                 {{ selectedImage.name || t('tools.signature.text') }}
               </div>
-              <div class="umo-signature-dialog__select-source">
+              <div class="kindy-signature-dialog__select-source">
                 <div>
                   {{ t('tools.signature.fileSize') }}：{{
                     selectedImageSizeText
@@ -121,19 +121,19 @@
               </div>
               <t-button
                 variant="outline"
-                class="umo-signature-dialog__select-reselect"
+                class="kindy-signature-dialog__select-reselect"
                 @click="restoreSelectPlaceholder"
               >
                 {{ t('tools.signature.reselect') }}
               </t-button>
             </div>
           </div>
-          <div v-else class="umo-signature-dialog__select-empty">
-            <div class="umo-signature-dialog__select-empty-content">
-              <div class="umo-signature-dialog__select-empty-text">
+          <div v-else class="kindy-signature-dialog__select-empty">
+            <div class="kindy-signature-dialog__select-empty-content">
+              <div class="kindy-signature-dialog__select-empty-text">
                 {{ t('tools.signature.selectEmpty') }}
               </div>
-              <div class="umo-signature-dialog__select-empty-actions">
+              <div class="kindy-signature-dialog__select-empty-actions">
                 <t-button theme="default" @click="selectLocalImage">
                   <icon name="image" />
                   {{ t('tools.signature.selectLocal') }}
@@ -623,7 +623,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="less" scoped>
-.umo-signature-dialog {
+.kindy-signature-dialog {
   &__toolbar {
     display: flex;
     align-items: center;
@@ -631,8 +631,8 @@ onBeforeUnmount(() => {
   }
 
   &__canvas {
-    border: solid 1px var(--umo-primary-color);
-    border-radius: var(--umo-radius);
+    border: solid 1px var(--kindy-primary-color);
+    border-radius: var(--kindy-radius);
     box-sizing: border-box;
     display: flex;
     overflow: hidden;
@@ -641,7 +641,7 @@ onBeforeUnmount(() => {
     &::before {
       align-items: center;
       bottom: 0;
-      color: var(--umo-text-color-light);
+      color: var(--kindy-text-color-light);
       content: attr(data-tip);
       display: flex;
       justify-content: center;
@@ -673,8 +673,8 @@ onBeforeUnmount(() => {
   &__select-sidebar,
   &__select-empty {
     background: var(--td-bg-color-container);
-    border: 1px solid var(--umo-border-color-light);
-    border-radius: calc(var(--umo-radius) + 2px);
+    border: 1px solid var(--kindy-border-color-light);
+    border-radius: calc(var(--kindy-radius) + 2px);
   }
 
   &__select-stage {
@@ -713,7 +713,7 @@ onBeforeUnmount(() => {
         16px 16px,
       #fff;
     border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: var(--umo-radius);
+    border-radius: var(--kindy-radius);
     display: flex;
     justify-content: center;
     height: 200px;
@@ -786,11 +786,11 @@ onBeforeUnmount(() => {
     flex-wrap: wrap;
     gap: 12px;
     justify-content: center;
-    :deep(.umo-button__text) {
+    :deep(.kindy-button__text) {
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      .umo-icon {
+      .kindy-icon {
         font-size: 16px;
       }
     }

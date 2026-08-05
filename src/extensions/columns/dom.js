@@ -125,7 +125,7 @@ export const handleMouseUp = (view, event) => {
   if (!(target instanceof Element)) return false
   const button = target.closest('.grid-resize-handle-circle-btn')
   if (!button) return false
-  const column = button.closest('.umo-node-column')
+  const column = button.closest('.kindy-node-column')
   if (!column) return false
   const boundryPos = view.posAtDOM(column, 0)
   if (!boundryPos) return false

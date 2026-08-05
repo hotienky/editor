@@ -2,14 +2,14 @@
   <node-view-wrapper
     :id="'chartNode-' + attrs.id"
     ref="containerRef"
-    class="umo-node-view"
+    class="kindy-node-view"
     :style="nodeStyle"
     @click.capture="clickCapture"
   >
     <div
-      class="umo-node-container umo-node-echarts umo-select-outline"
+      class="kindy-node-container kindy-node-echarts kindy-select-outline"
       :class="{
-        'umo-hover-shadow': !options.document?.readOnly,
+        'kindy-hover-shadow': !options.document?.readOnly,
       }"
       :data-options="
         options.document?.readOnly ? JSON.stringify(chartOption) : null
@@ -29,7 +29,7 @@
         @resize="onResize"
         @focus="selected = true"
       >
-        <div :id="'chart-' + attrs.id" class="umo-node-echarts-body"></div>
+        <div :id="'chart-' + attrs.id" class="kindy-node-echarts-body"></div>
       </drager>
     </div>
   </node-view-wrapper>
@@ -199,8 +199,8 @@ watch(
 </script>
 
 <style lang="less">
-.umo-node-view {
-  .umo-node-echarts {
+.kindy-node-view {
+  .kindy-node-echarts {
     max-width: 100%;
     position: relative;
 
@@ -210,13 +210,13 @@ watch(
       transform: translateX(0px) translateY(0px) rotate(0deg) !important;
     }
 
-    .umo-node-echarts-body {
+    .kindy-node-echarts-body {
       display: block;
       min-height: 200px;
       width: 100%;
       height: 100%;
       background-color: #fff;
-      outline: solid 1px var(--umo-content-node-border);
+      outline: solid 1px var(--kindy-content-node-border);
     }
   }
 }

@@ -1,12 +1,12 @@
 import { createApp } from 'vue'
 
 import App from './app.vue'
-import { useUmoEditor } from './components'
+import { useKindyEditor } from './components'
 
 const app = createApp(App)
 
 const options = {}
 
-app.use(useUmoEditor, options)
+app.use(useKindyEditor, options)
 
 app.mount('#app')

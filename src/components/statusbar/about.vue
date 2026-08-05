@@ -53,7 +53,7 @@ p {
   line-height: 1.5;
   a,
   :deep(a) {
-    color: var(--umo-primary-color);
+    color: var(--kindy-primary-color);
     font-weight: 500;
     text-decoration: none;
     &:hover {
@@ -61,7 +61,7 @@ p {
     }
   }
 }
-:deep(.umo-divider) {
+:deep(.kindy-divider) {
   margin: 30px 0 15px;
   font-size: 12px;
 }

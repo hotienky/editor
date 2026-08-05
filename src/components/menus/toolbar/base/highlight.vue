@@ -5,13 +5,13 @@
     menu-type="dropdown"
     popup-handle="arrow"
     hide-text
-    overlay-class-name="umo-highlight-dropdown"
+    overlay-class-name="kindy-highlight-dropdown"
     :disabled="!editor?.can().chain().focus().setBackgroundColor().run()"
     @menu-click="highlightChange(highlight)"
   >
     <icon
       name="highlight"
-      class="umo-icon-highlight"
+      class="kindy-icon-highlight"
       :style="{ backgroundColor: highlight?.bgcolor, color: highlight?.color }"
     />
     <template #dropmenu>
@@ -19,7 +19,7 @@
         <t-dropdown-item
           v-for="item in options"
           :key="item.value"
-          class="umo-text-highlight-menu"
+          class="kindy-text-highlight-menu"
           :value="item.value"
           :style="{ backgroundColor: item.bgcolor, color: item.color }"
           :divider="item.divider"
@@ -29,7 +29,7 @@
           <span>{{ item.label }}</span>
         </t-dropdown-item>
         <t-dropdown-item
-          class="umo-text-highlight-menu umo-clear-format-menu"
+          class="kindy-text-highlight-menu kindy-clear-format-menu"
           @click="clearFormat()"
         >
           <icon name="clear-format" />
@@ -84,36 +84,36 @@ const clearFormat = () => {
 </script>
 
 <style lang="less" scoped>
-.umo-icon-highlight {
+.kindy-icon-highlight {
   border-radius: 2px;
 }
 </style>
 
 <style lang="less">
-.umo-text-highlight-dropdown {
-  .umo-popup__content {
-    .umo-divider {
+.kindy-text-highlight-dropdown {
+  .kindy-popup__content {
+    .kindy-divider {
       margin-top: 8px;
       margin-bottom: 8px;
     }
   }
 }
-.umo-text-highlight-menu {
+.kindy-text-highlight-menu {
   width: 140px;
   margin-bottom: 6px;
   border: solid 1px transparent;
-  &.umo-clear-format-menu {
+  &.kindy-clear-format-menu {
     margin-bottom: 0;
   }
   &:hover {
-    border-color: var(--umo-primary-color);
+    border-color: var(--kindy-primary-color);
     background-color: inherit;
   }
-  .umo-dropdown__item-text {
+  .kindy-dropdown__item-text {
     display: flex;
     align-items: center;
     padding: 2px;
-    .umo-icon {
+    .kindy-icon {
       font-size: 16px;
       margin-right: 5px;
     }

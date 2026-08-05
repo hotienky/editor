@@ -1,8 +1,8 @@
 <template>
-  <node-view-wrapper class="umo-node-view">
+  <node-view-wrapper class="kindy-node-view">
     <t-popup
-      :attach="`${container} .umo-zoomable-container`"
-      overlay-inner-class-name="umo-editor-bubble-menu"
+      :attach="`${container} .kindy-zoomable-container`"
+      overlay-inner-class-name="kindy-editor-bubble-menu"
       trigger="click"
       :visible="
         editor?.isEditable &&
@@ -12,7 +12,7 @@
       @visible-change="(visible) => (bubbleMenu = visible)"
     >
       <div
-        class="umo-node-container hover-shadow umo-node-callout"
+        class="kindy-node-container hover-shadow kindy-node-callout"
         :style="{
           color: attrs.fontColor,
           backgroundColor: attrs.backgroundColor,
@@ -21,27 +21,27 @@
       >
         <span
           v-if="attrs.icon"
-          class="umo-node-callout-icon"
+          class="kindy-node-callout-icon"
           contenteditable="false"
           >{{ attrs.icon }}</span
         >
         <node-view-content
-          class="umo-node-callout-content"
+          class="kindy-node-callout-content"
           :class="{
-            'umo-node-callout-empty': node.content.size <= 2,
+            'kindy-node-callout-empty': node.content.size <= 2,
           }"
           :data-placeholder="t('callout.placeholder')"
         />
       </div>
       <template #content>
         <menus-bubble-callout-builtin />
-        <div class="umo-bubble-menu-divider"></div>
+        <div class="kindy-bubble-menu-divider"></div>
         <menus-toolbar-insert-emoji @select-emoji="selectEmoji" />
         <menus-bubble-callout-emoji-remove
           v-if="editor.getAttributes('callout').icon"
         />
         <menus-bubble-callout-background />
-        <div class="umo-bubble-menu-divider"></div>
+        <div class="kindy-bubble-menu-divider"></div>
         <menus-bubble-node-delete />
       </template>
     </t-popup>
@@ -75,7 +75,7 @@ const focusCalloutContent = (event) => {
     return
   }
   // 点击文本区域时保留原生定位行为；仅为空白区域提供兜底聚焦。
-  if (target.closest('.umo-node-callout-content')) {
+  if (target.closest('.kindy-node-callout-content')) {
     return
   }
   const pos = safeOffsetPos(props.getPos, props.editor?.state, 1)
@@ -87,9 +87,9 @@ const focusCalloutContent = (event) => {
 </script>
 
 <style lang="less">
-.umo-node-callout {
+.kindy-node-callout {
   padding: 8px 12px;
-  border-radius: var(--umo-radius);
+  border-radius: var(--kindy-radius);
   display: flex;
   width: 100%;
   border: 1px solid rgba(0, 0, 0, 0.2);
@@ -107,7 +107,7 @@ const focusCalloutContent = (event) => {
     white-space: pre-wrap;
     word-break: break-word;
 
-    &.umo-node-callout-empty {
+    &.kindy-node-callout-empty {
       display: flex;
       align-items: center;
       &::after {

@@ -1,10 +1,10 @@
 <template>
-  <node-view-wrapper ref="containerRef" class="umo-node-view umo-code-block">
+  <node-view-wrapper ref="containerRef" class="kindy-node-view kindy-code-block">
     <div
-      :class="`umo-node-container hover-shadow umo-node-code-block umo-node-code-block-theme-${attrs.theme}`"
+      :class="`kindy-node-container hover-shadow kindy-node-code-block kindy-node-code-block-theme-${attrs.theme}`"
     >
-      <div class="umo-node-code-block-toolbar">
-        <div class="umo-node-code-block-toolbar-left">
+      <div class="kindy-node-code-block-toolbar">
+        <div class="kindy-node-code-block-toolbar-left">
           <template v-if="editor?.isEditable && !options.document?.readOnly">
             <menus-button
               :text="t('bubbleMenu.code.languages')"
@@ -13,7 +13,7 @@
               :select-value="attrs.language"
               :popup-props="{
                 attach: container,
-                overlayClassName: 'umo-code-block-language',
+                overlayClassName: 'kindy-code-block-language',
               }"
               filterable
               borderless
@@ -32,13 +32,13 @@
               @menu-click="(value) => updateAttribute('theme', value)"
             />
           </template>
-          <span v-else class="umo-node-code-block-language">{{
+          <span v-else class="kindy-node-code-block-language">{{
             attrs.language
           }}</span>
         </div>
-        <div class="umo-node-code-block-toolbar-right">
+        <div class="kindy-node-code-block-toolbar-right">
           <menus-button
-            class="umo-word-wrap-button"
+            class="kindy-word-wrap-button"
             :menu-active="attrs.textWrap"
             :text="t('bubbleMenu.code.wordWrap')"
             ico="code-word-wrap"
@@ -47,7 +47,7 @@
             @menu-click="updateAttribute('textWrap', !attrs.textWrap)"
           />
           <menus-button
-            class="umo-copy-button"
+            class="kindy-copy-button"
             ico="copy"
             :text="t('bubbleMenu.code.copy.text')"
             hide-text
@@ -56,7 +56,7 @@
           />
           <menus-button
             v-if="editor?.isEditable && !options.document?.readOnly"
-            class="umo-delete-button"
+            class="kindy-delete-button"
             ico="node-delete"
             :text="t('bubbleMenu.delete')"
             hide-text
@@ -65,9 +65,9 @@
         </div>
       </div>
       <pre
-        class="umo-node-code-block-content"
+        class="kindy-node-code-block-content"
         :class="{
-          'umo-node-code-block-word-wrap': attrs.textWrap,
+          'kindy-node-code-block-word-wrap': attrs.textWrap,
         }"
       ><node-view-content
         :class="`hljs language-${attrs.language}`"
@@ -113,10 +113,10 @@ const copyCode = () => {
 <style lang="less">
 @import '@/assets/styles/_mixins.less';
 
-.umo-code-block {
+.kindy-code-block {
   display: block !important;
-  .umo-node-code-block {
-    border: solid 1px var(--umo-content-node-border);
+  .kindy-node-code-block {
+    border: solid 1px var(--kindy-content-node-border);
     border-radius: 3px;
     &-toolbar {
       --td-bg-color-container-hover: rgba(0, 0, 0, 0.05);
@@ -125,19 +125,19 @@ const copyCode = () => {
       justify-content: space-between;
       align-items: center;
       padding: 0 10px;
-      border-bottom: 1px solid var(--umo-content-node-border);
+      border-bottom: 1px solid var(--kindy-content-node-border);
       height: 36px;
       border-top-left-radius: 2px;
       border-top-right-radius: 2px;
-      background-color: var(--umo-content-node-selected-background);
-      .umo-select__wrap {
+      background-color: var(--kindy-content-node-selected-background);
+      .kindy-select__wrap {
         --td-comp-paddingLR-s: 5px;
         --td-text-color-primary: #999;
         width: auto;
-        .umo-input--auto-width {
+        .kindy-input--auto-width {
           min-width: unset;
         }
-        .umo-input__suffix {
+        .kindy-input__suffix {
           margin: 0 -3px 0 3px;
           --td-text-color-placeholder: #999;
         }
@@ -147,17 +147,17 @@ const copyCode = () => {
         align-items: center;
         display: none;
         gap: 5px;
-        .umo-menu-button-wrap {
+        .kindy-menu-button-wrap {
           margin-right: 0;
           .active {
             background-color: var(--td-bg-color-container-hover);
-            .umo-button-content {
-              color: var(--umo-primary-color);
+            .kindy-button-content {
+              color: var(--kindy-primary-color);
             }
           }
         }
       }
-      .umo-button-content {
+      .kindy-button-content {
         color: #999;
         &:hover {
           color: #333;
@@ -165,7 +165,7 @@ const copyCode = () => {
       }
     }
     &:hover {
-      .umo-node-code-block-toolbar {
+      .kindy-node-code-block-toolbar {
         &-right {
           display: flex;
         }
@@ -177,12 +177,12 @@ const copyCode = () => {
       padding: 0 6px;
     }
     &-theme-dark {
-      .umo-node-code-block {
+      .kindy-node-code-block {
         &-toolbar {
           background-color: rgba(0, 0, 0, 0.95);
           border-bottom-color: transparent;
           --td-bg-color-container-hover: transparent;
-          .umo-button-content {
+          .kindy-button-content {
             &:hover {
               color: #eee;
             }
@@ -191,7 +191,7 @@ const copyCode = () => {
       }
     }
     &-content {
-      font-family: var(--umo-content-code-family);
+      font-family: var(--kindy-content-code-family);
       margin: 0 !important;
       padding: 0 !important;
       overflow: hidden;
@@ -199,7 +199,7 @@ const copyCode = () => {
       border-radius: 0;
       border-bottom-left-radius: 2px;
       border-bottom-right-radius: 2px;
-      .umo-scrollbar();
+      .kindy-scrollbar();
 
       code {
         display: block;
@@ -216,21 +216,21 @@ const copyCode = () => {
       }
     }
   }
-  &.umo-node-focused {
-    .umo-node-code-block {
-      border-color: var(--umo-primary-color);
+  &.kindy-node-focused {
+    .kindy-node-code-block {
+      border-color: var(--kindy-primary-color);
     }
   }
   .tiptap-invisible-character {
     display: none;
   }
 }
-.umo-code-block-language {
-  .umo-select__list {
+.kindy-code-block-language {
+  .kindy-select__list {
     max-height: 200px;
   }
 }
-.umo-node-code-block-theme {
+.kindy-node-code-block-theme {
   &-light {
     pre {
       color: #24292e;

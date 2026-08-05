@@ -6,14 +6,14 @@ export default Node.create({
   addOptions() {
     return {
       HTMLAttributes: {
-        class: 'umo-page-break',
+        class: 'kindy-page-break',
         'data-line-number': false,
       },
       getContentLabel: () => t('page.break'),
     }
   },
   parseHTML() {
-    return [{ tag: 'div[class*="umo-page-break"]' }]
+    return [{ tag: 'div[class*="kindy-page-break"]' }]
   },
   renderHTML({ HTMLAttributes }) {
     return [

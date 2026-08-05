@@ -1,6 +1,6 @@
 <template>
-  <svg class="umo-icon" aria-hidden="true" :width="size" :height="size">
-    <use :xlink:href="`#umo-icon-${props.name}`" :fill="color" />
+  <svg class="kindy-icon" aria-hidden="true" :width="size" :height="size">
+    <use :xlink:href="`#kindy-icon-${props.name}`" :fill="color" />
   </svg>
 </template>
 
@@ -22,7 +22,7 @@ const props = defineProps({
 </script>
 
 <style lang="less">
-.umo-icon {
+.kindy-icon {
   display: flex;
 }
 </style>

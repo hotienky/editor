@@ -9,7 +9,7 @@
       <icon name="page-margin" />
       {{ t('pageOptions.title') }}
     </template>
-    <div class="umo-page-options-container">
+    <div class="kindy-page-options-container">
       <t-form label-align="left">
         <t-form-item
           v-if="page.layout === 'page'"
@@ -32,7 +32,7 @@
         <t-form-item v-if="page.layout === 'page'" :label="t('page.size.text')">
           <t-select
             :popup-props="{
-              overlayClassName: 'umo-page-size-select',
+              overlayClassName: 'kindy-page-size-select',
               destroyOnClose: true,
               attach: container,
             }"
@@ -59,12 +59,12 @@
           v-if="page.layout === 'page'"
           :label="t('pageOptions.size.text')"
         >
-          <div class="umo-page-setting">
+          <div class="kindy-page-setting">
             <div class="item">
               <t-input-number
                 v-if="pageOptions?.size"
                 v-model="pageOptions.size.width"
-                class="umo-page-setting-number"
+                class="kindy-page-setting-number"
                 theme="normal"
                 align="center"
                 :min="10"
@@ -79,7 +79,7 @@
               <t-input-number
                 v-if="pageOptions?.size"
                 v-model="pageOptions.size.height"
-                class="umo-page-setting-number"
+                class="kindy-page-setting-number"
                 theme="normal"
                 align="center"
                 :min="10"
@@ -94,7 +94,7 @@
         </t-form-item>
         <t-form-item :label="t('pageOptions.margin.text')" name="name">
           <div>
-            <div class="umo-page-margin-inbuilt">
+            <div class="kindy-page-margin-inbuilt">
               <div
                 class="item"
                 :class="{ active: !pageOptions.margin?.layout }"
@@ -144,12 +144,12 @@
                 v-text="t('pageOptions.margin.wide')"
               ></div>
             </div>
-            <div class="umo-page-setting">
+            <div class="kindy-page-setting">
               <div class="item">
                 <t-input-number
                   v-if="pageOptions?.margin"
                   v-model="pageOptions.margin.top"
-                  class="umo-page-setting-number"
+                  class="kindy-page-setting-number"
                   theme="normal"
                   align="center"
                   :min="0"
@@ -165,7 +165,7 @@
                 <t-input-number
                   v-if="pageOptions?.margin"
                   v-model="pageOptions.margin.bottom"
-                  class="umo-page-setting-number"
+                  class="kindy-page-setting-number"
                   theme="normal"
                   align="center"
                   :min="0"
@@ -181,7 +181,7 @@
                 <t-input-number
                   v-if="pageOptions?.margin"
                   v-model="pageOptions.margin.left"
-                  class="umo-page-setting-number"
+                  class="kindy-page-setting-number"
                   theme="normal"
                   align="center"
                   :min="0"
@@ -197,7 +197,7 @@
                 <t-input-number
                   v-if="pageOptions?.margin"
                   v-model="pageOptions.margin.right"
-                  class="umo-page-setting-number"
+                  class="kindy-page-setting-number"
                   theme="normal"
                   align="center"
                   :min="0"
@@ -283,13 +283,13 @@ const onConfirm = () => {
 </script>
 
 <style lang="less" scoped>
-.umo-page-options-container {
+.kindy-page-options-container {
   width: 400px;
   margin-top: 15px;
-  :deep(.umo-radio-button__label) {
+  :deep(.kindy-radio-button__label) {
     display: flex;
     align-items: center;
-    .umo-icon {
+    .kindy-icon {
       margin-right: 5px;
       font-size: 20px;
       &.icon-rotate {
@@ -299,19 +299,19 @@ const onConfirm = () => {
   }
 }
 
-.umo-page-margin-inbuilt {
+.kindy-page-margin-inbuilt {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
   .item {
     width: 60px;
     height: 80px;
-    border: solid 1px var(--umo-border-color);
-    border-radius: var(--umo-radius);
+    border: solid 1px var(--kindy-border-color);
+    border-radius: var(--kindy-radius);
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--umo-button-hover-background);
+    background-color: var(--kindy-button-hover-background);
     position: relative;
     cursor: pointer;
     overflow: hidden;
@@ -324,7 +324,7 @@ const onConfirm = () => {
       right: 0;
       top: 0;
       bottom: 0;
-      border: solid 8px var(--umo-color-white);
+      border: solid 8px var(--kindy-color-white);
       border-left-width: 10px;
       border-right-width: 10px;
     }
@@ -341,11 +341,11 @@ const onConfirm = () => {
     }
     &:hover,
     &.active {
-      border-color: var(--umo-primary-color);
+      border-color: var(--kindy-primary-color);
     }
   }
 }
-.umo-page-setting {
+.kindy-page-setting {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -362,7 +362,7 @@ const onConfirm = () => {
   }
   &-number {
     width: 140px;
-    :deep(.umo-input__suffix) {
+    :deep(.kindy-input__suffix) {
       opacity: 0.4;
     }
   }
@@ -370,8 +370,8 @@ const onConfirm = () => {
 </style>
 
 <style lang="less">
-.umo-page-size-select {
-  .umo-select-option {
+.kindy-page-size-select {
+  .kindy-select-option {
     padding: 0 8px;
     > span {
       display: flex;
@@ -380,7 +380,7 @@ const onConfirm = () => {
     }
     .desc {
       font-size: 12px;
-      color: var(--umo-text-color-light);
+      color: var(--kindy-text-color-light);
     }
   }
 }

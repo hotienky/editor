@@ -1,6 +1,6 @@
 <template>
   <modal
-    class="umo-search-replace-dialog"
+    class="kindy-search-replace-dialog"
     :visible="searchReplace"
     :footer="false"
     :z-index="200"
@@ -15,8 +15,8 @@
       <icon name="search-replace" />
       {{ t('search.title') }}
     </template>
-    <div class="umo-search-replace-container">
-      <div class="umo-search-text">
+    <div class="kindy-search-replace-container">
+      <div class="kindy-search-text">
         <t-input
           v-model="searchText"
           :placeholder="t('search.searchText')"
@@ -51,19 +51,19 @@
           <icon name="arrow-down" class="icon-prev" />
         </t-button>
       </div>
-      <div class="umo-replace-text">
+      <div class="kindy-replace-text">
         <t-input
           v-model="replaceText"
           :placeholder="t('search.replaceText')"
           clearable
         />
       </div>
-      <div class="umo-advanced-options">
+      <div class="kindy-advanced-options">
         <t-checkbox v-model="caseSensitive">
           {{ t('search.caseSensitive') }}
         </t-checkbox>
       </div>
-      <div class="umo-button-actions">
+      <div class="kindy-button-actions">
         <t-button
           :disabled="resultLength === 0"
           theme="default"
@@ -191,19 +191,19 @@ watch(
 </script>
 
 <style lang="less" scoped>
-.umo-search-text {
+.kindy-search-text {
   margin-top: 5px;
   display: flex;
-  :deep(.umo-input__wrap) {
+  :deep(.kindy-input__wrap) {
     width: 300px;
     margin-right: 10px;
-    .umo-input__suffix {
+    .kindy-input__suffix {
       font-size: 12px;
       opacity: 0.6;
     }
   }
-  :deep(.umo-button) {
-    .umo-icon {
+  :deep(.kindy-button) {
+    .kindy-icon {
       font-size: 20px;
       &.icon-prev {
         transform: rotate(-180deg);
@@ -211,25 +211,25 @@ watch(
     }
   }
 }
-.umo-replace-text {
+.kindy-replace-text {
   margin-top: 12px;
 }
-.umo-advanced-options {
+.kindy-advanced-options {
   margin-top: 12px;
-  :deep(.umo-checkbox) {
+  :deep(.kindy-checkbox) {
     margin-right: 15px;
   }
 }
-.umo-button-actions {
+.kindy-button-actions {
   margin: 12px 0 -15px;
   text-align: right;
-  :deep(.umo-button) {
+  :deep(.kindy-button) {
     margin-left: 10px;
   }
 }
 </style>
 <style lang="less">
-.umo-search-replace-dialog {
+.kindy-search-replace-dialog {
   .t-dialog {
     position: absolute !important;
     right: 15px;
@@ -239,22 +239,22 @@ watch(
     user-select: none;
   }
 }
-.umo-editor-container.toolbar-classic {
-  .umo-search-replace-dialog {
+.kindy-editor-container.toolbar-classic {
+  .kindy-search-replace-dialog {
     .t-dialog {
       top: 65px !important;
     }
   }
 }
 
-.umo-editor-container.umo-skin-modern {
-  .umo-search-replace-dialog {
+.kindy-editor-container.kindy-skin-modern {
+  .kindy-search-replace-dialog {
     .t-dialog {
       top: 146px;
     }
   }
   &.toolbar-classic {
-    .umo-search-replace-dialog {
+    .kindy-search-replace-dialog {
       .t-dialog {
         top: 80px;
       }

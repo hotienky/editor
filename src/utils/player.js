@@ -85,7 +85,7 @@ export const player = async (container, cdnUrl) => {
     i18n: locales[locale.value],
     settings: [],
     tooltips: { controls: true },
-    storage: { key: 'umo-editor:player' },
+    storage: { key: 'kindy-editor:player' },
     disableContextMenu: false,
   })
 }

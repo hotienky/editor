@@ -1,11 +1,11 @@
 export const findBoundaryPosition = (view, event, handleWidth) => {
   const gridDOM = event
     .composedPath()
-    .find((el) => el.classList?.contains('umo-node-column-container'))
+    .find((el) => el.classList?.contains('kindy-node-column-container'))
   if (!gridDOM) return -1
 
   const children = Array.from(gridDOM.children).filter((el) =>
-    el.classList.contains('umo-node-column'),
+    el.classList.contains('kindy-node-column'),
   )
   for (let i = 0; i < children.length; i++) {
     const colEl = children[i]

@@ -39,10 +39,10 @@
   "type": "module",
   "exports": {
     ".": {
-      "import": "./dist/umo-editor.js"
+      "import": "./dist/kindy-editor.js"
     },
     "./style": {
-      "import": "./dist/umo-editor.css"
+      "import": "./dist/kindy-editor.css"
     }
   },
   "scripts": {

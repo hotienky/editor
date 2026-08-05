@@ -2,7 +2,7 @@
   <node-view-wrapper
     ref="containerRef"
     as="figure"
-    class="umo-node-view"
+    class="kindy-node-view"
     :class="wrapperClass"
     :style="nodeStyle"
     data-type="image"
@@ -12,13 +12,13 @@
   >
     <div
       ref="imageContainerRef"
-      class="umo-node-container umo-node-image"
+      class="kindy-node-container kindy-node-image"
       :class="imageClass"
       :style="imageContainerStyle"
     >
       <div
         v-if="attrs.src && error"
-        class="umo-node-image-error"
+        class="kindy-node-image-error"
         :style="{ width: `${attrs.width}px`, height: `${attrs.height}px` }"
       >
         <icon name="image-failed" class="error-icon" />
@@ -26,12 +26,12 @@
       </div>
       <div
         v-else
-        class="umo-node-image-frame"
+        class="kindy-node-image-frame"
         :style="imageFrameStyle"
         @mousedown.capture="onDragPointerDown"
       >
         <drager
-          class="umo-select-outline"
+          class="kindy-select-outline"
           :class="dragerClass"
           :style="dragerStyle"
           :selected="selected"
@@ -55,21 +55,21 @@
           @resize="onResize"
           @focus="selected = true"
         >
-          <div v-if="isImageLoading" class="umo-node-image-loading">
+          <div v-if="isImageLoading" class="kindy-node-image-loading">
             <icon name="loading" class="loading-icon" />
             {{ t('node.image.loading') }}
           </div>
           <template v-if="isCropping">
             <div
               ref="cropperHostRef"
-              class="umo-node-image-cropper umo-cropper-surface"
+              class="kindy-node-image-cropper kindy-cropper-surface"
               :style="cropperStyle"
               @mousedown.capture="handleCropperMousedown"
               @dblclick.stop="handleCropperDblclick"
             >
               <img
                 ref="cropperImageRef"
-                class="umo-node-image-cropper-source"
+                class="kindy-node-image-cropper-source"
                 :src="attrs.src"
                 :alt="attrs.alt || attrs.title || attrs.name || 'image'"
                 draggable="false"
@@ -98,7 +98,7 @@
           />
           <div
             v-if="!attrs.uploaded && attrs.file !== null"
-            class="umo-node-image-uploading"
+            class="kindy-node-image-uploading"
           >
             <span></span>
           </div>
@@ -107,7 +107,7 @@
       <node-view-content
         v-show="showAlt"
         as="figcaption"
-        class="umo-node-image-alt umo-node-image-alt-content"
+        class="kindy-node-image-alt kindy-node-image-alt-content"
         :class="[altContainerClass, { 'is-empty': isAltEmpty }]"
         :data-placeholder="altPlaceholder"
         :data-empty="isAltEmpty ? '' : null"
@@ -244,7 +244,7 @@ const shouldListenCropTransactions = $computed(
 )
 
 const wrapperClass = $computed(() => ({
-  'umo-floating-node': attrs.draggable,
+  'kindy-floating-node': attrs.draggable,
   'is-inline-image': attrs.inline,
 }))
 const imageClass = $computed(() => ({
@@ -256,8 +256,8 @@ const imageClass = $computed(() => ({
 const dragerClass = $computed(() => ({
   'is-draggable': attrs.draggable,
   'is-cropping': isCropping,
-  'umo-hover-shadow': !isReadonlyNode,
-  'umo-select-outline': !attrs.draggable && attrs.src && !error,
+  'kindy-hover-shadow': !isReadonlyNode,
+  'kindy-select-outline': !attrs.draggable && attrs.src && !error,
   'is-alt-selected': selected && !attrs.draggable && attrs.src && !error,
 }))
 const dragerStyle = $computed(() => ({
@@ -308,7 +308,7 @@ const getHostElement = () => containerRef.value?.$el
 const getImageContainerElement = () => imageContainerRef.value
 const getNodePos = () => safeNodePos(getPos, editor.value?.state)
 const getAltContentElement = () =>
-  getHostElement()?.querySelector('.umo-node-image-alt-content')
+  getHostElement()?.querySelector('.kindy-node-image-alt-content')
 const isAltContentFocused = () => {
   const altContentElement = getAltContentElement()
   const { activeElement } = document
@@ -364,7 +364,7 @@ const ensureOutsideHandler = () => {
     return
   }
   stopClickOutside = onClickOutside(containerRef, async (event) => {
-    if (event.target?.closest?.('.umo-editor-bubble-menu')) {
+    if (event.target?.closest?.('.kindy-editor-bubble-menu')) {
       return
     }
     if (isCropping) {
@@ -710,7 +710,7 @@ const renderMermaidToImageSrc = async (seq) => {
     securityLevel: 'loose',
     ...getDiagramConfig(),
   })
-  const renderId = `umo-mermaid-${shortId(10)}`
+  const renderId = `kindy-mermaid-${shortId(10)}`
   const result = await mermaid.render(renderId, String(attrs.content))
   applyRenderedDiagram(typeof result === 'string' ? result : result?.svg, seq)
 }
@@ -905,7 +905,7 @@ const syncLoadedImageLayout = async () => {
   await onLoad()
 }
 const isAltTarget = (target) =>
-  target instanceof HTMLElement && !!target.closest('.umo-node-image-alt')
+  target instanceof HTMLElement && !!target.closest('.kindy-node-image-alt')
 
 const setImageNodeSelection = () => {
   editor.value?.commands.focus(undefined, { scrollIntoView: false })
@@ -1207,7 +1207,7 @@ onMounted(async () => {
 </script>
 
 <style lang="less">
-.umo-node-view {
+.kindy-node-view {
   margin: 0;
 
   &.is-inline-image {
@@ -1218,20 +1218,20 @@ onMounted(async () => {
       max-height: 100% !important;
     }
   }
-  &.umo-node-focused,
+  &.kindy-node-focused,
   &.ProseMirror-selectednoderange {
-    .umo-node-image-error:after {
+    .kindy-node-image-error:after {
       content: '';
       display: block !important;
       position: absolute;
       inset: 0;
-      border-radius: var(--umo-radius);
-      background: var(--umo-content-node-selected-background);
+      border-radius: var(--kindy-radius);
+      background: var(--kindy-content-node-selected-background);
       pointer-events: none;
       z-index: -1;
     }
   }
-  .umo-node-image {
+  .kindy-node-image {
     max-width: 100%;
     width: auto;
     position: relative;
@@ -1255,10 +1255,10 @@ onMounted(async () => {
       display: block;
       line-height: 0;
       &.is-cropping {
-        outline: solid 1px var(--umo-primary-color);
+        outline: solid 1px var(--kindy-primary-color);
       }
       &.is-alt-selected {
-        outline: solid 1px var(--umo-primary-color);
+        outline: solid 1px var(--kindy-primary-color);
       }
       position: relative;
       max-width: 100%;
@@ -1274,7 +1274,7 @@ onMounted(async () => {
       }
     }
 
-    .umo-node-image-cropper {
+    .kindy-node-image-cropper {
       display: block;
       position: relative;
       max-width: 100%;
@@ -1292,7 +1292,7 @@ onMounted(async () => {
       }
     }
 
-    .umo-node-image-loading {
+    .kindy-node-image-loading {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1306,13 +1306,13 @@ onMounted(async () => {
       pointer-events: none;
 
       .loading-icon {
-        color: var(--umo-primary-color);
+        color: var(--kindy-primary-color);
         font-size: 22px;
         animation: turn 1s linear infinite;
       }
     }
 
-    .umo-node-image-error {
+    .kindy-node-image-error {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1328,7 +1328,7 @@ onMounted(async () => {
       }
     }
 
-    .umo-node-image-uploading {
+    .kindy-node-image-uploading {
       position: absolute;
       left: 0;
       right: 0;
@@ -1352,14 +1352,14 @@ onMounted(async () => {
           content: '';
           display: block;
           height: 100%;
-          background-color: var(--umo-primary-color);
+          background-color: var(--kindy-primary-color);
           animation: progress 1s linear infinite;
         }
       }
     }
   }
 
-  .umo-node-image-alt {
+  .kindy-node-image-alt {
     @alt-font-size: 13px;
     @alt-line-height: 1.6;
     @alt-min-height: 22px;
@@ -1378,10 +1378,10 @@ onMounted(async () => {
       font-size: @alt-font-size;
       line-height: @alt-line-height;
       text-align: center;
-      color: var(--umo-text-color);
+      color: var(--kindy-text-color);
       white-space: pre-wrap;
       word-break: break-word;
-      caret-color: var(--umo-text-color);
+      caret-color: var(--kindy-text-color);
       outline: none;
       cursor: text;
 
@@ -1392,7 +1392,7 @@ onMounted(async () => {
 
         &::after {
           content: attr(data-placeholder);
-          color: var(--umo-text-color-light);
+          color: var(--kindy-text-color-light);
           pointer-events: none;
         }
       }

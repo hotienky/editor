@@ -9,7 +9,7 @@
     @toggle-popup="togglePopup"
   >
     <template #content>
-      <div class="umo-table-grid" @mouseleave="resetTable">
+      <div class="kindy-table-grid" @mouseleave="resetTable">
         <div v-for="(row, rowIndex) in table" :key="rowIndex" class="row">
           <div
             v-for="(cell, colIndex) in row"
@@ -21,9 +21,9 @@
           ></div>
         </div>
       </div>
-      <div class="umo-table-custom">
+      <div class="kindy-table-custom">
         <div
-          class="umo-table-custom-title"
+          class="kindy-table-custom-title"
           v-text="t('table.insert.property')"
         ></div>
         <t-input-number
@@ -46,7 +46,7 @@
           {{ t('table.insert.withHeader') }}
         </t-checkbox>
         <t-button
-          class="umo-insert-button"
+          class="kindy-insert-button"
           block
           theme="primary"
           variant="base"
@@ -96,7 +96,7 @@ const insertTable = () => {
 </script>
 
 <style lang="less" scoped>
-.umo-table-grid {
+.kindy-table-grid {
   .row {
     display: flex;
     gap: 4px;
@@ -104,28 +104,28 @@ const insertTable = () => {
   .cell {
     width: 14px;
     height: 14px;
-    border: 1px solid var(--umo-border-color);
+    border: 1px solid var(--kindy-border-color);
     cursor: pointer;
     margin-bottom: 4px;
     &.selected {
-      border-color: var(--umo-primary-color);
+      border-color: var(--kindy-primary-color);
       background-color: rgba(0, 0, 0, 0.03);
     }
   }
 }
 
-.umo-table-custom {
-  :deep(.umo-input-number) {
+.kindy-table-custom {
+  :deep(.kindy-input-number) {
     width: 196px;
     display: block;
     margin-bottom: 8px;
   }
   &-title {
-    color: var(--umo-text-color-light);
+    color: var(--kindy-text-color-light);
     font-size: 12px;
     margin: 8px 0 2px;
   }
-  .umo-insert-button {
+  .kindy-insert-button {
     margin-top: 5px;
   }
 }

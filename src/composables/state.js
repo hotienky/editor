@@ -1,6 +1,6 @@
 export function useState(key, editorOptions) {
   const options = editorOptions.value
-  const storageKey = `umo-editor:${options.editorKey || 'default'}:${key}`
+  const storageKey = `kindy-editor:${options.editorKey || 'default'}:${key}`
 
   if (key === 'document') {
     return useStorage(storageKey, options.document)

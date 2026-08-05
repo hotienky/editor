@@ -10,7 +10,7 @@
   >
     <icon
       name="background-color"
-      class="umo-icon-background-color"
+      class="kindy-icon-background-color"
       :style="{
         background: editor?.getAttributes('highlight')?.color || currentColor,
       }"
@@ -61,7 +61,7 @@ const colorChange = (color) => {
 </script>
 
 <style lang="less" scoped>
-.umo-icon-background-color {
+.kindy-icon-background-color {
   border-radius: 2px;
 }
 </style>
