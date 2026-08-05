@@ -5,6 +5,8 @@ Trình biên tập tài liệu chuẩn Office (Word-like Document Editor) hiện
 [![npm version](https://img.shields.io/npm/v/kindy-editor.svg)](https://www.npmjs.com/package/kindy-editor)
 [![license](https://img.shields.io/github/license/hotienky/editor.svg)](./LICENSE)
 
+> 📘 **Tài liệu Hướng dẫn Chi tiết & Kết nối API Backend**: [GUIDE.md](./GUIDE.md)
+
 ---
 
 ## ✨ Tính năng nổi bật
