@@ -54,20 +54,20 @@
       "increase": "Tăng cỡ chữ",
       "decrease": "Giảm cỡ chữ",
       "default": "Mặc định",
-      "42pt": "Cỡ lớn nhất",
-      "36pt": "Cỡ lớn",
-      "26pt": "Tiêu đề 1",
-      "24pt": "Tiêu đề 2",
-      "22pt": "Tiêu đề 3",
-      "18pt": "Tiêu đề 4",
-      "16pt": "Tiêu đề 5",
-      "15pt": "Tiêu đề 6",
-      "14pt": "Tiêu đề 7",
-      "12pt": "Tiêu đề 8",
-      "10_5pt": "Tiêu đề 9",
-      "9pt": "Phụ đề 1",
-      "7_5pt": "Phụ đề 2",
-      "6_5pt": "Mặc định"
+      "42pt": "42 pt",
+      "36pt": "36 pt",
+      "26pt": "26 pt",
+      "24pt": "24 pt",
+      "22pt": "22 pt",
+      "18pt": "18 pt",
+      "16pt": "16 pt",
+      "15pt": "15 pt",
+      "14pt": "14 pt",
+      "12pt": "12 pt",
+      "10_5pt": "10.5 pt",
+      "9pt": "9 pt",
+      "7_5pt": "7.5 pt",
+      "6_5pt": "6.5 pt"
     },
     "formatPainter": {
       "text": "Sao chép định dạng",
@@ -82,7 +82,7 @@
     "heading": {
       "text": "Tiêu đề {level}",
       "paragraph": "Bình thường",
-      "tip": "Đặt tiêu đề, có thể tạo bản đồ tài liệu dựa trên tiêu đề"
+      "tip": "Đặt cấp tiêu đề để tự động tạo mục lục cho tài liệu"
     },
     "highlight": {
       "text": "Đánh dấu",
@@ -179,29 +179,29 @@
       "open": "Mở liên kết",
       "edit": "Chỉnh sửa liên kết"
     },
-    "details": "Chi tiết",
+    "details": "Khối thu gọn (Details)",
     "columns": {
       "text": "Cột",
       "number": "Số cột"
     },
-    "tag": "Thẻ",
-    "callout": "Ghi chú",
-    "mention": "Đề cập",
+    "tag": "Thẻ nhãn",
+    "callout": "Khung ghi chú",
+    "mention": "Nhắc tên (@)",
     "bookmark": {
       "text": "Đánh dấu trang",
       "set": "Đặt đánh dấu trang",
       "ok": "Đã xác nhận",
       "textName": "Tên đánh dấu trang",
-      "placeholder": " Vui lòng nhập tên đánh dấu trang...",
+      "placeholder": "Vui lòng nhập tên đánh dấu trang...",
       "show": "Hiện đánh dấu trang",
       "actions": "Thao tác",
       "delete": "Xóa đánh dấu trang",
       "emptyError": "Vui lòng nhập tên đánh dấu trang hoặc chọn đánh dấu trang!"
     },
     "symbol": "Ký hiệu",
-    "template": "Mẫu",
+    "template": "Mẫu văn bản",
     "textBox": "Hộp văn bản",
-    "toc": "Bản đồ tài liệu",
+    "toc": "Mục lục",
     "newline": "Chèn dòng mới",
     "video": "Video",
     "web": {
@@ -226,18 +226,18 @@
     "cellAlign": {
       "text": "Căn chỉnh",
       "tip": "Căn chỉnh ô",
-      "lt": "Trên trái",
-      "ct": "Trên giữa",
-      "rt": "Trên phải",
-      "jt": "Trên căn đều",
-      "lm": "Giữa trái",
-      "cm": "Giữa giữa",
-      "rm": "Giữa phải",
-      "jm": "Giữa căn đều",
-      "lb": "Dưới trái",
-      "cb": "Dưới giữa",
-      "rb": "Dưới phải",
-      "jb": "Dưới căn đều"
+      "lt": "Trên - Trái",
+      "ct": "Trên - Giữa",
+      "rt": "Trên - Phải",
+      "jt": "Trên - Căn đều",
+      "lm": "Giữa - Trái",
+      "cm": "Giữa - Căn giữa",
+      "rm": "Giữa - Phải",
+      "jm": "Giữa - Căn đều",
+      "lb": "Dưới - Trái",
+      "cb": "Dưới - Giữa",
+      "rb": "Dưới - Phải",
+      "jb": "Dưới - Căn đều"
     },
     "cellBgColor": {
       "text": "Nền",
@@ -398,7 +398,7 @@
       "level": "Mức sửa lỗi mã QR",
       "levelL": "Thấp",
       "levelM": "Trung bình",
-      "levelQ": "Tứ quý",
+      "levelQ": "Khá (25%)",
       "levelH": "Cao",
       "padding": "Đệm:",
       "paddingTip": "Đệm khoảng trắng",
@@ -542,7 +542,7 @@
   },
   "list": {
     "bullet": {
-      "text": "Danh sách đánh dấu",
+      "text": "Danh sách ký hiệu",
       "disc": "Hình tròn đặc",
       "circle": "Hình tròn rỗng",
       "square": "Hình vuông đặc"
@@ -559,7 +559,7 @@
       "apply": "Áp dụng",
       "cancel": "Hủy",
       "decimal": "Số",
-      "decimalLeadingZero": "Số với số 0 đầu tiên",
+      "decimalLeadingZero": "Số kèm số 0 dẫn đầu",
       "lowerRoman": "Số La Mã thường",
       "upperRoman": "Số La Mã hoa",
       "lowerLatin": "Chữ cái thường",
@@ -570,8 +570,8 @@
     "task": {
       "text": "Danh sách việc cần làm",
       "split": "Thêm công việc",
-      "sink": "Chuyển thành công việc con",
-      "lift": "Xóa khỏi công việc"
+      "sink": "Thụt lề (Tạo công việc con)",
+      "lift": "Giảm thụt lề (Chuyển thành công việc cha)"
     }
   },
   "colorPicker": {
@@ -614,7 +614,7 @@
       "applyCrop": "Áp dụng cắt",
       "cropFailed": "Cắt hình ảnh thất bại",
       "open": "Mở trong cửa sổ mới",
-      "draggable": "Hình ảnh nổi",
+      "draggable": "Kéo di chuyển hình ảnh",
       "flipX": "Lật ngang",
       "flipY": "Lật dọc",
       "preview": "Xem trước hình ảnh",
@@ -691,10 +691,10 @@
     "replaceAll": "Thay thế tất cả"
   },
   "toc": {
-    "title": "Bản đồ tài liệu",
-    "show": "Bản đồ tài liệu",
-    "hide": "Ẩn bản đồ tài liệu",
-    "empty": "Không có bản đồ tài liệu"
+    "title": "Mục lục tài liệu",
+    "show": "Hiện mục lục",
+    "hide": "Ẩn mục lục",
+    "empty": "Không có mục lục"
   },
   "spellcheck": {
     "enable": "Bật kiểm tra chính tả",
@@ -714,7 +714,7 @@
     "pageZoomIn": "Phóng to",
     "pageZoomOut": "Thu nhỏ",
     "pageZoomReset": "Đặt lại zoom về mặc định",
-    "pageAutoWidth": "Vừa chiều rộng tốt nhất",
+    "pageAutoWidth": "Tự động vừa chiều rộng",
     "markdown": "Markdown"
   },
   "changeLocale": {
@@ -734,7 +734,7 @@
     "openSource": "phiên bản mã nguồn mở",
     "documentation": "Tài liệu",
     "thanks": "Cảm ơn tất cả người đóng góp",
-    "next": ""
+    "next": "Tìm hiểu thêm về phiên bản nâng cao tại <a href=\"https://github.com/hotienky/editor\" target=\"_blank\">Kindy Editor Next</a>"
   },
   "layout": {
     "web": "Xem web",
@@ -794,7 +794,7 @@
     "image": {
       "loading": "Đang tải hình ảnh...",
       "error": "Tải hình ảnh thất bại",
-      "altPlaceholder": "nhập mô tả hình ảnh"
+      "altPlaceholder": "Nhập mô tả hình ảnh..."
     },
     "textBox": {
       "tip": "Nhấp đúp để chỉnh sửa"

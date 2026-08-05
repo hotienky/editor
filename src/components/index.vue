@@ -529,6 +529,7 @@ watch(
 const localeConfig = $ref({
   'zh-CN': cnConfig,
   'en-US': enConfig,
+  'vi-VN': enConfig,
 })
 
 // Options Setup
@@ -818,8 +819,8 @@ const getContent = (format = 'html') => {
 
 // Locale Methods
 const setLocale = (lang, silent = true) => {
-  if (!['zh-CN', 'en-US'].includes(lang)) {
-    throw new Error('"params" must be one of "zh-CN" or "en-US".')
+  if (!['zh-CN', 'en-US', 'vi-VN'].includes(lang)) {
+    throw new Error('"params" must be one of "zh-CN", "en-US" or "vi-VN".')
   }
   if (locale.value === lang) {
     return

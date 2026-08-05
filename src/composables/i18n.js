@@ -12,8 +12,18 @@ export const l = (data) => {
   }
 
   if (isRecord(data)) {
-    return data[global.locale.value.replace('-', '_')]
+    const key = global.locale.value.replace('-', '_')
+    return (
+      data[key] ||
+      data.vi_VN ||
+      data.en_US ||
+      data.zh_CN ||
+      Object.values(data)[0] ||
+      ''
+    )
   }
+
+  return ''
 }
 
 export const useI18n = () => global

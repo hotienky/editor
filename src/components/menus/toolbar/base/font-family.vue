@@ -5,7 +5,7 @@
     menu-type="select"
     hide-text
     :select-value="selectedFont"
-    :style="{ width: $toolbar.mode !== 'classic' ? '143px' : '90px' }"
+    :style="{ width: $toolbar.mode !== 'classic' ? '150px' : '110px' }"
     filterable
     :disabled="!editor?.can().chain().focus().setFontFamily().run()"
     @menu-click="setFontFamily"

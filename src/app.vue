@@ -16,53 +16,52 @@ const editorRef = $ref(null)
 const remoteMentionUsers = [
   {
     id: 'remote-alice',
-    label: 'Alice Chen',
-    bio: '远程目录用户',
+    label: 'Alice Nguyễn',
+    bio: 'Người dùng thư mục từ xa',
     color: 'var(--kindy-primary-color)',
   },
   {
     id: 'remote-bob',
-    label: 'Bob Li',
-    bio: '远程目录用户',
+    label: 'Bob Trần',
+    bio: 'Người dùng thư mục từ xa',
     color: 'var(--kindy-primary-color)',
   },
   {
     id: 'remote-charlie',
-    label: 'Charlie Wang',
-    bio: '远程目录用户',
+    label: 'Charlie Lê',
+    bio: 'Người dùng thư mục từ xa',
     color: 'var(--kindy-primary-color)',
   },
   {
     id: 'remote-dora',
-    label: 'Dora Xu',
-    bio: '远程目录用户',
+    label: 'Dora Phạm',
+    bio: 'Người dùng thư mục từ xa',
     color: 'var(--kindy-primary-color)',
   },
 ]
 const templates = [
   {
-    title: '工作任务',
-    description: '工作任务模板',
+    title: 'Nhiệm vụ công việc',
+    description: 'Mẫu nhiệm vụ công việc',
     content:
-      '<h1>工作任务</h1><h3>任务名称：</h3><p>[任务的简短描述]</p><h3>负责人：</h3><p>[执行任务的个人姓名]</p><h3>截止日期：</h3><p>[任务需要完成的日期]</p><h3>任务详情：</h3><ol><li>[任务步骤1]</li><li>[任务步骤2]</li><li>[任务步骤3]...</li></ol><h3>目标：</h3><p>[任务需要达成的具体目标或结果]</p><h3>备注：</h3><p>[任何额外信息或注意事项]</p>',
+      '<h1>Nhiệm vụ công việc</h1><h3>Tên nhiệm vụ:</h3><p>[Mô tả ngắn gọn nhiệm vụ]</p><h3>Người thực hiện:</h3><p>[Họ và tên người thực hiện]</p><h3>Hạn hoàn thành:</h3><p>[Ngày cần hoàn thành]</p><h3>Chi tiết nhiệm vụ:</h3><ol><li>[Bước 1]</li><li>[Bước 2]</li><li>[Bước 3]...</li></ol><h3>Mục tiêu:</h3><p>[Mục tiêu cụ thể hoặc kết quả cần đạt được]</p><h3>Ghi chú:</h3><p>[Thông tin bổ sung hoặc lưu ý nếu có]</p>',
   },
   {
-    title: '工作周报',
-    description: '工作周报模板',
+    title: 'Báo cáo tuần',
+    description: 'Mẫu báo cáo công việc hàng tuần',
     content:
-      '<h1>工作周报</h1><h2>本周工作总结</h2><hr /><h3>已完成工作：</h3><ul><li>[任务1名称]：[简要描述任务内容及完成情况]</li><li>[任务2名称]：[简要描述任务内容及完成情况]</li><li>...</li></ul><h3>进行中工作：</h3><ul><li>[任务1名称]：[简要描述任务当前进度和下一步计划]</li><li>[任务2名称]：[简要描述任务当前进度和下一步计划]</li><li>...</li></ul><h3>问题与挑战：</h3><ul><li>[问题1]：[描述遇到的问题及当前解决方案或需要的支持]</li><li>[问题2]：[描述遇到的问题及当前解决方案或需要的支持]</li><li>...</li></ul><hr /><h2>下周工作计划</h2><h3>计划开展工作：</h3><ul><li>[任务1名称]：[简要描述下周计划开始的任务内容]</li><li>[任务2名称]：[简要描述下周计划开始的任务内容]</li><li>...</li></ul><h3>需要支持与资源：</h3><ul><li>[资源1]：[描述需要的资源或支持]</li><li>[资源2]：[描述需要的资源或支持]</li><li>...</li></ul>',
+      '<h1>Báo cáo công việc tuần</h1><h2>Tổng kết tuần này</h2><hr /><h3>Công việc đã hoàn thành:</h3><ul><li>[Nhiệm vụ 1]: [Mô tả ngắn gọn nội dung và kết quả]</li><li>[Nhiệm vụ 2]: [Mô tả ngắn gọn nội dung và kết quả]</li><li>...</li></ul><h3>Công việc đang thực hiện:</h3><ul><li>[Nhiệm vụ 1]: [Mô tả tiến độ hiện tại và kế hoạch tiếp theo]</li><li>[Nhiệm vụ 2]: [Mô tả tiến độ hiện tại và kế hoạch tiếp theo]</li><li>...</li></ul><h3>Khó khăn & Thách thức:</h3><ul><li>[Vấn đề 1]: [Mô tả vấn đề gặp phải và giải pháp/đề xuất hỗ trợ]</li><li>[Vấn đề 2]: [Mô tả vấn đề gặp phải và giải pháp/đề xuất hỗ trợ]</li><li>...</li></ul><hr /><h2>Kế hoạch tuần tới</h2><h3>Công việc dự kiến triển khai:</h3><ul><li>[Nhiệm vụ 1]: [Mô tả ngắn gọn công việc dự kiến tuần tới]</li><li>[Nhiệm vụ 2]: [Mô tả ngắn gọn công việc dự kiến tuần tới]</li><li>...</li></ul><h3>Yêu cầu hỗ trợ & Tài nguyên:</h3><ul><li>[Tài nguyên 1]: [Mô tả tài nguyên hoặc hỗ trợ cần thiết]</li><li>[Tài nguyên 2]: [Mô tả tài nguyên hoặc hỗ trợ cần thiết]</li><li>...</li></ul>',
   },
 ]
 const options = $ref({
-  // theme: 'auto',
-  // skin: 'modern',
+  locale: 'vi-VN',
   toolbar: {
     // defaultMode: 'classic',
     // menus: ['base'],
   },
   document: {
-    title: '测试文档',
-    content: localStorage.getItem('document.content') || '<p>测试文档</p>',
+    title: 'Văn bản mẫu',
+    content: localStorage.getItem('document.content') || '<h1>Chào mừng bạn đến với Kindy Editor!</h1><p>Đây là trình soạn thảo văn bản hiện đại dựa trên Vue 3 và Tiptap 3, được hỗ trợ đầy đủ tiếng Việt.</p>',
     // structure: 'heading block*',
   },
   page: {
@@ -70,8 +69,7 @@ const options = $ref({
     showBookmark: true,
   },
   templates,
-  cdnUrl: 'https://cdn.umodoc.com',
-  shareUrl: 'https://www.umodoc.com',
+  shareUrl: location.href || '',
   file: {
     // allowedMimeTypes: [
     //   'application/pdf',
@@ -89,28 +87,26 @@ const options = $ref({
     {
       id: 'kindydoc',
       label: 'Kindy Team',
-      bio: '核心开发者',
+      bio: 'Lập trình viên chính',
       avatar: 'https://s1.umodoc.com/images/favicon.png',
       color: 'var(--kindy-primary-color)',
     },
     {
       id: 'china-wangxu',
-      label: 'china-wangxu',
-      bio: '重要贡献者',
+      label: 'wangxu',
+      bio: 'Đóng góp quan trọng',
       color: 'var(--kindy-primary-color)',
     },
     {
       id: 'Cassielxd',
       label: 'Cassielxd',
-      bio: '重要贡献者',
+      bio: 'Đóng góp quan trọng',
       color: 'var(--kindy-primary-color)',
     },
     { id: 'Goldziher', label: "Na'aman Hirschfeld" },
     { id: 'SerRashin', label: 'SerRashin' },
     { id: 'ChenErik', label: 'ChenErik' },
-    { id: 'china-wangxu', label: 'china-wangxu' },
-    { id: 'Sherman Xu', label: 'xuzhenjun130' },
-    { id: 'testuser', label: '测试用户' },
+    { id: 'testuser', label: 'Người dùng thử nghiệm' },
   ],
   async onMentionSearch(query) {
     await new Promise((resolve) => setTimeout(resolve, 800))
@@ -118,22 +114,20 @@ const options = $ref({
       user.label.toLowerCase().includes(query.toLowerCase()),
     )
   },
-  // https://dev.umodoc.com/cn/docs/options/extensions#disableextensions
   disableExtensions: [],
   async onSave(content, page, document) {
-    // 将文档和评论线程保存到 localStorage
+    // Lưu nội dung văn bản vào localStorage
     localStorage.setItem('document.content', content.html)
-    // 模拟保存等待过程
     return new Promise((resolve) => {
       setTimeout(() => {
         console.log('onSave', { content, page, document })
-        resolve('文档保存成功')
+        resolve('Văn bản đã được lưu thành công')
       }, 2000)
     })
   },
   async onFileUpload(file) {
     if (!file) {
-      throw new Error('没有找到要上传的文件')
+      throw new Error('Không tìm thấy file cần tải lên')
     }
     console.log('onUpload', file)
     await new Promise((resolve) => setTimeout(resolve, 3000))

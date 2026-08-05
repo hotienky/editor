@@ -4,7 +4,7 @@
     :text="t('base.fontSize.text')"
     menu-type="select"
     hide-text
-    style="width: 80px"
+    style="width: 92px"
     :select-options="fontSizes"
     :select-value="
       typeWriterIsRunning

@@ -1,115 +1,35 @@
 const fonts = [
   {
-    label: { en_US: 'Default Font', zh_CN: '默认字体' },
+    label: { en_US: 'Default Font', zh_CN: '默认字体', vi_VN: 'Mặc định' },
     value: null,
   },
   {
-    label: { en_US: 'Noto Sans SC', zh_CN: '思源黑体' },
-    value: 'Noto Sans SC',
-    url: 'https://fonts.gstatic.com/s/notosanssc/v40/k3kXo84MPvpLmixcA63oeALhLIiP-Q-87KaAaH7rzeAODp22mF0qmF4CSjmPC6A0Rg5g1igg1w.4.woff2',
+    label: 'Roboto',
+    value: 'Roboto',
+    url: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2',
     format: 'woff2',
   },
   {
-    label: { en_US: 'Noto Serif SC', zh_CN: '思源宋体' },
-    value: 'Noto Serif SC',
-    url: 'https://fonts.gstatic.com/s/notoserifsc/v35/H4cyBXePl9DZ0Xe7gG9cyOj7uK2-n-D2rd4FY7SCqyWv.ttf',
-    format: 'truetype',
+    label: 'Open Sans',
+    value: 'Open Sans',
+    url: 'https://fonts.gstatic.com/s/opensans/v40/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTSKmu1aB.woff2',
+    format: 'woff2',
   },
   {
-    label: { en_US: 'Songti', zh_CN: '宋体' },
-    value: 'SimSun',
-  },
-  {
-    label: { en_US: 'Heiti', zh_CN: '黑体' },
-    value: 'SimHei',
-  },
-  {
-    label: { en_US: 'Kaiti', zh_CN: '楷体' },
-    value: 'KaiTi',
-  },
-  {
-    label: {
-      en_US: 'Kaiti GB2312',
-      zh_CN: '楷体_GB2312',
-    },
-    value: 'KaiTi_GB2312',
-  },
-  {
-    label: { en_US: 'Fangsong', zh_CN: '仿宋' },
-    value: 'FangSong',
-  },
-  {
-    label: {
-      en_US: 'Fangsong GB2312',
-      zh_CN: '仿宋_GB2312',
-    },
-    value: 'FangSong_GB2312',
-  },
-  {
-    label: { en_US: 'STSong', zh_CN: '华文宋体' },
-    value: 'STSong',
-  },
-  {
-    label: { en_US: 'STFangsong', zh_CN: '华文仿宋' },
-    value: 'STFangsong',
-  },
-  {
-    label: {
-      en_US: 'FZ Fangsong Simplified',
-      zh_CN: '方正仿宋简体',
-    },
-    value: 'FZFangSong-Z02S',
-  },
-  {
-    label: {
-      en_US: 'FZ Xiaobiao Song',
-      zh_CN: '方正小标宋',
-    },
-    value: 'FZXiaoBiaoSong-B05S',
-  },
-  {
-    label: {
-      en_US: 'Microsoft Yahei',
-      zh_CN: '微软雅黑',
-    },
-    value: 'Microsoft Yahei',
-  },
-  {
-    label: { en_US: 'PingFang SC', zh_CN: '苹方' },
-    value: 'PingFang SC',
-  },
-  {
-    label: { en_US: 'Hiragino Sans GB', zh_CN: '冬青黑体简体中文' },
-    value: 'Hiragino Sans GB',
-  },
-  {
-    label: { en_US: 'DengXian', zh_CN: '等线' },
-    value: 'DengXian',
-  },
-  {
-    label: { en_US: 'DengXian Light', zh_CN: '等线 Light' },
-    value: 'DengXian Light',
-  },
-  {
-    label: { en_US: 'YouYuan', zh_CN: '幼圆' },
-    value: 'YouYuan',
-  },
-  {
-    label: { en_US: 'LiSu', zh_CN: '隶书' },
-    value: 'LiSu',
-  },
-  {
-    label: { en_US: 'NSimSun', zh_CN: '新宋体' },
-    value: 'NSimSun',
+    label: 'Montserrat',
+    value: 'Montserrat',
+    url: 'https://fonts.gstatic.com/s/montserrat/v26/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtr6Hw0aXpsog.woff2',
+    format: 'woff2',
   },
   { label: 'Arial', value: 'Arial' },
   { label: 'Times New Roman', value: 'Times New Roman' },
+  { label: 'Tahoma', value: 'Tahoma' },
   { label: 'Verdana', value: 'Verdana' },
-  { label: 'Helvetica', value: 'Helvetica' },
+  { label: 'Georgia', value: 'Georgia' },
+  { label: 'Courier New', value: 'Courier New' },
   { label: 'Calibri', value: 'Calibri' },
   { label: 'Cambria', value: 'Cambria' },
-  { label: 'Tahoma', value: 'Tahoma' },
-  { label: 'Georgia', value: 'Georgia' },
+  { label: 'Helvetica', value: 'Helvetica' },
   { label: 'Comic Sans MS', value: 'Comic Sans MS' },
   { label: 'Impact', value: 'Impact' },
 ]
@@ -179,37 +99,37 @@ const colors = [
 
 const lineHeights = [
   {
-    label: { en_US: 'Single', zh_CN: '单倍行距' },
+    label: { en_US: 'Single', zh_CN: '单倍行距', vi_VN: 'Giãn dòng đơn (1.0)' },
     value: 1,
   },
   {
     label: {
       en_US: '1.5 Line Spacing',
-      zh_CN: '1.5 倍行距',
+      zh_CN: '1.5 倍行距', vi_VN: 'Giãn dòng 1.5',
     },
     value: 1.5,
   },
   {
     label: {
       en_US: '1.75 Line Spacing',
-      zh_CN: '1.75 倍行距',
+      zh_CN: '1.75 倍行距', vi_VN: 'Giãn dòng 1.75',
     },
     value: 1.75,
     default: true,
   },
   {
-    label: { en_US: 'Double', zh_CN: '2 倍行距' },
+    label: { en_US: 'Double', zh_CN: '2 倍行距', vi_VN: 'Giãn dòng đôi (2.0)' },
     value: 2,
   },
   {
     label: {
       en_US: '2.5 Line Spacing',
-      zh_CN: '2.5 倍行距',
+      zh_CN: '2.5 倍行距', vi_VN: 'Giãn dòng 2.5',
     },
     value: 2.5,
   },
   {
-    label: { en_US: 'Triple', zh_CN: '3 倍行距' },
+    label: { en_US: 'Triple', zh_CN: '3 倍行距', vi_VN: 'Giãn dòng 3.0' },
     value: 3,
   },
 ]
@@ -218,32 +138,32 @@ const symbols = [
   {
     label: {
       en_US: 'Plain Text',
-      zh_CN: '普通文本',
+      zh_CN: '普通文本', vi_VN: 'Văn bản thuần',
     },
     items: '‹›«»‘’“”‚„¡¿‥…‡‰‱‼⁈⁉⁇©®™§¶⁋',
   },
   {
     label: {
       en_US: 'Currency Symbols',
-      zh_CN: '货币符号',
+      zh_CN: '货币符号', vi_VN: 'Ký hiệu tiền tệ',
     },
     items: '$€¥£¢₠₡₢₣₤¤₿₥₦₧₨₩₪₫₭₮₯₰₱₲₳₴₵₶₷₸₹₺₻₼₽',
   },
   {
     label: {
       en_US: 'Mathematical Symbols',
-      zh_CN: '数学符号',
+      zh_CN: '数学符号', vi_VN: 'Ký hiệu toán học',
     },
     items: '<>≤≥–—¯‾°−±÷⁄×ƒ∫∑∞√∼≅≈≠≡∈∉∋∏∧∨¬∩∪∂∀∃∅∇∗∝∠¼½¾',
   },
   {
-    label: { en_US: 'Arrows', zh_CN: '箭头' },
+    label: { en_US: 'Arrows', zh_CN: '箭头', vi_VN: 'Ký hiệu mũi tên' },
     items: '←→↑↓⇐⇒⇑⇓⇠⇢⇡⇣⇤⇥⤒⤓↨',
   },
   {
     label: {
       en_US: 'Latin Script',
-      zh_CN: '拉丁语',
+      zh_CN: '拉丁语', vi_VN: 'Ký tự Latin',
     },
     items:
       'ĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ',
@@ -254,7 +174,7 @@ const emojis = [
   {
     label: {
       en_US: 'Emotions & People',
-      zh_CN: '表情与角色',
+      zh_CN: '表情与角色', vi_VN: 'Biểu cảm & Con người',
     },
     items:
       '😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😙 😋 😛 😜 🤪 😝 🤑 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😶‍ 😏 😒 🙄 😬 😮‍ 🤥 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 😵‍💫 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 ☠️ 💩 🤡 👹 👺 👻 👽 👾 🤖 👋 🤚 🖐️ ✋ 🖖 👌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 🖕 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦾 🦿 🦵 🦶 👂 🦻',
@@ -262,7 +182,7 @@ const emojis = [
   {
     label: {
       en_US: 'Animals & Nature',
-      zh_CN: '动物与自然',
+      zh_CN: '动物与自然', vi_VN: 'Động vật & Tự nhiên',
     },
     items:
       '🐵 🐒 🦍 🦧 🐶 🐕 🦮 🐕‍🦺 🐩 🐺 🦊 🦝 🐱 🐈 🐈‍⬛ 🦁 🐯 🐅 🐆 🐴 🐎 🦄 🦓 🦌 🐮 🐂 🐃 🐄 🐷 🐖 🐗 🐽 🐏 🐑 🐐 🐪 🐫 🦙 🦒 🐘 🦏 🦛 🐭 🐁 🐀 🐹 🐰 🐇 🐿️ 🦔 🦇 🐻 🐻‍❄️ 🐨 🐼 🦥 🦦 🦨 🦘 🦡 🐾 🦃 🐔 🐓 🐣 🐤 🐥 🐦 🐧 🕊️ 🦅 🦆 🦢 🦉 🦩 🦚 🦜 🐸 🐊 🐢 🦎 🐍 🐲 🐉 🦕 🦖 🐳 🐋 🐬 🦭 🐟 🐠 🐡 🦈 🐙 🐚 🐌 🦋 🐛 🐜 🐝 🐞 🦗 🕷️ 🕸️ 🦂 🦟 🦠 💐 🌸 💮 🏵️ 🌹 🥀 🌺 🌻 🌼 🌷 🌱 🌲 🌳 🌴 🌵 🌾 🌿 ☘️ 🍀 🍁 🍂 🍃 🌒 🌓 🌔 🌕 🌖 🌗 🌘 🌙 🌚 🌛 🌜 ☀️ 🌝 🌞 🪐 🌟 🌠 🌌 ☁️ ⛅ ⛈️ 🌤️ 🌥️ 🌦️ 🌧️ 🌨️ 🌩️ 🌪️ 🌫️ 🌬️ 🌀 🌈 🌂 ☂️ ☔ ⛱️ ⚡ ❄️ ☃️ ⛄ ☄️ 🔥 💧 🌊',
@@ -270,36 +190,36 @@ const emojis = [
   {
     label: {
       en_US: 'Food & Drink',
-      zh_CN: '食物与食品',
+      zh_CN: '食物与食品', vi_VN: 'Thức ăn & Đồ uống',
     },
     items:
       '🍇 🍉 🍊 🍋 🍌 🍍 🥭 🍎 🍏 🍐 🍑 🍒 🍓 🥝 🍅 🥥 🥑 🍆 🥔 🥕 🌽 🌶️ 🥬 🥦 🧄 🧅 🍄 🥜 🌰 🍞 🥐 🥖 🥨 🥯 🥞 🧇 🧀 🍖 🍗 🥩 🥓 🍔 🍟 🍕 🌭 🥪 🌮 🌯 🥙 🧆 🥚 🍳 🥘 🍲 🥣 🥗 🍿 🧈 🧂 🥫 🍱 🍘 🍙 🍚 🍛 🍜 🍝 🍠 🍢 🍣 🍤 🍥 🥮 🍡 🥟 🥠 🥡 🦀 🦞 🦐 🦑 🦪 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🥧 🍫 🍬 🍭 🍮 🍯 🍼 🥛 ☕ 🍵 🍶 🍾 🍷 🍸 🍹 🍺 🍻 🥂 🥃 🥤 🧃 🧉 🧊 🥢 🍽️ 🍴 🥄 🔪 🏺',
   },
   {
-    label: { en_US: 'Activities', zh_CN: '活动' },
+    label: { en_US: 'Activities', zh_CN: '活动', vi_VN: 'Hoạt động' },
     items:
       '🧧 🎁 🎄 🧨 ✨ 🎈 🎉 🏮 🎗️ 🎟️ 🎫 🎖️ 🏆 🏅 🥇 🥈 🥉 ⚽ ⚾ 🥎 🏀 🏐 🏈 🏉 🎾 🥏 🎳 🏏 🏑 🏒 🥍 🏓 🏸 🥊 🥋 🥅 ⛳ ⛸️ 🎣 🤿 🎽 🎿 🛷 🥌 🎯 🪀 🪁 🎱 🔮 🧿 🎮 🕹️ 🎰 🎲 🧩 🧸 ♟️ 🃏 🀄 🎴 🎭 🖼️ 🎨 🧵 🧶',
   },
   {
     label: {
       en_US: 'Travel & Places',
-      zh_CN: '旅行与景点',
+      zh_CN: '旅行与景点', vi_VN: 'Du lịch & Địa điểm',
     },
     items:
       '🚈 🚉 🚊 🚝 🚞 🚋 🚌 🚍 🚎 🚐 🚑 🚒 🚓 🚔 🚕 🚖 🚗 🚘 🚙 🚚 🚛 🚜 🏎️ 🏍️ 🛵 🦽 🦼 🛺 🚲 🛴 🛹 🚏 🛣️ 🛤️ 🛢️ ⛽ 🚨 🚥 🚦 🛑 🚧 ⚓ ⛵ 🛶 🚤 🛳️ ⛴️ 🛥️ 🚢 ✈️ 🛩️ 🛫 🛬 🪂 💺 🚁 🚟 🚠 🚡 🛰️ 🚀 🛸 🛎️ 🧳 🧭 ⌚ ⏰ ⏱️ ⏲️ 🕰️ 🕛 🕧 🕐 🕜 🕑 🕝 🕒 🕞 🕓 🕟 🕔 🕠 🕕 🕡 🕖 🕢 🕗 🕣 🕘 🕤 🕙 🕥 🕚 🕦',
   },
   {
-    label: { en_US: 'Objects', zh_CN: '物品' },
+    label: { en_US: 'Objects', zh_CN: '物品', vi_VN: 'Đồ vật' },
     items:
       '📔 📕 📖 📗 📘 📙 📚 📒 📃 📜 📄 📰 🗞️ 📑 🔖 🏷️ 💰 🔍 🔎 💴 💵 💶 💷 💸 💳 🧾 💹 ✉️ 📧 📨 📩 📤 📥 📦 📫 📪 📬 📭 📮 🗳️ ✏️ ✒️ 🖋️ 🖊️ 🖌️ 🖍️ 📝 💼 📁 📂 🗂️ 📅 📆 🗒️ 🗓️ 📇 📈 📉 📊 📋 📌 📍 📎 🖇️ 📏 📐 ✂️ 🗃️ 🗄️ 🗑️ 🔒 🔓 🔏 🔐 🔑 🗝️ 🔨 🪓 ⛏️ ⚒️ 🛠️ 🗡️ ⚔️ 🔫 🏹 🛡️ 🔧 🔩 ⚙️ 🗜️ ⚖️ 🦯 🔗 ⛓️ 🧰 🧲 ⚗️ 🧪 🧫 🧬 🔬 🔭 📡 💉 🩸 💊 🩹 🩺 🚪 🛏️ 🛋️ 🪑 🚽 🚿 🛁 🪒 🧴 🧷 🧹 🧺 🧻 🧼 🧽 🧯 🛒 🚬 ⚰️ ⚱️ 💎 🔇 🔈 🔉 🔊 🔔 🔕 🔋 🔌 💻 🖥️ 🖨️ ⌨️ 🖱️ 🖲️ 📷 🧱',
   },
   {
-    label: { en_US: 'Symbols', zh_CN: '符号' },
+    label: { en_US: 'Symbols', zh_CN: '符号', vi_VN: 'Biểu tượng' },
     items:
       '💡 ✅ ☑️ ✔️ ❌ ❎ ❓ ❗ ❔ ❕ ⌛ ⏳ 💰 🆒 🆕 🆖 🅾️ 🆗 🆘 🈲 🉑 🈸 ⛔ 🚫 📵 ✳️ ✴️ ❇️ 🔟 🔠 🔡 🔢 🔣 🔤 🅰️ 🆎 🅱️ 🆑 🆒 🆓 ℹ️ 🆔 🆕 🆖 🅾️ 🆗 🅿️ 🆘 🆙 🆚 🈁 🈂️ 🔴 🟠 🟡 🟢 🔵 🟣 🟤 ⚫ ⚪ 🟥 🟧 🟨 🟩 🟦 🟪 🟫 🔶 🔷 🔸 🔹 🔺 🔻 💠 🔘 🔳 🔲 💌 💘 💝 💖 💗 💓 💞 💕 💟 ❣️ 💔 🤍 💯 💢 💥 💬 💤 ➰ ➿ 🔅 📴 ➡️ 🔃 🔄 🔙 🔚 🔛 🔝 🔀 🔁 🔂',
   },
   {
-    label: { en_US: 'Flags', zh_CN: '旗帜' },
+    label: { en_US: 'Flags', zh_CN: '旗帜', vi_VN: 'Cờ' },
     items: '🏁 🚩 🏴 🏳️ 🏳️‍🌈‍',
   },
 ]
@@ -312,7 +232,7 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 5 Envelope',
-      zh_CN: '5号信封',
+      zh_CN: '5号信封', vi_VN: 'Phong bì Số 5',
     },
     width: 10.9,
     height: 12.9,
@@ -320,7 +240,7 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 6 Envelope',
-      zh_CN: '6号信封',
+      zh_CN: '6号信封', vi_VN: 'Phong bì Số 6',
     },
     width: 11.9,
     height: 22.9,
@@ -328,7 +248,7 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 7 Envelope',
-      zh_CN: '7号信封',
+      zh_CN: '7号信封', vi_VN: 'Phong bì Số 7',
     },
     width: 16.1,
     height: 22.8,
@@ -336,7 +256,7 @@ const pageSizes = [
   {
     label: {
       en_US: 'No. 9 Envelope',
-      zh_CN: '9号信封',
+      zh_CN: '9号信封', vi_VN: 'Phong bì Số 9',
     },
     width: 22.8,
     height: 32.3,
@@ -344,7 +264,7 @@ const pageSizes = [
   {
     label: {
       en_US: 'Legal Paper',
-      zh_CN: '法律用纸',
+      zh_CN: '法律用纸', vi_VN: 'Khổ giấy Pháp lý (Legal)',
     },
     width: 21.5,
     height: 33.5,
@@ -352,7 +272,7 @@ const pageSizes = [
   {
     label: {
       en_US: 'Letter Paper',
-      zh_CN: '信纸',
+      zh_CN: '信纸', vi_VN: 'Khổ giấy Thư (Letter)',
     },
     width: 21.5,
     height: 27.9,

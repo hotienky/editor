@@ -17,6 +17,11 @@ const { locale } = useI18n()
 const themes = computed(() => {
   return [
     {
+      content: '🇻🇳 Tiếng Việt',
+      value: 'vi-VN',
+      active: locale.value === 'vi-VN',
+    },
+    {
       content: '🇨🇳 简体中文',
       value: 'zh-CN',
       active: locale.value === 'zh-CN',

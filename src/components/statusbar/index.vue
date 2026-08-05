@@ -559,6 +559,7 @@ watch(
 
 // 多语言
 const langs = [
+  { content: '🇻🇳 Tiếng Việt', value: 'vi-VN' },
   { content: '🇨🇳 简体中文', value: 'zh-CN' },
   { content: '🇱🇷 English', value: 'en-US' },
 ]

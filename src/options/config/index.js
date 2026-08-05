@@ -3,7 +3,7 @@ import defaultDicts from './dicts'
 // 默认配置
 export default {
   editorKey: 'default',
-  locale: 'zh-CN',
+  locale: 'vi-VN',
   theme: 'light',
   skin: 'default',
   height: '100%',
@@ -44,6 +44,7 @@ export default {
     placeholder: {
       en_US: 'Please enter the document content...',
       zh_CN: '请输入文档内容...',
+      vi_VN: 'Vui lòng nhập nội dung văn bản...',
     },
     structure: 'block+',
     enableSpellcheck: true,
@@ -155,7 +156,7 @@ export default {
     },
   ],
   templates: [],
-  cdnUrl: 'https://unpkg.com/___KINDYTEAM_EXTERNAL___@latest',
+  cdnUrl: 'https://unpkg.com/@umoteam/editor-external@latest',
   shareUrl: location.href || '',
   diagrams: {
     domain: 'https://embed.diagrams.net',
