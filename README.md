@@ -59,3 +59,7 @@ MIT License - See [LICENSE](./LICENSE) for details.
 ## Credits
 
 Based on [Umo Editor](https://github.com/umodoc/editor) by umodoc team.
+
+## Repository
+
+GitHub: https://github.com/hotienky/editor

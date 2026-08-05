@@ -18,20 +18,20 @@
     "word editor",
     "wysiwyg editor"
   ],
-  "homepage": "https://github.com/kindy/editor",
+  "homepage": "https://github.com/hotienky/editor",
   "bugs": {
-    "url": "https://github.com/kindy/editor/issues",
+    "url": "https://github.com/hotienky/editor/issues",
     "email": ""
   },
   "license": "MIT",
   "author": {
     "name": "Kindy",
     "email": "",
-    "url": "https://github.com/kindy"
+    "url": "https://github.com/hotienky"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kindy/editor.git"
+    "url": "https://github.com/hotienky/editor.git"
   },
   "files": [
     "dist"
