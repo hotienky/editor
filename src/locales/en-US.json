@@ -460,6 +460,42 @@
     }
   },
   "page": {
+    "header": {
+      "text": "Header",
+      "show": "Show Header",
+      "hide": "Hide Header",
+      "placeholder": "Click to edit Header...",
+      "dialogTitle": "Header Configuration",
+      "textContent": "Text Content",
+      "logoLabel": "Logo Image",
+      "logoPlaceholder": "Paste image URL or upload file...",
+      "uploadLogo": "Upload Image",
+      "logoSize": "Logo Size",
+      "alignLabel": "Alignment",
+      "alignLeft": "Left",
+      "alignCenter": "Center",
+      "alignRight": "Right",
+      "borderLabel": "Border Line",
+      "showBorderText": "Show Word-style border line"
+    },
+    "footer": {
+      "text": "Footer",
+      "show": "Show Footer",
+      "hide": "Hide Footer",
+      "placeholder": "Click to edit Footer...",
+      "dialogTitle": "Footer Configuration",
+      "textContent": "Text Content",
+      "logoLabel": "Logo Image",
+      "logoPlaceholder": "Paste image URL or upload file...",
+      "uploadLogo": "Upload Image",
+      "logoSize": "Logo Size",
+      "alignLabel": "Alignment",
+      "alignLeft": "Left",
+      "alignCenter": "Center",
+      "alignRight": "Right",
+      "borderLabel": "Border Line",
+      "showBorderText": "Show Word-style border line"
+    },
     "bg": {
       "text": "Background",
       "custom": "Custom Page Background",

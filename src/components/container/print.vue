@@ -12,6 +12,7 @@ const options = inject('options')
 
 const iframeRef = $ref(null)
 let iframeCode = $ref('')
+
 const getStylesHtml = () => {
   return Array.from(document.querySelectorAll('link, style'))
     .map((item) => item.outerHTML)
@@ -22,35 +23,21 @@ const getPlyrSprite = () => {
   return document.querySelector('#sprite-plyr')?.innerHTML || ''
 }
 
-const getContentHtml = () => {
-  const originalContent =
-    document.querySelector(`${container} .kindy-page-content`)?.outerHTML || ''
-  return prepareEchartsForPrint(originalContent)
-}
-// 因echart依赖于组件动态展示，打印时效果无法通过html实现，所以通过转成图片方式解决
 const prepareEchartsForPrint = (htmlContent) => {
-  // 创建一个临时DOM容器用于处理HTML内容
   const tempDiv = document.createElement('div')
   tempDiv.innerHTML = htmlContent
-
-  // 找到所有需要转换的ECharts实例
   const charts = tempDiv.querySelectorAll('.kindy-node-echarts-body')
   for (const chartElement of charts) {
     const chartInstance = echarts.getInstanceByDom(chartElement)
     if (chartInstance) {
-      // 使用getDataURL方法获取图表的base64图片数据
       const imgData = chartInstance.getDataURL({
-        type: 'png', // 可以是'png'或'jpeg'
-        pixelRatio: 2, // 提高分辨率，默认是1//分辨率太高会慢
-        backgroundColor: '#fff', // 背景颜色，默认是透明
+        type: 'png',
+        pixelRatio: 2,
+        backgroundColor: '#fff',
       })
-
-      // 创建一个新的img元素并设置其src属性为图表的base64图片数据
       const imgElement = document.createElement('img')
       imgElement.src = imgData
-      imgElement.style.width = '100%' // 确保图片宽度适合容器，根据实际情况调整
-
-      // 替换原图表元素为img元素
+      imgElement.style.width = '100%'
       if (chartElement && chartElement.parentNode) {
         chartElement.parentNode.replaceChild(imgElement, chartElement)
       }
@@ -59,52 +46,210 @@ const prepareEchartsForPrint = (htmlContent) => {
   return tempDiv.innerHTML
 }
 
+const splitContentByPageBreaks = (htmlContent) => {
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = htmlContent
+  const pages = []
+  let currentPageContent = []
+
+  const children = Array.from(tempDiv.childNodes)
+  for (const child of children) {
+    if (
+      child.nodeType === Node.ELEMENT_NODE &&
+      child.classList?.contains('kindy-page-break')
+    ) {
+      if (currentPageContent.length > 0) {
+        pages.push(currentPageContent.join(''))
+        currentPageContent = []
+      }
+    } else {
+      currentPageContent.push(child.outerHTML || child.textContent || '')
+    }
+  }
+  if (currentPageContent.length > 0) {
+    pages.push(currentPageContent.join(''))
+  }
+
+  return pages.length > 0 ? pages : ['']
+}
+
+const renderHeader = (pageInfo, headerConfig) => {
+  if (!headerConfig?.enable) return ''
+  if (headerConfig.scope === 'first_last' && !pageInfo.isFirst) return ''
+
+  const fontSize = headerConfig.fontSize || 14
+  const fontColor = headerConfig.fontColor || '#333'
+  const fontFamily = headerConfig.fontFamily || 'Arial'
+  const fontWeight = headerConfig.fontWeight || 'normal'
+  const align = headerConfig.align || 'center'
+
+  let content = ''
+  if (headerConfig.layout === 'split' || headerConfig.leftText || headerConfig.rightText) {
+    content = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          ${headerConfig.logo ? `<img src="${headerConfig.logo}" style="height: auto; max-height: 32px; width: ${headerConfig.logoWidth || 48}px;" />` : ''}
+          <span>${headerConfig.leftText || ''}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>${headerConfig.rightText || ''}</span>
+        </div>
+      </div>
+    `
+  } else {
+    content = `
+      <div style="display: flex; align-items: center; justify-content: ${align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start'}; gap: 6px;">
+        ${headerConfig.logo ? `<img src="${headerConfig.logo}" style="height: auto; max-height: 32px; width: ${headerConfig.logoWidth || 48}px;" />` : ''}
+        <span>${headerConfig.text || ''}</span>
+      </div>
+    `
+  }
+
+  const borderStyle = headerConfig.showBorder !== false ? 'border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;' : ''
+
+  return `
+    <div style="padding: 0.5cm 1cm 0.3cm; font-size: ${fontSize}px; color: ${fontColor}; font-family: ${fontFamily}; font-weight: ${fontWeight}; text-align: ${align}; ${borderStyle}">
+      ${content}
+    </div>
+  `
+}
+
+const renderFooter = (pageInfo, footerConfig, totalPages) => {
+  if (!footerConfig?.enable) return ''
+  if (footerConfig.scope === 'first_last' && !pageInfo.isLast) return ''
+
+  const fontSize = footerConfig.fontSize || 14
+  const fontColor = footerConfig.fontColor || '#333'
+  const fontFamily = footerConfig.fontFamily || 'Arial'
+  const fontWeight = footerConfig.fontWeight || 'normal'
+  const align = footerConfig.align || 'center'
+
+  let content = ''
+  if (footerConfig.layout === 'split' || footerConfig.leftText || footerConfig.rightText) {
+    content = `
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          ${footerConfig.logo ? `<img src="${footerConfig.logo}" style="height: auto; max-height: 32px; width: ${footerConfig.logoWidth || 48}px;" />` : ''}
+          <span>${footerConfig.leftText || ''}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>${footerConfig.rightText || ''}</span>
+        </div>
+      </div>
+    `
+  } else {
+    const displayText = footerConfig.text || `Page ${pageInfo.pageNumber} of ${totalPages}`
+    content = `
+      <div style="display: flex; align-items: center; justify-content: ${align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start'}; gap: 6px;">
+        ${footerConfig.logo ? `<img src="${footerConfig.logo}" style="height: auto; max-height: 32px; width: ${footerConfig.logoWidth || 48}px;" />` : ''}
+        <span>${displayText}</span>
+      </div>
+    `
+  }
+
+  const borderStyle = footerConfig.showBorder !== false ? 'border-top: 1px solid #e2e8f0; padding-top: 4px;' : ''
+
+  return `
+    <div style="padding: 0.3cm 1cm 0.5cm; font-size: ${fontSize}px; color: ${fontColor}; font-family: ${fontFamily}; font-weight: ${fontWeight}; text-align: ${align}; ${borderStyle}">
+      ${content}
+    </div>
+  `
+}
+
 const defaultLineHeight = $computed(
   () => options.value.dicts?.lineHeights.find((item) => item.default)?.value,
 )
 
 const getIframeCode = () => {
-  const { orientation, size, margin, background } = page.value
+  const { orientation, size, margin, background, header, footer } = page.value
+
+  const editorContent = editor.value?.getHTML() || ''
+  const preparedContent = prepareEchartsForPrint(editorContent)
+  const pages = splitContentByPageBreaks(preparedContent)
+  const totalPages = pages.length
+
+  const headerHtml = (pageInfo) => renderHeader(pageInfo, header)
+  const footerHtml = (pageInfo) => renderFooter(pageInfo, footer, totalPages)
+
+  const pageWidth = orientation === 'portrait' ? size?.width : size?.height
+  const pageHeight = orientation === 'portrait' ? size?.height : size?.width
+
+  let pagesHtml = ''
+  for (let i = 0; i < pages.length; i++) {
+    const pageInfo = {
+      pageNumber: i + 1,
+      isFirst: i === 0,
+      isLast: i === totalPages - 1,
+      isOdd: (i + 1) % 2 !== 0,
+    }
+
+    pagesHtml += `
+      <div class="kindy-print-page" style="
+        width: ${pageWidth}cm;
+        height: ${pageHeight}cm;
+        padding: ${margin?.top}cm ${margin?.right}cm ${margin?.bottom}cm ${margin?.left}cm;
+        box-sizing: border-box;
+        page-break-after: ${i < pages.length - 1 ? 'always' : 'auto'};
+        position: relative;
+        background: ${background};
+        overflow: hidden;
+      ">
+        ${headerHtml(pageInfo)}
+        <div class="kindy-print-page-content" style="
+          flex: 1;
+          min-height: 0;
+        ">
+          ${pages[i]}
+        </div>
+        ${footerHtml(pageInfo)}
+      </div>
+    `
+  }
+
   /* eslint-disable */
   return `
     <!DOCTYPE html>
-    <html lang="zh-CN" theme-mode="${options.value.theme}">
+    <html lang="en" theme-mode="${options.value.theme}">
     <head>
       <title>${options.value.document?.title}</title>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       ${getStylesHtml()}
       <style>
-      html{
+      html {
         margin: 0;
         padding: 0;
         overflow: visible;
       }
-      body{
+      body {
         margin: 0;
         padding: 0;
         background-color: ${background};
         -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
-      .kindy-editor-container{
+      .kindy-editor-container {
         background-color: ${background} !important;
       }
-      .kindy-page-content{
-        transform: scale(1) !important;
+      .kindy-print-page {
+        display: flex;
+        flex-direction: column;
+        margin: 0 auto;
+      }
+      .kindy-print-page-content {
+        flex: 1;
         overflow: hidden;
       }
+      .kindy-page-break {
+        display: none;
+      }
+      [contenteditable] {
+        outline: none;
+      }
       @page {
-        size: ${orientation === 'portrait' ? size?.width : size?.height}cm ${orientation === 'portrait' ? size?.height : size?.width}cm;
-        padding: ${margin?.top}cm 0 ${margin?.bottom}cm;
+        size: ${pageWidth}cm ${pageHeight}cm;
         margin: 0;
         background-color: ${background};
-      }
-      @page:first {
-        padding-top: 0;
-      }
-      @page:last {
-        padding-bottom: 0;
-        page-break-after: avoid;
       }
       </style>
     </head>
@@ -114,24 +259,9 @@ const getIframeCode = () => {
       </div>
       <div class="kindy-editor-container" style="line-height: ${defaultLineHeight};" aria-expanded="false">
         <div class="tiptap kindy-editor" translate="no">
-          ${getContentHtml()}
+          ${pagesHtml}
         </div>
       </div>
-      <script>
-        document.addEventListener("DOMContentLoaded", (event) => {
-          const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-              if (mutation.removedNodes) {
-                Array.from(mutation.removedNodes).forEach(node => {
-                  if (node?.classList?.contains('kindy-page-watermark')) {
-                    location.reload();
-                  }
-                });
-              }
-            });
-          });
-        });
-      <\/script>
     </body>
     </html>`
   /* eslint-enable */

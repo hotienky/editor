@@ -460,6 +460,42 @@
     }
   },
   "page": {
+    "header": {
+      "text": "页眉",
+      "show": "显示页眉",
+      "hide": "隐藏页眉",
+      "placeholder": "点击编辑页眉...",
+      "dialogTitle": "页眉设置",
+      "textContent": "文本内容",
+      "logoLabel": "Logo图片",
+      "logoPlaceholder": "粘贴图片URL或上传文件...",
+      "uploadLogo": "上传图片",
+      "logoSize": "Logo大小",
+      "alignLabel": "对齐方式",
+      "alignLeft": "左对齐",
+      "alignCenter": "居中",
+      "alignRight": "右对齐",
+      "borderLabel": "分割线",
+      "showBorderText": "显示Word样式下划线"
+    },
+    "footer": {
+      "text": "页脚",
+      "show": "显示页脚",
+      "hide": "隐藏页脚",
+      "placeholder": "点击编辑页脚...",
+      "dialogTitle": "页脚设置",
+      "textContent": "文本内容",
+      "logoLabel": "Logo图片",
+      "logoPlaceholder": "粘贴图片URL或上传文件...",
+      "uploadLogo": "上传图片",
+      "logoSize": "Logo大小",
+      "alignLabel": "对齐方式",
+      "alignLeft": "左对齐",
+      "alignCenter": "居中",
+      "alignRight": "右对齐",
+      "borderLabel": "分割线",
+      "showBorderText": "显示Word样式上划线"
+    },
     "bg": {
       "text": "页面背景",
       "custom": "自定义页面背景",

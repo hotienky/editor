@@ -64,6 +64,9 @@ import OfficePaste from './office-paste'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
+import Header from './header'
+import Footer from './footer'
+import Pagination from './pagination'
 import Placeholder from './placeholder'
 import SearchReplace from './search-replace'
 import Selection from './selection'
@@ -144,7 +147,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     video: Video,
     audio: Audio,
     'code-block': CodeBlock,
-    symbol: Symbol,
     math: Mathematics.configure({
       katex: { throwOnError: false },
     }),
@@ -199,7 +201,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     UndoRedo.extend({
       addKeyboardShortcuts() {
-        // 返回空对象表示移除所有默认快捷键
+        // Return empty object to remove all default shortcuts
         return {}
       },
     }),
@@ -233,7 +235,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     LineHeight,
     SearchReplace,
 
-    // 插入
+    // Insert
     File,
     Details.configure({
       HTMLAttributes: {
@@ -251,19 +253,21 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       },
     }),
 
-    // 表格
+    // Table
     Table,
     TableRow,
     TableCell,
     TableHeader,
 
-    // 工具
+    // Tools
     Echarts,
 
-    // 页面
+    // Page
     PageBreak,
+    Header,
+    Footer,
 
-    // 其他
+    // Other
     Selection,
     InsertNewline,
     NodeRange,
@@ -321,6 +325,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     TypeWriter,
     OfficePaste,
+    Pagination,
   ]
 
   // 合并扩展

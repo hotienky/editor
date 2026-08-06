@@ -383,6 +383,194 @@ export default new ObjectSchema({
           },
         },
       },
+      header: {
+        required: false,
+        merge: 'replace',
+        validate: 'object',
+        schema: {
+          enable: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          text: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontColor: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontSize: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          fontWeight: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontFamily: {
+            merge: 'replace',
+            validate(value) {
+              if (value !== null && typeof value !== 'string') {
+                throw new Error(
+                  'Key "header": Key "fontFamily" must be a string.',
+                )
+              }
+            },
+            required: false,
+          },
+          align: {
+            merge: 'replace',
+            validate(value) {
+              if (value && !['left', 'center', 'right'].includes(value)) {
+                throw new Error(
+                  'Key "header": Key "align" must be one of "left", "center" or "right".',
+                )
+              }
+            },
+            required: false,
+          },
+          marginTop: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          logo: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          logoWidth: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          layout: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          leftText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          rightText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          showBorder: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          scope: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+        },
+      },
+      footer: {
+        required: false,
+        merge: 'replace',
+        validate: 'object',
+        schema: {
+          enable: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          text: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontColor: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontSize: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          fontWeight: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontFamily: {
+            merge: 'replace',
+            validate(value) {
+              if (value !== null && typeof value !== 'string') {
+                throw new Error(
+                  'Key "footer": Key "fontFamily" must be a string.',
+                )
+              }
+            },
+            required: false,
+          },
+          align: {
+            merge: 'replace',
+            validate(value) {
+              if (value && !['left', 'center', 'right'].includes(value)) {
+                throw new Error(
+                  'Key "footer": Key "align" must be one of "left", "center" or "right".',
+                )
+              }
+            },
+            required: false,
+          },
+          marginBottom: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          logo: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          logoWidth: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          layout: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          leftText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          rightText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          showBorder: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          scope: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+        },
+      },
       size: {
         required: false,
         merge: 'replace',

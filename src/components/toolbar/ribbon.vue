@@ -96,6 +96,7 @@
             <menus-toolbar-insert-code-block
               v-if="!disableMenu('code-block')"
             />
+            <menus-toolbar-insert-building-blocks />
             <menus-toolbar-insert-symbol v-if="!disableMenu('symbol')" />
             <menus-toolbar-insert-chinese-date
               v-if="!disableMenu('chinese-date')"
@@ -119,7 +120,6 @@
             <menus-toolbar-insert-bookmark v-if="!disableMenu('bookmark')" />
             <menus-toolbar-insert-footnote v-if="!disableMenu('footnote')" />
             <menus-toolbar-insert-toc v-if="!disableMenu('toc')" />
-            <menus-toolbar-insert-comment v-if="!disableMenu('comment')" />
           </div>
           <div class="kindy-virtual-group">
             <menus-toolbar-insert-template v-if="!disableMenu('template')" />
@@ -223,6 +223,8 @@
             </div>
           </div>
           <div class="kindy-virtual-group">
+            <menus-toolbar-page-header />
+            <menus-toolbar-page-footer />
             <menus-toolbar-page-break />
             <menus-toolbar-page-break-marks />
             <menus-toolbar-page-line-number />
@@ -238,7 +240,6 @@
             <menus-toolbar-view-toc v-if="!disableMenu('toc')" />
             <menus-toolbar-view-fullscreen v-if="!disableMenu('fullscreen')" />
             <menus-toolbar-view-preview v-if="!disableMenu('preview')" />
-            <menus-toolbar-view-comment v-if="!disableMenu('comment')" />
           </div>
           <div class="kindy-virtual-group">
             <menus-toolbar-view-page v-if="!disableMenu('layout-page')" />
@@ -265,9 +266,12 @@
         </template>
         <template v-if="currentMenu === 'export'">
           <div class="kindy-virtual-group">
+            <menus-toolbar-export-word v-if="!disableMenu('export-word')" />
+            <menus-toolbar-export-import-word v-if="!disableMenu('import-word')" />
             <menus-toolbar-export-image v-if="!disableMenu('export-image')" />
             <menus-toolbar-export-pdf v-if="!disableMenu('export-pdf')" />
             <menus-toolbar-export-text v-if="!disableMenu('export-text')" />
+            <menus-toolbar-export-docs-ast />
           </div>
           <div class="kindy-virtual-group">
             <menus-toolbar-export-share v-if="!disableMenu('share')" />

@@ -14,20 +14,20 @@
         <slot :name="`toolbar_${item}`" v-bind="props" />
       </template>
     </toolbar-ribbon>
-    <toolbar-classic
-      v-if="$toolbar.mode === 'classic'"
-      :menus="toolbarMenus"
-      :current-menu="toolbarActive"
-      @menu-change="menuChange"
-    >
-      <template
-        v-for="item in options.toolbar?.menus"
-        :key="item"
-        #[`toolbar_${item}`]="props"
-      >
-        <slot :name="`toolbar_${item}`" v-bind="props" />
-      </template>
-    </toolbar-classic>
+          <toolbar-classic
+            v-if="$toolbar.mode === 'classic'"
+            :menus="toolbarMenus"
+            :current-menu="toolbarActive"
+            @menu-change="menuChange"
+          >
+            <template
+              v-for="item in options.toolbar?.menus"
+              :key="item"
+              #[`toolbar_${item}`]="slotProps"
+            >
+              <slot :name="`toolbar_${item}`" v-bind="slotProps" />
+            </template>
+          </toolbar-classic>
     <div
       class="kindy-toolbar-actions"
       :class="`kindy-toolbar-actions-${$toolbar.mode}`"
