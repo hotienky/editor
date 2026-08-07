@@ -17,14 +17,15 @@ export default {
     page: {
       layouts: ['page', 'web'],
       defaultMargin: {
-        left: 3.18,
-        right: 3.18,
+        left: 2.54,
+        right: 2.54,
         top: 2.54,
         bottom: 2.54,
       },
       defaultOrientation: 'portrait',
       defaultBackground: '#fff',
       showBreakMarks: true,
+      showRuler: false,
       showLineNumber: false,
       showBookmark: false,
       showToc: false,
@@ -38,7 +39,7 @@ export default {
         text: '',
       },
       header: {
-        enable: true,
+        enable: false,
         layout: 'single',
         text: '',
         leftText: '',
@@ -53,7 +54,7 @@ export default {
         showBorder: true,
       },
       footer: {
-        enable: true,
+        enable: false,
         layout: 'single',
         text: '',
         leftText: '',
@@ -70,7 +71,7 @@ export default {
     },
   document: {
     title: '',
-    content: '',
+    content: { type: 'doc', content: [{ type: 'paragraph' }] }, // JSON AST format (primary)
     placeholder: {
       en_US: 'Please enter the document content...',
       zh_CN: '请输入文档内容...',

@@ -32,9 +32,9 @@ export function useDocumentTabs(editor) {
     const target = tabs.value.find((t) => t.id === id)
     if (!target) return
 
-    // Save current content if active
+    // Save current content if active (JSON format)
     if (activeTabId.value === id && editor?.value) {
-      target.content = editor.value.getHTML()
+      target.content = editor.value.getJSON()
     }
 
     const newId = `tab-${Date.now()}`
@@ -60,18 +60,37 @@ export function useDocumentTabs(editor) {
   }
 
   const switchTab = (id) => {
-    // Save current content
+    // Save current content (JSON format)
     const currentTab = tabs.value.find((t) => t.id === activeTabId.value)
     if (currentTab && editor?.value) {
-      currentTab.content = editor.value.getHTML()
+      currentTab.content = editor.value.getJSON()
     }
 
     activeTabId.value = id
 
-    // Load new content
+    // Load new content (accept both JSON and HTML for compatibility)
     const nextTab = tabs.value.find((t) => t.id === id)
     if (nextTab && editor?.value) {
-      editor.value.commands.setContent(nextTab.content || '')
+      const content = nextTab.content || ''
+      // If content is a ProseMirror JSON object, use it directly
+      if (typeof content === 'object' && content.type === 'doc') {
+        editor.value.commands.setContent(content)
+      } else if (typeof content === 'string') {
+        // Try parsing as JSON first
+        try {
+          const parsed = JSON.parse(content)
+          if (parsed && parsed.type === 'doc') {
+            editor.value.commands.setContent(parsed)
+          } else {
+            editor.value.commands.setContent(content)
+          }
+        } catch {
+          // Not JSON, treat as HTML
+          editor.value.commands.setContent(content)
+        }
+      } else {
+        editor.value.commands.setContent(content)
+      }
     }
   }
 

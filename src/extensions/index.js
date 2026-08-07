@@ -48,6 +48,7 @@ import HorizontalRule from './horizontal-rule'
 import Iframe from './iframe'
 import { BlockImage, InlineImage } from './image'
 import Indent from './indent'
+import { AutoSubstitutions } from './substitutions'
 import InsertNewline from './insert-newline'
 import LetterSpacing from './letter-spacing'
 import LineHeight from './line-height'
@@ -64,8 +65,6 @@ import OfficePaste from './office-paste'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
-import Header from './header'
-import Footer from './footer'
 import Pagination from './pagination'
 import Placeholder from './placeholder'
 import SearchReplace from './search-replace'
@@ -201,8 +200,11 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     UndoRedo.extend({
       addKeyboardShortcuts() {
-        // Return empty object to remove all default shortcuts
-        return {}
+        return {
+          'Mod-z': () => this.editor.commands.undo(),
+          'Mod-y': () => this.editor.commands.redo(),
+          'Shift-Mod-z': () => this.editor.commands.redo(),
+        }
       },
     }),
     Focus.configure({
@@ -264,8 +266,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
 
     // Page
     PageBreak,
-    Header,
-    Footer,
 
     // Other
     Selection,
@@ -326,6 +326,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     TypeWriter,
     OfficePaste,
     Pagination,
+    AutoSubstitutions,
   ]
 
   // 合并扩展

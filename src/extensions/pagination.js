@@ -1,91 +1,31 @@
+/**
+ * Pagination Extension
+ *
+ * Integrates the Layout Engine with ProseMirror.
+ * Computes page layout from document AST, tracks current page,
+ * and provides layout data to the Render Engine.
+ *
+ * Page breaks are NOT stored in the document — they are computed layout metadata.
+ *
+ * Architecture: Layer 2 ↔ Layer 3 Bridge
+ */
+
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { getLayoutEngine } from '@/layout/engine'
+import { getPageFromScroll } from '@/layout/page-calculator'
 
 export const PaginationPluginKey = new PluginKey('pagination')
-
-const CM_TO_PX = 96 / 2.54
-
-function getCmToPx() {
-  if (typeof window === 'undefined') return CM_TO_PX
-  const test = document.createElement('div')
-  test.style.width = '1cm'
-  test.style.position = 'absolute'
-  test.style.left = '-9999px'
-  document.body.appendChild(test)
-  const px = test.offsetWidth
-  document.body.removeChild(test)
-  return px || CM_TO_PX
-}
-
-function isPageBreakNode(node) {
-  return node?.type?.name === 'pageBreak'
-}
-
-function isBlockNode(node) {
-  if (!node || !node.type) return false
-  const {name} = node.type
-  return (
-    name === 'paragraph' ||
-    name === 'heading' ||
-    name === 'blockquote' ||
-    name === 'codeBlock' ||
-    name === 'bulletList' ||
-    name === 'orderedList' ||
-    name === 'taskList' ||
-    name === 'table' ||
-    name === 'image' ||
-    name === 'video' ||
-    name === 'audio' ||
-    name === 'file' ||
-    name === 'iframe' ||
-    name === 'callout' ||
-    name === 'horizontalRule' ||
-    name === 'toc' ||
-    name === 'tag' ||
-    name === 'columnBlock' ||
-    name === 'textBox' ||
-    name === 'datetime' ||
-    name === 'optionBox' ||
-    name === 'echarts' ||
-    name === 'footnotes'
-  )
-}
-
-function findAncestorBlock(pmNode) {
-  let node = pmNode
-  while (node) {
-    if (isBlockNode(node) && !isPageBreakNode(node)) {
-      return node
-    }
-    node = node.parent
-  }
-  return null
-}
-
-function findPreviousBlock(editor, pos) {
-  let found = null
-  editor.state.doc.nodesBetween(0, pos, (node) => {
-    if (isBlockNode(node) && !isPageBreakNode(node)) {
-      found = node
-    }
-  })
-  return found
-}
 
 export const Pagination = Extension.create({
   name: 'pagination',
 
   addOptions() {
     return {
-      pageHeight: 29.7,
-      marginTop: 2.54,
-      marginBottom: 2.54,
-      marginLeft: 3.18,
-      marginRight: 3.18,
-      headerHeight: 1.5,
-      footerHeight: 1.5,
       onPageCountChange: null,
       onCurrentPageChange: null,
+      onLayoutChange: null,
     }
   },
 
@@ -102,198 +42,183 @@ export const Pagination = Extension.create({
           isOdd: true,
         },
       ],
-      blockPositions: [],
-      isPaginating: false,
+      layoutTree: null,
+      isComputing: false,
     }
   },
 
   addCommands() {
     return {
+      /**
+       * Recompute page layout using the Layout Engine.
+       * This does NOT modify the document — it computes layout metadata only.
+       */
       repaginate:
         () =>
         ({ editor }) => {
           if (!editor || !editor.view) return false
-          const { dom } = editor.view
-          if (!dom) return false
 
-          const cmToPx = getCmToPx()
-          const {
-            pageHeight,
-            marginTop,
-            marginBottom,
-            headerHeight,
-            footerHeight,
-          } = this.options
+          // Prevent re-entrant computation
+          if (this.storage.isComputing) return true
+          this.storage.isComputing = true
 
-          const contentHeight =
-            (pageHeight - marginTop - marginBottom - headerHeight - footerHeight) *
-            cmToPx
+          try {
+            const layoutEngine = getLayoutEngine()
 
-          const blocks = []
-          const { doc } = editor.state
+            // Get document nodes (top-level blocks)
+            const nodes = []
+            editor.state.doc.forEach((node) => {
+              nodes.push(node.toJSON())
+            })
 
-          doc.descendants((node, pos) => {
-            if (isPageBreakNode(node)) {
-              return false
+            // Get page options from editor storage or options
+            const pageOptions = editor.storage.page || {}
+
+            // Compute layout using the Layout Engine
+            const layoutTree = layoutEngine.computeAndCache(nodes, pageOptions)
+
+            // Update storage with layout results
+            this.storage.totalPages = layoutTree.totalPages
+            this.storage.layoutTree = layoutTree
+
+            // Update pages metadata
+            this.storage.pages = layoutTree.pages.map((page) => ({
+              index: page.pageNumber - 1,
+              pageNumber: page.pageNumber,
+              isFirst: page.pageNumber === 1,
+              isLast: page.pageNumber === layoutTree.totalPages,
+              isOdd: page.pageNumber % 2 !== 0,
+              contentHeight: page.contentHeight,
+              contentWidth: page.contentWidth,
+              header: page.header,
+              footer: page.footer,
+              pageNumberDisplay: page.pageNumberDisplay,
+            }))
+
+            // Notify callbacks
+            if (this.options.onPageCountChange) {
+              this.options.onPageCountChange(layoutTree.totalPages)
             }
-            if (isBlockNode(node)) {
-              const { node: domNode } = editor.view.domAtPos(
-                Math.min(pos + 1, doc.content.size),
-              )
-              let el = domNode
-              if (el.nodeType === Node.TEXT_NODE) {
-                el = el.parentElement
-              }
-              if (el && el.nodeType === Node.ELEMENT_NODE) {
-                const rect = el.getBoundingClientRect()
-                blocks.push({
-                  pos,
-                  node,
-                  height: rect.height || 0,
-                })
-              }
+            if (this.options.onLayoutChange) {
+              this.options.onLayoutChange(layoutTree)
             }
+
             return true
-          })
-
-          const breakPositions = []
-          let cumulativeHeight = 0
-          let pageStart = 0
-
-          for (const block of blocks) {
-            if (cumulativeHeight + block.height > contentHeight && pageStart < block.pos) {
-              breakPositions.push(block.pos)
-              pageStart = block.pos
-              cumulativeHeight = block.height
-            } else {
-              cumulativeHeight += block.height
-            }
+          } finally {
+            this.storage.isComputing = false
           }
-
-          const existingBreaks = []
-          doc.descendants((node, pos) => {
-            if (isPageBreakNode(node)) {
-              existingBreaks.push(pos)
-            }
-          })
-
-          const needsChange =
-            breakPositions.length !== existingBreaks.length ||
-            breakPositions.some((pos, i) => pos !== existingBreaks[i])
-
-          if (!needsChange) {
-            this.updatePageMetadata(editor, blocks, breakPositions)
-            return true
-          }
-
-          if (this.storage.isPaginating) return true
-          this.storage.isPaginating = true
-
-          const sortedPositions = [...breakPositions].sort((a, b) => b - a)
-          let {tr} = editor.state
-
-          for (const pos of sortedPositions) {
-            const adjustedPos = Math.min(pos, tr.doc.content.size - 1)
-            const nodeType = editor.state.schema.nodes.pageBreak
-            if (nodeType) {
-              tr = tr.insert(adjustedPos, nodeType.create())
-            }
-          }
-
-          if (tr.docChanged) {
-            editor.view.dispatch(tr)
-          }
-
-          setTimeout(() => {
-            this.storage.isPaginating = false
-            this.updatePageMetadata(editor, blocks, breakPositions)
-          }, 100)
-
-          return true
         },
 
+      /**
+       * Get the current page number based on cursor position
+       */
       getCurrentPage:
         () =>
         ({ editor }) => {
           if (!editor?.state) return 1
+
           const { from } = editor.state.selection
-          let breakCount = 0
-          editor.state.doc.nodesBetween(0, from, (node) => {
-            if (isPageBreakNode(node)) {
-              breakCount++
+          let blockIndex = 0
+
+          editor.state.doc.forEach((node, offset) => {
+            if (offset < from) {
+              blockIndex++
             }
           })
-          return breakCount + 1
+
+          const {layoutTree} = this.storage
+          if (!layoutTree?.pages) return 1
+
+          // Find which page this block belongs to
+          for (const page of layoutTree.pages) {
+            if (blockIndex >= page.blockStart && blockIndex <= page.blockEnd) {
+              return page.pageNumber
+            }
+          }
+
+          return 1
         },
 
+      /**
+       * Navigate to a specific page
+       */
       goToPage:
         (pageNumber) =>
         ({ editor }) => {
           if (!editor?.state) return false
-          const { doc } = editor.state
-          let breakCount = 0
-          let targetPos = 0
 
-          doc.descendants((node, pos) => {
-            if (isPageBreakNode(node)) {
-              breakCount++
-              if (breakCount === pageNumber - 1) {
-                targetPos = pos + 1
-              }
+          const {layoutTree} = this.storage
+          if (!layoutTree?.pages) return false
+
+          const targetPage = layoutTree.pages.find(
+            (p) => p.pageNumber === pageNumber,
+          )
+          if (!targetPage) return false
+
+          // Find the first block on the target page
+          let targetPos = 0
+          let blockIndex = 0
+
+          editor.state.doc.forEach((node, offset) => {
+            if (blockIndex === targetPage.blockStart) {
+              targetPos = offset
             }
+            blockIndex++
           })
 
-          if (breakCount >= pageNumber - 1) {
-            editor.commands.focus('end')
-            const resolvedPos = editor.state.doc.resolve(
-              Math.min(targetPos, editor.state.doc.content.size - 1),
-            )
-            editor.view.dispatch(
-              editor.state.tr.setSelection(
-                editor.state.Selection.near(resolvedPos, 1),
-              ),
-            )
-          }
+          // Focus and set cursor to the target position
+          editor.commands.focus('end')
+          const resolvedPos = editor.state.doc.resolve(
+            Math.min(targetPos, editor.state.doc.content.size - 1),
+          )
+          editor.view.dispatch(
+            editor.state.tr.setSelection(
+              editor.state.Selection.near(resolvedPos, 1),
+            ),
+          )
 
           return true
         },
-    }
-  },
 
-  updatePageMetadata(editor, blocks, breakPositions) {
-    const totalPages = breakPositions.length + 1
-    const { from } = editor.state.selection
-    let currentPage = 1
-    let breakIdx = 0
+      /**
+       * Get layout tree for a specific page
+       */
+      getPageLayout:
+        (pageNumber) =>
+        ({ editor }) => {
+          const {layoutTree} = this.storage
+          if (!layoutTree?.pages) return null
+          return layoutTree.pages.find((p) => p.pageNumber === pageNumber) || null
+        },
 
-    for (let i = 0; i < breakPositions.length; i++) {
-      if (from > breakPositions[i]) {
-        breakIdx = i + 1
-      }
-    }
-    currentPage = breakIdx + 1
+      /**
+       * Scroll to bring a page into view
+       */
+      scrollToPage:
+        (pageNumber) =>
+        ({ editor }) => {
+          if (!editor?.view) return false
 
-    this.storage.totalPages = totalPages
-    this.storage.currentPage = currentPage
+          const container = editor.view.dom.closest('.kindy-zoomable-container')
+          if (!container) return false
 
-    const pages = []
-    for (let i = 0; i < totalPages; i++) {
-      const pageNum = i + 1
-      pages.push({
-        index: i,
-        pageNumber: pageNum,
-        isFirst: i === 0,
-        isLast: i === totalPages - 1,
-        isOdd: pageNum % 2 !== 0,
-      })
-    }
-    this.storage.pages = pages
+          const {layoutTree} = this.storage
+          if (!layoutTree?.pages) return false
 
-    if (this.options.onPageCountChange) {
-      this.options.onPageCountChange(totalPages)
-    }
-    if (this.options.onCurrentPageChange) {
-      this.options.onCurrentPageChange(currentPage)
+          const pageOptions = editor.storage.page || {}
+          const zoomLevel = pageOptions.zoomLevel || 100
+
+          // Calculate scroll position
+          const { scrollToPage } = require('@/layout/page-calculator')
+          const scrollTop = scrollToPage(pageNumber, layoutTree.pages, zoomLevel)
+
+          container.scrollTo({
+            top: scrollTop,
+            behavior: 'smooth',
+          })
+
+          return true
+        },
     }
   },
 
@@ -304,16 +229,20 @@ export const Pagination = Extension.create({
     return [
       new Plugin({
         key: PaginationPluginKey,
+
+        // Watch for document changes and trigger re-layout
         appendTransaction(transactions, oldState, newState) {
           if (transactions.some((tr) => tr.docChanged)) {
             if (repaginateTimer) clearTimeout(repaginateTimer)
             repaginateTimer = setTimeout(() => {
-              if (extension.editor && !extension.storage.isPaginating) {
+              if (extension.editor && !extension.storage.isComputing) {
                 extension.editor.commands.repaginate()
               }
             }, 150)
           }
         },
+
+        // Track current page from cursor position
         state: {
           init() {
             return { page: 1 }
@@ -322,22 +251,67 @@ export const Pagination = Extension.create({
             if (tr.selection) {
               const { doc } = tr
               const { from } = tr.selection
-              let breakCount = 0
-              doc.nodesBetween(0, from, (node) => {
-                if (isPageBreakNode(node)) {
-                  breakCount++
+              let blockIndex = 0
+
+              doc.forEach((node, offset) => {
+                if (offset < from) {
+                  blockIndex++
                 }
               })
-              const newPage = breakCount + 1
-              if (newPage !== value.page) {
-                extension.storage.currentPage = newPage
-                if (extension.options.onCurrentPageChange) {
-                  extension.options.onCurrentPageChange(newPage)
+
+              const {layoutTree} = extension.storage
+              if (layoutTree?.pages) {
+                for (const page of layoutTree.pages) {
+                  if (blockIndex >= page.blockStart && blockIndex <= page.blockEnd) {
+                    if (page.pageNumber !== value.page) {
+                      extension.storage.currentPage = page.pageNumber
+                      if (extension.options.onCurrentPageChange) {
+                        extension.options.onCurrentPageChange(page.pageNumber)
+                      }
+                      return { page: page.pageNumber }
+                    }
+                    return value
+                  }
                 }
-                return { page: newPage }
               }
             }
             return value
+          },
+        },
+
+        // Provide layout decorations (page separators, etc.)
+        props: {
+          decorations(state) {
+            const {layoutTree} = extension.storage
+            if (!layoutTree?.pages || layoutTree.pages.length <= 1) {
+              return DecorationSet.empty
+            }
+
+            // Find block-level positions where page breaks should occur
+            const decos = []
+            const {doc} = state
+            let blockIndex = 0
+
+            doc.forEach((node, offset) => {
+              // Check if this block starts a new page
+              for (const page of layoutTree.pages) {
+                if (page.blockStart === blockIndex && page.pageNumber > 1) {
+                  // Insert a page break decoration before this block
+                  decos.push(
+                    Decoration.widget(offset, (view) => {
+                      const div = document.createElement('div')
+                      div.className = 'kindy-page-break-decoration'
+                      div.setAttribute('data-page', `Page ${page.pageNumber}`)
+                      return div
+                    }, { side: -1, key: `page-break-${page.pageNumber}` })
+                  )
+                }
+              }
+              blockIndex++
+            })
+
+            if (decos.length === 0) return DecorationSet.empty
+            return DecorationSet.create(doc, decos)
           },
         },
       }),

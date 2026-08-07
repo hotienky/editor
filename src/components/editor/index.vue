@@ -42,6 +42,7 @@ import { getDefaultExtensions, inputAndPasteRules } from '@/extensions'
 import { contentTransform } from '@/utils/content-transform'
 import { addHistory } from '@/utils/history-record'
 import { loadResource } from '@/utils/load-resource'
+import { getSerializer } from '@/model'
 
 const destroyed = inject('destroyed')
 const page = inject('page')
@@ -58,7 +59,7 @@ const defaultLineHeight = $computed(
 const container = inject('container')
 const commentStore = inject('commentStore')
 
-// Bình luận: đọc lại từ document mỗi khi nội dung thay đổi (undo/redo, xóa text...)
+// Re-read comments when document content changes (undo/redo, text deletion...)
 const syncComments = useDebounceFn(() => {
   commentStore?.syncFromDoc()
 }, 600)
@@ -69,13 +70,14 @@ const extensions = getDefaultExtensions({
   uploadFileMap,
 })
 
-// 同步文档内容
+// 同步文档内容 (JSON as primary format)
 let syncContentTimer = null
 const syncDocumentContent = (targetEditor = editorInstance) => {
   if (!$document.value || !targetEditor) {
     return
   }
-  $document.value.content = targetEditor.getHTML()
+  // JSON is the canonical storage format
+  $document.value.content = targetEditor.getJSON()
 }
 const scheduleSyncDocumentContent = () => {
   if (syncContentTimer !== null) {
@@ -94,7 +96,7 @@ const flushSyncDocumentContent = () => {
   syncDocumentContent(editorInstance)
 }
 
-// 处理列表项的键盘事件
+// Handle list item keyboard events
 const getActiveListItemType = (selection) => {
   const { $from } = selection
   const { depth: maxDepth } = $from
@@ -126,10 +128,30 @@ const handleEditorKeyDown = (view, event) => {
   return customHandleKeyDown?.(view, event) || false
 }
 
+// Parse content: accept both JSON (new) and HTML (legacy)
+const parseContent = (content) => {
+  if (!content) return ''
+  // If it's already a ProseMirror JSON object
+  if (typeof content === 'object' && content.type === 'doc') {
+    return content
+  }
+  // If it's a JSON string
+  if (typeof content === 'string') {
+    try {
+      const parsed = JSON.parse(content)
+      if (parsed && parsed.type === 'doc') return parsed
+    } catch {
+      // Not JSON, treat as HTML
+    }
+  }
+  // Legacy HTML content
+  return contentTransform(content)
+}
+
 const editorInstance = new Editor({
   editable: !options.value.document?.readOnly,
   autofocus: options.value.document?.autofocus,
-  content: contentTransform(options.value.document?.content),
+  content: parseContent(options.value.document?.content),
   enableInputRules: inputAndPasteRules(options),
   enablePasteRules: inputAndPasteRules(options),
   editorProps: {
@@ -159,7 +181,7 @@ const editorInstance = new Editor({
 const editor = inject('editor')
 editor.value = editorInstance
 editor.value.storage.container = container
-// Đồng bộ comment từ nội dung document sau khi editor được tạo
+// Sync comments from document content after editor is created
 commentStore?.syncFromDoc()
 watch(
   () => options.value,
@@ -184,7 +206,7 @@ onMounted(() => {
   document.addEventListener('visibilitychange', flushSyncDocumentContent)
 })
 
-// 销毁编辑器实例
+// Destroy editor instance
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', flushSyncDocumentContent)
   window.removeEventListener('pagehide', flushSyncDocumentContent)

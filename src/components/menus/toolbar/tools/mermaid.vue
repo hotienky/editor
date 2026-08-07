@@ -73,6 +73,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
 import { svgToDataURL } from '@/utils/file'
@@ -93,7 +94,7 @@ const props = defineProps({
 const editor = inject('editor')
 const container = inject('container')
 
-let dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 
 // 工具栏
 const themes = [
@@ -103,7 +104,7 @@ const themes = [
   { label: t('tools.mermaid.themes.forest'), value: 'forest' },
   { label: t('tools.mermaid.themes.neutral'), value: 'neutral' },
 ]
-let localConfig = $ref({})
+let localConfig = ref({})
 
 const copyCode = () => {
   useCopy(mermaidCode, t('tools.mermaid.copied'), container)
@@ -123,10 +124,10 @@ const mermaidInit = () => {
 }
 
 // 渲染 Mermaid
-let mermaidCode = $ref(props.content || '')
-let svgCode = $ref('')
-let errorTxt = $ref('')
-const mermaidRef = $ref(null)
+let mermaidCode = ref(props.content || '')
+let svgCode = ref('')
+let errorTxt = ref('')
+const mermaidRef = ref(null)
 
 const renderMermaid = async () => {
   const { mermaid } = window
@@ -180,7 +181,7 @@ watch(
 )
 
 // 创建或更新 Mermaid
-const keepSize = $ref(false)
+const keepSize = ref(false)
 const setMermaid = () => {
   if (mermaidCode === '') {
     useMessage('error', {
@@ -223,7 +224,7 @@ const setMermaid = () => {
     editor.value?.chain().focus().setImage(imageOptions, !!props.content).run()
   }
 
-  dialogVisible = false
+  dialogVisible.value = false
 }
 </script>
 

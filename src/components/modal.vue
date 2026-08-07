@@ -5,7 +5,7 @@
         Dialog,
         {
           placement: 'center',
-          attach: container,
+          attach: 'body',
           confirmBtn: t('dialog.confirm'),
           cancelBtn: t('dialog.cancel'),
           ...$attrs,

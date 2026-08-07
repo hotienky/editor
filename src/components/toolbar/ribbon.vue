@@ -223,8 +223,6 @@
             </div>
           </div>
           <div class="kindy-virtual-group">
-            <menus-toolbar-page-header />
-            <menus-toolbar-page-footer />
             <menus-toolbar-page-break />
             <menus-toolbar-page-break-marks />
             <menus-toolbar-page-line-number />
@@ -287,6 +285,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   menus: {
     type: Array,
@@ -305,7 +304,7 @@ const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
-const scrollableRef = $ref(null)
+const scrollableRef = ref(null)
 const changeMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()

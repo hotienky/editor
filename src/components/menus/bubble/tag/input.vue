@@ -16,8 +16,9 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const editor = inject('editor')
-let value = $ref('')
+let value = ref('')
 
 const setValue = () => {
   const attrs = editor.value?.getAttributes('tag')

@@ -6,10 +6,11 @@
     hide-text
     :menu-active="editor?.isActive('strike')"
     :disabled="!editor?.can().chain().focus().toggleStrike().run()"
-    @menu-click="editor?.chain().focus().toggleStrike().run()"
+    @menu-click="execute(editor, 'toggleStrike')"
   />
 </template>
 
 <script setup>
+import { execute } from '@/editing'
 const editor = inject('editor')
 </script>

@@ -26,10 +26,11 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-let activeColumn = $ref(0)
+let activeColumn = ref(0)
 
 const columns = [1, 2, 3, 4, 5, 6]
 const setActiveColumn = (column) => {

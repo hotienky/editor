@@ -14,6 +14,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject } from 'vue'
 import { shortId } from '@/utils/short-id'
 
 const props = defineProps({
@@ -31,7 +32,7 @@ const uploadFileMap = inject('uploadFileMap')
 const editor = inject('editor')
 const { t } = useI18n()
 
-let dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 
 const setSignature = (imageValue) => {
   if (!imageValue?.url && !(imageValue?.file instanceof File)) {

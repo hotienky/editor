@@ -321,6 +321,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { isString } from '@tool-belt/type-predicates'
 
 import { getShortcut } from '@/utils/shortcut'
@@ -403,7 +404,7 @@ const props = defineProps({
     default: false,
   },
 })
-const emits = defineEmits(['toggle-popup'])
+const emits = defineEmits(['toggle-popup', 'menu-click'])
 
 const attrs = useAttrs()
 const container = inject('container')
@@ -411,6 +412,7 @@ const editor = inject('editor')
 const options = inject('options')
 const $toolbar = useState('toolbar', options)
 const menuClick = (...args) => {
+  emits('menu-click', ...args)
   if (attrs.onMenuClickThrough) {
     attrs.onMenuClickThrough(...args)
   } else if (attrs.onMenuClick) {
@@ -418,8 +420,8 @@ const menuClick = (...args) => {
   }
 }
 
-const tooltipVisible = $ref(false)
-let tooltipForceHide = $ref(false)
+const tooltipVisible = ref(false)
+let tooltipForceHide = ref(false)
 const popupVisileChange = (visible) => {
   // 隐藏 Tooltip，适用于 select、dropdown、popup 等子组件展开时，隐藏 Tooltip
   tooltipForceHide = visible

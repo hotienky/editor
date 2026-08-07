@@ -94,6 +94,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -115,11 +116,11 @@ const popperOptions = {
     },
   ],
 }
-const selectValue = $ref(null)
-let hours = $ref(null)
-let minutes = $ref(null)
-let seconds = $ref(null)
-const whenEnd = $ref('showEndMessage')
+const selectValue = ref(null)
+let hours = ref(null)
+let minutes = ref(null)
+let seconds = ref(null)
+const whenEnd = ref('showEndMessage')
 
 const options = [
   { label: t('preview.countdown.1hour'), value: 60 },
@@ -135,7 +136,7 @@ const countdownSelect = (value) => {
   minutes = value
 }
 
-let countdownInfo = $ref('')
+let countdownInfo = ref('')
 let messageBox = null
 let countdownInterval = null
 const resetCountdown = () => {

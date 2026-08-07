@@ -23,6 +23,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   text: {
     type: String,
@@ -42,7 +43,7 @@ const emits = defineEmits(['change'])
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-let currentColor = $ref()
+let currentColor = ref()
 const colorChange = (color) => {
   currentColor = color
   popupVisible.value = false

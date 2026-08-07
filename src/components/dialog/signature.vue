@@ -148,6 +148,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import prettyBytes from 'pretty-bytes'
 import SmoothSignature from 'smooth-signature'
 import {
@@ -203,13 +204,13 @@ const cropperImageRef = ref(null)
 const selectedImage = ref(null)
 const selectedLocalFile = ref(null)
 
-let signature = $ref(null)
+let signature = ref(null)
 const cropper = new ImageCropper()
 let cropInitialSelection = null
-let openSmooth = $ref(false)
-let activeTab = $ref('online')
-let pickerSelectionPending = $ref(false)
-let restoreFilePickerHandler = $ref(null)
+let openSmooth = ref(false)
+let activeTab = ref('online')
+let pickerSelectionPending = ref(false)
+let restoreFilePickerHandler = ref(null)
 
 const signatureOptions = reactive({
   width: 600,

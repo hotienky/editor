@@ -3,9 +3,6 @@
     <div class="box">
       <kindy-editor ref="editorRef" v-bind="options"></kindy-editor>
     </div>
-    <!-- <div class="box">
-      <kindy-editor editor-key="testaaa" :toolbar="{ defaultMode: 'classic' }" />
-    </div> -->
   </div>
 </template>
 
@@ -60,9 +57,26 @@ const options = $ref({
     // menus: ['base'],
   },
   document: {
-    title: 'Tài liệu hướng dẫn Kindy Editor',
-    content:
-      '<h1>Chào mừng bạn đến với Kindy Editor!</h1><p><strong>Kindy Editor</strong> là trình soạn thảo văn bản chuẩn Office hiện đại dựa trên <strong>Vue 3</strong> và <strong>Tiptap 3</strong>, hỗ trợ 100% tiếng Việt.</p><h2>✨ Các tính năng nổi bật:</h2><ul><li><strong>Phân trang dạng Word:</strong> Hỗ trợ ngắt trang, căn lề, khổ giấy A4, A3...</li><li><strong>Bình luận văn bản (Word-style Comments):</strong> Bôi đen văn bản để thêm bình luận, phản hồi và giải quyết.</li><li><strong>Phông chữ chuẩn Tiếng Việt:</strong> Hỗ trợ font hệ thống sắc nét, không lo lệch hay vỡ dấu.</li></ul><p><em>Hãy thử bôi đen đoạn văn bản này và chọn biểu tượng Bình luận để trải nghiệm!</em></p>',
+    title: 'Tài liệu Nền tảng Google Docs & MS Word Platform',
+    content: `
+      <h1>🚀 Nền tảng Tài liệu Kindy Document Platform</h1>
+      <p>Chào mừng bạn đến với <strong>Kindy Document Platform</strong> – Trình soạn thảo văn bản chuẩn <strong>Google Docs &amp; Microsoft Word Online</strong> được phát triển trên Vue 3, Tiptap 3 và Yjs CRDT.</p>
+      <h2>✨ Tính năng Nền tảng hoàn thiện:</h2>
+      <ul>
+        <li><strong>Khổ giấy A4 &amp; Phân trang dạng Tab (Document Tabs):</strong> Mỗi trang là 1 Tab độc lập do người dùng tự quản lý ở lề bên trái.</li>
+        <li><strong>Header &amp; Footer chuẩn Word:</strong> Nhấp đôi chuột để chỉnh sửa lề trên/lề dưới độc lập.</li>
+        <li><strong>Building Blocks &amp; Code Box:</strong> Chèn khối mã nguồn có Syntax Highlighting và bảng 1x1 Monospace.</li>
+        <li><strong>Cộng tác Real-time Yjs CRDT &amp; Suggestions:</strong> Gõ chung nhiều người thời gian thực và chế độ Đề xuất chỉnh sửa (Accept/Reject).</li>
+      </ul>
+      <h2>💻 Khối Mã Nguồn (Building Blocks)</h2>
+      <pre><code class="language-python"># Kindy Document Platform - Real-time Collaboration Engine
+import yjs
+
+def sync_document(doc_id):
+    print(f"Syncing document {doc_id} with Yjs CRDT Gateway...")
+    return {"status": "synced", "doc_id": doc_id}</code></pre>
+      <p><em>Bấm "+ Thêm Tab mới" ở thanh Document Tabs bên trái để tự thêm các trang tài liệu độc lập!</em></p>
+    `,
   },
   page: {
     layouts: ['page', 'web'],
@@ -152,21 +166,15 @@ body {
   margin: 0;
 }
 .examples {
-  margin: 20px;
+  margin: 0;
   display: flex;
-  height: calc(100vh - 40px);
+  flex-direction: column;
+  height: 100vh;
 }
 .box {
-  border: solid 1px #ddd;
+  flex: 1;
+  border: none;
   box-sizing: border-box;
   position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-html,
-body {
-  height: 100vh;
-  overflow: hidden;
 }
 </style>

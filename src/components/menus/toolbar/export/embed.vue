@@ -29,9 +29,10 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject } from 'vue'
 const options = inject('options')
 const container = inject('container')
-let dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 
 const embedValue = computed(() => {
   return `<iframe src="${options.value.shareUrl}" width="100%" height="720px" frameborder="0" allowfullscreen="true"></iframe>`
@@ -39,7 +40,7 @@ const embedValue = computed(() => {
 
 const copyEmbed = () => {
   useCopy(embedValue, t('export.embed.copied'), container)
-  dialogVisible = false
+  dialogVisible.value = false
 }
 </script>
 

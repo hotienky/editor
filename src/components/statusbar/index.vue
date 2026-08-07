@@ -338,6 +338,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getShortcut } from '@/utils/shortcut'
 
 const { locale } = useI18n()
@@ -348,14 +349,14 @@ const options = inject('options')
 const $document = useState('document', options)
 
 // 快捷键抽屉
-const showShortcut = $ref(false)
+const showShortcut = ref(false)
 
 const reset = inject('reset')
 
 // 字数统计
-const showWordCount = $ref(false)
-let totalCharacters = $ref(0)
-let selectionCharacters = $ref(0)
+const showWordCount = ref(false)
+let totalCharacters = ref(0)
+let selectionCharacters = ref(0)
 const updateTotalCharacters = () => {
   if (!editor.value) {
     totalCharacters = 0
@@ -406,10 +407,10 @@ watch(
 )
 
 // 关于 Kindy Editor
-const about = $ref(false)
+const about = ref(false)
 
 // 页面布局
-const showLayoutSelect = $ref(false)
+const showLayoutSelect = ref(false)
 const layouts = computed(() => {
   return options.value.page.layouts.map((item) => {
     return { content: t(`layout.${item}`), value: item }
@@ -431,7 +432,7 @@ const toggleFullscreen = () => {
   fullscreen.value = !fullscreen.value
 }
 
-let documentFullscreen = $ref(null)
+let documentFullscreen = ref(null)
 onMounted(() => {
   documentFullscreen = useFullscreen(document.querySelector(container))
 })
@@ -469,8 +470,8 @@ watch(
 )
 
 // 演示模式倒计时
-const countdownSetting = $ref(false)
-let countdownValue = $ref('')
+const countdownSetting = ref(false)
+let countdownValue = ref('')
 const countdownChange = (value) => {
   countdownValue = value
 }

@@ -53,6 +53,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
 const editor = inject('editor')
@@ -69,8 +70,8 @@ const options = [
   { label: t('insert.hr.wavy'), value: 'wavy' },
 ]
 
-let currentColor = $ref('#000')
-let colorPickerVisible = $ref(false)
+let currentColor = ref('#000')
+let colorPickerVisible = ref(false)
 const colorChange = (color) => {
   currentColor = color
   colorPickerVisible = false

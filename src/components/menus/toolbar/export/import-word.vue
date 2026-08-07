@@ -1,6 +1,6 @@
 <template>
   <menus-button
-    ico="upload"
+    ico="word"
     text="Import Word (.docx)"
     huge
     @menu-click="triggerFileInput"
@@ -92,16 +92,39 @@ const handleFileChange = async (event) => {
       const parser = new DOMParser()
       const doc = parser.parseFromString(html, 'text/html')
 
-      // Auto extract Header logo if present in header section
+      // Auto extract Header & Footer logo and text if present in document
       if (pageOptions?.value) {
-        const headerImg = doc.querySelector('.docx-header img, header img, table:first-child img, img')
-        if (headerImg && headerImg.src) {
+        const headerEl = doc.querySelector('.docx-header, header')
+        const headerImg = doc.querySelector('.docx-header img, header img, table:first-child img')
+        if (headerEl || headerImg) {
           pageOptions.value.header.enable = true
-          pageOptions.value.header.logo = headerImg.src
+          if (headerImg?.src) pageOptions.value.header.logo = headerImg.src
+          if (headerEl?.textContent?.trim()) pageOptions.value.header.text = headerEl.textContent.trim()
+        }
+
+        const footerEl = doc.querySelector('.docx-footer, footer')
+        const footerImg = doc.querySelector('.docx-footer img, footer img')
+        if (footerEl || footerImg) {
+          pageOptions.value.footer.enable = true
+          if (footerImg?.src) pageOptions.value.footer.logo = footerImg.src
+          if (footerEl?.textContent?.trim()) pageOptions.value.footer.text = footerEl.textContent.trim()
         }
       }
 
-      const cleanHtml = doc.body ? doc.body.innerHTML : html
+      // Strip fixed inline widths, max-widths, and padding from Word section wrappers
+      doc.querySelectorAll('.docx-wrapper, section, article, div').forEach((el) => {
+        if (el.style) {
+          el.style.width = ''
+          el.style.maxWidth = ''
+          el.style.marginLeft = ''
+          el.style.marginRight = ''
+          el.style.padding = ''
+        }
+      })
+
+      // Unwrap root docx-wrapper if present to avoid nested container constraints
+      const docxWrapper = doc.querySelector('.docx-wrapper')
+      const cleanHtml = docxWrapper ? docxWrapper.innerHTML : (doc.body ? doc.body.innerHTML : html)
       editor.value.commands.setContent(cleanHtml)
     }
   } catch (err) {

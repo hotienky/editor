@@ -215,6 +215,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { Input } from 'tdesign-vue-next'
 
 import {
@@ -237,15 +238,15 @@ const editor = inject('editor')
 const options = inject('options')
 
 // 弹窗口显示隐藏 true 显示 默认隐藏
-let dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 // 弹窗后标题是编辑还是新增，true: 新增 fasle: 编辑
-let isAdd = $ref(true)
+let isAdd = ref(true)
 // 界面显示模式
-let modelMode = $ref(0)
+let modelMode = ref(0)
 // 当前节点缓存信息
-let curNode = $ref(null)
+let curNode = ref(null)
 // sourceOptions 高级模型-配置信息信息
-let sourceOptions = $ref(null)
+let sourceOptions = ref(null)
 
 // 高级模式下 chart 展示对象
 let sourceChart = null
@@ -253,9 +254,9 @@ let sourceChart = null
 let settingChart = null
 
 // 基础模型下默认设置界面，0: 图形界面 1: 数据界面
-let baseModeSet = $ref(0)
+let baseModeSet = ref(0)
 // baseConfig 可视化界面下的配置，需要保存的动态数据
-let baseConfig = $ref({ data: [], config: {} })
+let baseConfig = ref({ data: [], config: {} })
 // 基础数据，不会改变的数据
 let baseData = {}
 // 弹出窗显示
@@ -270,7 +271,7 @@ const menuClick = () => {
     modelMode = options.value.echarts?.mode
     sourceOptions = null
     initBaseConfig()
-    dialogVisible = true
+    dialogVisible.value = true
   }
 
   // 新增模式
@@ -295,7 +296,7 @@ const menuClick = () => {
   initBaseConfig()
   loadBaseConfig(curNode.attrs?.chartConfig)
   // 弹窗点击显示
-  dialogVisible = true
+  dialogVisible.value = true
 }
 // 弹窗点击确定时，对父界面的影响设置
 const setConfirm = () => {
@@ -395,7 +396,7 @@ const setConfirm = () => {
   } else {
     editor.value.commands.setEcharts(resOptions)
   }
-  dialogVisible = false
+  dialogVisible.value = false
 }
 
 watch(

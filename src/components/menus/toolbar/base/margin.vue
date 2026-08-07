@@ -44,13 +44,14 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getSelectionNode } from '@/utils/selection'
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-let marginTop = $ref('')
-let marginBottom = $ref('')
+let marginTop = ref('')
+let marginBottom = ref('')
 
 const setMarginValue = () => {
   if (popupVisible.value) {

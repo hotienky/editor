@@ -58,6 +58,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   pageType: {
     type: Number,
@@ -71,17 +72,17 @@ const props = defineProps({
 const editor = inject('editor')
 const options = inject('options')
 
-let dialogVisible = $ref(false)
-let submitting = $ref(false)
+const dialogVisible = ref(false)
+let submitting = ref(false)
 
-const webPages = $ref([
+const webPages = ref([
   {
     label: t('insert.web.text'),
     icon: '<svg width="24" height="24" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="8" width="40" height="32" rx="3" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M4 11a3 3 0 0 1 3-3h34a3 3 0 0 1 3 3v9H4v-9z" stroke="currentColor" stroke-width="4"/><circle r="2" transform="matrix(0 -1 -1 0 10 14)" fill="currentColor"/><circle r="2" transform="matrix(0 -1 -1 0 16 14)" fill="currentColor"/></svg>',
     validate: (url) => url.startsWith('http://') || url.startsWith('https://'),
   },
 ])
-const formData = $ref({
+const formData = ref({
   type: 0,
   url: '',
   error: false,
@@ -140,7 +141,7 @@ const insertWebPage = () => {
     }
 
     formData.error = false
-    dialogVisible = false
+    dialogVisible.value = false
   } catch (error) {
     formData.error = true
     useMessage('error', t('insert.web.insertError'))

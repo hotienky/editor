@@ -6,10 +6,11 @@
     hide-text
     :menu-active="editor?.isActive('italic')"
     :disabled="!editor?.can().chain().focus().toggleItalic().run()"
-    @menu-click="editor?.chain().focus().toggleItalic().run()"
+    @menu-click="execute(editor, 'toggleItalic')"
   />
 </template>
 
 <script setup>
+import { execute } from '@/editing'
 const editor = inject('editor')
 </script>

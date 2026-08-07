@@ -94,6 +94,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { shortId } from '@/utils/short-id'
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
@@ -107,9 +108,9 @@ const props = defineProps({
   },
 })
 
-let items = $ref([])
-let target = $ref('checkbox')
-let showCheckAll = $ref(false)
+let items = ref([])
+let target = ref('checkbox')
+let showCheckAll = ref(false)
 
 // 初始化界面上的数据值
 const initData = () => {

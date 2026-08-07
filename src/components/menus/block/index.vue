@@ -26,11 +26,12 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { DragHandle } from '@tiptap/extension-drag-handle-vue-3'
 
 const editor = inject('editor')
-let selectedNode = $ref(null)
-let selectedNodePos = $ref(null)
+let selectedNode = ref(null)
+let selectedNodePos = ref(null)
 
 const nodeChange = ({ node, pos }) => {
   selectedNode = node || null

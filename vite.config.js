@@ -28,6 +28,7 @@ const copyDtsPlugin = () => ({
 // Plugin configurations
 const vuePlugins = {
   VueMacros: VueMacros({
+    reactivityTransform: true,
     plugins: {
       vue: Vue(),
     },

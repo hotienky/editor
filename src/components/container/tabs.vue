@@ -74,7 +74,7 @@ const {
   renameTab,
 } = useDocumentTabs(editor)
 
-const isCollapsed = ref(false)
+const isCollapsed = ref(true)
 const editingTabId = ref(null)
 const renameTitle = ref('')
 

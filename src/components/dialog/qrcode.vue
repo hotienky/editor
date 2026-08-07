@@ -95,6 +95,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { qrcode } from 'pure-svg-code'
 import { svgToDataURL } from '@/utils/file'
 
@@ -144,9 +145,9 @@ const dialogTitle = computed(() =>
     : t('tools.qrcode.text'),
 )
 
-let config = $ref({ ...defaultConfig })
-let svgCode = $ref(null)
-let renderError = $ref(false)
+let config = ref({ ...defaultConfig })
+let svgCode = ref(null)
+let renderError = ref(false)
 
 const resolveInitialContent = () => props.content || props.value?.content || ''
 

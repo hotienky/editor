@@ -121,6 +121,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   node: {
     type: Object,
@@ -139,7 +140,7 @@ const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
 const blockMenu = inject('blockMenu')
 
-let menuActive = $ref(false)
+let menuActive = ref(false)
 const popupProps = {
   attach: `${container} .kindy-main-container`,
   popperOptions: {

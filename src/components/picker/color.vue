@@ -78,6 +78,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   defaultColor: {
     type: String,
@@ -93,10 +94,10 @@ const $recent = useState('recent', options)
 // prettier-ignore
 const standardColors = ['#B12318', '#EB3323', '#F6C143', '#FFFE55', '#A0CD63', '#4FAD5B', '#4CAFEA', '#2D70BA', '#06215C', '#68389B']
 
-const color = $ref(props.defaultColor)
+const color = ref(props.defaultColor)
 
 // 更多颜色
-const moreColorPicker = $ref(false)
+const moreColorPicker = ref(false)
 const colorChange = (color, ctx) => {
   if (ctx && ctx.trigger !== 'palette-saturation-brightness') {
     return

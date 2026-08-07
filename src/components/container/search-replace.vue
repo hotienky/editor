@@ -92,15 +92,16 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getSelectionText } from '@/utils/selection'
 
 const editor = inject('editor')
 const searchReplace = inject('searchReplace')
 
-let autofocus = $ref(false)
-let searchText = $ref('')
-let replaceText = $ref('')
-const caseSensitive = $ref(false)
+let autofocus = ref(false)
+let searchText = ref('')
+let replaceText = ref('')
+const caseSensitive = ref(false)
 
 const resultLength = computed(
   () => editor.value?.storage.searchAndReplace?.results.length || 0,
@@ -141,7 +142,7 @@ const goToSelection = () => {
 }
 
 watch(
-  () => searchText.trim(),
+  () => searchText.value?.trim(),
   (val, oldVal) => {
     if (!val) {
       clear()
@@ -152,7 +153,7 @@ watch(
   },
 )
 watch(
-  () => replaceText.trim(),
+  () => replaceText.value?.trim(),
   (val, oldVal) => (val === oldVal ? null : search()),
 )
 

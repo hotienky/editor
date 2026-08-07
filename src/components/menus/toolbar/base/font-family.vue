@@ -56,6 +56,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { isString } from '@tool-belt/type-predicates'
 
 import { MessagePlugin } from '@/composables/dialog'
@@ -66,12 +67,12 @@ const $toolbar = useState('toolbar', options)
 const $recent = useState('recent', options)
 const typeWriterIsRunning = inject('typeWriterIsRunning')
 
-const usedFonts = $ref([])
-const fontStatusMap = $ref({})
-const downloadingFonts = $ref([])
-const autoDownloadedFonts = $ref([])
-let autoDownloadRunning = $ref(false)
-let restoringDownloadedFonts = $ref(true)
+const usedFonts = ref([])
+const fontStatusMap = ref({})
+const downloadingFonts = ref([])
+const autoDownloadedFonts = ref([])
+let autoDownloadRunning = ref(false)
+let restoringDownloadedFonts = ref(true)
 
 const selectedFont = computed(() => {
   if (!editor.value || typeWriterIsRunning.value) {

@@ -77,7 +77,7 @@ import {
 import { getOptions } from '@/utils/options'
 import { getSelectionNode, getSelectionText } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
-import { getCurrentInstance } from 'vue'
+import { getCurrentInstance, ref, shallowRef } from 'vue'
 const { toBlob, toJpeg, toPng } = domToImage
 
 defineOptions({ name: 'KindyEditor' })
@@ -121,7 +121,7 @@ const historyRecords = ref({
   editorCount: 0,
 })
 
-const container = $ref(`#kindy-editor-${shortId(4)}`)
+const container = ref(`#kindy-editor-${shortId(4)}`)
 const defaultOptions = inject('defaultOptions', {})
 const options = ref(getOptions(props, defaultOptions))
 const editor = ref(null)
@@ -142,7 +142,7 @@ const $toolbar = useState('toolbar', options)
 const $document = useState('document', options)
 const $layout = useState('layout', options)
 
-provide('container', container)
+provide('container', container.value)
 provide('options', options)
 provide('editor', editor)
 provide('savedAt', savedAt)
@@ -210,7 +210,7 @@ watch(
   },
 )
 
-let toolbarKey = $ref(shortId())
+let toolbarKey = ref(shortId())
 let toolbarActive = ref(null)
 provide('toolbarActive', toolbarActive)
 watch(
@@ -265,10 +265,10 @@ watch(
 )
 
 // 定时保存
-let contentUpdated = $ref(false)
-let isFirstUpdate = $ref(true)
-let autoSaveInterval = $ref(null)
-let isSaving = $ref(false)
+let contentUpdated = ref(false)
+let isFirstUpdate = ref(true)
+let autoSaveInterval = ref(null)
+let isSaving = ref(false)
 const shouldBlockUnload = () => isSaving || contentUpdated
 const handleBeforeUnload = (event) => {
   if (!shouldBlockUnload()) {
@@ -534,7 +534,7 @@ watch(
 )
 
 // Global Locale Config
-const localeConfig = $ref({
+const localeConfig = ref({
   'zh-CN': cnConfig,
   'en-US': enConfig,
   'vi-VN': {
@@ -1070,13 +1070,13 @@ const saveContent = async (showMessage = true) => {
     return
   }
   if (editor.value) {
-    // 保存前先同步一份最新内容，避免 onSave 第三个参数读取到旧值
-    $document.value.content = editor.value.getHTML()
+    // Sync latest content before saving (JSON as primary)
+    $document.value.content = editor.value.getJSON()
   }
   const saveBack = {
-    status: '', // 可选值：'success' | 'error'  // 状态描述文本（用于前端提示或日志）
-    message: '', // 例如：'保存失败：网络异常'
-    showMessage: true, // 是否展示message
+    status: '',
+    message: '',
+    showMessage: true,
   }
   try {
     isSaving = true
@@ -1087,15 +1087,15 @@ const saveContent = async (showMessage = true) => {
         content: t('save.saving'),
         placement: 'bottom',
         closeBtn: true,
-        duration: 0, // 需要手工关闭，不会自动关闭了
+        duration: 0,
         offset: [0, -20],
       },
       getCurrentInstance(),
     )
     const _saveBack = await options.value?.onSave?.(
       {
-        html: editor.value?.getHTML(),
         json: editor.value?.getJSON(),
+        html: editor.value?.getHTML(),
         text: editor.value?.getText(),
       },
       page.value,
@@ -1104,7 +1104,7 @@ const saveContent = async (showMessage = true) => {
     if (!_saveBack) {
       throw new Error('`onSave` callback must return a value.')
     }
-    // 兼容老的保存回调
+    // Backward compatibility with old save callback
     if (typeof _saveBack === 'string') {
       if (_saveBack) {
         saveBack.status = 'success'
@@ -1117,7 +1117,7 @@ const saveContent = async (showMessage = true) => {
       for (const key in _saveBack) {
         saveBack[key] = _saveBack[key]
       }
-      // 没有返回这个
+      // Default showMessage if not provided
       if (_saveBack['showMessage'] === undefined) {
         saveBack['showMessage'] = showMessage
       }
@@ -1213,31 +1213,47 @@ const getContentExcerpt = (charLimit = 100, more = ' ...') => {
   }
   return text?.substring(0, charLimit) + more
 }
-/* 撤销 重做操作*/
+/* Undo/Redo — using Editing Engine UndoManager */
+import { getUndoManager } from '@/editing'
+
+const undoManager = getUndoManager()
+
 const undoHistory = () => {
-  undoHistoryRecord(historyRecords, function (record) {
+  let handled = false
+  undoManager.undo((record) => {
+    handled = true
     if (record?.type === 'editor') {
       editor?.value?.chain().focus().undo().run()
     } else if (record?.type === 'page' && record?.proType) {
-      // 撤销
       if (page?.value && record.oldData !== undefined) {
         page.value[record.proType] = record.oldData
       }
     }
   })
+  if (!handled && editor?.value?.can().undo()) {
+    editor.value.chain().focus().undo().run()
+  }
 }
+
 const redoHistory = () => {
-  redoHistoryRecord(historyRecords, function (record) {
+  let handled = false
+  undoManager.redo((record) => {
+    handled = true
     if (record?.type === 'editor') {
       editor?.value?.chain().focus().redo().run()
     } else if (record?.type === 'page' && record?.proType) {
-      //  恢复
       if (page?.value && record.newData !== undefined) {
         page.value[record.proType] = record.newData
       }
     }
   })
+  if (!handled && editor?.value?.can().redo()) {
+    editor.value.chain().focus().redo().run()
+  }
 }
+
+const canUndo = computed(() => undoManager.canUndo || Boolean(editor.value?.can().undo()))
+const canRedo = computed(() => undoManager.canRedo || Boolean(editor.value?.can().redo()))
 
 // Hotkeys Setup
 watch(
@@ -1298,6 +1314,8 @@ provide('reset', reset)
 provide('getVanillaHTML', getVanillaHTML)
 provide('undoHistory', undoHistory)
 provide('redoHistory', redoHistory)
+provide('canUndo', canUndo)
+provide('canRedo', canRedo)
 // Exposing Methods
 defineExpose({
   getOptions: () => options.value,

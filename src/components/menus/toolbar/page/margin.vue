@@ -10,5 +10,7 @@
 </template>
 
 <script setup>
-const dialogVisible = $ref(false)
+import { ref, inject } from 'vue'
+
+const dialogVisible = ref(false)
 </script>

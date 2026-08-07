@@ -3,6 +3,13 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
+import { getLayoutEngine } from '@/layout/engine'
+import { createPageConfig, getContentArea } from '@/layout/page-calculator'
+import { shouldShowHeaderFooter, getHeaderFooterContent } from '@/layout/header-footer'
+import { getPageNumberText } from '@/layout/page-numbers'
+import { estimateBlockHeight } from '@/layout/text-measurer'
+
 const container = inject('container')
 const editor = inject('editor')
 const printing = inject('printing')
@@ -10,8 +17,8 @@ const exportFile = inject('exportFile')
 const page = inject('page')
 const options = inject('options')
 
-const iframeRef = $ref(null)
-let iframeCode = $ref('')
+const iframeRef = ref(null)
+let iframeCode = ref('')
 
 const getStylesHtml = () => {
   return Array.from(document.querySelectorAll('link, style'))
@@ -46,7 +53,35 @@ const prepareEchartsForPrint = (htmlContent) => {
   return tempDiv.innerHTML
 }
 
-const splitContentByPageBreaks = (htmlContent) => {
+/**
+ * Split content by page breaks computed from Layout Engine
+ */
+const splitContentByLayout = (htmlContent, pageOptions) => {
+  // Get layout from pagination extension
+  const layoutTree = editor.value?.storage?.pagination?.layoutTree
+
+  if (layoutTree?.pages && layoutTree.pages.length > 0) {
+    // Use Layout Tree to split content
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlContent
+    const children = Array.from(tempDiv.childNodes)
+
+    const pages = []
+    for (const layoutPage of layoutTree.pages) {
+      const pageContent = []
+      for (let i = layoutPage.blockStart; i <= layoutPage.blockEnd && i < children.length; i++) {
+        const child = children[i]
+        if (child) {
+          pageContent.push(child.outerHTML || child.textContent || '')
+        }
+      }
+      pages.push(pageContent.join(''))
+    }
+
+    return pages.length > 0 ? pages : ['']
+  }
+
+  // Fallback: split by pageBreak nodes
   const tempDiv = document.createElement('div')
   tempDiv.innerHTML = htmlContent
   const pages = []
@@ -73,85 +108,89 @@ const splitContentByPageBreaks = (htmlContent) => {
   return pages.length > 0 ? pages : ['']
 }
 
-const renderHeader = (pageInfo, headerConfig) => {
+const renderHeader = (pageNumber, totalPages, headerConfig) => {
   if (!headerConfig?.enable) return ''
-  if (headerConfig.scope === 'first_last' && !pageInfo.isFirst) return ''
+  if (!shouldShowHeaderFooter(headerConfig, pageNumber, totalPages)) return ''
 
-  const fontSize = headerConfig.fontSize || 14
-  const fontColor = headerConfig.fontColor || '#333'
-  const fontFamily = headerConfig.fontFamily || 'Arial'
-  const fontWeight = headerConfig.fontWeight || 'normal'
-  const align = headerConfig.align || 'center'
+  const content = getHeaderFooterContent(headerConfig, pageNumber, totalPages)
 
-  let content = ''
-  if (headerConfig.layout === 'split' || headerConfig.leftText || headerConfig.rightText) {
-    content = `
+  const fontSize = content.fontSize || 14
+  const fontColor = content.fontColor || '#333'
+  const fontFamily = content.fontFamily || 'Arial'
+  const fontWeight = content.fontWeight || 'normal'
+  const align = content.align || 'center'
+
+  let innerHtml = ''
+  if (content.layout === 'split' || content.leftText || content.rightText) {
+    innerHtml = `
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 6px;">
-          ${headerConfig.logo ? `<img src="${headerConfig.logo}" style="height: auto; max-height: 32px; width: ${headerConfig.logoWidth || 48}px;" />` : ''}
-          <span>${headerConfig.leftText || ''}</span>
+          ${content.logo ? `<img src="${content.logo}" style="height: auto; max-height: 32px; width: ${content.logoWidth || 48}px;" />` : ''}
+          <span>${content.leftText || ''}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span>${headerConfig.rightText || ''}</span>
+          <span>${content.rightText || ''}</span>
         </div>
       </div>
     `
   } else {
-    content = `
+    innerHtml = `
       <div style="display: flex; align-items: center; justify-content: ${align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start'}; gap: 6px;">
-        ${headerConfig.logo ? `<img src="${headerConfig.logo}" style="height: auto; max-height: 32px; width: ${headerConfig.logoWidth || 48}px;" />` : ''}
-        <span>${headerConfig.text || ''}</span>
+        ${content.logo ? `<img src="${content.logo}" style="height: auto; max-height: 32px; width: ${content.logoWidth || 48}px;" />` : ''}
+        <span>${content.text || ''}</span>
       </div>
     `
   }
 
-  const borderStyle = headerConfig.showBorder !== false ? 'border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;' : ''
+  const borderStyle = content.showBorder ? 'border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;' : ''
 
   return `
     <div style="padding: 0.5cm 1cm 0.3cm; font-size: ${fontSize}px; color: ${fontColor}; font-family: ${fontFamily}; font-weight: ${fontWeight}; text-align: ${align}; ${borderStyle}">
-      ${content}
+      ${innerHtml}
     </div>
   `
 }
 
-const renderFooter = (pageInfo, footerConfig, totalPages) => {
+const renderFooter = (pageNumber, totalPages, footerConfig) => {
   if (!footerConfig?.enable) return ''
-  if (footerConfig.scope === 'first_last' && !pageInfo.isLast) return ''
+  if (!shouldShowHeaderFooter(footerConfig, pageNumber, totalPages)) return ''
 
-  const fontSize = footerConfig.fontSize || 14
-  const fontColor = footerConfig.fontColor || '#333'
-  const fontFamily = footerConfig.fontFamily || 'Arial'
-  const fontWeight = footerConfig.fontWeight || 'normal'
-  const align = footerConfig.align || 'center'
+  const content = getHeaderFooterContent(footerConfig, pageNumber, totalPages)
 
-  let content = ''
-  if (footerConfig.layout === 'split' || footerConfig.leftText || footerConfig.rightText) {
-    content = `
+  const fontSize = content.fontSize || 14
+  const fontColor = content.fontColor || '#333'
+  const fontFamily = content.fontFamily || 'Arial'
+  const fontWeight = content.fontWeight || 'normal'
+  const align = content.align || 'center'
+
+  let innerHtml = ''
+  if (content.layout === 'split' || content.leftText || content.rightText) {
+    innerHtml = `
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="display: flex; align-items: center; gap: 6px;">
-          ${footerConfig.logo ? `<img src="${footerConfig.logo}" style="height: auto; max-height: 32px; width: ${footerConfig.logoWidth || 48}px;" />` : ''}
-          <span>${footerConfig.leftText || ''}</span>
+          ${content.logo ? `<img src="${content.logo}" style="height: auto; max-height: 32px; width: ${content.logoWidth || 48}px;" />` : ''}
+          <span>${content.leftText || ''}</span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span>${footerConfig.rightText || ''}</span>
+          <span>${content.rightText || ''}</span>
         </div>
       </div>
     `
   } else {
-    const displayText = footerConfig.text || `Page ${pageInfo.pageNumber} of ${totalPages}`
-    content = `
+    const displayText = content.text || getPageNumberText(pageNumber, totalPages)
+    innerHtml = `
       <div style="display: flex; align-items: center; justify-content: ${align === 'right' ? 'flex-end' : align === 'center' ? 'center' : 'flex-start'}; gap: 6px;">
-        ${footerConfig.logo ? `<img src="${footerConfig.logo}" style="height: auto; max-height: 32px; width: ${footerConfig.logoWidth || 48}px;" />` : ''}
+        ${content.logo ? `<img src="${content.logo}" style="height: auto; max-height: 32px; width: ${content.logoWidth || 48}px;" />` : ''}
         <span>${displayText}</span>
       </div>
     `
   }
 
-  const borderStyle = footerConfig.showBorder !== false ? 'border-top: 1px solid #e2e8f0; padding-top: 4px;' : ''
+  const borderStyle = content.showBorder ? 'border-top: 1px solid #e2e8f0; padding-top: 4px;' : ''
 
   return `
     <div style="padding: 0.3cm 1cm 0.5cm; font-size: ${fontSize}px; color: ${fontColor}; font-family: ${fontFamily}; font-weight: ${fontWeight}; text-align: ${align}; ${borderStyle}">
-      ${content}
+      ${innerHtml}
     </div>
   `
 }
@@ -165,23 +204,18 @@ const getIframeCode = () => {
 
   const editorContent = editor.value?.getHTML() || ''
   const preparedContent = prepareEchartsForPrint(editorContent)
-  const pages = splitContentByPageBreaks(preparedContent)
+  const pages = splitContentByLayout(preparedContent, page.value)
   const totalPages = pages.length
 
-  const headerHtml = (pageInfo) => renderHeader(pageInfo, header)
-  const footerHtml = (pageInfo) => renderFooter(pageInfo, footer, totalPages)
+  const headerHtml = (pageNumber) => renderHeader(pageNumber, totalPages, header)
+  const footerHtml = (pageNumber) => renderFooter(pageNumber, totalPages, footer)
 
   const pageWidth = orientation === 'portrait' ? size?.width : size?.height
   const pageHeight = orientation === 'portrait' ? size?.height : size?.width
 
   let pagesHtml = ''
   for (let i = 0; i < pages.length; i++) {
-    const pageInfo = {
-      pageNumber: i + 1,
-      isFirst: i === 0,
-      isLast: i === totalPages - 1,
-      isOdd: (i + 1) % 2 !== 0,
-    }
+    const pageNumber = i + 1
 
     pagesHtml += `
       <div class="kindy-print-page" style="
@@ -194,14 +228,14 @@ const getIframeCode = () => {
         background: ${background};
         overflow: hidden;
       ">
-        ${headerHtml(pageInfo)}
+        ${headerHtml(pageNumber)}
         <div class="kindy-print-page-content" style="
           flex: 1;
           min-height: 0;
         ">
           ${pages[i]}
         </div>
-        ${footerHtml(pageInfo)}
+        ${footerHtml(pageNumber)}
       </div>
     `
   }

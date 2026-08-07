@@ -166,6 +166,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { timeAgo } from '@/utils/time-ago'
 
 const container = inject('container')
@@ -241,8 +242,8 @@ const addNew = () => {
 }
 
 // Sửa nội dung comment
-let editingId = $ref(null)
-let draft = $ref('')
+let editingId = ref(null)
+let draft = ref('')
 const startEdit = (item) => {
   if (!editor?.isEditable) {
     return
@@ -264,7 +265,7 @@ const cancelEdit = () => {
 }
 
 // Trả lời comment
-let replyDraft = $ref('')
+let replyDraft = ref('')
 const onReply = (item) => {
   const text = replyDraft.trim()
   if (!text) {

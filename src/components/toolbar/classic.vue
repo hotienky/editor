@@ -183,8 +183,6 @@
           <menus-toolbar-page-orientation v-if="page.layout === 'page'" />
         </div>
         <div class="kindy-virtual-group">
-          <menus-toolbar-page-header />
-          <menus-toolbar-page-footer />
           <menus-toolbar-page-break />
           <menus-toolbar-page-break-marks />
           <menus-toolbar-page-line-number />
@@ -245,6 +243,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   menus: {
     type: Array,
@@ -268,7 +267,7 @@ const disableMenu = (name) => {
 }
 
 // eslint-disable-next-line vue/no-dupe-keys
-let currentMenu = $ref('')
+let currentMenu = ref('')
 watch(
   () => props.currentMenu,
   async (val) => {
@@ -278,7 +277,7 @@ watch(
   },
   { immediate: true },
 )
-const scrollableRef = $ref(null)
+const scrollableRef = ref(null)
 const toggoleMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()

@@ -136,6 +136,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { timeAgo } from '@/utils/time-ago'
 const emits = defineEmits(['menu-change'])
 
@@ -145,7 +146,7 @@ const editor = inject('editor')
 const savedAt = inject('savedAt')
 const options = inject('options')
 const $toolbar = useState('toolbar', options)
-let statusPopup = $ref(false)
+let statusPopup = ref(false)
 const online = useOnline()
 
 // 工具栏菜单

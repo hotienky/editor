@@ -314,6 +314,11 @@ export default new ObjectSchema({
         validate: 'boolean',
         required: false,
       },
+      showRuler: {
+        merge: 'replace',
+        validate: 'boolean',
+        required: false,
+      },
       showBookmark: {
         merge: 'replace',
         validate: 'boolean',

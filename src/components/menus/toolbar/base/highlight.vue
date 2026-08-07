@@ -41,6 +41,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const editor = inject('editor')
 
 const options = [
@@ -62,7 +63,7 @@ const options = [
   },
 ]
 
-let highlight = $ref()
+let highlight = ref()
 const highlightChange = (item) => {
   if (!item) {
     highlightChange(options[0])

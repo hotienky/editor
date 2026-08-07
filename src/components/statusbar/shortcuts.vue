@@ -32,12 +32,13 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getShortcut } from '@/utils/shortcut'
 
 const options = inject('options')
 const $document = useState('document', options)
 
-const shortcuts = $ref([
+const shortcuts = ref([
   {
     title: t('shortcut.commonlyUsed'),
     items: [

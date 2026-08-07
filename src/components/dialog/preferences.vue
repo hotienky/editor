@@ -21,6 +21,7 @@
       <div class="pref-section">
         <h4>BẢNG KÝ TỰ TỰ ĐỘNG THAY THẾ (AUTO-SUBSTITUTIONS)</h4>
         <t-table
+          row-key="shortcut"
           :data="substitutionsData"
           :columns="columns"
           size="small"

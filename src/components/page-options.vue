@@ -42,7 +42,7 @@
               {{ l(pageOptions.size?.label) }}
             </template>
             <t-option
-              v-for="(item, index) in options.dicts?.pageSizes"
+              v-for="(item, index) in (options.value?.dicts?.pageSizes || options.dicts?.pageSizes)"
               :key="index"
               :value="index"
               :title="`${l(item.label)} (${item.width}×${item.height}${t('page.size.cm')})`"
@@ -98,7 +98,7 @@
               <div
                 class="item"
                 :class="{ active: !pageOptions.margin?.layout }"
-                @click="selectPageMargin(options.page?.defaultMargin)"
+                @click="selectPageMargin(options.value?.page?.defaultMargin || options.page?.defaultMargin)"
                 v-text="t('pageOptions.margin.default')"
               ></div>
               <div
@@ -218,6 +218,8 @@
 </template>
 
 <script setup>
+import { ref, watch, inject } from 'vue'
+
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -230,12 +232,12 @@ const container = inject('container')
 const page = inject('page')
 const options = inject('options')
 
-let pageOptions = $ref({})
+const pageOptions = ref({})
 watch(
   () => props.visible,
   (visible) => {
-    if (visible) {
-      pageOptions = JSON.parse(JSON.stringify(page.value))
+    if (visible && page?.value) {
+      pageOptions.value = JSON.parse(JSON.stringify(page.value))
     }
   },
   { immediate: true },
@@ -243,41 +245,44 @@ watch(
 
 // 页面大小
 const selectPageSize = (value) => {
-  pageOptions.size = options.value?.dicts?.pageSizes[value]
+  if (pageOptions.value) {
+    pageOptions.value.size = options.value?.dicts?.pageSizes[value]
+  }
 }
 const inputPageSize = (value, field) => {
-  pageOptions.size = {
-    width: 0,
-    height: 0,
+  if (!pageOptions.value.size) {
+    pageOptions.value.size = { width: 10, height: 10 }
   }
   if (!value || value < 10) {
-    Reflect.set(pageOptions.size, field, 10)
+    Reflect.set(pageOptions.value.size, field, 10)
     return
   }
-  pageOptions.size.label = t('pageOptions.size.custom')
+  pageOptions.value.size.label = t('pageOptions.size.custom')
 }
 
 // 页边距
 const selectPageMargin = (margin) => {
-  pageOptions.margin = margin
+  const safeMargin = margin || { left: 2.54, right: 2.54, top: 2.54, bottom: 2.54 }
+  if (pageOptions.value) {
+    pageOptions.value.margin = JSON.parse(JSON.stringify(safeMargin))
+  }
 }
 const inputPageMargin = (value, field) => {
-  pageOptions.margin = {
-    right: 0,
-    left: 0,
-    bottom: 0,
-    top: 0,
+  if (!pageOptions.value.margin) {
+    pageOptions.value.margin = { right: 0, left: 0, bottom: 0, top: 0 }
   }
   if (!value || value < 0) {
-    Reflect.set(pageOptions.margin, field, 0)
+    Reflect.set(pageOptions.value.margin, field, 0)
     return
   }
-  pageOptions.margin.layout = 'custom'
-  selectPageMargin(pageOptions.margin)
+  pageOptions.value.margin.layout = 'custom'
+  selectPageMargin(pageOptions.value.margin)
 }
 
 const onConfirm = () => {
-  page.value = pageOptions
+  if (page?.value && pageOptions.value) {
+    page.value = JSON.parse(JSON.stringify(pageOptions.value))
+  }
   emits('close')
 }
 </script>

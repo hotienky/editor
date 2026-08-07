@@ -26,6 +26,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import DiagramEditor from '@/utils/diagram-editor'
 import { getSelectionNode } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
@@ -41,15 +42,15 @@ const container = inject('container')
 const editor = inject('editor')
 const options = inject('options')
 
-let dialogVisible = $ref(false)
-let loading = $ref(false)
+const dialogVisible = ref(false)
+let loading = ref(false)
 const diagramEditor = new DiagramEditor({
   domain: options.value.diagrams?.domain || '',
   params: options.value.diagrams?.params || {},
   container: `${container} .kindy-diagrams-container`,
 })
 
-let image = $ref(undefined)
+let image = ref(undefined)
 
 const messageListener = async (evt) => {
   if (evt?.type !== 'message' || typeof evt?.data !== 'string') {
@@ -72,11 +73,11 @@ const messageListener = async (evt) => {
         content: data,
       }
     }
-    dialogVisible = false
+    dialogVisible.value = false
     return
   }
   if (event === 'exit') {
-    dialogVisible = false
+    dialogVisible.value = false
   }
 }
 
