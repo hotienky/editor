@@ -14,24 +14,82 @@
           height: pageZoomHeight,
         }"
       >
-        <t-watermark
-          v-if="pageOptions.watermark?.text"
-          class="kindy-page-content"
+        <!-- Multi-page sheets layer (visual page backgrounds) -->
+        <div
+          v-if="pageOptions.layout === 'page'"
+          class="kindy-page-sheets-layer"
           :style="{
-            '--kindy-page-orientation': pageOptions.orientation,
-            '--kindy-page-background': pageOptions.background,
-            '--kindy-page-margin-top': pageOptions.margin?.top + 'cm',
-            '--kindy-page-margin-bottom': pageOptions.margin?.bottom + 'cm',
-            '--kindy-page-margin-left': pageOptions.margin?.left + 'cm',
-            '--kindy-page-margin-right': pageOptions.margin?.right + 'cm',
-            '--kindy-page-width':
-              pageOptions.layout === 'page' ? pageSize.width + 'cm' : 'auto',
-            '--kindy-page-height':
-              pageOptions.layout === 'page' ? pageSize.height + 'cm' : '100%',
-            width:
-              pageOptions.layout === 'page' ? pageSize.width + 'cm' : '100%',
-            transform: `scale(${pageOptions.zoomLevel ? pageOptions.zoomLevel / 100 : 1})`,
+            transform: `scale(${zoomScale})`,
+            transformOrigin: '0 0',
+            width: pageSize.width + 'cm',
           }"
+        >
+          <div
+            v-for="pageIndex in paginationPageCount"
+            :key="pageIndex"
+            class="kindy-page-sheet"
+            :style="{
+              width: pageSize.width + 'cm',
+              height: pageSize.height + 'cm',
+              background: pageOptions.background || '#fff',
+              marginBottom: pageIndex < paginationPageCount ? pageGapPx + 'px' : '0',
+            }"
+          >
+            <!-- Header area with corner marks -->
+            <div class="kindy-page-sheet-header" :style="{ height: pageOptions.margin?.top + 'cm' }">
+              <div class="kindy-page-corner corner-tl" :style="{ width: pageOptions.margin?.left + 'cm' }"></div>
+              <div class="kindy-page-sheet-header-content"></div>
+              <div class="kindy-page-corner corner-tr" :style="{ width: pageOptions.margin?.right + 'cm' }"></div>
+            </div>
+            <!-- Middle area (content flows through this zone) -->
+            <div class="kindy-page-sheet-body"></div>
+            <!-- Footer area with corner marks and page number -->
+            <div class="kindy-page-sheet-footer" :style="{ height: pageOptions.margin?.bottom + 'cm' }">
+              <div class="kindy-page-corner corner-bl" :style="{ width: pageOptions.margin?.left + 'cm' }"></div>
+              <div class="kindy-page-sheet-footer-content">
+                <span class="kindy-page-number">{{ pageIndex }} / {{ paginationPageCount }}</span>
+              </div>
+              <div class="kindy-page-corner corner-br" :style="{ width: pageOptions.margin?.right + 'cm' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Editor content layer (paginated mode - sits on top of sheets) -->
+        <t-watermark
+          v-if="pageOptions.watermark?.text && pageOptions.layout === 'page'"
+          class="kindy-page-content kindy-page-content--paginated"
+          :style="pageContentStyle"
+          :alpha="pageOptions.watermark?.alpha"
+          v-bind="watermarkOptions"
+          :watermark-content="pageOptions.watermark?.text"
+        >
+          <div class="kindy-page-node-content" @click="onPageClick">
+            <editor>
+              <template #bubble_menu="props">
+                <slot name="bubble_menu" v-bind="props" />
+              </template>
+            </editor>
+          </div>
+        </t-watermark>
+        <div
+          v-else-if="pageOptions.layout === 'page'"
+          class="kindy-page-content kindy-page-content--paginated"
+          :style="pageContentStyle"
+        >
+          <div class="kindy-page-node-content" @click="onPageClick">
+            <editor>
+              <template #bubble_menu="props">
+                <slot name="bubble_menu" v-bind="props" />
+              </template>
+            </editor>
+          </div>
+        </div>
+
+        <!-- Editor content layer (web mode - original layout) -->
+        <t-watermark
+          v-else-if="pageOptions.watermark?.text"
+          class="kindy-page-content"
+          :style="pageContentStyle"
           :alpha="pageOptions.watermark?.alpha"
           v-bind="watermarkOptions"
           :watermark-content="pageOptions.watermark?.text"
@@ -41,7 +99,6 @@
               class="kindy-page-corner corner-tl"
               style="width: var(--kindy-page-margin-left)"
             ></div>
-
             <div class="kindy-page-node-header-content"></div>
             <div
               class="kindy-page-corner corner-tr"
@@ -70,28 +127,13 @@
         <div
           v-else
           class="kindy-page-content"
-          :style="{
-            '--kindy-page-orientation': pageOptions.orientation,
-            '--kindy-page-background': pageOptions.background,
-            '--kindy-page-margin-top': pageOptions.margin?.top + 'cm',
-            '--kindy-page-margin-bottom': pageOptions.margin?.bottom + 'cm',
-            '--kindy-page-margin-left': pageOptions.margin?.left + 'cm',
-            '--kindy-page-margin-right': pageOptions.margin?.right + 'cm',
-            '--kindy-page-width':
-              pageOptions.layout === 'page' ? pageSize.width + 'cm' : 'auto',
-            '--kindy-page-height':
-              pageOptions.layout === 'page' ? pageSize.height + 'cm' : '100%',
-            width:
-              pageOptions.layout === 'page' ? pageSize.width + 'cm' : '100%',
-            transform: `scale(${pageOptions.zoomLevel ? pageOptions.zoomLevel / 100 : 1})`,
-          }"
+          :style="pageContentStyle"
         >
           <div class="kindy-page-node-header" contenteditable="false">
             <div
               class="kindy-page-corner corner-tl"
               style="width: var(--kindy-page-margin-left)"
             ></div>
-
             <div class="kindy-page-node-header-content"></div>
             <div
               class="kindy-page-corner corner-tr"
@@ -150,6 +192,14 @@ const pageOptions = inject('page')
 const editor = inject('editor')
 const commentStore = inject('commentStore')
 
+// Page gap between sheets (px)
+const pageGapPx = 24
+
+// Zoom scale
+const zoomScale = $computed(() =>
+  pageOptions.value.zoomLevel ? pageOptions.value.zoomLevel / 100 : 1,
+)
+
 // Click vào trang giấy: nếu click comment thì mở sidebar, nếu click vùng trắng thì focus trình soạn thảo
 const onPageClick = (event) => {
   const { target } = event
@@ -180,33 +230,126 @@ const pageSize = $computed(() => {
     height: pageOptions.value.orientation === 'portrait' ? height : width,
   }
 })
+
+// Page content style
+const pageContentStyle = $computed(() => ({
+  '--kindy-page-orientation': pageOptions.value.orientation,
+  '--kindy-page-background':
+    pageOptions.value.layout === 'page' ? 'transparent' : pageOptions.value.background,
+  '--kindy-page-margin-top': pageOptions.value.margin?.top + 'cm',
+  '--kindy-page-margin-bottom': pageOptions.value.margin?.bottom + 'cm',
+  '--kindy-page-margin-left': pageOptions.value.margin?.left + 'cm',
+  '--kindy-page-margin-right': pageOptions.value.margin?.right + 'cm',
+  '--kindy-page-width':
+    pageOptions.value.layout === 'page' ? pageSize.width + 'cm' : 'auto',
+  '--kindy-page-height':
+    pageOptions.value.layout === 'page' ? pageSize.height + 'cm' : '100%',
+  '--kindy-page-gap': pageGapPx + 'px',
+  width: pageOptions.value.layout === 'page' ? pageSize.width + 'cm' : '100%',
+  transform: `scale(${zoomScale})`,
+}))
+
+// Pagination: read page count from editor storage
+let paginationPageCount = $ref(1)
+
+const updatePaginationPageCount = () => {
+  if (editor?.value?.storage?.pagination) {
+    const newCount = editor.value.storage.pagination.pageCount || 1
+    if (newCount !== paginationPageCount) {
+      paginationPageCount = newCount
+    }
+  }
+}
+
+// Update pagination options when page settings change
+const updatePaginationOptions = () => {
+  if (!editor?.value?.extensionManager) return
+  const ext = editor.value.extensionManager.extensions.find(
+    (e) => e.name === 'pagination',
+  )
+  if (ext) {
+    ext.options.pageWidth = pageSize.width
+    ext.options.pageHeight = pageSize.height
+    ext.options.marginTop = pageOptions.value.margin?.top ?? 2.54
+    ext.options.marginBottom = pageOptions.value.margin?.bottom ?? 2.54
+    ext.options.marginLeft = pageOptions.value.margin?.left ?? 3.18
+    ext.options.marginRight = pageOptions.value.margin?.right ?? 3.18
+    ext.options.enabled = pageOptions.value.layout === 'page'
+    ext.options.pageGap = pageGapPx
+
+    // Trigger a recalculation
+    if (editor.value.storage.pagination?._updateFn) {
+      editor.value.storage.pagination._updateFn()
+    }
+  }
+}
+
+// Poll for pagination page count changes
+let paginationPollTimer = null
+onMounted(() => {
+  paginationPollTimer = setInterval(() => {
+    updatePaginationPageCount()
+  }, 200)
+})
+onUnmounted(() => {
+  if (paginationPollTimer) {
+    clearInterval(paginationPollTimer)
+  }
+})
+
+// Watch for page option changes and propagate to the pagination extension
+watch(
+  () => [
+    pageOptions.value.layout,
+    pageOptions.value.size,
+    pageOptions.value.orientation,
+    pageOptions.value.margin,
+  ],
+  () => {
+    nextTick(() => {
+      updatePaginationOptions()
+    })
+  },
+  { deep: true },
+)
+
 // 页面缩放后的大小
 const pageZoomWidth = $computed(() => {
   if (pageOptions.value.layout === 'web') {
     return '100%'
   }
-  return `calc(${pageSize.width}cm * ${pageOptions.value.zoomLevel ? pageOptions.value.zoomLevel / 100 : 1})`
+  return `calc(${pageSize.width}cm * ${zoomScale})`
 })
 
 // 页面内容变化后更新页面高度
 let pageZoomHeight = $ref('')
-let pageContentEl = $ref(null)
 let pageHeightRaf = 0
 let pageHeightObserver = $ref(null)
+
 const updatePageZoomHeight = () => {
   if (pageOptions.value.layout === 'web') {
     pageZoomHeight = 'auto'
     return
   }
-  if (!pageContentEl) {
-    console.warn('The element <.kindy-page-content> does not exist.')
+  // In paginated mode, use the sheets layer height
+  const sheetsLayer = document.querySelector(`${container} .kindy-page-sheets-layer`)
+  if (sheetsLayer) {
+    const height = `${sheetsLayer.scrollHeight * zoomScale}px`
+    if (pageZoomHeight !== height) {
+      pageZoomHeight = height
+    }
     return
   }
-  const height = `${(pageContentEl.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
-  if (pageZoomHeight !== height) {
-    pageZoomHeight = height
+  // Fallback: single page mode
+  const pageContentEl = document.querySelector(`${container} .kindy-page-content`)
+  if (pageContentEl) {
+    const height = `${(pageContentEl.clientHeight * zoomScale)}px`
+    if (pageZoomHeight !== height) {
+      pageZoomHeight = height
+    }
   }
 }
+
 const schedulePageZoomHeight = () => {
   if (pageHeightRaf) {
     cancelAnimationFrame(pageHeightRaf)
@@ -216,19 +359,20 @@ const schedulePageZoomHeight = () => {
     updatePageZoomHeight()
   })
 }
+
 onMounted(async () => {
   await nextTick()
-  pageContentEl = document.querySelector(`${container} .kindy-page-content`)
-  if (pageContentEl) {
+  const sheetsLayer = document.querySelector(`${container} .kindy-page-sheets-layer`)
+  const targetEl = sheetsLayer || document.querySelector(`${container} .kindy-page-content`)
+  if (targetEl) {
     pageHeightObserver = new ResizeObserver(() => {
       schedulePageZoomHeight()
     })
-    pageHeightObserver.observe(pageContentEl)
-  } else {
-    console.warn('The element <.kindy-page-content> does not exist.')
+    pageHeightObserver.observe(targetEl)
   }
   schedulePageZoomHeight()
 })
+
 onUnmounted(() => {
   if (pageHeightObserver) {
     pageHeightObserver.disconnect()
@@ -246,6 +390,7 @@ watch(
     pageOptions.value.zoomLevel,
     pageOptions.value.size,
     pageOptions.value.orientation,
+    paginationPageCount,
   ],
   () => {
     schedulePageZoomHeight()
@@ -316,11 +461,10 @@ watch(
   &.kindy-page-container {
     padding: 20px 50px;
     box-sizing: border-box;
+    background-color: var(--kindy-container-background);
     .kindy-zoomable-content {
       margin: 0 auto;
-      box-shadow:
-        rgba(0, 0, 0, 0.06) 0px 0px 10px 0px,
-        rgba(0, 0, 0, 0.04) 0px 0px 0px 1px;
+      position: relative;
     }
   }
   &.kindy-web-container {
@@ -343,17 +487,74 @@ watch(
     box-sizing: border-box;
     display: flex;
     position: relative;
-    box-sizing: border-box;
     background-color: var(--kindy-page-background);
     width: var(--kindy-page-width);
     min-height: var(--kindy-page-height);
     overflow: visible !important;
-    display: flex;
     flex-direction: column;
     [contenteditable] {
       outline: none;
     }
+
+    // When paginated, the content layer floats above the sheets
+    &.kindy-page-content--paginated {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      background: transparent;
+      min-height: unset;
+      pointer-events: auto;
+    }
   }
+}
+
+// Page sheets layer: visual backgrounds for each A4 page
+.kindy-page-sheets-layer {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kindy-page-sheet {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    rgba(0, 0, 0, 0.06) 0px 0px 10px 0px,
+    rgba(0, 0, 0, 0.04) 0px 0px 0px 1px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.kindy-page-sheet-header,
+.kindy-page-sheet-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.kindy-page-sheet-header-content,
+.kindy-page-sheet-footer-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kindy-page-sheet-body {
+  flex: 1;
+}
+
+.kindy-page-number {
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.35);
+  font-family: var(--kindy-font-family);
+  user-select: none;
+  pointer-events: none;
 }
 
 .kindy-page-node-header {

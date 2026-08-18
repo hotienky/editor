@@ -17,10 +17,10 @@ export default {
   page: {
     layouts: ['page', 'web'],
     defaultMargin: {
-      left: 3.18,
-      right: 3.18,
-      top: 2.54,
-      bottom: 2.54,
+      left: 3.0,
+      right: 2.0,
+      top: 2.5,
+      bottom: 2.5,
     },
     defaultOrientation: 'portrait',
     defaultBackground: '#fff',

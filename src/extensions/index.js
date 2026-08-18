@@ -64,6 +64,7 @@ import OfficePaste from './office-paste'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
+import Pagination from './pagination'
 import Placeholder from './placeholder'
 import SearchReplace from './search-replace'
 import Selection from './selection'
@@ -262,6 +263,19 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
 
     // 页面
     PageBreak,
+    Pagination.configure({
+      pageWidth: page?.defaultOrientation === 'portrait'
+        ? (options.value.dicts?.pageSizes?.find((s) => s.default)?.width || 21.0)
+        : (options.value.dicts?.pageSizes?.find((s) => s.default)?.height || 29.7),
+      pageHeight: page?.defaultOrientation === 'portrait'
+        ? (options.value.dicts?.pageSizes?.find((s) => s.default)?.height || 29.7)
+        : (options.value.dicts?.pageSizes?.find((s) => s.default)?.width || 21.0),
+      marginTop: page?.defaultMargin?.top ?? 2.54,
+      marginBottom: page?.defaultMargin?.bottom ?? 2.54,
+      marginLeft: page?.defaultMargin?.left ?? 3.18,
+      marginRight: page?.defaultMargin?.right ?? 3.18,
+      enabled: (page?.layouts?.[0] || 'page') === 'page',
+    }),
 
     // 其他
     Selection,

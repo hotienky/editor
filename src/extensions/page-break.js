@@ -3,6 +3,8 @@ import { mergeAttributes, Node } from '@tiptap/core'
 export default Node.create({
   name: 'pageBreak',
   group: 'block',
+  selectable: false,
+  draggable: false,
   addOptions() {
     return {
       HTMLAttributes: {
@@ -27,10 +29,18 @@ export default Node.create({
     return {
       setPageBreak:
         () =>
-        ({ commands }) =>
-          commands.insertContent({
-            type: this.name,
-          }),
+        ({ chain }) => {
+          return chain()
+            .insertContent({
+              type: this.name,
+            })
+            .insertContent({
+              type: 'paragraph',
+            })
+            .scrollIntoView()
+            .focus('end')
+            .run()
+        },
     }
   },
   addKeyboardShortcuts() {
