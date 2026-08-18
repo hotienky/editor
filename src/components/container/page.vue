@@ -321,82 +321,14 @@ const pageZoomWidth = $computed(() => {
   return `calc(${pageSize.width}cm * ${zoomScale})`
 })
 
-// 页面内容变化后更新页面高度
-let pageZoomHeight = $ref('')
-let pageHeightRaf = 0
-let pageHeightObserver = $ref(null)
-
-const updatePageZoomHeight = () => {
+const pageZoomHeight = $computed(() => {
   if (pageOptions.value.layout === 'web') {
-    pageZoomHeight = 'auto'
-    return
+    return 'auto'
   }
-  // In paginated mode, use the sheets layer height
-  const sheetsLayer = document.querySelector(`${container} .kindy-page-sheets-layer`)
-  if (sheetsLayer) {
-    const height = `${sheetsLayer.scrollHeight * zoomScale}px`
-    if (pageZoomHeight !== height) {
-      pageZoomHeight = height
-    }
-    return
-  }
-  // Fallback: single page mode
-  const pageContentEl = document.querySelector(`${container} .kindy-page-content`)
-  if (pageContentEl) {
-    const height = `${(pageContentEl.clientHeight * zoomScale)}px`
-    if (pageZoomHeight !== height) {
-      pageZoomHeight = height
-    }
-  }
-}
-
-const schedulePageZoomHeight = () => {
-  if (pageHeightRaf) {
-    cancelAnimationFrame(pageHeightRaf)
-  }
-  pageHeightRaf = requestAnimationFrame(() => {
-    pageHeightRaf = 0
-    updatePageZoomHeight()
-  })
-}
-
-onMounted(async () => {
-  await nextTick()
-  const sheetsLayer = document.querySelector(`${container} .kindy-page-sheets-layer`)
-  const targetEl = sheetsLayer || document.querySelector(`${container} .kindy-page-content`)
-  if (targetEl) {
-    pageHeightObserver = new ResizeObserver(() => {
-      schedulePageZoomHeight()
-    })
-    pageHeightObserver.observe(targetEl)
-  }
-  schedulePageZoomHeight()
+  const count = paginationPageCount || 1
+  return `calc((${count} * ${pageSize.height}cm + ${Math.max(0, count - 1)} * ${pageGapPx}px) * ${zoomScale})`
 })
 
-onUnmounted(() => {
-  if (pageHeightObserver) {
-    pageHeightObserver.disconnect()
-    pageHeightObserver = null
-  }
-  if (pageHeightRaf) {
-    cancelAnimationFrame(pageHeightRaf)
-  }
-})
-
-// 页面变化后，更新页面高度
-watch(
-  () => [
-    pageOptions.value.layout,
-    pageOptions.value.zoomLevel,
-    pageOptions.value.size,
-    pageOptions.value.orientation,
-    paginationPageCount,
-  ],
-  () => {
-    schedulePageZoomHeight()
-  },
-  { deep: true },
-)
 
 // 水印
 const watermarkOptions = $ref({
