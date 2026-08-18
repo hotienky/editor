@@ -5,7 +5,9 @@
       @close="pageOptions.showToc = false"
     />
     <div
+      ref="scrollContainerRef"
       :class="`kindy-zoomable-container kindy-${pageOptions.layout}-container kindy-scrollbar`"
+      @scroll.passive="onScroll"
     >
       <div
         class="kindy-zoomable-content"
@@ -14,7 +16,7 @@
           height: pageZoomHeight,
         }"
       >
-        <!-- Multi-page sheets layer (visual page backgrounds) -->
+        <!-- Virtualized multi-page sheets layer (visual page backgrounds) -->
         <div
           v-if="pageOptions.layout === 'page'"
           class="kindy-page-sheets-layer"
@@ -22,17 +24,20 @@
             transform: `scale(${zoomScale})`,
             transformOrigin: '0 0',
             width: pageSize.width + 'cm',
+            height: pageTotalHeightPx + 'px',
           }"
         >
           <div
-            v-for="pageIndex in paginationPageCount"
-            :key="pageIndex"
+            v-for="page in visiblePageSheets"
+            :key="page.index"
             class="kindy-page-sheet"
             :style="{
+              position: 'absolute',
+              top: page.topPx + 'px',
+              left: 0,
               width: pageSize.width + 'cm',
               height: pageSize.height + 'cm',
               background: pageOptions.background || '#fff',
-              marginBottom: pageIndex < paginationPageCount ? pageGapPx + 'px' : '0',
             }"
           >
             <!-- Header area with corner marks -->
@@ -47,7 +52,7 @@
             <div class="kindy-page-sheet-footer" :style="{ height: pageOptions.margin?.bottom + 'cm' }">
               <div class="kindy-page-corner corner-bl" :style="{ width: pageOptions.margin?.left + 'cm' }"></div>
               <div class="kindy-page-sheet-footer-content">
-                <span class="kindy-page-number">{{ pageIndex }} / {{ paginationPageCount }}</span>
+                <span class="kindy-page-number">{{ page.index }} / {{ paginationPageCount }}</span>
               </div>
               <div class="kindy-page-corner corner-br" :style="{ width: pageOptions.margin?.right + 'cm' }"></div>
             </div>
@@ -192,6 +197,9 @@ const pageOptions = inject('page')
 const editor = inject('editor')
 const commentStore = inject('commentStore')
 
+// 1cm in pixels (standard 96 DPI CSS reference pixel)
+const CM_TO_PX = 37.79527559
+
 // Page gap between sheets (px)
 const pageGapPx = 24
 
@@ -199,6 +207,25 @@ const pageGapPx = 24
 const zoomScale = $computed(() =>
   pageOptions.value.zoomLevel ? pageOptions.value.zoomLevel / 100 : 1,
 )
+
+// Scroll container & virtual windowing
+const scrollContainerRef = ref(null)
+let scrollState = $ref({ top: 0, height: 1000 })
+
+const onScroll = (e) => {
+  const target = e?.target || scrollContainerRef.value
+  if (target) {
+    scrollState.top = target.scrollTop
+    scrollState.height = target.clientHeight || 1000
+  }
+}
+
+onMounted(() => {
+  if (scrollContainerRef.value) {
+    scrollState.top = scrollContainerRef.value.scrollTop
+    scrollState.height = scrollContainerRef.value.clientHeight || 1000
+  }
+})
 
 // Click vào trang giấy: nếu click comment thì mở sidebar, nếu click vùng trắng thì focus trình soạn thảo
 const onPageClick = (event) => {
@@ -236,30 +263,93 @@ const pageContentStyle = $computed(() => ({
   '--kindy-page-orientation': pageOptions.value.orientation,
   '--kindy-page-background':
     pageOptions.value.layout === 'page' ? 'transparent' : pageOptions.value.background,
-  '--kindy-page-margin-top': pageOptions.value.margin?.top + 'cm',
-  '--kindy-page-margin-bottom': pageOptions.value.margin?.bottom + 'cm',
-  '--kindy-page-margin-left': pageOptions.value.margin?.left + 'cm',
-  '--kindy-page-margin-right': pageOptions.value.margin?.right + 'cm',
+  '--kindy-page-margin-top': `${pageOptions.value.margin?.top  }cm`,
+  '--kindy-page-margin-bottom': `${pageOptions.value.margin?.bottom  }cm`,
+  '--kindy-page-margin-left': `${pageOptions.value.margin?.left  }cm`,
+  '--kindy-page-margin-right': `${pageOptions.value.margin?.right  }cm`,
   '--kindy-page-width':
-    pageOptions.value.layout === 'page' ? pageSize.width + 'cm' : 'auto',
+    pageOptions.value.layout === 'page' ? `${pageSize.width  }cm` : 'auto',
   '--kindy-page-height':
-    pageOptions.value.layout === 'page' ? pageSize.height + 'cm' : '100%',
-  '--kindy-page-gap': pageGapPx + 'px',
-  width: pageOptions.value.layout === 'page' ? pageSize.width + 'cm' : '100%',
+    pageOptions.value.layout === 'page' ? `${pageSize.height  }cm` : '100%',
+  '--kindy-page-gap': `${pageGapPx  }px`,
+  width: pageOptions.value.layout === 'page' ? `${pageSize.width  }cm` : '100%',
   transform: `scale(${zoomScale})`,
 }))
 
-// Pagination: read page count from editor storage
+// Pagination: read page count from editor storage reactively
 let paginationPageCount = $ref(1)
 
-const updatePaginationPageCount = () => {
-  if (editor?.value?.storage?.pagination) {
-    const newCount = editor.value.storage.pagination.pageCount || 1
-    if (newCount !== paginationPageCount) {
+const singlePageHeightPx = $computed(() => pageSize.height * CM_TO_PX)
+const singlePageSpanPx = $computed(() => singlePageHeightPx + pageGapPx)
+
+const pageTotalHeightPx = $computed(() => {
+  const count = paginationPageCount || 1
+  return count * singlePageHeightPx + Math.max(0, count - 1) * pageGapPx
+})
+
+// Virtual windowing: Only render sheets in visible viewport (+ buffer)
+const visiblePageSheets = $computed(() => {
+  const count = paginationPageCount || 1
+  if (count <= 6) {
+    const list = []
+    for (let i = 1; i <= count; i++) {
+      list.push({
+        index: i,
+        topPx: (i - 1) * singlePageSpanPx,
+      })
+    }
+    return list
+  }
+
+  const effectiveZoom = zoomScale || 1
+  const viewportStart = scrollState.top / effectiveZoom
+  const viewportEnd = (scrollState.top + scrollState.height) / effectiveZoom
+
+  const startIdx = Math.max(1, Math.floor(viewportStart / singlePageSpanPx) - 1)
+  const endIdx = Math.min(count, Math.ceil(viewportEnd / singlePageSpanPx) + 2)
+
+  const list = []
+  for (let i = startIdx; i <= endIdx; i++) {
+    list.push({
+      index: i,
+      topPx: (i - 1) * singlePageSpanPx,
+    })
+  }
+  return list
+})
+
+// Register reactive listener for pagination page count
+let unsubscribePagination = null
+const setupPaginationListener = (editorInst) => {
+  if (unsubscribePagination) {
+    unsubscribePagination()
+    unsubscribePagination = null
+  }
+  const paginationStorage = editorInst?.storage?.pagination
+  if (paginationStorage?.onPageCountChange) {
+    unsubscribePagination = paginationStorage.onPageCountChange((newCount) => {
       paginationPageCount = newCount
+    })
+    if (paginationStorage.pageCount) {
+      paginationPageCount = paginationStorage.pageCount
     }
   }
 }
+
+watch(
+  () => editor?.value,
+  (editorInst) => {
+    setupPaginationListener(editorInst)
+  },
+  { immediate: true },
+)
+
+onUnmounted(() => {
+  if (unsubscribePagination) {
+    unsubscribePagination()
+    unsubscribePagination = null
+  }
+})
 
 // Update pagination options when page settings change
 const updatePaginationOptions = () => {
@@ -283,19 +373,6 @@ const updatePaginationOptions = () => {
     }
   }
 }
-
-// Poll for pagination page count changes
-let paginationPollTimer = null
-onMounted(() => {
-  paginationPollTimer = setInterval(() => {
-    updatePaginationPageCount()
-  }, 200)
-})
-onUnmounted(() => {
-  if (paginationPollTimer) {
-    clearInterval(paginationPollTimer)
-  }
-})
 
 // Watch for page option changes and propagate to the pagination extension
 watch(
@@ -325,8 +402,7 @@ const pageZoomHeight = $computed(() => {
   if (pageOptions.value.layout === 'web') {
     return 'auto'
   }
-  const count = paginationPageCount || 1
-  return `calc((${count} * ${pageSize.height}cm + ${Math.max(0, count - 1)} * ${pageGapPx}px) * ${zoomScale})`
+  return `${pageTotalHeightPx * zoomScale}px`
 })
 
 

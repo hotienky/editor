@@ -75,7 +75,18 @@ const syncDocumentContent = (targetEditor = editorInstance) => {
   if (!$document.value || !targetEditor) {
     return
   }
-  $document.value.content = targetEditor.getHTML()
+  const syncTask = () => {
+    try {
+      $document.value.content = targetEditor.getHTML()
+    } catch (e) {
+      console.warn('[editor] sync document content error:', e)
+    }
+  }
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    window.requestIdleCallback(syncTask, { timeout: 1000 })
+  } else {
+    setTimeout(syncTask, 0)
+  }
 }
 const scheduleSyncDocumentContent = () => {
   if (syncContentTimer !== null) {
@@ -84,7 +95,7 @@ const scheduleSyncDocumentContent = () => {
   syncContentTimer = setTimeout(() => {
     syncContentTimer = null
     syncDocumentContent(editorInstance)
-  }, 800)
+  }, 1200)
 }
 const flushSyncDocumentContent = () => {
   if (syncContentTimer !== null) {
