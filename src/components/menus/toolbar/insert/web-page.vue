@@ -89,10 +89,10 @@ const formData = ref({
 })
 
 onMounted(() => {
-  if (options.value.webPages.length > 0) {
+  if (options.value.webPages?.length > 0) {
     options.value.webPages.forEach((item) => {
       item.label = l(item.label)
-      webPages.push(item)
+      webPages.value.push(item)
     })
   }
 })

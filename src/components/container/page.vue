@@ -772,38 +772,45 @@ const currentImageIndex = $computed({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════ */
 /* PAGE BREAK DECORATION — visual separator between pages (via ProseMirror)   */
+/* Injected automatically by pagination.js as a Decoration.widget             */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 .kindy-page-break-decoration {
   position: relative;
   display: block;
+  /* Extend full page width, compensating for left/right margins and zoom */
   width: calc(100% + calc(var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm)) * var(--page-zoom, 1));
   margin-left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1));
   margin-right: calc(-1 * var(--margin-right, 2.54cm) * var(--page-zoom, 1));
   height: 24px;
   background: var(--kindy-container-background, #e8eaed);
-  border-top: 1px dashed #cbd5e1;
-  border-bottom: 1px dashed #cbd5e1;
+  border-top: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
   margin-top: 24px;
   margin-bottom: 24px;
   user-select: none;
   pointer-events: none;
   z-index: 5;
+  line-height: 0;
+  font-size: 0;
 
   &::after {
     content: attr(data-page);
     position: absolute;
-    right: 16px;
+    right: 24px;
     top: 50%;
     transform: translateY(-50%);
     font-size: 11px;
     font-weight: 600;
     color: #64748b;
     background: #ffffff;
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 2px 10px;
+    border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid #cbd5e1;
     white-space: nowrap;
+    letter-spacing: 0.3px;
   }
 }
 

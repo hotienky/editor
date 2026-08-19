@@ -54,40 +54,64 @@ const prepareEchartsForPrint = (htmlContent) => {
 }
 
 /**
- * Split content by page breaks computed from Layout Engine
+ * Split HTML content by page breaks computed from the pagination layoutTree.
+ * The layoutTree is populated by pagination.js using real DOM block heights.
  */
 const splitContentByLayout = (htmlContent, pageOptions) => {
-  // Get layout from pagination extension
+  // Get layout from pagination extension (computed from real DOM heights)
   const layoutTree = editor.value?.storage?.pagination?.layoutTree
 
-  if (layoutTree?.pages && layoutTree.pages.length > 0) {
-    // Use Layout Tree to split content
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = htmlContent
-    const children = Array.from(tempDiv.childNodes)
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = htmlContent
 
+  // Filter out auto-injected page-break decorations (they are not document content)
+  const children = Array.from(tempDiv.childNodes).filter(
+    (child) =>
+      !(
+        child.nodeType === Node.ELEMENT_NODE &&
+        (child.classList?.contains('kindy-page-break-decoration') ||
+          child.hasAttribute?.('data-decoration'))
+      ),
+  )
+
+  // Use Layout Tree if available (primary path)
+  if (layoutTree?.pages && layoutTree.pages.length > 0) {
     const pages = []
     for (const layoutPage of layoutTree.pages) {
       const pageContent = []
-      for (let i = layoutPage.blockStart; i <= layoutPage.blockEnd && i < children.length; i++) {
+      for (
+        let i = layoutPage.blockStart;
+        i <= layoutPage.blockEnd && i < children.length;
+        i++
+      ) {
         const child = children[i]
         if (child) {
-          pageContent.push(child.outerHTML || child.textContent || '')
+          // Skip manual page-break nodes in print output (handled by @page CSS)
+          if (
+            child.nodeType === Node.ELEMENT_NODE &&
+            child.classList?.contains('kindy-page-break')
+          ) {
+            continue
+          }
+          pageContent.push(
+            child.nodeType === Node.ELEMENT_NODE
+              ? child.outerHTML
+              : child.textContent || '',
+          )
         }
       }
-      pages.push(pageContent.join(''))
+      if (pageContent.length > 0 || pages.length === 0) {
+        pages.push(pageContent.join(''))
+      }
     }
 
-    return pages.length > 0 ? pages : ['']
+    return pages.length > 0 ? pages : [children.map((c) => c.outerHTML || '').join('')]
   }
 
-  // Fallback: split by pageBreak nodes
-  const tempDiv = document.createElement('div')
-  tempDiv.innerHTML = htmlContent
+  // Fallback: split by manual pageBreak nodes if layoutTree is not ready
   const pages = []
   let currentPageContent = []
 
-  const children = Array.from(tempDiv.childNodes)
   for (const child of children) {
     if (
       child.nodeType === Node.ELEMENT_NODE &&
@@ -98,14 +122,18 @@ const splitContentByLayout = (htmlContent, pageOptions) => {
         currentPageContent = []
       }
     } else {
-      currentPageContent.push(child.outerHTML || child.textContent || '')
+      const html =
+        child.nodeType === Node.ELEMENT_NODE
+          ? child.outerHTML
+          : child.textContent || ''
+      if (html) currentPageContent.push(html)
     }
   }
   if (currentPageContent.length > 0) {
     pages.push(currentPageContent.join(''))
   }
 
-  return pages.length > 0 ? pages : ['']
+  return pages.length > 0 ? pages : [htmlContent]
 }
 
 const renderHeader = (pageNumber, totalPages, headerConfig) => {
@@ -303,27 +331,36 @@ const getIframeCode = () => {
 
 const printPage = () => {
   editor.value?.commands.blur()
-  iframeCode = getIframeCode()
 
-  const dialog = useConfirm({
-    attach: container,
-    theme: 'info',
-    header: printing.value ? t('print.title') : t('export.pdf.title'),
-    body: printing.value ? t('print.message') : t('export.pdf.message'),
-    confirmBtn: printing.value ? t('print.confirm') : t('export.pdf.confirm'),
-    onConfirm() {
-      dialog.destroy()
-      setTimeout(() => {
-        if (iframeRef && iframeRef.contentWindow) {
-          iframeRef.contentWindow.print()
-        }
-      }, 300)
-    },
-    onClosed() {
-      printing.value = false
-      exportFile.value.pdf = false
-    },
-  })
+  // Ensure layoutTree is up-to-date before generating print output
+  // repaginate() reads actual DOM heights — must be called while editor DOM is visible
+  editor.value?.commands.repaginate()
+
+  // Small delay to allow repaginate's setTimeout (200ms debounce) to settle
+  // then generate the iframe code from fresh layoutTree
+  setTimeout(() => {
+    iframeCode = getIframeCode()
+
+    const dialog = useConfirm({
+      attach: container,
+      theme: 'info',
+      header: printing.value ? t('print.title') : t('export.pdf.title'),
+      body: printing.value ? t('print.message') : t('export.pdf.message'),
+      confirmBtn: printing.value ? t('print.confirm') : t('export.pdf.confirm'),
+      onConfirm() {
+        dialog.destroy()
+        setTimeout(() => {
+          if (iframeRef && iframeRef.contentWindow) {
+            iframeRef.contentWindow.print()
+          }
+        }, 300)
+      },
+      onClosed() {
+        printing.value = false
+        exportFile.value.pdf = false
+      },
+    })
+  }, 250)
 }
 
 watch(

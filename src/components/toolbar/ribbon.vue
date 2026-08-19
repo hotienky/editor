@@ -310,9 +310,7 @@ const scrollableRef = ref(null)
 const changeMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()
-  if (scrollableRef) {
-    scrollableRef.update()
-  }
+  scrollableRef.value?.update?.()
 }
 </script>
 
