@@ -8,6 +8,7 @@
 
 <script setup>
 import { shortId } from '@/utils/short-id'
+import { generate100PageContract } from '@/utils/generate-50-page-contract'
 
 const editorRef = $ref(null)
 const remoteMentionUsers = [
@@ -57,29 +58,11 @@ const options = $ref({
     // menus: ['base'],
   },
   document: {
-    title: 'Tài liệu Nền tảng Google Docs & MS Word Platform',
-    content: `
-      <h1>🚀 Nền tảng Tài liệu Kindy Document Platform</h1>
-      <p>Chào mừng bạn đến với <strong>Kindy Document Platform</strong> – Trình soạn thảo văn bản chuẩn <strong>Google Docs &amp; Microsoft Word Online</strong> được phát triển trên Vue 3, Tiptap 3 và Yjs CRDT.</p>
-      <h2>✨ Tính năng Nền tảng hoàn thiện:</h2>
-      <ul>
-        <li><strong>Khổ giấy A4 &amp; Phân trang dạng Tab (Document Tabs):</strong> Mỗi trang là 1 Tab độc lập do người dùng tự quản lý ở lề bên trái.</li>
-        <li><strong>Header &amp; Footer chuẩn Word:</strong> Nhấp đôi chuột để chỉnh sửa lề trên/lề dưới độc lập.</li>
-        <li><strong>Building Blocks &amp; Code Box:</strong> Chèn khối mã nguồn có Syntax Highlighting và bảng 1x1 Monospace.</li>
-        <li><strong>Cộng tác Real-time Yjs CRDT &amp; Suggestions:</strong> Gõ chung nhiều người thời gian thực và chế độ Đề xuất chỉnh sửa (Accept/Reject).</li>
-      </ul>
-      <h2>💻 Khối Mã Nguồn (Building Blocks)</h2>
-      <pre><code class="language-python"># Kindy Document Platform - Real-time Collaboration Engine
-import yjs
-
-def sync_document(doc_id):
-    print(f"Syncing document {doc_id} with Yjs CRDT Gateway...")
-    return {"status": "synced", "doc_id": doc_id}</code></pre>
-      <p><em>Bấm "+ Thêm Tab mới" ở thanh Document Tabs bên trái để tự thêm các trang tài liệu độc lập!</em></p>
-    `,
+    title: 'Hợp đồng nguyên tắc hợp tác kinh doanh và chuyển đổi số (100 Trang)',
+    content: generate100PageContract(),
   },
   page: {
-    layouts: ['page', 'web'],
+    layouts: ['web', 'page'],
     showBookmark: true,
   },
   templates,

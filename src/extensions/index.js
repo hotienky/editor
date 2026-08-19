@@ -38,9 +38,6 @@ import Callout from './callout'
 import CodeBlock from './code-block'
 import Columns from './columns'
 import Comment from './comment'
-import ContractVariable from './contract'
-import ContractClause from './contract/clause'
-import SignatureBlock from './contract/signature'
 import Datetime from './datetime'
 import Echarts from './echarts'
 import File from './file'
@@ -179,9 +176,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     'text-box': TextBox,
     'web-page': Iframe,
     comment: Comment,
-    contractVariable: ContractVariable,
-    contractClause: ContractClause,
-    signatureBlock: SignatureBlock,
   }
 
   const buildInExtensions = [

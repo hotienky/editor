@@ -94,8 +94,8 @@ const shortcuts = ref([
   },
 ])
 
-if ($document.value.enableMarkdown) {
-  shortcuts.push({
+if ($document.value?.enableMarkdown) {
+  shortcuts.value.push({
     title: t('shortcut.markdown'),
     items: [
       {

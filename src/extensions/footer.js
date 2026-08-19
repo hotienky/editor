@@ -8,7 +8,7 @@
  */
 
 import { Extension } from '@tiptap/core'
-import { PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { DecorationSet } from '@tiptap/pm/view'
 
 const footerPluginKey = new PluginKey('footer')
@@ -181,7 +181,7 @@ export const Footer = Extension.create({
 
   addProseMirrorPlugins() {
     return [
-      {
+      new Plugin({
         key: footerPluginKey,
         state: {
           init: () => ({
@@ -204,7 +204,7 @@ export const Footer = Extension.create({
             return DecorationSet.empty
           },
         },
-      },
+      }),
     ]
   },
 })

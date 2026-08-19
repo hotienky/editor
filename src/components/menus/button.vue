@@ -1,6 +1,6 @@
 <template>
   <t-tooltip
-    :content="getTooltipContent"
+    :content="tooltipContent"
     :visible="tooltipVisible && !tooltipForceHide"
     theme="light"
     placement="top"
@@ -450,6 +450,8 @@ const getTooltipContent = () => {
   }
   return ''
 }
+
+const tooltipContent = computed(() => getTooltipContent())
 watch(
   () => props.popupVisible,
   (val) => {

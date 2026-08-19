@@ -8,7 +8,7 @@
  */
 
 import { Extension } from '@tiptap/core'
-import { PluginKey } from '@tiptap/pm/state'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { DecorationSet } from '@tiptap/pm/view'
 
 const headerPluginKey = new PluginKey('header')
@@ -205,7 +205,7 @@ export const Header = Extension.create({
 
   addProseMirrorPlugins() {
     return [
-      {
+      new Plugin({
         key: headerPluginKey,
         state: {
           init: () => ({
@@ -229,7 +229,7 @@ export const Header = Extension.create({
             return DecorationSet.empty
           },
         },
-      },
+      }),
     ]
   },
 })
