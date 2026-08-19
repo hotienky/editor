@@ -11,6 +11,6 @@
 </template>
 
 <script setup>
-import { execute } from '@/editing'
+import { execute } from '@umo/editor'
 const editor = inject('editor')
 </script>

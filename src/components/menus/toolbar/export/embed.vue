@@ -7,7 +7,7 @@
   />
   <modal
     :visible="dialogVisible"
-    width="460px"
+    width="min(460px, 90vw)"
     :confirm-btn="t('export.embed.copy')"
     @confirm="copyEmbed"
     @close="dialogVisible = false"

@@ -7,7 +7,7 @@
   >
     <modal
       :visible="dialogVisible"
-      width="960px"
+      width="min(960px, 94vw)"
       @confirm="setConfirm"
       @close="dialogVisible = false"
     >
@@ -311,7 +311,7 @@ const setConfirm = () => {
     margin: {},
   }
   if (!isAdd) {
-    resOptions = JSON.parse(JSON.stringify(curNode.attrs))
+    resOptions = structuredClone(curNode.attrs)
   } else {
     resOptions.id = shortId()
     resOptions.mode = modelMode
@@ -406,7 +406,9 @@ watch(
       disposeChart()
       await nextTick()
       await loadModeEchart()
-    } catch (e) {}
+    } catch (e) {
+      console.warn('ECharts: failed to update chart:', e)
+    }
   },
   { deep: true, immediate: false },
 )
@@ -426,8 +428,8 @@ const loadModeEchart = async () => {
       const newData = calbaseConfigData(baseConfig.data)
       if (!(newData === null || newData.length === 0)) {
         const newOptions = calbaseConfigOptions(
-          JSON.parse(JSON.stringify(newData)),
-          JSON.parse(JSON.stringify(baseConfig.config)),
+          newData,
+          baseConfig.config,
           options.value,
         )
 

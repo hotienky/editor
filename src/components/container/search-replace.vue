@@ -4,7 +4,7 @@
     :visible="searchReplace"
     :footer="false"
     :z-index="200"
-    width="360px"
+    width="min(360px, 90vw)"
     mode="modeless"
     draggable
     @opened="autofocus = true"

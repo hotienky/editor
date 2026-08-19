@@ -9,7 +9,7 @@
 
 // ─── Text Measurement ──────────────────────────────────────────────────────
 
-export {
+import {
   cmToPx,
   pxToCm,
   ptToPx,
@@ -22,9 +22,22 @@ export {
   clearCache as clearMeasureCache,
 } from './text-measurer'
 
+export {
+  cmToPx,
+  pxToCm,
+  ptToPx,
+  getCmToPx,
+  measureText,
+  measureWords,
+  breakTextIntoLines,
+  calculateLineMetrics,
+  estimateBlockHeight,
+  clearMeasureCache,
+}
+
 // ─── Page Calculator ───────────────────────────────────────────────────────
 
-export {
+import {
   PageSizes,
   createPageConfig,
   getContentArea,
@@ -34,9 +47,19 @@ export {
   scrollToPage,
 } from './page-calculator'
 
+export {
+  PageSizes,
+  createPageConfig,
+  getContentArea,
+  computePageBreaks,
+  computeFromNodes,
+  getPageFromScroll,
+  scrollToPage,
+}
+
 // ─── Header/Footer ─────────────────────────────────────────────────────────
 
-export {
+import {
   HeaderFooterScope,
   HeaderFooterLayout,
   shouldShowHeaderFooter,
@@ -47,9 +70,20 @@ export {
   getHeaderFooterContent,
 } from './header-footer'
 
+export {
+  HeaderFooterScope,
+  HeaderFooterLayout,
+  shouldShowHeaderFooter,
+  getHeaderPosition,
+  getFooterPosition,
+  buildHeaderFooterMap,
+  formatHeaderFooterText,
+  getHeaderFooterContent,
+}
+
 // ─── Page Numbers ──────────────────────────────────────────────────────────
 
-export {
+import {
   NumberFormat,
   PageNumberTemplate,
   PageNumberAlign,
@@ -59,19 +93,33 @@ export {
   buildPageNumbers,
 } from './page-numbers'
 
+export {
+  NumberFormat,
+  PageNumberTemplate,
+  PageNumberAlign,
+  formatPageNumber,
+  getPageNumberText,
+  getPageNumberDisplay,
+  buildPageNumbers,
+}
+
 // ─── Layout Engine ─────────────────────────────────────────────────────────
 
-export {
+import {
   LayoutEngine,
   getLayoutEngine,
   createLayoutEngine,
   computeLayout,
 } from './engine'
 
-// ─── Convenience Functions ─────────────────────────────────────────────────
+export {
+  LayoutEngine,
+  getLayoutEngine,
+  createLayoutEngine,
+  computeLayout,
+}
 
-import { getLayoutEngine } from './engine'
-import { createPageConfig, getContentArea } from './page-calculator'
+// ─── Convenience Functions ─────────────────────────────────────────────────
 
 /**
  * Quick layout computation with defaults

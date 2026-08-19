@@ -361,8 +361,8 @@ const clearDoc = () => {
 }
 
 .kindy-doc-inspector-sidebar {
-  width: 380px;
-  background: #ffffff;
+  width: min(380px, 85vw);
+  background: var(--kindy-color-white);
   border-left: 1px solid #e2e8f0;
   padding: 12px;
   overflow-y: auto;

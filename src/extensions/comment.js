@@ -103,21 +103,17 @@ export default Mark.create({
       // Gắn comment vào vùng đang chọn
       setComment:
         (thread) =>
-        ({ chain, state }) => {
+        ({ commands, state }) => {
           const { empty } = state.selection
           if (empty || !thread || !thread.id) {
             return false
           }
-          chain()
-            .focus()
-            .setMark(this.name, {
-              id: thread.id,
-              user: thread.user,
-              color: thread.color,
-              thread: JSON.stringify(thread),
-            })
-            .run()
-          return true
+          return commands.setMark(this.name, {
+            id: thread.id,
+            user: thread.user,
+            color: thread.color,
+            thread: JSON.stringify(thread),
+          })
         },
       // Xóa toàn bộ mark comment theo id
       removeComment:
@@ -197,7 +193,7 @@ export default Mark.create({
       // Di chuyển con trỏ + cuộn tới vùng comment
       focusComment:
         (id) =>
-        ({ editor, tr }) => {
+        ({ editor, tr, dispatch }) => {
           if (!id) {
             return false
           }
@@ -217,7 +213,6 @@ export default Mark.create({
             return false
           }
           const from = Math.min(...ranges.map((item) => item[0]))
-          const to = Math.max(...ranges.map((item) => item[1]))
           const elements = editor.view.dom.querySelectorAll(
             `[data-comment="${id}"]`,
           )
@@ -234,11 +229,9 @@ export default Mark.create({
               inline: 'nearest',
             })
           }
-          if (tr) {
-            tr.setSelection(new TextSelection(tr.doc.resolve(from)))
-            editor.view.dispatch(tr)
+          if (dispatch) {
+            tr.setSelection(TextSelection.create(tr.doc, from))
           }
-          editor.view.focus()
           return true
         },
     }

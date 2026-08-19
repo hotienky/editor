@@ -308,6 +308,18 @@ export class DocumentSerializer {
 
   // ─── Internal Diff ────────────────────────────────────────────────────
 
+  _attrsEqual(a, b) {
+    if (a === b) return true
+    if (!a || !b) return false
+    const keysA = Object.keys(a)
+    const keysB = Object.keys(b)
+    if (keysA.length !== keysB.length) return false
+    for (const key of keysA) {
+      if (a[key] !== b[key]) return false
+    }
+    return true
+  }
+
   _diffNodes(oldNodes, newNodes, path, changes) {
     const maxLen = Math.max(oldNodes?.length || 0, newNodes?.length || 0)
     for (let i = 0; i < maxLen; i++) {
@@ -322,7 +334,7 @@ export class DocumentSerializer {
       } else if (oldNode && newNode) {
         if (oldNode.type !== newNode.type) {
           changes.push({ type: 'replace', path: currentPath, oldNode, newNode })
-        } else if (JSON.stringify(oldNode.attrs) !== JSON.stringify(newNode.attrs)) {
+        } else if (!this._attrsEqual(oldNode.attrs, newNode.attrs)) {
           changes.push({ type: 'attrs', path: currentPath, oldAttrs: oldNode.attrs, newAttrs: newNode.attrs })
         } else if (oldNode.text !== newNode.text) {
           changes.push({ type: 'text', path: currentPath, oldText: oldNode.text, newText: newNode.text })

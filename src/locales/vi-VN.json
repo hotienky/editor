@@ -457,6 +457,22 @@
       "imageSize": "Kích thước hình ảnh",
       "unknownDimensions": "Kích thước không xác định",
       "notEmpty": "Vui lòng tải lên hình ảnh con dấu trước"
+    },
+    "contract": {
+      "text": "Hợp đồng",
+      "insertVariable": "Chèn biến",
+      "insertClause": "Chèn điều khoản",
+      "insertSignature": "Chèn vùng ký tên",
+      "templates": "Mẫu hợp đồng",
+      "variableLabel": "Tên biến",
+      "variableLabelPlaceholder": "VD: Tên bên A",
+      "variableType": "Kiểu dữ liệu",
+      "typeText": "Văn bản",
+      "typeDate": "Ngày",
+      "typeNumber": "Số",
+      "typeMoney": "Tiền tệ",
+      "typeParty": "Bên tham gia",
+      "required": "Bắt buộc"
     }
   },
   "page": {
@@ -486,7 +502,13 @@
       "alignCenter": "Giữa",
       "alignRight": "Phải",
       "borderLabel": "Đường kẻ phân cách",
-      "showBorderText": "Hiện đường gạch ngang Word"
+      "showBorderText": "Hiện đường gạch ngang Word",
+      "badgeLabel": "Đầu trang • Cách lề trên: {margin} cm",
+      "formatOption": "Định dạng đầu trang...",
+      "hideOption": "Ẩn đầu trang",
+      "scopeLabel": "Phạm vi hiển thị",
+      "scopeAll": "Mọi trang (Từng trang)",
+      "scopeFile": "Theo tệp (Trang đầu & Trang cuối)"
     },
     "footer": {
       "text": "Chân trang",
@@ -513,7 +535,11 @@
       "alignCenter": "Giữa",
       "alignRight": "Phải",
       "borderLabel": "Đường kẻ phân cách",
-      "showBorderText": "Hiện đường gạch ngang Word"
+      "showBorderText": "Hiện đường gạch ngang Word",
+      "badgeLabel": "Chân trang • Cách lề dưới: {margin} cm",
+      "formatOption": "Định dạng chân trang...",
+      "hideOption": "Ẩn chân trang",
+      "defaultPageLabel": "Trang {number}"
     },
     "bg": {
       "text": "Nền",
@@ -936,5 +962,68 @@
       "title": "Thông báo",
       "body": "Nội dung clipboard đã được dán, nhưng hình ảnh đi kèm không được xử lý đúng. Vui lòng sao chép và thay thế thủ công các hình ảnh chưa được xử lý trong tài liệu."
     }
+  },
+  "versionHistory": {
+    "title": "Lịch sử phiên bản (Version History)",
+    "autoSaveTip": "Tất cả thay đổi đều được lưu tự động thành các bản ghi lịch sử.",
+    "currentTag": "Hiện tại",
+    "restoreThis": "Khôi phục bản này"
+  },
+  "preferences": {
+    "title": "Tùy chọn tự động thay thế (Preferences)",
+    "smartQuotes": {
+      "sectionTitle": "NGOẶC KÉP THÔNG MINH (SMART QUOTES)",
+      "enableLabel": "Bật Ngoặc kép thông minh (\"\" vs \"\")",
+      "tip": "Tắt tùy chọn này khi lập trình để viết dấu ngoặc kép thẳng \"\" không bị lỗi cú pháp code."
+    },
+    "autoSubstitutions": {
+      "sectionTitle": "BẢNG KÝ TỰ TỰ ĐỘNG THAY THẾ (AUTO-SUBSTITUTIONS)",
+      "shortcutLabel": "Phím tắt",
+      "replacementLabel": "Thay thế bằng",
+      "descriptionLabel": "Mô tả",
+      "arrowRight": "Mũi tên sang phải",
+      "arrowLeft": "Mũi tên sang trái",
+      "copyright": "Bản quyền Copyright",
+      "registered": "Thương hiệu Registered",
+      "trademark": "Nhãn hiệu Trademark",
+      "half": "Phân số một phần hai",
+      "quarter": "Phân số một phần tư",
+      "threeQuarters": "Phân số ba phần tư"
+    }
+  },
+  "ruler": {
+    "marginLeftTooltip": "Kéo viền lề trái trang A4",
+    "marginRightTooltip": "Kéo viền lề phải trang A4",
+    "firstLineIndentTooltip": "Thụt lề dòng đầu tiên (First Line Indent)",
+    "leftIndentTooltip": "Thụt lề trái đoạn văn (Left Indent)",
+    "rightIndentTooltip": "Thụt lề phải đoạn văn (Right Indent)",
+    "marginLeftValue": "Lề trái: {value} cm",
+    "marginRightValue": "Lề phải: {value} cm",
+    "firstLineIndentValue": "Thụt lề dòng đầu: {value} cm",
+    "leftIndentValue": "Thụt lề trái đoạn: {value} cm",
+    "rightIndentValue": "Thụt lề phải đoạn: {value} cm"
+  },
+  "tabs": {
+    "title": "TABS TÀI LIỆU ({count})",
+    "addNew": "Thêm Tab mới",
+    "contextMenu": {
+      "rename": "Đổi tên (Rename)",
+      "duplicate": "Nhân bản (Duplicate)",
+      "moveUp": "Di chuyển lên",
+      "moveDown": "Di chuyển xuống",
+      "delete": "Xóa Tab"
+    }
+  },
+  "suggestions": {
+    "title": "ĐỀ XUẤT CHỈNH SỬA ({count})",
+    "defaultAuthor": "Người dùng",
+    "actionInsert": "Thêm:",
+    "actionDelete": "Xóa:",
+    "accept": "✓ Duyệt",
+    "reject": "✗ Từ chối",
+    "justNow": "Vừa xong"
+  },
+  "common": {
+    "options": "Tùy chọn"
   }
 }

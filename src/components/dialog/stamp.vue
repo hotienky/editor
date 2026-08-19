@@ -1,7 +1,7 @@
 <template>
   <modal
     :visible="visible"
-    width="560px"
+    width="min(560px, 92vw)"
     @confirm="submitStamp"
     @close="emit('update:visible', false)"
   >

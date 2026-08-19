@@ -17,7 +17,12 @@
         :key="index"
         class="kindy-color-picker-item"
         :style="{ backgroundColor: item }"
+        role="button"
+        tabindex="0"
+        :aria-label="item"
         @click="selectColor(item)"
+        @keydown.enter="selectColor(item)"
+        @keydown.space.prevent="selectColor(item)"
       ></div>
     </div>
     <div
@@ -30,7 +35,12 @@
         :key="index"
         class="kindy-color-picker-item"
         :style="{ backgroundColor: item }"
+        role="button"
+        tabindex="0"
+        :aria-label="item"
         @click="selectColor(item)"
+        @keydown.enter="selectColor(item)"
+        @keydown.space.prevent="selectColor(item)"
       ></div>
     </div>
     <div
@@ -44,7 +54,12 @@
         :key="index"
         class="kindy-color-picker-item"
         :style="{ backgroundColor: item }"
+        role="button"
+        tabindex="0"
+        :aria-label="item"
         @click="selectColor(item)"
+        @keydown.enter="selectColor(item)"
+        @keydown.space.prevent="selectColor(item)"
       ></div>
     </div>
     <div class="kindy-color-picker-divider"></div>
@@ -153,16 +168,21 @@ const selectColor = (color) => {
   &-item {
     width: 20px;
     height: 20px;
-    border: solid 1px rgba(0, 0, 0, 0.1);
+    border: solid 1px var(--kindy-border-color);
     margin-bottom: 2px;
     flex-basis: 20px;
     box-sizing: border-box;
     transition: all 0.2s;
     cursor: pointer;
     border-radius: 3px;
+    outline: none;
     &:hover {
       transform: scale(1.1);
-      border-color: rgba(0, 0, 0, 0.3);
+      border-color: var(--kindy-border-color-dark);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--kindy-primary-color);
+      outline-offset: 1px;
     }
   }
   &-divider {

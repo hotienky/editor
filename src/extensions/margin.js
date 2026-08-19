@@ -1,5 +1,6 @@
 import { Extension } from '@tiptap/core'
-import { NodeSelection } from '@tiptap/pm/state'
+
+import { findClosestTargetNode } from '@/utils/prosemirror'
 
 const normalizeMarginValue = (value) => {
   if (value === null || value === undefined) return null
@@ -33,27 +34,6 @@ const isSameMargin = (a, b) => {
   const aBottom = a.bottom || null
   const bBottom = b.bottom || null
   return aTop === bTop && aBottom === bBottom
-}
-
-const findClosestTargetNode = (state, typeNames) => {
-  const { selection } = state
-
-  if (selection instanceof NodeSelection) {
-    const { node } = selection
-    if (node && typeNames.includes(node.type.name)) {
-      return { node, pos: selection.from }
-    }
-  }
-
-  const { $from } = selection
-  for (let { depth } = $from; depth > 0; depth -= 1) {
-    const node = $from.node(depth)
-    if (typeNames.includes(node.type.name)) {
-      return { node, pos: $from.before(depth) }
-    }
-  }
-
-  return null
 }
 
 export default Extension.create({

@@ -1,5 +1,6 @@
 import { mergeAttributes, Node } from '@tiptap/core'
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
+import { t } from '@/composables/i18n'
 
 import NodeView from './node-view.vue'
 

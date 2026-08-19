@@ -8,8 +8,7 @@
  * Architecture: Layer 4 — Render Engine
  */
 
-import { getHeaderFooterContent } from '@/layout/header-footer'
-import { shouldShowHeaderFooter } from '@/layout/header-footer'
+import { getHeaderFooterContent, shouldShowHeaderFooter } from '@umo/layout'
 
 // ─── Header/Footer Renderer Class ──────────────────────────────────────────
 

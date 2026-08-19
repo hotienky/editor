@@ -24,6 +24,10 @@ import {
 import {
   buildPageNumbers,
 } from './page-numbers'
+import {
+  getWorkerManager,
+  isWorkerAvailable,
+} from './worker-manager'
 
 // ─── Layout Tree Types ─────────────────────────────────────────────────────
 
@@ -71,10 +75,12 @@ export class LayoutEngine {
       lineHeight: 1.5,
       ...options.defaults,
     }
+    this._useWorker = options.useWorker !== false && isWorkerAvailable()
+    this._workerManager = null
   }
 
   /**
-   * Compute layout for a document
+   * Compute layout for a document (sync)
    * @param {Array<Object>} nodes - AST nodes (top-level blocks)
    * @param {Object} pageOptions - Page options from editor state
    * @returns {LayoutTree}
@@ -120,6 +126,31 @@ export class LayoutEngine {
       contentArea,
       totalHeight,
       version: this._version,
+    }
+  }
+
+  /**
+   * Compute layout using Web Worker (async)
+   * @param {Array<Object>} nodes - AST nodes (top-level blocks)
+   * @param {Object} pageOptions - Page options from editor state
+   * @returns {Promise<LayoutTree>}
+   */
+  async computeAsync(nodes, pageOptions = {}) {
+    if (!this._useWorker) {
+      return this.compute(nodes, pageOptions)
+    }
+
+    try {
+      const workerManager = getWorkerManager()
+      const result = await workerManager.computeLayout({
+        nodes,
+        pageConfig: createPageConfig(pageOptions),
+        defaults: this._defaults,
+      })
+      return result
+    } catch (error) {
+      console.warn('Worker computation failed, falling back to sync:', error)
+      return this.compute(nodes, pageOptions)
     }
   }
 
@@ -301,4 +332,5 @@ export default {
   getLayoutEngine,
   createLayoutEngine,
   computeLayout,
+  isWorkerAvailable,
 }

@@ -204,7 +204,7 @@ const confirm = () => {
   const _optionData = {
     dataType: 'optionBox',
     target: target === 'checkbox' ? 'checkbox' : 'radio',
-    items: JSON.parse(JSON.stringify(noEmptyData)),
+    items: structuredClone(noEmptyData),
     checked: _checkAll,
     checkAll: showCheckAll === true ? true : false,
   }
@@ -228,7 +228,7 @@ watch(
         const node = editor.value ? getSelectionNode(editor.value) : null
         const attrs = node?.attrs || {}
         if (node?.type?.name === 'optionBox') {
-          items = JSON.parse(JSON.stringify(attrs?.items || []))
+          items = structuredClone(attrs?.items || [])
           target = attrs?.target || 'checkbox'
           showCheckAll = attrs?.checkAll || false
           console.log(items)

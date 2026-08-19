@@ -1,7 +1,7 @@
 <template>
   <modal
     :visible="visible"
-    width="450px"
+    width="min(450px, 92vw)"
     @close="emits('close')"
     @confirm="onConfirm"
   >
@@ -237,7 +237,7 @@ watch(
   () => props.visible,
   (visible) => {
     if (visible && page?.value) {
-      pageOptions.value = JSON.parse(JSON.stringify(page.value))
+      pageOptions.value = structuredClone(page.value)
     }
   },
   { immediate: true },
@@ -264,7 +264,7 @@ const inputPageSize = (value, field) => {
 const selectPageMargin = (margin) => {
   const safeMargin = margin || { left: 2.54, right: 2.54, top: 2.54, bottom: 2.54 }
   if (pageOptions.value) {
-    pageOptions.value.margin = JSON.parse(JSON.stringify(safeMargin))
+    pageOptions.value.margin = structuredClone(safeMargin)
   }
 }
 const inputPageMargin = (value, field) => {
@@ -281,7 +281,7 @@ const inputPageMargin = (value, field) => {
 
 const onConfirm = () => {
   if (page?.value && pageOptions.value) {
-    page.value = JSON.parse(JSON.stringify(pageOptions.value))
+    page.value = structuredClone(pageOptions.value)
   }
   emits('close')
 }

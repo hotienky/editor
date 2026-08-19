@@ -425,7 +425,6 @@ watch(
       oldData: oldPageMargin,
     })
   },
-  { deep: true },
 )
 
 watch(
@@ -497,7 +496,6 @@ watch(
       oldData: oldPageWatermark,
     })
   },
-  { deep: true },
 )
 
 watch(
@@ -505,7 +503,6 @@ watch(
   () => {
     emits('print')
   },
-  { deep: true },
 )
 
 // i18n Setup
@@ -1156,7 +1153,6 @@ const saveContent = async (showMessage = true) => {
         offset: [0, -20],
       })
     }
-    console.error(error?.message)
   } finally {
     isSaving = false
   }
@@ -1214,7 +1210,7 @@ const getContentExcerpt = (charLimit = 100, more = ' ...') => {
   return text?.substring(0, charLimit) + more
 }
 /* Undo/Redo — using Editing Engine UndoManager */
-import { getUndoManager } from '@/editing'
+import { getUndoManager } from '@umo/editor'
 
 const undoManager = getUndoManager()
 

@@ -1,9 +1,9 @@
 <template>
   <menus-button
     ico="page-footer"
-    :text="page.footer?.enable ? t('page.footer.hide') : t('page.footer.show')"
+    :text="t('page.footer.text')"
     huge
-    @menu-click="toggleFooter"
+    @menu-click="openFooterDialog"
   />
 </template>
 
@@ -11,11 +11,16 @@
 import { inject } from 'vue'
 
 const page = inject('page')
+const editor = inject('editor')
 
-const toggleFooter = () => {
+const openFooterDialog = () => {
   if (!page.value.footer) {
-    page.value.footer = { enable: true, text: '' }
+    page.value.footer = { enable: true }
+  } else {
+    page.value.footer.enable = true
   }
-  page.value.footer.enable = !page.value.footer.enable
+  if (editor.value) {
+    editor.value.emit('open-header-footer', 'footer')
+  }
 }
 </script>

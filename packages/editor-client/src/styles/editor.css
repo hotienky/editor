@@ -1,0 +1,335 @@
+/**
+ * UMO Editor Client Styles
+ *
+ * Architecture: Product Layer — Editor Client
+ */
+
+/* ─── Base Reset ─────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+/* ─── Editor Container ───────────────────────────────────────────────── */
+
+.umo-editor-client {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #f8fafc;
+  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  line-height: 1.6;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────── */
+
+.umo-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* ─── Toolbar ────────────────────────────────────────────────────────── */
+
+.umo-editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.umo-toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.umo-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 4px;
+  border-right: 1px solid #e2e8f0;
+}
+
+.umo-toolbar-group:last-child {
+  border-right: none;
+}
+
+.umo-toolbar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.umo-toolbar-button:hover {
+  background-color: #e2e8f0;
+}
+
+.umo-toolbar-button.active {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.umo-toolbar-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Main Content ───────────────────────────────────────────────────── */
+
+.umo-editor-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Document Tabs ──────────────────────────────────────────────────── */
+
+.umo-document-tabs {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  background-color: #f8fafc;
+  border-right: 1px solid #e2e8f0;
+}
+
+.umo-tabs-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.umo-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.umo-tab:hover {
+  background-color: #f1f5f9;
+}
+
+.umo-tab.active {
+  background-color: #e0e7ff;
+  border-left: 3px solid #3b82f6;
+}
+
+.umo-tab-title {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.umo-tab-close {
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.umo-tab-close:hover {
+  color: #ef4444;
+}
+
+.umo-tab-add {
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.umo-tab-add:hover {
+  background-color: #f1f5f9;
+}
+
+/* ─── Editor Content ─────────────────────────────────────────────────── */
+
+.umo-editor-content {
+  flex: 1;
+  overflow: auto;
+  background-color: #f1f5f9;
+}
+
+.umo-viewport {
+  min-height: 100%;
+}
+
+.umo-viewport-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+/* ─── Page ───────────────────────────────────────────────────────────── */
+
+.umo-page {
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 2px;
+  position: relative;
+}
+
+.umo-page-content {
+  min-height: 100%;
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────── */
+
+.umo-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  padding: 0 12px;
+  background-color: #fff;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* ─── Status Bar ─────────────────────────────────────────────────────── */
+
+.umo-status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.umo-status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.umo-status-item {
+  font-size: 12px;
+}
+
+.umo-status-divider {
+  color: #cbd5e1;
+}
+
+.umo-status-right {
+  display: flex;
+  align-items: center;
+}
+
+.umo-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.umo-zoom-btn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.umo-zoom-btn:hover {
+  background-color: #f1f5f9;
+}
+
+.umo-zoom-value {
+  min-width: 40px;
+  text-align: center;
+  font-size: 12px;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────── */
+
+.umo-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.umo-btn-primary {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.umo-btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.umo-btn-ghost {
+  background-color: transparent;
+  color: #64748b;
+}
+
+.umo-btn-ghost:hover {
+  background-color: #f1f5f9;
+}
+
+/* ─── Select ─────────────────────────────────────────────────────────── */
+
+.umo-select {
+  padding: 4px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: #fff;
+}
+
+/* ─── Dark Mode ──────────────────────────────────────────────────────── */
+
+.umo-editor-client.is-dark {
+  background-color: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.umo-editor-client.is-dark .umo-editor-header,
+.umo-editor-client.is-dark .umo-editor-toolbar,
+.umo-editor-client.is-dark .umo-editor-footer {
+  background-color: #16213e;
+  border-color: #0f3460;
+}
+
+.umo-editor-client.is-dark .umo-document-tabs {
+  background-color: #16213e;
+  border-color: #0f3460;
+}
+
+.umo-editor-client.is-dark .umo-tab:hover {
+  background-color: #1a1a2e;
+}
+
+.umo-editor-client.is-dark .umo-tab.active {
+  background-color: #0f3460;
+}
+
+.umo-editor-client.is-dark .umo-page {
+  background-color: #fff;
+}

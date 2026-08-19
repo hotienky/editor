@@ -1,7 +1,7 @@
 <template>
   <modal
     :visible="visible"
-    width="520px"
+    width="min(520px, 92vw)"
     @confirm="onConfirm"
     @close="emit('update:visible', false)"
   >
@@ -22,10 +22,10 @@
 
       <!-- Phạm vi áp dụng Header/Footer: Mọi trang vs Theo tệp (Trang đầu & Trang cuối) -->
       <div class="kindy-hf-form-item">
-        <label class="kindy-hf-label">Phạm vi hiển thị</label>
+        <label class="kindy-hf-label">{{ t('page.header.scopeLabel') }}</label>
         <t-radio-group v-model="form.scope" variant="default-filled" size="small">
-          <t-radio-button value="all">Mọi trang (Từng trang)</t-radio-button>
-          <t-radio-button value="file">Theo tệp (Trang đầu & Trang cuối)</t-radio-button>
+          <t-radio-button value="all">{{ t('page.header.scopeAll') }}</t-radio-button>
+          <t-radio-button value="file">{{ t('page.header.scopeFile') }}</t-radio-button>
         </t-radio-group>
       </div>
 

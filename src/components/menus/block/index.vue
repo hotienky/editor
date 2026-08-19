@@ -56,7 +56,7 @@ const dropdownVisible = (visible) => {
     transform: translateX(-15px);
     padding: 2px;
     border-radius: 3px;
-    background-color: #fff;
+    background-color: var(--kindy-color-white);
     margin-top: -5px;
     &:hover {
       outline: none;

@@ -8,7 +8,7 @@
     <modal
       :visible="dialogVisible"
       icon="math"
-      width="734px"
+      width="min(734px, 92vw)"
       :confirm-btn="{
         disabled: latexValue === '',
       }"

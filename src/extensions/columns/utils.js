@@ -38,6 +38,21 @@ export const updateColumnNodeWidth = (view, pos, attrs, width) => {
   )
 }
 
+export const findParentNodeByType = ($pos, typeName) => {
+  for (let { depth } = $pos; depth > 0; depth--) {
+    const node = $pos.node(depth)
+    if (node.type.name === typeName) {
+      return {
+        node,
+        depth,
+        index: depth > 0 ? $pos.index(depth - 1) : 0,
+        pos: depth > 0 ? $pos.before(depth) : 0,
+      }
+    }
+  }
+  return null
+}
+
 export const getColumnInfoAtPos = (view, boundaryPos) => {
   const $pos = view.state.doc.resolve(boundaryPos)
   const node = $pos.parent

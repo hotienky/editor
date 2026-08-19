@@ -1,25 +1,25 @@
 <template>
   <t-dialog
     v-model:visible="visible"
-    header="Tùy chọn tự động thay thế (Preferences)"
-    width="520px"
+    :header="t('preferences.title')"
+    width="min(520px, 92vw)"
     :footer="false"
   >
     <div class="kindy-preferences-dialog">
       <div class="pref-section">
-        <h4>NGOẶC KÉP THÔNG MINH (SMART QUOTES)</h4>
+        <h4>{{ t('preferences.smartQuotes.sectionTitle') }}</h4>
         <t-checkbox v-model="smartQuotes">
-          Bật Ngoặc kép thông minh (“” vs "")
+          {{ t('preferences.smartQuotes.enableLabel') }}
         </t-checkbox>
         <p class="pref-tip">
-          Tắt tùy chọn này khi lập trình để viết dấu ngoặc kép thẳng <code>""</code> không bị lỗi cú pháp code.
+          {{ t('preferences.smartQuotes.tip') }}
         </p>
       </div>
 
       <t-divider />
 
       <div class="pref-section">
-        <h4>BẢNG KÝ TỰ TỰ ĐỘNG THAY THẾ (AUTO-SUBSTITUTIONS)</h4>
+        <h4>{{ t('preferences.autoSubstitutions.sectionTitle') }}</h4>
         <t-table
           row-key="shortcut"
           :data="substitutionsData"
@@ -39,20 +39,20 @@ const visible = defineModel('visible', { type: Boolean, default: false })
 const smartQuotes = ref(true)
 
 const columns = [
-  { colKey: 'shortcut', title: 'Phím tắt', width: '120px' },
-  { colKey: 'replacement', title: 'Thay thế bằng', width: '120px' },
-  { colKey: 'description', title: 'Mô tả' },
+  { colKey: 'shortcut', title: t('preferences.autoSubstitutions.shortcutLabel'), width: '120px' },
+  { colKey: 'replacement', title: t('preferences.autoSubstitutions.replacementLabel'), width: '120px' },
+  { colKey: 'description', title: t('preferences.autoSubstitutions.descriptionLabel') },
 ]
 
 const substitutionsData = [
-  { shortcut: '-->', replacement: '→', description: 'Mũi tên sang phải' },
-  { shortcut: '<--', replacement: '←', description: 'Mũi tên sang trái' },
-  { shortcut: '(c)', replacement: '©', description: 'Bản quyền Copyright' },
-  { shortcut: '(r)', replacement: '®', description: 'Thương hiệu Registered' },
-  { shortcut: '(tm)', replacement: '™', description: 'Nhãn hiệu Trademark' },
-  { shortcut: '1/2', replacement: '½', description: 'Phân số một phần hai' },
-  { shortcut: '1/4', replacement: '¼', description: 'Phân số một phần tư' },
-  { shortcut: '3/4', replacement: '¾', description: 'Phân số ba phần tư' },
+  { shortcut: '-->', replacement: '→', description: t('preferences.autoSubstitutions.arrowRight') },
+  { shortcut: '<--', replacement: '←', description: t('preferences.autoSubstitutions.arrowLeft') },
+  { shortcut: '(c)', replacement: '©', description: t('preferences.autoSubstitutions.copyright') },
+  { shortcut: '(r)', replacement: '®', description: t('preferences.autoSubstitutions.registered') },
+  { shortcut: '(tm)', replacement: '™', description: t('preferences.autoSubstitutions.trademark') },
+  { shortcut: '1/2', replacement: '½', description: t('preferences.autoSubstitutions.half') },
+  { shortcut: '1/4', replacement: '¼', description: t('preferences.autoSubstitutions.quarter') },
+  { shortcut: '3/4', replacement: '¾', description: t('preferences.autoSubstitutions.threeQuarters') },
 ]
 </script>
 
@@ -69,17 +69,17 @@ const substitutionsData = [
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.5px;
-      color: #64748b;
+      color: var(--kindy-text-color-light);
       margin: 0;
     }
 
     .pref-tip {
       font-size: 12px;
-      color: #64748b;
+      color: var(--kindy-text-color-light);
       margin: 4px 0 0;
 
       code {
-        background: #f1f5f9;
+        background: var(--kindy-content-code-background);
         padding: 2px 6px;
         border-radius: 4px;
         font-family: monospace;

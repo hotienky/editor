@@ -33,6 +33,7 @@ export const PageSizes = {
  * @property {Object} margin - { top, bottom, left, right } in cm
  * @property {Object} header - Header config { enable, height } in cm
  * @property {Object} footer - Footer config { enable, height } in cm
+ * @property {Object} widowOrphan - Widow/orphan control config
  */
 
 /**
@@ -46,6 +47,7 @@ export function createPageConfig(pageOptions = {}) {
   const margin = pageOptions.margin || { top: 2.54, bottom: 2.54, left: 2.54, right: 2.54 }
   const header = pageOptions.header || { enable: false, marginTop: 1.5 }
   const footer = pageOptions.footer || { enable: false, marginBottom: 1.5 }
+  const widowOrphan = pageOptions.widowOrphan || { enable: true, widowLines: 2, orphanLines: 2 }
 
   const pageWidth = orientation === 'landscape' ? size.height : size.width
   const pageHeight = orientation === 'landscape' ? size.width : size.height
@@ -68,6 +70,11 @@ export function createPageConfig(pageOptions = {}) {
     footer: {
       enable: footer.enable !== false,
       height: footer.marginBottom || 1.5,
+    },
+    widowOrphan: {
+      enable: widowOrphan.enable !== false,
+      widowLines: widowOrphan.widowLines || 2,
+      orphanLines: widowOrphan.orphanLines || 2,
     },
   }
 }
@@ -95,6 +102,42 @@ export function getContentArea(config) {
   }
 }
 
+// ─── Widow/Orphan Control ──────────────────────────────────────────────────
+
+/**
+ * Check if a block can be moved to the next page to avoid widows/orphans
+ * @param {Object} block - Current block
+ * @param {Object} prevBlock - Previous block
+ * @param {PageConfig} config - Page configuration
+ * @param {number} availableHeight - Available height on current page
+ * @returns {boolean} True if block should be moved to next page
+ */
+function shouldMoveToNextPage(block, prevBlock, config, availableHeight) {
+  if (!config.widowOrphan.enable) return false
+  if (!prevBlock) return false
+
+  const { widowLines, orphanLines } = config.widowOrphan
+  const lineHeight = 24 // Default line height in px
+
+  // Check for orphan (first lines of paragraph on previous page)
+  if (prevBlock.height > lineHeight * orphanLines) {
+    const remainingHeight = availableHeight - prevBlock.height
+    if (remainingHeight < lineHeight * orphanLines) {
+      return true
+    }
+  }
+
+  // Check for widow (last lines of paragraph on next page)
+  if (block.height > lineHeight * widowLines) {
+    const remainingHeight = availableHeight
+    if (remainingHeight < lineHeight * widowLines) {
+      return true
+    }
+  }
+
+  return false
+}
+
 // ─── Page Break Calculation ────────────────────────────────────────────────
 
 /**
@@ -102,6 +145,7 @@ export function getContentArea(config) {
  * @property {number} blockIndex - Index of the block that starts the new page
  * @property {number} blockPos - ProseMirror position of the block
  * @property {number} prevBlockPos - ProseMirror position of the last block on previous page
+ * @property {string} reason - Reason for page break ('overflow', 'widow', 'orphan', 'section')
  */
 
 /**
@@ -111,13 +155,14 @@ export function getContentArea(config) {
  * @property {number} blockEnd - Index of last block on this page (inclusive)
  * @property {number} startY - Y offset from top of content area (in px)
  * @property {number} height - Height of content on this page (in px)
+ * @property {boolean} isSectionBreak - True if this page starts a new section
  */
 
 /**
  * Compute page breaks from a list of block heights
  * @param {Array<{height: number, pos: number, type: string}>} blocks - Block info
  * @param {PageConfig} config - Page configuration
- * @returns {{ breaks: PageBreak[], pages: PageAssignment[], totalHeight: number }}
+ * @returns {{ breaks: PageBreak[], pages: PageAssignment[], totalHeight: number, totalPages: number }}
  */
 export function computePageBreaks(blocks, config) {
   const contentArea = getContentArea(config)
@@ -132,8 +177,10 @@ export function computePageBreaks(blocks, config) {
         blockEnd: -1,
         startY: 0,
         height: 0,
+        isSectionBreak: false,
       }],
       totalHeight: 0,
+      totalPages: 1,
     }
   }
 
@@ -146,30 +193,87 @@ export function computePageBreaks(blocks, config) {
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]
     const blockHeight = block.height || 0
+    const prevBlock = i > 0 ? blocks[i - 1] : null
+
+    // Check if this block is a section break
+    if (block.type === 'sectionBreak') {
+      // Force page break for section breaks
+      if (currentPageStart < i) {
+        breaks.push({
+          blockIndex: i,
+          blockPos: block.pos,
+          prevBlockPos: prevBlock?.pos || 0,
+          reason: 'section',
+        })
+
+        pages.push({
+          pageNumber: totalPages,
+          blockStart: currentPageStart,
+          blockEnd: i - 1,
+          startY: pages.length > 0
+            ? pages[pages.length - 1].startY + pages[pages.length - 1].height
+            : 0,
+          height: currentY,
+          isSectionBreak: false,
+        })
+
+        totalPages++
+        currentPageStart = i
+        currentY = blockHeight
+      }
+      continue
+    }
 
     // Check if this block fits on the current page
     if (currentY + blockHeight > availableHeight && currentPageStart < i) {
-      // This block starts a new page
-      breaks.push({
-        blockIndex: i,
-        blockPos: block.pos,
-        prevBlockPos: blocks[i - 1]?.pos || 0,
-      })
+      // Check widow/orphan control
+      if (shouldMoveToNextPage(block, prevBlock, config, availableHeight - currentY)) {
+        // Move to next page to avoid widow/orphan
+        breaks.push({
+          blockIndex: i,
+          blockPos: block.pos,
+          prevBlockPos: prevBlock?.pos || 0,
+          reason: 'widow/orphan',
+        })
 
-      // Finalize current page
-      pages.push({
-        pageNumber: totalPages,
-        blockStart: currentPageStart,
-        blockEnd: i - 1,
-        startY: currentPageStart === 0 ? 0 : pages.length > 0
-          ? pages[pages.length - 1].startY + pages[pages.length - 1].height
-          : 0,
-        height: currentY,
-      })
+        pages.push({
+          pageNumber: totalPages,
+          blockStart: currentPageStart,
+          blockEnd: i - 1,
+          startY: pages.length > 0
+            ? pages[pages.length - 1].startY + pages[pages.length - 1].height
+            : 0,
+          height: currentY,
+          isSectionBreak: false,
+        })
 
-      totalPages++
-      currentPageStart = i
-      currentY = blockHeight
+        totalPages++
+        currentPageStart = i
+        currentY = blockHeight
+      } else {
+        // Normal page break due to overflow
+        breaks.push({
+          blockIndex: i,
+          blockPos: block.pos,
+          prevBlockPos: prevBlock?.pos || 0,
+          reason: 'overflow',
+        })
+
+        pages.push({
+          pageNumber: totalPages,
+          blockStart: currentPageStart,
+          blockEnd: i - 1,
+          startY: pages.length > 0
+            ? pages[pages.length - 1].startY + pages[pages.length - 1].height
+            : 0,
+          height: currentY,
+          isSectionBreak: false,
+        })
+
+        totalPages++
+        currentPageStart = i
+        currentY = blockHeight
+      }
     } else {
       currentY += blockHeight
     }
@@ -184,6 +288,7 @@ export function computePageBreaks(blocks, config) {
       ? pages[pages.length - 1].startY + pages[pages.length - 1].height
       : 0,
     height: currentY,
+    isSectionBreak: false,
   })
 
   return {
@@ -254,6 +359,41 @@ export function scrollToPage(pageNumber, pages, zoomLevel = 100) {
   return page.startY * zoom
 }
 
+/**
+ * Get page information for a given block index
+ * @param {number} blockIndex - Block index
+ * @param {PageAssignment[]} pages - Page assignments
+ * @returns {PageAssignment|null}
+ */
+export function getPageForBlock(blockIndex, pages) {
+  if (!pages || pages.length === 0) return null
+
+  for (const page of pages) {
+    if (blockIndex >= page.blockStart && blockIndex <= page.blockEnd) {
+      return page
+    }
+  }
+  return null
+}
+
+/**
+ * Get all blocks on a specific page
+ * @param {number} pageNumber - Page number
+ * @param {PageAssignment[]} pages - Page assignments
+ * @returns {{ blockStart: number, blockEnd: number }|null}
+ */
+export function getBlocksOnPage(pageNumber, pages) {
+  if (!pages || pages.length === 0) return null
+
+  const page = pages.find(p => p.pageNumber === pageNumber)
+  if (!page) return null
+
+  return {
+    blockStart: page.blockStart,
+    blockEnd: page.blockEnd,
+  }
+}
+
 export default {
   PageSizes,
   createPageConfig,
@@ -262,4 +402,6 @@ export default {
   computeFromNodes,
   getPageFromScroll,
   scrollToPage,
+  getPageForBlock,
+  getBlocksOnPage,
 }

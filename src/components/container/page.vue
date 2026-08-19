@@ -39,11 +39,123 @@
               '--kindy-page-height': (pageSize?.height || 29.7) + 'cm',
             }"
           >
+            <!-- GOOGLE DOCS STYLE HEADER OVERLAY -->
+            <div
+              v-if="pageOptions.header?.enable !== false"
+              class="kindy-gdocs-header-zone"
+              @dblclick="openHeaderDialog"
+              title="Double click to edit Header"
+            >
+              <div class="kindy-gdocs-hf-badge">
+                <span class="badge-title">{{ t('page.header.badgeLabel', { margin: pageOptions.header?.marginTop || 1.25 }) }}</span>
+                <t-dropdown
+                  :options="[
+                    { content: t('page.header.formatOption'), value: 'dialog' },
+                    { content: t('page.header.hideOption'), value: 'hide' }
+                  ]"
+                  @click="onHeaderOptionSelect"
+                >
+                  <t-button size="small" variant="text" class="kindy-gdocs-options-btn">
+                    <span>{{ t('common.options') }}</span>
+                    <icon name="caret-down" />
+                  </t-button>
+                </t-dropdown>
+              </div>
+
+              <div v-if="pageOptions.header?.layout === 'split'" class="kindy-gdocs-hf-split">
+                <div class="kindy-gdocs-hf-left">
+                  <img
+                    v-if="pageOptions.header?.logo"
+                    :src="pageOptions.header.logo"
+                    :style="{ width: (pageOptions.header.logoWidth || 110) + 'px' }"
+                    alt="Logo"
+                  />
+                  <span v-if="pageOptions.header?.leftText">{{ pageOptions.header.leftText }}</span>
+                </div>
+                <div
+                  class="kindy-gdocs-hf-right"
+                  :style="{
+                    color: pageOptions.header?.fontColor || '#0072bc',
+                    fontSize: (pageOptions.header?.fontSize || 14) + 'px',
+                    fontWeight: pageOptions.header?.fontWeight || 'bold',
+                    fontFamily: pageOptions.header?.fontFamily || 'inherit'
+                  }"
+                >
+                  {{ pageOptions.header?.rightText || pageOptions.header?.text }}
+                </div>
+              </div>
+              <div
+                v-else
+                class="kindy-gdocs-hf-single"
+                :style="{
+                  textAlign: pageOptions.header?.align || 'center',
+                  color: pageOptions.header?.fontColor || '#0072bc',
+                  fontSize: (pageOptions.header?.fontSize || 14) + 'px',
+                  fontWeight: pageOptions.header?.fontWeight || 'bold'
+                }"
+              >
+                <img
+                  v-if="pageOptions.header?.logo"
+                  :src="pageOptions.header.logo"
+                  :style="{ width: (pageOptions.header.logoWidth || 110) + 'px', display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }"
+                  alt="Logo"
+                />
+                <span>{{ pageOptions.header?.text || pageOptions.header?.leftText || pageOptions.header?.rightText }}</span>
+              </div>
+            </div>
+
+            <!-- RIGHT-MARGIN GOOGLE DOCS (+) ADD COMMENT ACTION BUTTON -->
+            <div
+              v-if="hasSelection"
+              class="kindy-gdocs-selection-add-comment-btn"
+              :style="{ top: selectionBtnTop + 'px' }"
+              title="Thêm bình luận (Cmd+Option+M)"
+              @mousedown.prevent
+              @click="addCommentFromSelection"
+            >
+              <icon name="comment" />
+            </div>
+
             <editor>
               <template #bubble_menu="props">
                 <slot name="bubble_menu" v-bind="props" />
               </template>
             </editor>
+
+            <!-- GOOGLE DOCS STYLE FOOTER OVERLAY -->
+            <div
+              v-if="pageOptions.footer?.enable"
+              class="kindy-gdocs-footer-zone"
+              @dblclick="openFooterDialog"
+              title="Double click to edit Footer"
+            >
+              <div class="kindy-gdocs-hf-badge footer-badge">
+                <span class="badge-title">{{ t('page.footer.badgeLabel', { margin: pageOptions.footer?.marginBottom || 1.25 }) }}</span>
+                <t-dropdown
+                  :options="[
+                    { content: t('page.footer.formatOption'), value: 'dialog' },
+                    { content: t('page.footer.hideOption'), value: 'hide' }
+                  ]"
+                  @click="onFooterOptionSelect"
+                >
+                  <t-button size="small" variant="text" class="kindy-gdocs-options-btn">
+                    <span>{{ t('common.options') }}</span>
+                    <icon name="caret-down" />
+                  </t-button>
+                </t-dropdown>
+              </div>
+
+              <div
+                class="kindy-gdocs-hf-single"
+                :style="{
+                  textAlign: pageOptions.footer?.align || 'center',
+                  color: pageOptions.footer?.fontColor || '#64748b',
+                  fontSize: (pageOptions.footer?.fontSize || 12) + 'px'
+                }"
+              >
+                <span>{{ pageOptions.footer?.text || pageOptions.footer?.leftText || pageOptions.footer?.rightText || 'Trang 1' }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -73,6 +185,7 @@
     <container-search-replace />
     <container-print />
     <container-comment v-if="commentStore.visible" />
+    <dialog-header-footer v-model:visible="hfDialogVisible" :target-type="hfDialogType" />
     <dialog-preferences v-model:visible="prefDialogVisible" />
     <dialog-version-history v-model:visible="historyDialogVisible" />
   </div>
@@ -81,6 +194,7 @@
 <script setup>
 import { ref, computed, watch, inject, shallowRef } from 'vue'
 import Editor from '@/components/editor/index.vue'
+import DialogHeaderFooter from '@/components/dialog/header-footer.vue'
 import DialogPreferences from '@/components/dialog/preferences.vue'
 import DialogVersionHistory from '@/components/dialog/version-history.vue'
 import ContainerTabs from '@/components/container/tabs.vue'
@@ -102,6 +216,75 @@ let hfDialogType = ref('header')
 let isHeaderFocused = ref(false)
 let isFooterFocused = ref(false)
 let currentPageFromScroll = ref(1)
+
+const openHeaderDialog = () => {
+  hfDialogType.value = 'header'
+  hfDialogVisible.value = true
+}
+
+const openFooterDialog = () => {
+  hfDialogType.value = 'footer'
+  hfDialogVisible.value = true
+}
+
+const onHeaderOptionSelect = (data) => {
+  if (data.value === 'dialog') {
+    openHeaderDialog()
+  } else if (data.value === 'hide') {
+    pageOptions.value.header.enable = false
+  }
+}
+
+const onFooterOptionSelect = (data) => {
+  if (data.value === 'dialog') {
+    openFooterDialog()
+  } else if (data.value === 'hide') {
+    pageOptions.value.footer.enable = false
+  }
+}
+
+let hasSelection = ref(false)
+let selectionBtnTop = ref(100)
+
+const updateSelectionState = () => {
+  if (!editor?.value) return
+  const { selection } = editor.value.state
+  if (!selection || selection.empty) {
+    hasSelection.value = false
+    return
+  }
+  hasSelection.value = true
+  try {
+    const coords = editor.value.view.coordsAtPos(selection.from)
+    const canvasEl = document.querySelector('.kindy-page-editor-wrap')
+    if (canvasEl) {
+      const canvasRect = canvasEl.getBoundingClientRect()
+      selectionBtnTop.value = Math.max(16, coords.top - canvasRect.top - 6)
+    }
+  } catch (e) {
+    // fallback position
+  }
+}
+
+const addCommentFromSelection = () => {
+  commentStore.addComment()
+  commentStore.toggle(true)
+}
+
+watch(
+  () => editor.value,
+  (instance) => {
+    if (instance) {
+      instance.on('open-header-footer', (type) => {
+        hfDialogType.value = type || 'header'
+        hfDialogVisible.value = true
+      })
+      instance.on('selectionUpdate', updateSelectionState)
+      instance.on('transaction', updateSelectionState)
+    }
+  },
+  { immediate: true },
+)
 
 const activeConfig = $computed(() => {
   if (isHeaderFocused) return pageOptions.value.header
@@ -460,6 +643,132 @@ const currentImageIndex = $computed({
   [contenteditable] {
     outline: none;
   }
+}
+
+.kindy-gdocs-selection-add-comment-btn {
+  position: absolute;
+  right: -42px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #1a73e8;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.15), 0 1px 2px rgba(60, 64, 67, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 50;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    background: #f8fafc;
+    color: #1557b0;
+  }
+}
+
+.kindy-gdocs-header-zone {
+  position: absolute;
+  top: 0.4cm;
+  left: calc(var(--margin-left, 2.54cm) * var(--page-zoom, 1));
+  right: calc(var(--margin-right, 2.54cm) * var(--page-zoom, 1));
+  height: calc((var(--margin-top, 2.54cm) - 0.6cm) * var(--page-zoom, 1));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
+  z-index: 10;
+  border-bottom: 1px transparent dashed;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  padding-bottom: 4px;
+
+  &:hover {
+    border-bottom-color: #1a73e8;
+    background: rgba(26, 115, 232, 0.03);
+
+    .kindy-gdocs-hf-badge {
+      opacity: 1;
+    }
+  }
+}
+
+.kindy-gdocs-footer-zone {
+  position: absolute;
+  bottom: 0.4cm;
+  left: calc(var(--margin-left, 2.54cm) * var(--page-zoom, 1));
+  right: calc(var(--margin-right, 2.54cm) * var(--page-zoom, 1));
+  height: calc((var(--margin-bottom, 2.54cm) - 0.6cm) * var(--page-zoom, 1));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
+  z-index: 10;
+  border-top: 1px transparent dashed;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  padding-top: 4px;
+
+  &:hover {
+    border-top-color: #1a73e8;
+    background: rgba(26, 115, 232, 0.03);
+
+    .kindy-gdocs-hf-badge {
+      opacity: 1;
+    }
+  }
+}
+
+.kindy-gdocs-hf-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 500;
+  color: #5f6368;
+  margin-bottom: 4px;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+
+  &.footer-badge {
+    margin-bottom: 0;
+    margin-top: 4px;
+  }
+
+  .badge-title {
+    letter-spacing: 0.2px;
+  }
+
+  .kindy-gdocs-options-btn {
+    font-size: 11px;
+    height: 22px;
+    padding: 0 6px;
+    color: #1a73e8;
+
+    &:hover {
+      background: rgba(26, 115, 232, 0.08);
+    }
+  }
+}
+
+.kindy-gdocs-hf-split {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.kindy-gdocs-hf-left,
+.kindy-gdocs-hf-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kindy-gdocs-hf-single {
+  width: 100%;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */

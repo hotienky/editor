@@ -3,7 +3,7 @@
     <div class="kindy-tabs-header">
       <div v-if="!isCollapsed" class="tabs-title">
         <icon name="file" />
-        <span>TABS TÀI LIỆU ({{ tabs.length }})</span>
+        <span>{{ t('tabs.title', { count: tabs.length }) }}</span>
       </div>
       <t-button
         variant="text"
@@ -51,7 +51,7 @@
         class="add-tab-btn"
         @click="addTab()"
       >
-        <icon name="add" /> Thêm Tab mới
+        <icon name="add" /> {{ t('tabs.addNew') }}
       </t-button>
     </div>
   </div>
@@ -91,11 +91,11 @@ const saveRename = (id) => {
 }
 
 const getTabMenuOptions = (tab, index) => [
-  { content: 'Đổi tên (Rename)', value: 'rename' },
-  { content: 'Nhân bản (Duplicate)', value: 'duplicate' },
-  { content: 'Di chuyển lên', value: 'move-up', disabled: index === 0 },
-  { content: 'Di chuyển xuống', value: 'move-down', disabled: index === tabs.value.length - 1 },
-  { content: 'Xóa Tab', value: 'delete', disabled: tabs.value.length <= 1 },
+  { content: t('tabs.contextMenu.rename'), value: 'rename' },
+  { content: t('tabs.contextMenu.duplicate'), value: 'duplicate' },
+  { content: t('tabs.contextMenu.moveUp'), value: 'move-up', disabled: index === 0 },
+  { content: t('tabs.contextMenu.moveDown'), value: 'move-down', disabled: index === tabs.value.length - 1 },
+  { content: t('tabs.contextMenu.delete'), value: 'delete', disabled: tabs.value.length <= 1 },
 ]
 
 const handleTabAction = (tab, data) => {

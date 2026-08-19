@@ -1,4 +1,5 @@
 import { mergeAttributes, Node } from '@tiptap/core'
+import { t } from '@/composables/i18n'
 
 export default Node.create({
   name: 'pageBreak',

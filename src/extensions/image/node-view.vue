@@ -737,6 +737,57 @@ const renderPlantumlToImageSrc = async (seq) => {
   applyRenderedDiagram(await response.text(), seq)
 }
 
+const normalizeFlowchartContent = (content) => {
+  if (!content) return { data: '', config: {} }
+  const text = String(content).trim()
+
+  // Try to parse as JSON with config
+  try {
+    const parsed = JSON.parse(text)
+    if (parsed && typeof parsed === 'object') {
+      return {
+        data: parsed.data || parsed.diagram || parsed.code || '',
+        config: parsed.config || parsed.options || {},
+      }
+    }
+  } catch {
+    // Not JSON, treat as plain flowchart code
+  }
+
+  // Check for YAML-like config block (---\n...\n---\n<diagram>)
+  const configMatch = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  if (configMatch) {
+    try {
+      const config = {}
+      configMatch[1].split('\n').forEach(line => {
+        const [key, ...valueParts] = line.split(':')
+        if (key && valueParts.length > 0) {
+          config[key.trim()] = valueParts.join(':').trim()
+        }
+      })
+      return { data: configMatch[2].trim(), config }
+    } catch {
+      // Fall through
+    }
+  }
+
+  // Plain text flowchart code
+  return { data: text, config: {} }
+}
+
+const initFlowchartBaseConfig = (config = {}) => {
+  return {
+    startNode: config.startNode || config.start || null,
+    endNode: config.endNode || config.end || null,
+    lineWidth: parseInt(config.lineWidth || config.lineWidth, 10) || 1,
+    lineLength: parseInt(config.lineLength, 10) || 60,
+    fontSize: parseInt(config.fontSize, 10) || 14,
+    fontColor: config.fontColor || config.fontColor || '#333333',
+    yesText: config.yesText || 'Yes',
+    noText: config.noText || 'No',
+  }
+}
+
 const getFlowchartNodeConfig = (value, fallback) => {
   try {
     return {

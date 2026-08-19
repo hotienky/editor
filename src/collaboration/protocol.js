@@ -5,7 +5,7 @@
  * Built on yjs, y-prosemirror, and y-protocols.
  */
 
-import * as Y from 'yjs'
+import { Doc as YDoc, UndoManager } from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
 
 /**
@@ -35,7 +35,7 @@ export class CollaborationProtocol {
       this.disconnect()
     }
 
-    this._doc = new Y.Doc()
+    this._doc = new YDoc()
     this._yXmlFragment = this._doc.getXmlFragment('document-content')
 
     this._provider = new WebsocketProvider(wsUrl, docName, this._doc, {
@@ -165,7 +165,7 @@ export class CollaborationProtocol {
   createUndoManager(scopes) {
     if (!this._doc) return null
 
-    const undoManager = new Y.UndoManager(
+    const undoManager = new UndoManager(
       scopes || [this._yXmlFragment],
       {
         trackedOrigins: new Set([this._doc]),

@@ -38,6 +38,9 @@ import Callout from './callout'
 import CodeBlock from './code-block'
 import Columns from './columns'
 import Comment from './comment'
+import ContractVariable from './contract'
+import ContractClause from './contract/clause'
+import SignatureBlock from './contract/signature'
 import Datetime from './datetime'
 import Echarts from './echarts'
 import File from './file'
@@ -65,6 +68,8 @@ import OfficePaste from './office-paste'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
+import Header from './header'
+import Footer from './footer'
 import Pagination from './pagination'
 import Placeholder from './placeholder'
 import SearchReplace from './search-replace'
@@ -116,6 +121,9 @@ const nodeTypes = [
   'mention',
   'blockMath',
   'inlineMath',
+  'contractVariable',
+  'contractClause',
+  'signatureBlock',
 ]
 
 export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
@@ -171,6 +179,9 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     'text-box': TextBox,
     'web-page': Iframe,
     comment: Comment,
+    contractVariable: ContractVariable,
+    contractClause: ContractClause,
+    signatureBlock: SignatureBlock,
   }
 
   const buildInExtensions = [
@@ -266,6 +277,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
 
     // Page
     PageBreak,
+    Header,
+    Footer,
 
     // Other
     Selection,

@@ -52,6 +52,7 @@ import Drager from 'es-drager'
 import { safeNodePos, selectNodePos } from '@/utils/position'
 import { scheduleFileDelete, srcAttrs, videoNodeTypes } from '@/utils/file'
 import { player } from '@/utils/player'
+import { useI18n } from '@/composables/i18n'
 
 import { updateAttributesWithoutHistory } from '../file'
 
@@ -63,6 +64,7 @@ const options = inject('options')
 const editor = inject('editor')
 const container = inject('container')
 const uploadFileMap = inject('uploadFileMap')
+const { locale } = useI18n()
 
 const containerRef = ref(null)
 let selected = $ref(false)
@@ -91,7 +93,7 @@ const nodeStyle = $computed(() => {
 
 onMounted(async () => {
   await nextTick()
-  playerInstance = await player(videoRef, options.value.cdnUrl)
+  playerInstance = await player(videoRef, options.value.cdnUrl, locale.value)
   playerInstance.on('ready', () => (playerShow = true))
   if (attrs.uploaded || !attrs.id) {
     return

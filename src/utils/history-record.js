@@ -90,7 +90,9 @@ const withUndoRedoFlag = (records, fn) => {
   records.value.isUndoRedo = true
   try {
     fn()
-  } catch (e) {}
+  } catch (e) {
+    console.warn('withUndoRedoFlag: error executing function:', e)
+  }
   setTimeout(() => {
     records.value.isUndoRedo = false
   }, 0)

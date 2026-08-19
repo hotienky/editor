@@ -13,8 +13,8 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
-import { getLayoutEngine } from '@/layout/engine'
-import { getPageFromScroll } from '@/layout/page-calculator'
+import { getLayoutEngine } from '@umo/layout'
+import { getPageFromScroll } from '@umo/layout'
 
 export const PaginationPluginKey = new PluginKey('pagination')
 

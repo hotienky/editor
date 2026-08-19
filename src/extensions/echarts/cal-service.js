@@ -7,7 +7,7 @@ export function calbaseConfigData(data) {
   if (!data) {
     return data
   }
-  data = JSON.parse(JSON.stringify(data))
+  data = structuredClone(data)
   for (let i = data.length - 1; i >= 0; i--) {
     if (i === 0) {
       continue
@@ -137,6 +137,6 @@ export function calbaseConfigOptions(data, config, options) {
   if (newOptions !== null && typeof newOptions === 'object') {
     resOption = newOptions
   }
-  // 10.0 返回值 必须JSON.parse(JSON.stringify( 一下，个别情况下echart不展示问题
-  return JSON.parse(JSON.stringify(resOption))
+  // 10.0 返回值 必须深拷贝一下，个别情况下echart不展示问题
+  return structuredClone(resOption)
 }

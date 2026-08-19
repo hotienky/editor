@@ -1,14 +1,14 @@
 <template>
   <t-drawer
     v-model:visible="visible"
-    header="Lịch sử phiên bản (Version History)"
-    size="360px"
+    :header="t('versionHistory.title')"
+    size="min(360px, 90vw)"
     :footer="false"
   >
     <div class="kindy-version-history">
       <div class="version-tip">
         <icon name="info-circle" />
-        <span>Tất cả thay đổi đều được lưu tự động thành các bản ghi lịch sử.</span>
+        <span>{{ t('versionHistory.autoSaveTip') }}</span>
       </div>
 
       <t-timeline class="version-timeline">
@@ -20,7 +20,7 @@
           <div class="version-item">
             <div class="version-author">
               <strong>{{ item.author }}</strong>
-              <span class="version-tag" v-if="item.isCurrent">Hiện tại</span>
+              <span class="version-tag" v-if="item.isCurrent">{{ t('versionHistory.currentTag') }}</span>
             </div>
             <div class="version-desc">{{ item.description }}</div>
             <t-button
@@ -30,7 +30,7 @@
               theme="primary"
               @click="restoreVersion(item)"
             >
-              Khôi phục bản này
+              {{ t('versionHistory.restoreThis') }}
             </t-button>
           </div>
         </t-timeline-item>

@@ -7,7 +7,7 @@
   >
     <modal
       :visible="dialogVisible"
-      width="480px"
+      width="min(480px, 90vw)"
       :confirm-btn="t('insert.web.insert')"
       :confirm-loading="submitting"
       @confirm="insertWebPage"

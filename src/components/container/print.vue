@@ -4,11 +4,11 @@
 
 <script setup>
 import { ref, computed, watch, inject, shallowRef } from 'vue'
-import { getLayoutEngine } from '@/layout/engine'
-import { createPageConfig, getContentArea } from '@/layout/page-calculator'
-import { shouldShowHeaderFooter, getHeaderFooterContent } from '@/layout/header-footer'
-import { getPageNumberText } from '@/layout/page-numbers'
-import { estimateBlockHeight } from '@/layout/text-measurer'
+import { getLayoutEngine } from '@umo/layout'
+import { createPageConfig, getContentArea } from '@umo/layout'
+import { shouldShowHeaderFooter, getHeaderFooterContent } from '@umo/layout'
+import { getPageNumberText } from '@umo/layout'
+import { estimateBlockHeight } from '@umo/layout'
 
 const container = inject('container')
 const editor = inject('editor')

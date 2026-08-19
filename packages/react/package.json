@@ -1,0 +1,24 @@
+{
+  "name": "@umo/react",
+  "version": "0.1.0",
+  "description": "React Adapter for Open Document Platform",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@umo/document": "*",
+    "@umo/layout": "*",
+    "@umo/render": "*",
+    "@umo/editor": "*",
+    "@umo/collaboration": "*",
+    "@umo/storage": "*",
+    "@umo/io": "*",
+    "@umo/plugin": "*"
+  }
+}

@@ -114,6 +114,47 @@ function getCacheKey(text, style) {
   return `${text}|${style.fontSize || 16}|${style.fontFamily || 'Arial'}|${style.fontWeight || 'normal'}|${style.fontStyle || 'normal'}`
 }
 
+// ─── CJK Detection ─────────────────────────────────────────────────────────
+
+/**
+ * Check if a character is CJK (Chinese, Japanese, Korean)
+ * @param {string} char
+ * @returns {boolean}
+ */
+function isCJK(char) {
+  const code = char.charCodeAt(0)
+  return (
+    (code >= 0x4E00 && code <= 0x9FFF) ||   // CJK Unified Ideographs
+    (code >= 0x3400 && code <= 0x4DBF) ||   // CJK Extension A
+    (code >= 0x20000 && code <= 0x2A6DF) || // CJK Extension B
+    (code >= 0x2A700 && code <= 0x2B73F) || // CJK Extension C
+    (code >= 0x2B740 && code <= 0x2B81F) || // CJK Extension D
+    (code >= 0xF900 && code <= 0xFAFF) ||   // CJK Compatibility Ideographs
+    (code >= 0x2F800 && code <= 0x2FA1F) || // CJK Compatibility Supplement
+    (code >= 0x3000 && code <= 0x303F) ||   // CJK Symbols and Punctuation
+    (code >= 0x3040 && code <= 0x309F) ||   // Hiragana
+    (code >= 0x30A0 && code <= 0x30FF) ||   // Katakana
+    (code >= 0x31F0 && code <= 0x31FF) ||   // Katakana Phonetic Extensions
+    (code >= 0xAC00 && code <= 0xD7AF) ||   // Hangul Syllables
+    (code >= 0x1100 && code <= 0x11FF) ||   // Hangul Jamo
+    (code >= 0x3130 && code <= 0x318F) ||   // Hangul Compatibility Jamo
+    (code >= 0xA960 && code <= 0xA97F) ||   // Hangul Jamo Extended-A
+    (code >= 0xD7B0 && code <= 0xD7FF)      // Hangul Jamo Extended-B
+  )
+}
+
+/**
+ * Check if text contains CJK characters
+ * @param {string} text
+ * @returns {boolean}
+ */
+function containsCJK(text) {
+  for (const char of text) {
+    if (isCJK(char)) return true
+  }
+  return false
+}
+
 // ─── Text Measurement ──────────────────────────────────────────────────────
 
 /**
@@ -184,10 +225,10 @@ export function measureWords(text, style = {}) {
   return { words: wordMetrics, totalWidth }
 }
 
-// ─── Line Breaking ─────────────────────────────────────────────────────────
+// ─── Line Breaking (Greedy Algorithm) ──────────────────────────────────────
 
 /**
- * Break text into lines that fit within a given width
+ * Break text into lines that fit within a given width (greedy algorithm)
  * @param {string} text - Text to break
  * @param {number} maxWidth - Maximum line width in pixels
  * @param {Object} style - Font style properties
@@ -195,6 +236,11 @@ export function measureWords(text, style = {}) {
  */
 export function breakTextIntoLines(text, maxWidth, style = {}) {
   if (!text || maxWidth <= 0) return []
+
+  // For CJK text, break at character level
+  if (containsCJK(text)) {
+    return breakCJKTextIntoLines(text, maxWidth, style)
+  }
 
   const { words } = measureWords(text, style)
   const lines = []
@@ -216,7 +262,7 @@ export function breakTextIntoLines(text, maxWidth, style = {}) {
     }
 
     // Skip leading whitespace on new line
-    if (currentLine.length === 0 && /^s+$/.test(word.text)) {
+    if (currentLine.length === 0 && /^\s+$/.test(word.text)) {
       continue
     }
 
@@ -231,6 +277,195 @@ export function breakTextIntoLines(text, maxWidth, style = {}) {
       width: currentWidth,
       words: currentLine,
     })
+  }
+
+  return lines
+}
+
+/**
+ * Break CJK text into lines (character-level breaking)
+ * @param {string} text - CJK text to break
+ * @param {number} maxWidth - Maximum line width in pixels
+ * @param {Object} style - Font style properties
+ * @returns {Array<{text: string, width: number, words: string[]}>}
+ */
+function breakCJKTextIntoLines(text, maxWidth, style = {}) {
+  const lines = []
+  let currentLine = ''
+  let currentWidth = 0
+
+  for (const char of text) {
+    const { width } = measureText(char, style)
+    const testWidth = currentWidth + width
+
+    if (testWidth > maxWidth && currentLine.length > 0) {
+      lines.push({
+        text: currentLine,
+        width: currentWidth,
+        words: [currentLine],
+      })
+      currentLine = ''
+      currentWidth = 0
+    }
+
+    currentLine += char
+    currentWidth += width
+  }
+
+  // Flush remaining
+  if (currentLine.length > 0) {
+    lines.push({
+      text: currentLine,
+      width: currentWidth,
+      words: [currentLine],
+    })
+  }
+
+  return lines
+}
+
+// ─── Knuth-Plass Line Breaking Algorithm ───────────────────────────────────
+
+/**
+ * Knuth-Plass optimal line breaking algorithm
+ * Produces more aesthetically pleasing line breaks by considering the
+ * entire paragraph at once, minimizing the sum of squared raggedness.
+ *
+ * @param {string} text - Text to break
+ * @param {number} maxWidth - Maximum line width in pixels
+ * @param {Object} style - Font style properties
+ * @param {Object} options - Algorithm options
+ * @param {number} options.raggedPenalty - Penalty for ragged lines (default: 10)
+ * @param {number} options.hyphenPenalty - Penalty for hyphenated lines (default: 50)
+ * @param {number} options.excessPenalty - Penalty for lines exceeding maxWidth (default: 10000)
+ * @returns {Array<{text: string, width: number, words: string[], isHyphenated: boolean}>}
+ */
+export function breakTextOptimal(text, maxWidth, style = {}, options = {}) {
+  if (!text || maxWidth <= 0) return []
+
+  const {
+    raggedPenalty = 10,
+    hyphenPenalty = 50,
+    excessPenalty = 10000,
+  } = options
+
+  // Split text into words (tokens)
+  const tokens = text.split(/(\s+)/)
+  const n = tokens.length
+
+  if (n === 0) return []
+
+  // Calculate width of each token
+  const tokenWidths = tokens.map(token => measureText(token, style).width)
+
+  // Calculate natural breaks (positions where we can break)
+  const breakpoints = []
+  for (let i = 0; i < n; i++) {
+    if (i === 0 || /^\s+$/.test(tokens[i])) {
+      breakpoints.push(i)
+    }
+  }
+  breakpoints.push(n) // End position
+
+  // Calculate prefix sums for efficient width calculation
+  const prefixWidths = new Array(n + 1).fill(0)
+  for (let i = 0; i < n; i++) {
+    prefixWidths[i + 1] = prefixWidths[i] + tokenWidths[i]
+  }
+
+  // Helper function to calculate line width between two breakpoints
+  function lineWidth(start, end) {
+    return prefixWidths[end] - prefixWidths[start]
+  }
+
+  // Helper function to calculate fitness class (0-4)
+  function fitnessClass(lineWidth) {
+    const ratio = lineWidth / maxWidth
+    if (ratio < 0.5) return 0
+    if (ratio < 0.75) return 1
+    if (ratio < 1.0) return 2
+    if (ratio <= 1.0) return 3
+    return 4
+  }
+
+  // Dynamic programming to find optimal breakpoints
+  const m = breakpoints.length
+  const dp = new Array(m).fill(Infinity)
+  const parent = new Array(m).fill(-1)
+  const fitness = new Array(m).fill(0)
+
+  dp[0] = 0
+
+  for (let i = 1; i < m; i++) {
+    for (let j = 0; j < i; j++) {
+      const breakPos = breakpoints[i]
+      const prevBreak = breakpoints[j]
+
+      if (breakPos > n) continue
+
+      const width = lineWidth(prevBreak, breakPos)
+
+      // Skip if line is too short and there's more content
+      if (width < maxWidth * 0.5 && i < m - 1) continue
+
+      // Calculate cost
+      let cost = 0
+
+      if (width > maxWidth) {
+        // Line exceeds maximum width
+        cost += excessPenalty
+      } else {
+        // Calculate raggedness (squared slack)
+        const slack = maxWidth - width
+        cost += slack * slack
+
+        // Add penalty for ragged lines
+        if (i < m - 1) { // Not the last line
+          cost += raggedPenalty
+        }
+      }
+
+      // Add fitness class change penalty
+      const currentFitness = fitnessClass(width)
+      if (j > 0 && Math.abs(currentFitness - fitness[j]) > 1) {
+        cost += 100 // Penalty for drastic fitness change
+      }
+
+      const totalCost = dp[j] + cost
+
+      if (totalCost < dp[i]) {
+        dp[i] = totalCost
+        parent[i] = j
+        fitness[i] = currentFitness
+      }
+    }
+  }
+
+  // Reconstruct optimal line breaks
+  const optimalBreaks = []
+  let current = m - 1
+  while (current > 0) {
+    optimalBreaks.unshift(breakpoints[current])
+    current = parent[current]
+  }
+
+  // Build result lines
+  const lines = []
+  let startPos = 0
+
+  for (const endPos of optimalBreaks) {
+    const lineTokens = tokens.slice(startPos, endPos)
+    const lineText = lineTokens.join('')
+    const lineW = lineWidth(startPos, endPos)
+
+    lines.push({
+      text: lineText,
+      width: lineW,
+      words: lineTokens,
+      isHyphenated: false,
+    })
+
+    startPos = endPos
   }
 
   return lines
@@ -274,7 +509,7 @@ export function estimateBlockHeight(node, contentWidth, defaults = {}) {
   const lineHeightPx = fontSize * lineHeight
 
   // Base height depends on node type
-  const {type} = node
+  const { type } = node
   const attrs = node.attrs || {}
 
   switch (type) {
@@ -448,6 +683,7 @@ export default {
   measureText,
   measureWords,
   breakTextIntoLines,
+  breakTextOptimal,
   calculateLineMetrics,
   estimateBlockHeight,
   clearCache,

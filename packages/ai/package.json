@@ -1,0 +1,15 @@
+{
+  "name": "@umo/ai",
+  "version": "0.1.0",
+  "description": "AI Platform for Open Document Platform - AI-powered features",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "lint": "oxlint --fix src"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

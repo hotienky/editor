@@ -8,7 +8,7 @@
     <modal
       :visible="dialogVisible"
       icon="mermaid"
-      width="960px"
+      width="min(960px, 94vw)"
       @confirm="setMermaid"
       @close="dialogVisible = false"
     >

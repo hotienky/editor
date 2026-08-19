@@ -545,7 +545,6 @@ const autoWidth = (auto = true, padding = 50) => {
       attach: container,
       content: t('zoom.autoWidthError'),
     })
-    console.warn('Page auto width calculation error', e)
   }
 }
 

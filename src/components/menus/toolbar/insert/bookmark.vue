@@ -7,7 +7,7 @@
   />
   <modal
     :visible="dialogVisible"
-    width="420px"
+    width="min(420px, 90vw)"
     draggable
     destroy-on-close
     :confirm-btn="t('insert.bookmark.ok')"

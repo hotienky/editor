@@ -104,7 +104,7 @@ const headingActive = (value) => {
         editor.value.view.focus()
       }
     } catch (err) {
-      // Fallback scroll completed successfully
+      // Fallback: use basic scrollIntoView
     }
   }
 }
@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
 
 <style lang="less">
 .kindy-toc-container {
-  width: 320px;
+  width: min(320px, 80vw);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

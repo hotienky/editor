@@ -28,6 +28,8 @@
           :disabled="
             !forceEnabled && (disabled || editor?.isEditable === false)
           "
+          :aria-label="text || tooltip || undefined"
+          :aria-pressed="menuActive || undefined"
           v-bind="attrs"
           @click="menuClick"
         >
@@ -64,6 +66,8 @@
             :disabled="
               !forceEnabled && (disabled || editor?.isEditable === false)
             "
+            :aria-label="text || tooltip || undefined"
+            :aria-haspopup="'menu'"
           >
             <div class="kindy-button-content" @click="menuClick">
               <slot />
@@ -133,6 +137,8 @@
               :disabled="
                 !forceEnabled && (disabled || editor?.isEditable === false)
               "
+              :aria-label="text || tooltip || undefined"
+              :aria-haspopup="'menu'"
             >
               <div class="kindy-button-content" @click="menuClick">
                 <slot />
@@ -202,6 +208,9 @@
             :disabled="
               !forceEnabled && (disabled || editor?.isEditable === false)
             "
+            :aria-label="text || tooltip || undefined"
+            :aria-haspopup="'popup'"
+            :aria-expanded="popupVisible || undefined"
           >
             <div class="kindy-button-content" @click="menuClick">
               <slot />
@@ -274,6 +283,9 @@
               :disabled="
                 !forceEnabled && (disabled || editor?.isEditable === false)
               "
+              :aria-label="text || tooltip || undefined"
+              :aria-haspopup="'popup'"
+              :aria-expanded="popupVisible || undefined"
               @click="togglePopup(!popupVisible)"
             >
               <div class="kindy-button-content">
@@ -494,8 +506,13 @@ onClickOutside(
   &.active {
     background-color: var(--kindy-button-hover-background);
     .kindy-button-icon-arrow.kindy-button-handle {
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: var(--kindy-color-hover-background);
     }
+  }
+  &:focus-visible {
+    outline: 2px solid var(--kindy-primary-color);
+    outline-offset: 1px;
+    border-radius: var(--kindy-radius);
   }
   .kindy-button-content {
     display: flex;
@@ -533,6 +550,11 @@ onClickOutside(
       margin: 0 -4px 0 2px;
       &:hover {
         background-color: var(--td-bg-color-container-active);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--kindy-primary-color);
+        outline-offset: -2px;
+        border-radius: var(--kindy-radius);
       }
     }
   }

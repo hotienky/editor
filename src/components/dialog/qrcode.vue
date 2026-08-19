@@ -1,7 +1,7 @@
 <template>
   <modal
     :visible="visible"
-    width="532px"
+    width="min(532px, 92vw)"
     @confirm="submitQrcode"
     @close="emit('update:visible', false)"
   >

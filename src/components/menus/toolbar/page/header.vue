@@ -1,9 +1,9 @@
 <template>
   <menus-button
     ico="page-header"
-    :text="page.header?.enable ? t('page.header.hide') : t('page.header.show')"
+    :text="t('page.header.text')"
     huge
-    @menu-click="toggleHeader"
+    @menu-click="openHeaderDialog"
   />
 </template>
 
@@ -11,11 +11,16 @@
 import { inject } from 'vue'
 
 const page = inject('page')
+const editor = inject('editor')
 
-const toggleHeader = () => {
+const openHeaderDialog = () => {
   if (!page.value.header) {
-    page.value.header = { enable: true, text: '' }
+    page.value.header = { enable: true }
+  } else {
+    page.value.header.enable = true
   }
-  page.value.header.enable = !page.value.header.enable
+  if (editor.value) {
+    editor.value.emit('open-header-footer', 'header')
+  }
 }
 </script>

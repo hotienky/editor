@@ -2,7 +2,7 @@
   <div v-if="suggestions.length > 0" class="kindy-suggestions-panel">
     <div class="suggestions-header">
       <icon name="edit" />
-      <span>ĐỀ XUẤT CHỈNH SỬA ({{ suggestions.length }})</span>
+      <span>{{ t('suggestions.title', { count: suggestions.length }) }}</span>
     </div>
 
     <div class="suggestions-list">
@@ -13,13 +13,13 @@
       >
         <div class="card-author">
           <t-avatar size="small" :content="item.author?.name?.[0] || 'U'" />
-          <span class="author-name">{{ item.author?.name || 'Người dùng' }}</span>
+          <span class="author-name">{{ item.author?.name || t('suggestions.defaultAuthor') }}</span>
           <span class="card-time">{{ item.createdAt }}</span>
         </div>
 
         <div class="card-content">
           <span class="action-type" :class="item.type">
-            {{ item.type === 'insert' ? 'Thêm:' : 'Xóa:' }}
+            {{ item.type === 'insert' ? t('suggestions.actionInsert') : t('suggestions.actionDelete') }}
           </span>
           <span class="text-snippet">"{{ item.text }}"</span>
         </div>
@@ -31,7 +31,7 @@
             variant="base"
             @click="acceptSuggestion(item.id)"
           >
-            ✓ Duyệt
+            {{ t('suggestions.accept') }}
           </t-button>
           <t-button
             theme="default"
@@ -39,7 +39,7 @@
             variant="outline"
             @click="rejectSuggestion(item.id)"
           >
-            ✗ Từ chối
+            {{ t('suggestions.reject') }}
           </t-button>
         </div>
       </div>

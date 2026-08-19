@@ -1,7 +1,7 @@
 <template>
   <modal
     :visible="visible"
-    width="300px"
+    width="min(300px, 88vw)"
     :footer="false"
     @close="emits('close')"
   >

@@ -223,6 +223,8 @@
             </div>
           </div>
           <div class="kindy-virtual-group">
+            <menus-toolbar-page-header />
+            <menus-toolbar-page-footer />
             <menus-toolbar-page-break />
             <menus-toolbar-page-break-marks />
             <menus-toolbar-page-line-number />

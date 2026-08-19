@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { execute } from '@/editing'
+import { execute } from '@umo/editor'
 const editor = inject('editor')
 const setAlignLeft = () => {
   execute(editor.value, 'setTextAlign', 'left')

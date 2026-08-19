@@ -8,9 +8,23 @@
  * Architecture: Layer 4 — Render Engine
  */
 
-import { cmToPx } from '@/layout/text-measurer'
-import { getHeaderFooterContent } from '@/layout/header-footer'
-import { getPageNumberText } from '@/layout/page-numbers'
+import { cmToPx } from '@umo/layout'
+import { getHeaderFooterContent } from '@umo/layout'
+import { getPageNumberText } from '@umo/layout'
+
+// ─── CSS Class Names ───────────────────────────────────────────────────────
+
+export const CSSClasses = {
+  PAGE: 'kindy-print-page',
+  CONTENT: 'kindy-print-page-content',
+  HEADER: 'kindy-print-header',
+  FOOTER: 'kindy-print-footer',
+  PAGE_BREAK: 'kindy-page-break',
+  TABLE: 'kindy-table',
+  IMAGE: 'kindy-image',
+  CODE_BLOCK: 'kindy-code-block',
+  BLOCKQUOTE: 'kindy-blockquote',
+}
 
 // ─── Page Renderer Class ───────────────────────────────────────────────────
 
@@ -18,6 +32,7 @@ export class PageRenderer {
   constructor(options = {}) {
     this._zoomLevel = options.zoomLevel || 100
     this._pageOptions = options.pageOptions || {}
+    this._customStyles = options.customStyles || {}
   }
 
   /**
@@ -37,6 +52,15 @@ export class PageRenderer {
   }
 
   /**
+   * Add custom styles for a component
+   * @param {string} component - Component name
+   * @param {Object} styles - CSS styles
+   */
+  addCustomStyles(component, styles) {
+    this._customStyles[component] = styles
+  }
+
+  /**
    * Generate CSS styles for a page
    * @param {Object} layoutPage - Page from LayoutTree
    * @returns {Object} CSS style object
@@ -50,7 +74,7 @@ export class PageRenderer {
     const pageWidth = orientation === 'landscape' ? size.height : size.width
     const pageHeight = orientation === 'landscape' ? size.width : size.height
 
-    return {
+    const baseStyles = {
       width: `${pageWidth}cm`,
       height: `${pageHeight}cm`,
       backgroundColor: config.background || '#ffffff',
@@ -61,6 +85,8 @@ export class PageRenderer {
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
       borderRadius: '2px',
     }
+
+    return { ...baseStyles, ...this._customStyles.page }
   }
 
   /**
@@ -77,7 +103,7 @@ export class PageRenderer {
     const paddingTop = header.enable ? (header.marginTop || 1.5) : 0
     const paddingBottom = footer.enable ? (footer.marginBottom || 1.5) : 0
 
-    return {
+    const baseStyles = {
       position: 'relative',
       boxSizing: 'border-box',
       paddingLeft: `${margin.left}cm`,
@@ -86,6 +112,8 @@ export class PageRenderer {
       paddingBottom: `${paddingBottom}cm`,
       minHeight: `${layoutPage.contentHeight || 100}px`,
     }
+
+    return { ...baseStyles, ...this._customStyles.content }
   }
 
   /**
@@ -104,9 +132,9 @@ export class PageRenderer {
     const contentStyleStr = this._stylesToCSS(contentStyles)
 
     return `
-      <div class="kindy-print-page" style="${styleStr}">
+      <div class="${CSSClasses.PAGE}" style="${styleStr}">
         ${headerHtml}
-        <div class="kindy-print-page-content" style="${contentStyleStr}">
+        <div class="${CSSClasses.CONTENT}" style="${contentStyleStr}">
           ${contentHtml}
         </div>
         ${footerHtml}
@@ -133,7 +161,7 @@ export class PageRenderer {
         size: ${pageWidth}cm ${pageHeight}cm;
         margin: 0;
       }
-      .kindy-print-page {
+      .${CSSClasses.PAGE} {
         width: ${pageWidth}cm;
         height: ${pageHeight}cm;
         padding: ${margin.top}cm ${margin.right}cm ${margin.bottom}cm ${margin.left}cm;
@@ -143,17 +171,116 @@ export class PageRenderer {
         background: ${config.background || '#ffffff'};
         overflow: hidden;
       }
-      .kindy-print-page:last-child {
+      .${CSSClasses.PAGE}:last-child {
         page-break-after: auto;
       }
-      .kindy-print-page-content {
+      .${CSSClasses.CONTENT} {
         position: relative;
         min-height: 0;
       }
-      .kindy-page-break {
+      .${CSSClasses.PAGE_BREAK} {
         display: none;
       }
+      .${CSSClasses.TABLE} {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1em 0;
+      }
+      .${CSSClasses.TABLE} th,
+      .${CSSClasses.TABLE} td {
+        border: 1px solid #e2e8f0;
+        padding: 8px 12px;
+        text-align: left;
+      }
+      .${CSSClasses.TABLE} th {
+        background-color: #f8fafc;
+        font-weight: 600;
+      }
+      .${CSSClasses.IMAGE} {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 1em auto;
+      }
+      .${CSSClasses.CODE_BLOCK} {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        padding: 16px;
+        overflow-x: auto;
+      }
+      .${CSS_CLASSES.BLOCKQUOTE} {
+        margin: 1em 0;
+        padding: 0.5em 1em;
+        border-left: 4px solid #e2e8f0;
+        background-color: #f8fafc;
+        color: #64748b;
+      }
     `
+  }
+
+  /**
+   * Render a block element
+   * @param {Object} node - AST node
+   * @param {string} innerHtml - Inner HTML content
+   * @returns {string}
+   */
+  renderBlock(node, innerHtml = '') {
+    const { type, attrs = {} } = node
+
+    switch (type) {
+      case 'paragraph':
+        return `<p style="margin: 0.5em 0; line-height: 1.6;">${innerHtml}</p>`
+
+      case 'heading': {
+        const level = attrs.level || 1
+        const fontSize = 32 - (level * 4)
+        return `<h${level} style="margin: 1em 0 0.5em; font-size: ${fontSize}px; font-weight: 600;">${innerHtml}</h${level}>`
+      }
+
+      case 'codeBlock':
+        return `<pre class="${CSSClasses.CODE_BLOCK}"><code>${this._escapeHtml(innerHtml)}</code></pre>`
+
+      case 'blockquote':
+        return `<blockquote class="${CSSClasses.BLOCKQUOTE}">${innerHtml}</blockquote>`
+
+      case 'bulletList':
+        return `<ul style="margin: 0.5em 0; padding-left: 1.5em;">${innerHtml}</ul>`
+
+      case 'orderedList':
+        return `<ol style="margin: 0.5em 0; padding-left: 1.5em;">${innerHtml}</ol>`
+
+      case 'listItem':
+        return `<li style="margin: 0.25em 0;">${innerHtml}</li>`
+
+      case 'horizontalRule':
+        return `<hr style="border: none; border-top: 1px solid #e2e8f0; margin: 1em 0;" />`
+
+      case 'image': {
+        const src = attrs.src || ''
+        const alt = attrs.alt || ''
+        const width = attrs.width ? `width: ${attrs.width}px;` : ''
+        return `<img class="${CSSClasses.IMAGE}" src="${src}" alt="${alt}" style="${width}" />`
+      }
+
+      case 'table':
+        return `<table class="${CSSClasses.TABLE}">${innerHtml}</table>`
+
+      case 'tableRow':
+        return `<tr>${innerHtml}</tr>`
+
+      case 'tableCell':
+        return `<td>${innerHtml}</td>`
+
+      case 'tableHeader':
+        return `<th>${innerHtml}</th>`
+
+      default:
+        return innerHtml
+    }
   }
 
   // ─── Internal Methods ──────────────────────────────────────────────────
@@ -198,7 +325,7 @@ export class PageRenderer {
     const borderStyle = content.showBorder ? 'border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;' : ''
 
     return `
-      <div class="kindy-print-header" style="
+      <div class="${CSSClasses.HEADER}" style="
         padding: 0.5cm 1cm 0.3cm;
         font-size: ${fontSize}px;
         color: ${fontColor};
@@ -257,7 +384,7 @@ export class PageRenderer {
     const borderStyle = content.showBorder ? 'border-top: 1px solid #e2e8f0; padding-top: 4px;' : ''
 
     return `
-      <div class="kindy-print-footer" style="
+      <div class="${CSSClasses.FOOTER}" style="
         padding: 0.3cm 1cm 0.5cm;
         font-size: ${fontSize}px;
         color: ${fontColor};
@@ -284,6 +411,15 @@ export class PageRenderer {
         return `${cssKey}: ${value}`
       })
       .join('; ')
+  }
+
+  _escapeHtml(str) {
+    if (!str) return ''
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
   }
 }
 
@@ -315,4 +451,5 @@ export default {
   PageRenderer,
   getPageRenderer,
   createPageRenderer,
+  CSSClasses,
 }

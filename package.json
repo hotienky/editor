@@ -56,6 +56,9 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite --port 9000 --open --force",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "format": "oxfmt --write .",
     "lint": "oxlint --fix src",
     "analyzer": "vite-bundle-visualizer",
@@ -123,7 +126,9 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",
     "@vue-macros/reactivity-transform": "^3.1.2",
+    "@vue/test-utils": "^2.4.11",
     "esbuild": "^0.28.1",
+    "happy-dom": "^20.11.2",
     "husky": "^9.1.7",
     "less": "^4.5.1",
     "less-loader": "^12.3.1",
@@ -140,6 +145,7 @@
     "vite": "^7.3.1",
     "vite-bundle-visualizer": "^1.2.1",
     "vite-plugin-svg-icons": "^2.0.1",
+    "vitest": "^4.1.10",
     "vue": "^3.5.29"
   },
   "overrides": {

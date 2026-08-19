@@ -70,7 +70,9 @@ export default Extension.create({
                         .insertContent(curContent)
                         .focus(focusState)
                         .run()
-                    } catch (e) {}
+                    } catch (e) {
+                      console.warn('TypeWriter: failed to insert content:', e)
+                    }
                     resolve()
                   }, 0)
                 })
@@ -227,7 +229,9 @@ export default Extension.create({
                 options.onComplete()
               }
               typewriterState.value.isRunning = false
-            } catch (e) {}
+            } catch (e) {
+              console.warn('TypeWriter: animation error:', e)
+            }
           })()
           return true
         },

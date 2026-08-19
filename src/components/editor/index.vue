@@ -42,7 +42,7 @@ import { getDefaultExtensions, inputAndPasteRules } from '@/extensions'
 import { contentTransform } from '@/utils/content-transform'
 import { addHistory } from '@/utils/history-record'
 import { loadResource } from '@/utils/load-resource'
-import { getSerializer } from '@/model'
+import { getSerializer } from '@umo/document'
 
 const destroyed = inject('destroyed')
 const page = inject('page')
@@ -188,7 +188,7 @@ watch(
   () => {
     editor.value.storage.options = options.value
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 )
 
 onMounted(() => {

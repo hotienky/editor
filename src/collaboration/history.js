@@ -33,7 +33,7 @@ export class VersionHistory {
       author: meta.author || 'Anonymous',
       description: meta.description || '',
       tags: meta.tags || [],
-      doc: JSON.parse(JSON.stringify(doc)),
+      doc: structuredClone(doc),
       isCurrent: false,
     }
 
@@ -67,7 +67,7 @@ export class VersionHistory {
     if (!version) return null
 
     this.markCurrent(versionId)
-    return JSON.parse(JSON.stringify(version.doc))
+    return structuredClone(version.doc)
   }
 
   /**
@@ -108,7 +108,7 @@ export class VersionHistory {
     if (!v) return null
     return {
       ...v,
-      doc: JSON.parse(JSON.stringify(v.doc)),
+      doc: structuredClone(v.doc),
     }
   }
 

@@ -115,7 +115,7 @@
             @blur="saveEdit(item)"
           />
           <div class="kindy-comment-edit-actions">
-            <t-button size="small" variant="text" @click="cancelEdit">{{
+            <t-button size="small" variant="text" @click="cancelEdit(item)">{{
               t('comment.cancel')
             }}</t-button>
             <t-button size="small" theme="primary" @click="saveEdit(item)">{{
@@ -242,38 +242,62 @@ const addNew = () => {
 }
 
 // Sửa nội dung comment
-let editingId = ref(null)
-let draft = ref('')
+const editingId = ref(null)
+const draft = ref('')
 const startEdit = (item) => {
-  if (!editor?.isEditable) {
+  if (!editor?.isEditable || !item) {
     return
   }
-  editingId = item.id
-  draft = item.text
+  editingId.value = item.id
+  draft.value = item.text || ''
 }
 const saveEdit = (item) => {
-  if (editingId !== item.id) {
+  if (editingId.value !== item.id) {
     return
   }
-  commentStore.updateThread(item.id, { text: draft.trim() })
-  editingId = null
-  draft = ''
+  const text = draft.value.trim()
+  if (!text && !item.text) {
+    // If empty text for brand new comment, remove comment
+    commentStore.removeComment(item.id)
+  } else {
+    commentStore.updateThread(item.id, { text })
+  }
+  editingId.value = null
+  draft.value = ''
 }
-const cancelEdit = () => {
-  editingId = null
-  draft = ''
+const cancelEdit = (item) => {
+  if (item && !item.text) {
+    commentStore.removeComment(item.id)
+  }
+  editingId.value = null
+  draft.value = ''
 }
 
 // Trả lời comment
-let replyDraft = ref('')
+const replyDraft = ref('')
 const onReply = (item) => {
-  const text = replyDraft.trim()
+  const text = replyDraft.value.trim()
   if (!text) {
     return
   }
   commentStore.addReply(item.id, text)
-  replyDraft = ''
+  replyDraft.value = ''
 }
+
+// Watch for pendingAdd flag from commentStore to auto focus & edit newly added comment
+watch(
+  () => commentStore?.pendingAdd,
+  (isPending) => {
+    if (isPending) {
+      const activeItem = commentStore.comments.find((item) => item.id === commentStore.activeId)
+      if (activeItem) {
+        commentStore.focus(activeItem.id)
+        startEdit(activeItem)
+      }
+      commentStore.consumePendingAdd()
+    }
+  },
+)
 
 // Xóa comment
 const onDelete = (item) => {
@@ -414,7 +438,7 @@ watch(
   top: 0;
   right: 0;
   bottom: 0;
-  width: 320px;
+  width: min(320px, 80vw);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

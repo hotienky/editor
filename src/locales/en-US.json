@@ -457,6 +457,22 @@
       "imageSize": "Image Dimensions",
       "unknownDimensions": "Unknown dimensions",
       "notEmpty": "Please upload a stamp image first"
+    },
+    "contract": {
+      "text": "Contract",
+      "insertVariable": "Insert Variable",
+      "insertClause": "Insert Clause",
+      "insertSignature": "Insert Signature Block",
+      "templates": "Contract Templates",
+      "variableLabel": "Variable Name",
+      "variableLabelPlaceholder": "e.g., Party A Name",
+      "variableType": "Data Type",
+      "typeText": "Text",
+      "typeDate": "Date",
+      "typeNumber": "Number",
+      "typeMoney": "Money",
+      "typeParty": "Party",
+      "required": "Required"
     }
   },
   "page": {
@@ -476,7 +492,23 @@
       "alignCenter": "Center",
       "alignRight": "Right",
       "borderLabel": "Border Line",
-      "showBorderText": "Show Word-style border line"
+      "showBorderText": "Show Word-style border line",
+      "layoutLabel": "Layout",
+      "layoutSingle": "Single (Header/Footer on every page)",
+      "layoutSplit": "Different for first page",
+      "leftTextLabel": "Left text",
+      "leftTextPlaceholder": "Enter left header text...",
+      "rightTextLabel": "Right text",
+      "rightTextPlaceholder": "Enter right header text...",
+      "marginLabel": "Top margin",
+      "fontSize": "Font size",
+      "fontColorLabel": "Font color",
+      "badgeLabel": "Header • Top margin: {margin} cm",
+      "formatOption": "Format header...",
+      "hideOption": "Hide header",
+      "scopeLabel": "Display scope",
+      "scopeAll": "All pages (Same for every page)",
+      "scopeFile": "By file (First page & Other pages)"
     },
     "footer": {
       "text": "Footer",
@@ -494,7 +526,21 @@
       "alignCenter": "Center",
       "alignRight": "Right",
       "borderLabel": "Border Line",
-      "showBorderText": "Show Word-style border line"
+      "showBorderText": "Show Word-style border line",
+      "layoutLabel": "Layout",
+      "layoutSingle": "Single (Footer on every page)",
+      "layoutSplit": "Different for first page",
+      "leftTextLabel": "Left text",
+      "leftTextPlaceholder": "Enter left footer text...",
+      "rightTextLabel": "Right text",
+      "rightTextPlaceholder": "Enter right footer text...",
+      "marginLabel": "Bottom margin",
+      "fontSize": "Font size",
+      "fontColorLabel": "Font color",
+      "badgeLabel": "Footer • Bottom margin: {margin} cm",
+      "formatOption": "Format footer...",
+      "hideOption": "Hide footer",
+      "defaultPageLabel": "Page {number}"
     },
     "bg": {
       "text": "Background",
@@ -916,5 +962,68 @@
       "title": "Notice",
       "body": "The clipboard content has been pasted, but included images were not processed correctly. Please manually copy and replace the unprocessed images in the document."
     }
+  },
+  "versionHistory": {
+    "title": "Version History",
+    "autoSaveTip": "All changes are saved automatically as version history records.",
+    "currentTag": "Current",
+    "restoreThis": "Restore this version"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "smartQuotes": {
+      "sectionTitle": "SMART QUOTES",
+      "enableLabel": "Enable Smart Quotes (\"\" vs \"\")",
+      "tip": "Disable this option when programming to prevent straight quotes \"\" from causing syntax errors in code."
+    },
+    "autoSubstitutions": {
+      "sectionTitle": "AUTO-SUBSTITUTIONS",
+      "shortcutLabel": "Shortcut",
+      "replacementLabel": "Replace with",
+      "descriptionLabel": "Description",
+      "arrowRight": "Right arrow",
+      "arrowLeft": "Left arrow",
+      "copyright": "Copyright",
+      "registered": "Registered trademark",
+      "trademark": "Trademark",
+      "half": "One half fraction",
+      "quarter": "One quarter fraction",
+      "threeQuarters": "Three quarters fraction"
+    }
+  },
+  "ruler": {
+    "marginLeftTooltip": "Drag to adjust left page margin",
+    "marginRightTooltip": "Drag to adjust right page margin",
+    "firstLineIndentTooltip": "First Line Indent",
+    "leftIndentTooltip": "Left Indent",
+    "rightIndentTooltip": "Right Indent",
+    "marginLeftValue": "Left margin: {value} cm",
+    "marginRightValue": "Right margin: {value} cm",
+    "firstLineIndentValue": "First line indent: {value} cm",
+    "leftIndentValue": "Left indent: {value} cm",
+    "rightIndentValue": "Right indent: {value} cm"
+  },
+  "tabs": {
+    "title": "DOCUMENT TABS ({count})",
+    "addNew": "Add new Tab",
+    "contextMenu": {
+      "rename": "Rename",
+      "duplicate": "Duplicate",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete Tab"
+    }
+  },
+  "suggestions": {
+    "title": "EDITING SUGGESTIONS ({count})",
+    "defaultAuthor": "User",
+    "actionInsert": "Insert:",
+    "actionDelete": "Delete:",
+    "accept": "✓ Accept",
+    "reject": "✗ Reject",
+    "justNow": "Just now"
+  },
+  "common": {
+    "options": "Options"
   }
 }
