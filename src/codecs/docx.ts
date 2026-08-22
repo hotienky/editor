@@ -378,7 +378,10 @@ type DocxRunFormat = {
   strike?: boolean
   subscript?: boolean
   superscript?: boolean
-  fontFamily?: string
+  fontAscii?: string
+  fontHAnsi?: string
+  fontEastAsia?: string
+  fontComplex?: string
   fontSize?: string
   color?: string
   backgroundColor?: string
@@ -428,7 +431,7 @@ function readParagraphFormat(properties?: Element): DocxParagraphFormat {
           leader: wordAttribute(tab, 'leader') || undefined,
         }
       })
-      .filter((tab): tab is DocxTabStop => tab !== null && tab.alignment !== 'clear')
+      .filter((tab): tab is DocxTabStop => tab !== null)
     : undefined
   const number = (element: Element | undefined, name: string) => {
     const value = Number(wordAttribute(element, name))
@@ -467,7 +470,10 @@ function readRunFormat(properties?: Element): DocxRunFormat {
     strike: wordBoolean(xmlFirst(properties, 'strike')) ?? wordBoolean(xmlFirst(properties, 'dstrike')),
     subscript: verticalAlign ? verticalAlign === 'subscript' : undefined,
     superscript: verticalAlign ? verticalAlign === 'superscript' : undefined,
-    fontFamily: wordAttribute(fonts, 'ascii') || wordAttribute(fonts, 'hAnsi') || wordAttribute(fonts, 'eastAsia'),
+    fontAscii: wordAttribute(fonts, 'ascii'),
+    fontHAnsi: wordAttribute(fonts, 'hAnsi'),
+    fontEastAsia: wordAttribute(fonts, 'eastAsia'),
+    fontComplex: wordAttribute(fonts, 'cs'),
     fontSize: size && Number.isFinite(Number(size)) ? `${Number(size) / 2}pt` : undefined,
     color: color && color !== 'auto' ? `#${color}` : undefined,
     backgroundColor: fill && fill !== 'auto' && fill !== 'FFFFFF'
@@ -483,7 +489,18 @@ const definedEntries = <T extends Record<string, unknown>>(value: T) =>
 
 function mergeParagraphFormat(...values: DocxParagraphFormat[]) {
   const result: DocxParagraphFormat = {}
-  for (const value of values) Object.assign(result, definedEntries(value))
+  for (const value of values) {
+    const { tabStops, ...properties } = value
+    Object.assign(result, definedEntries(properties))
+    if (!tabStops) continue
+    const merged = [...(result.tabStops || [])]
+    for (const stop of tabStops) {
+      const existing = merged.findIndex((candidate) => Math.abs(candidate.position - stop.position) < 0.001)
+      if (existing >= 0) merged.splice(existing, 1)
+      if (stop.alignment !== 'clear') merged.push(stop)
+    }
+    result.tabStops = merged.sort((left, right) => left.position - right.position)
+  }
   return result
 }
 
@@ -779,7 +796,11 @@ function ooxmlRun(
   if (format.subscript) marks.push({ type: 'subscript' })
   if (format.superscript) marks.push({ type: 'superscript' })
   const style = definedEntries({
-    fontFamily: format.fontFamily,
+    // Vietnamese contract templates frequently declare their intended
+    // cross-platform face in w:eastAsia while leaving the Latin slots on the
+    // base style. Prefer that explicit face so browser metrics stay aligned
+    // with Word/LibreOffice pagination.
+    fontFamily: format.fontEastAsia || format.fontHAnsi || format.fontAscii || format.fontComplex,
     fontSize: format.fontSize,
     color: format.color,
     backgroundColor: format.backgroundColor,
@@ -930,9 +951,10 @@ function ooxmlParagraph(
     if (child.type !== 'docxTab') continue
     const stop = format.tabStops?.[tabIndex]
     const previousPosition = format.tabStops?.at(-1)?.position || 0
+    const fallbackOffset = Math.max(1, tabIndex - (format.tabStops?.length || 0) + 1)
     child.attrs = {
       alignment: stop?.alignment || 'left',
-      position: stop?.position || previousPosition + (1.27 * (tabIndex + 1)),
+      position: stop?.position || previousPosition + (1.27 * fallbackOffset),
       leader: stop?.leader || 'none',
       index: tabIndex,
     }
@@ -1462,6 +1484,9 @@ async function inlineRuns(nodes: JSONContent[] = []): Promise<Array<TextRun | In
       font: String(textStyle.fontFamily || '') || undefined,
       size: fontSizeHalfPoints(textStyle.fontSize),
       color: normalizeColor(String(textStyle.color || '')),
+      shading: normalizeColor(String(textStyle.backgroundColor || ''))
+        ? { fill: normalizeColor(String(textStyle.backgroundColor || '')) }
+        : undefined,
     }
     const tracked = markValue(node, 'trackChange')
     const revision = tracked ? {
@@ -1565,6 +1590,11 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
     return output
   }
   if (node.type === 'table') {
+    const tableVerticalAlign = (value: unknown) => ({
+      top: VerticalAlign.TOP,
+      center: VerticalAlign.CENTER,
+      bottom: VerticalAlign.BOTTOM,
+    }[String(value || '').toLowerCase()] || VerticalAlign.CENTER)
     const rows: TableRow[] = []
     for (const row of node.content || []) {
       const cells: TableCell[] = []
@@ -1573,7 +1603,10 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
           children: await nodesToChildren(cell.content || [{ type: 'paragraph' }]),
           columnSpan: Number(cell.attrs?.colspan) || 1,
           rowSpan: Number(cell.attrs?.rowspan) || 1,
-          verticalAlign: VerticalAlign.CENTER,
+          verticalAlign: tableVerticalAlign(cell.attrs?.verticalAlign),
+          shading: normalizeColor(String(cell.attrs?.background || ''))
+            ? { fill: normalizeColor(String(cell.attrs?.background || '')) }
+            : undefined,
         }))
       }
       rows.push(new TableRow({ children: cells }))

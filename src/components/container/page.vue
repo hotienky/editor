@@ -22,11 +22,14 @@
           <!-- EDITOR — single continuous ProseMirror instance -->
           <!-- Page breaks are inserted as ProseMirror decorations by pagination.js -->
           <div
-            class="kindy-page-editor-wrap"
+            class="kindy-page-scale-shell"
             :style="{
               '--page-width': (pageSize?.width || 21) + 'cm',
               '--page-height': (pageSize?.height || 29.7) + 'cm',
               '--page-zoom': (pageOptions?.zoomLevel || 100) / 100,
+              '--kindy-page-surface-height': pageSurfaceLogicalHeight > 0
+                ? pageSurfaceLogicalHeight + 'px'
+                : null,
               '--margin-top': contentMarginTop + 'cm',
               '--margin-bottom': contentMarginBottom + 'cm',
               '--margin-left': (pageOptions?.margin?.left ?? 2.54) + 'cm',
@@ -39,6 +42,10 @@
               '--kindy-page-height': (pageSize?.height || 29.7) + 'cm',
             }"
           >
+            <div
+              ref="pageSurface"
+              class="kindy-page-editor-wrap"
+            >
             <!-- GOOGLE DOCS STYLE HEADER OVERLAY -->
             <div
               v-if="pageOptions.header?.enable !== false"
@@ -135,12 +142,12 @@
             </editor>
 
             <!-- GOOGLE DOCS STYLE FOOTER OVERLAY -->
-            <div
-              v-if="pageOptions.footer?.enable"
-              class="kindy-gdocs-footer-zone"
-              @dblclick="openFooterDialog"
-              title="Double click to edit Footer"
-            >
+              <div
+                v-if="pageOptions.footer?.enable"
+                class="kindy-gdocs-footer-zone"
+                @dblclick="openFooterDialog"
+                title="Double click to edit Footer"
+              >
               <div class="kindy-gdocs-hf-badge footer-badge">
                 <span class="badge-title">{{ t('page.footer.badgeLabel', { margin: pageOptions.footer?.marginBottom || 1.25 }) }}</span>
                 <t-dropdown
@@ -165,7 +172,12 @@
                   fontSize: (pageOptions.footer?.fontSize || 12) + 'px'
                 }"
               >
-                <span>{{ pageOptions.footer?.text || pageOptions.footer?.leftText || pageOptions.footer?.rightText || 'Trang 1' }}</span>
+                <docx-fragment
+                  v-if="pageOptions.footer?.content"
+                  :content="pageOptions.footer.content"
+                />
+                <span v-else>{{ pageOptions.footer?.text || pageOptions.footer?.leftText || pageOptions.footer?.rightText || 'Trang 1' }}</span>
+              </div>
               </div>
             </div>
           </div>
@@ -204,7 +216,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, inject, shallowRef } from 'vue'
+import { ref, computed, watch, inject, shallowRef, nextTick, onBeforeUnmount } from 'vue'
 import Editor from '@/components/editor/index.vue'
 import DialogHeaderFooter from '@/components/dialog/header-footer.vue'
 import DialogPreferences from '@/components/dialog/preferences.vue'
@@ -212,6 +224,7 @@ import DialogVersionHistory from '@/components/dialog/version-history.vue'
 import ContainerTabs from '@/components/container/tabs.vue'
 import ContainerSuggestions from '@/components/container/suggestions.vue'
 import ContainerRuler from '@/components/container/ruler.vue'
+import DocxFragment from '@/components/container/docx-fragment.vue'
 
 const container = inject('container')
 const imageViewer = inject('imageViewer')
@@ -220,6 +233,39 @@ const editor = inject('editor')
 const commentStore = inject('commentStore')
 
 const scrollContainer = ref(null)
+const pageSurface = ref(null)
+const pageSurfaceLogicalHeight = ref(0)
+let pageSurfaceObserver = null
+
+const syncPageSurfaceHeight = () => {
+  const surface = pageSurface.value
+  if (!surface) return
+  const zoom = Math.max(0.01, Number(pageOptions.value?.zoomLevel || 100) / 100)
+  const transformedHeight = surface.getBoundingClientRect().height
+  pageSurfaceLogicalHeight.value = transformedHeight > 0
+    ? transformedHeight / zoom
+    : surface.offsetHeight
+}
+
+watch(
+  pageSurface,
+  (surface) => {
+    pageSurfaceObserver?.disconnect()
+    pageSurfaceObserver = null
+    if (!surface) return
+    if (typeof ResizeObserver !== 'undefined') {
+      pageSurfaceObserver = new ResizeObserver(syncPageSurfaceHeight)
+      pageSurfaceObserver.observe(surface)
+    }
+    nextTick(syncPageSurfaceHeight)
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  pageSurfaceObserver?.disconnect()
+  pageSurfaceObserver = null
+})
 
 let hfDialogVisible = ref(false)
 let prefDialogVisible = ref(false)
@@ -573,7 +619,7 @@ const currentImageIndex = $computed({
 .kindy-page-header {
   position: relative;
   box-sizing: border-box;
-  width: calc(var(--page-width, 21cm) * var(--page-zoom, 1));
+  width: var(--page-width, 21cm);
   padding-left: var(--margin-left, 2.54cm);
   padding-right: var(--margin-right, 2.54cm);
   padding-top: 0.3cm;
@@ -664,23 +710,39 @@ const currentImageIndex = $computed({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
-/* PAGE EDITOR WRAP — single continuous block with page-width styling        */
+/* PAGE SCALE SHELL — zoom changes only the viewport scale, never layout      */
 /* ═══════════════════════════════════════════════════════════════════════════ */
-.kindy-page-editor-wrap {
+.kindy-page-scale-shell {
   position: relative;
   flex: 0 0 auto;
-  box-sizing: border-box;
   width: calc(var(--page-width, 21cm) * var(--page-zoom, 1));
-  height: max-content;
+  height: calc(
+    var(--kindy-page-surface-height, var(--page-height, 29.7cm)) *
+      var(--page-zoom, 1)
+  );
   min-height: calc(var(--page-height, 29.7cm) * var(--page-zoom, 1));
-  padding-top: calc(var(--margin-top, 2.54cm) * var(--page-zoom, 1));
-  padding-bottom: calc(var(--margin-bottom, 2.54cm) * var(--page-zoom, 1));
-  padding-left: calc(var(--margin-left, 2.54cm) * var(--page-zoom, 1));
-  padding-right: calc(var(--margin-right, 2.54cm) * var(--page-zoom, 1));
+}
+
+/* Logical document surface. It always remains in a 100% A4 coordinate      */
+/* system; the parent shell reserves exactly the transformed visual size.    */
+.kindy-page-editor-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: var(--page-width, 21cm);
+  height: max-content;
+  min-height: var(--page-height, 29.7cm);
+  padding-top: var(--margin-top, 2.54cm);
+  padding-bottom: var(--margin-bottom, 2.54cm);
+  padding-left: var(--margin-left, 2.54cm);
+  padding-right: var(--margin-right, 2.54cm);
   background: var(--kindy-page-background, #ffffff);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.12),
     0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: scale(var(--page-zoom, 1));
+  transform-origin: top left;
   transition: opacity 0.25s ease, filter 0.25s ease;
   z-index: 1;
 
@@ -716,9 +778,9 @@ const currentImageIndex = $computed({
 .kindy-gdocs-header-zone {
   position: absolute;
   top: 0.2cm;
-  left: calc(var(--margin-left, 2.54cm) * var(--page-zoom, 1));
-  right: calc(var(--margin-right, 2.54cm) * var(--page-zoom, 1));
-  height: calc((var(--margin-top, 2.54cm) - 0.35cm) * var(--page-zoom, 1));
+  left: var(--margin-left, 2.54cm);
+  right: var(--margin-right, 2.54cm);
+  height: calc(var(--margin-top, 2.54cm) - 0.35cm);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -742,9 +804,9 @@ const currentImageIndex = $computed({
 .kindy-gdocs-footer-zone {
   position: absolute;
   bottom: 0.4cm;
-  left: calc(var(--margin-left, 2.54cm) * var(--page-zoom, 1));
-  right: calc(var(--margin-right, 2.54cm) * var(--page-zoom, 1));
-  height: calc((var(--margin-bottom, 2.54cm) - 0.6cm) * var(--page-zoom, 1));
+  left: var(--margin-left, 2.54cm);
+  right: var(--margin-right, 2.54cm);
+  height: calc(var(--margin-bottom, 2.54cm) - 0.6cm);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -819,15 +881,15 @@ const currentImageIndex = $computed({
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--page-width, 21cm) * var(--page-zoom, 1) - 24px);
-  max-width: calc(var(--page-width, 21cm) * var(--page-zoom, 1) - 24px);
-  margin-left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1) + 12px);
+  width: calc(var(--page-width, 21cm) - 24px);
+  max-width: calc(var(--page-width, 21cm) - 24px);
+  margin-left: calc(-1 * var(--margin-left, 2.54cm) + 12px);
 
   img {
     display: block;
     width: min(var(--kindy-imported-image-width, 720px), 100%);
     height: auto;
-    max-height: calc((var(--margin-top, 2.54cm) - 0.3cm) * var(--page-zoom, 1));
+    max-height: calc(var(--margin-top, 2.54cm) - 0.3cm);
     object-fit: contain;
   }
 }
@@ -854,8 +916,8 @@ const currentImageIndex = $computed({
     content: '';
     position: absolute;
     top: var(--kindy-page-separator-offset, 24px);
-    left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1));
-    width: calc(100% + calc(var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm)) * var(--page-zoom, 1));
+    left: calc(-1 * var(--margin-left, 2.54cm));
+    width: calc(100% + var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm));
     height: var(--kindy-page-gap, 24px);
     box-sizing: border-box;
     background: var(--kindy-container-background, #e8eaed);
@@ -868,8 +930,8 @@ const currentImageIndex = $computed({
 .kindy-page-repeated-header,
 .kindy-page-repeated-footer {
   position: absolute;
-  left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1) + 12px);
-  width: calc(var(--page-width, 21cm) * var(--page-zoom, 1) - 24px);
+  left: calc(-1 * var(--margin-left, 2.54cm) + 12px);
+  width: calc(var(--page-width, 21cm) - 24px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -882,7 +944,7 @@ const currentImageIndex = $computed({
 
 .kindy-page-repeated-header {
   top: calc(var(--kindy-page-separator-offset, 24px) + var(--kindy-page-gap, 24px) + 12px);
-  height: calc(var(--margin-top, 2.54cm) * var(--page-zoom, 1) - 18px);
+  height: calc(var(--margin-top, 2.54cm) - 18px);
 
   img {
     display: block;
@@ -894,8 +956,8 @@ const currentImageIndex = $computed({
 }
 
 .kindy-page-repeated-footer {
-  top: calc(var(--kindy-page-separator-offset, 24px) - var(--margin-bottom, 2.54cm) * var(--page-zoom, 1) + 12px);
-  height: calc(var(--margin-bottom, 2.54cm) * var(--page-zoom, 1) - 18px);
+  top: calc(var(--kindy-page-separator-offset, 24px) - var(--margin-bottom, 2.54cm) + 12px);
+  height: calc(var(--margin-bottom, 2.54cm) - 18px);
   text-align: center;
 }
 

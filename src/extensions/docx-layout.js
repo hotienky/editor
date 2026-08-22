@@ -37,12 +37,7 @@ const segmentWidth = (paragraph, start, end) => {
   range.setStartAfter(start)
   if (end) range.setEndBefore(end)
   else range.setEnd(paragraph, paragraph.childNodes.length)
-  const rects = [...range.getClientRects()].filter((rect) => rect.width || rect.height)
-  if (!rects.length) return 0
-  const firstLineTop = rects[0].top
-  return rects
-    .filter((rect) => Math.abs(rect.top - firstLineTop) < 2)
-    .reduce((width, rect) => width + rect.width, 0)
+  return range.getBoundingClientRect().width
 }
 
 const positionTabs = (root) => {
@@ -161,4 +156,3 @@ export const DocxParagraphLayout = Extension.create({
     return [createLayoutPlugin()]
   },
 })
-

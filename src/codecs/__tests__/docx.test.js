@@ -107,6 +107,46 @@ describe('DOCX codec', () => {
     expect(table.content[1].content).toHaveLength(1)
   })
 
+  it('round-trips edit-produced text highlighting and table cell formatting', async () => {
+    const state = createEmptyDocumentState({
+      content: { type: 'doc', content: [
+        { type: 'paragraph', attrs: { textAlign: 'right', lineHeight: 1.5 }, content: [{
+          type: 'text',
+          text: 'Nội dung đã sửa',
+          marks: [{ type: 'textStyle', attrs: { color: '#C00000', backgroundColor: '#FFF2CC', fontFamily: 'Times New Roman', fontSize: '13pt' } }],
+        }] },
+        { type: 'table', content: [{ type: 'tableRow', content: [
+          { type: 'tableCell', attrs: { colspan: 1, rowspan: 1, verticalAlign: 'top', background: '#D9EAF7' }, content: [
+            { type: 'paragraph', attrs: { textAlign: 'left' }, content: [{ type: 'text', text: 'Bên A' }] },
+          ] },
+          { type: 'tableCell', attrs: { colspan: 1, rowspan: 1, verticalAlign: 'bottom', background: '#FFF2CC' }, content: [
+            { type: 'paragraph', attrs: { textAlign: 'right' }, content: [{ type: 'text', text: 'Bên B' }] },
+          ] },
+        ] }] },
+      ] },
+    })
+
+    const exported = await exportDocx(state)
+    const archive = unzipSync(new Uint8Array(await exported.blob.arrayBuffer()))
+    const documentXml = strFromU8(archive['word/document.xml'])
+    expect(documentXml).toContain('w:fill="FFF2CC"')
+    expect(documentXml).toContain('w:fill="D9EAF7"')
+    expect(documentXml).toContain('w:vAlign w:val="top"')
+    expect(documentXml).toContain('w:vAlign w:val="bottom"')
+
+    const imported = await importDocx(exported.blob, { mode: 'strict' })
+    const [paragraph, table] = imported.state.content.content
+    expect(paragraph.content[0].marks.find((mark) => mark.type === 'textStyle')?.attrs).toMatchObject({
+      color: '#C00000',
+      backgroundColor: '#FFF2CC',
+      fontFamily: 'Times New Roman',
+      fontSize: '13pt',
+    })
+    expect(table.content[0].content[0].attrs).toMatchObject({ verticalAlign: 'top', background: '#D9EAF7' })
+    expect(table.content[0].content[1].attrs).toMatchObject({ verticalAlign: 'bottom', background: '#FFF2CC' })
+    expect(table.content[0].content[1].content[0].attrs.textAlign).toBe('right')
+  })
+
   it('round-trips nested lists, paragraph geometry and hyperlinks in the v2.0 profile', async () => {
     const state = createEmptyDocumentState({
       content: { type: 'doc', content: [

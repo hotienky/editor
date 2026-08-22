@@ -2,6 +2,7 @@ import { Extension } from '@tiptap/core'
 import { AllSelection, TextSelection } from '@tiptap/pm/state'
 
 const DEFAULT_INDENT_UNIT = 'em'
+const DEFAULT_DOCX_INDENT_STEP_CM = 1.27
 
 const parseIndentConfig = (indentSize, fallbackUnit = DEFAULT_INDENT_UNIT) => {
   if (typeof indentSize === 'number') {
@@ -60,6 +61,7 @@ export default Extension.create({
       maxLevel: 20,
       indentSize: 2,
       defaultUnit: DEFAULT_INDENT_UNIT,
+      docxIndentStepCm: DEFAULT_DOCX_INDENT_STEP_CM,
     }
   },
   addGlobalAttributes() {
@@ -137,6 +139,23 @@ export default Extension.create({
     const setNodeIndentMarkup = (tr, pos, delta) => {
       const node = tr.doc.nodeAt(pos)
       if (!node) return tr
+      const { docxLayout } = node.attrs
+      if (docxLayout && typeof docxLayout === 'object') {
+        const currentLeft = Number(docxLayout.left) || 0
+        const step = Number(this.options.docxIndentStepCm) || DEFAULT_DOCX_INDENT_STEP_CM
+        const maxLeft = Math.max(0, Number(this.options.maxLevel) || 0) * step
+        const nextLeft = Math.min(maxLeft, Math.max(0, currentLeft + (delta * step)))
+        if (Math.abs(nextLeft - currentLeft) < 0.0001) return tr
+        const nextLayout = { ...docxLayout }
+        if (nextLeft > 0) nextLayout.left = Number(nextLeft.toFixed(4))
+        else delete nextLayout.left
+        return tr.setNodeMarkup(pos, node.type, {
+          ...node.attrs,
+          docxLayout: nextLayout,
+          indent: nextLeft || null,
+          indentUnit: nextLeft ? 'cm' : null,
+        }, node.marks)
+      }
       const nextLevel = (node.attrs.indent || 0) + delta
       const { minLevel, maxLevel } = this.options
       let indent = nextLevel

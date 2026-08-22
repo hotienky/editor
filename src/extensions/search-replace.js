@@ -1,6 +1,8 @@
 import { Extension } from '@tiptap/core'
-import { Plugin } from '@tiptap/pm/state'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
+
+const searchReplaceKey = new PluginKey('kindySearchReplace')
 
 const getRegex = (s, disableRegex, caseSensitive) => {
   return RegExp(
@@ -83,11 +85,12 @@ const processSearches = (doc, searchTerm, searchResultClass, resultIndex) => {
 const replace = (replaceTerm, results, { state, dispatch }) => {
   const [firstResult] = results
 
-  if (!firstResult) return
+  if (!firstResult) return false
 
   const { from, to } = firstResult
 
   if (dispatch) dispatch(state.tr.insertText(replaceTerm, from, to))
+  return true
 }
 
 const rebaseNextResult = (replaceTerm, index, lastOffset, results) => {
@@ -114,7 +117,7 @@ const replaceAll = (replaceTerm, results, { tr, dispatch }) => {
 
   let resultsCopy = results.slice()
 
-  if (!resultsCopy.length) return
+  if (!resultsCopy.length) return false
 
   for (let i = 0; i < resultsCopy.length; i += 1) {
     const { from, to } = resultsCopy[i]
@@ -132,7 +135,8 @@ const replaceAll = (replaceTerm, results, { tr, dispatch }) => {
     ;[offset, resultsCopy] = rebaseNextResultResponse
   }
 
-  dispatch(tr)
+  if (dispatch) dispatch(tr)
+  return true
 }
 
 export const SearchAndReplace = Extension.create({
@@ -159,35 +163,34 @@ export const SearchAndReplace = Extension.create({
     return {
       setSearchTerm:
         (searchTerm) =>
-        ({ editor }) => {
+        ({ editor, state, dispatch }) => {
           editor.storage.searchAndReplace.searchTerm = searchTerm
-
-          return false
+          if (dispatch) dispatch(state.tr.setMeta(searchReplaceKey, 'refresh'))
+          return true
         },
       setReplaceTerm:
         (replaceTerm) =>
         ({ editor }) => {
           editor.storage.searchAndReplace.replaceTerm = replaceTerm
-
-          return false
+          return true
         },
       setCaseSensitive:
         (caseSensitive) =>
-        ({ editor }) => {
+        ({ editor, state, dispatch }) => {
           editor.storage.searchAndReplace.caseSensitive = caseSensitive
-
-          return false
+          if (dispatch) dispatch(state.tr.setMeta(searchReplaceKey, 'refresh'))
+          return true
         },
       resetIndex:
         () =>
-        ({ editor }) => {
+        ({ editor, state, dispatch }) => {
           editor.storage.searchAndReplace.resultIndex = 0
-
-          return false
+          if (dispatch) dispatch(state.tr.setMeta(searchReplaceKey, 'refresh'))
+          return true
         },
       nextSearchResult:
         () =>
-        ({ editor }) => {
+        ({ editor, state, dispatch }) => {
           const { results, resultIndex } = editor.storage.searchAndReplace
 
           const nextIndex = resultIndex + 1
@@ -198,11 +201,12 @@ export const SearchAndReplace = Extension.create({
             editor.storage.searchAndReplace.resultIndex = 0
           }
 
-          return false
+          if (dispatch) dispatch(state.tr.setMeta(searchReplaceKey, 'refresh'))
+          return true
         },
       previousSearchResult:
         () =>
-        ({ editor }) => {
+        ({ editor, state, dispatch }) => {
           const { results, resultIndex } = editor.storage.searchAndReplace
 
           const prevIndex = resultIndex - 1
@@ -213,25 +217,22 @@ export const SearchAndReplace = Extension.create({
             editor.storage.searchAndReplace.resultIndex = results.length - 1
           }
 
-          return false
+          if (dispatch) dispatch(state.tr.setMeta(searchReplaceKey, 'refresh'))
+          return true
         },
       replace:
         () =>
         ({ editor, state, dispatch }) => {
           const { replaceTerm, results } = editor.storage.searchAndReplace
 
-          replace(replaceTerm, results, { state, dispatch })
-
-          return false
+          return replace(replaceTerm, results, { state, dispatch })
         },
       replaceAll:
         () =>
         ({ editor, tr, dispatch }) => {
           const { replaceTerm, results } = editor.storage.searchAndReplace
 
-          replaceAll(replaceTerm, results, { tr, dispatch })
-
-          return false
+          return replaceAll(replaceTerm, results, { tr, dispatch })
         },
     }
   },
@@ -249,7 +250,7 @@ export const SearchAndReplace = Extension.create({
 
     return [
       new Plugin({
-        key: 'search-replace',
+        key: searchReplaceKey,
         state: {
           init: () => DecorationSet.empty,
           apply({ doc, docChanged }, oldState) {

@@ -1303,14 +1303,6 @@ watch(
         }
       })
     }
-    const bindUndoRedoKey = () => {
-      useHotkeys('ctrl+z, command+z', () => {
-        undoHistory()
-      })
-      useHotkeys('ctrl+y, command+y', () => {
-        redoHistory()
-      })
-    }
     editor.value?.on('focus', () => {
       useHotkeys('esc', unsetFormatPainter)
       useHotkeys('ctrl+s,command+s', () => {
@@ -1328,11 +1320,9 @@ watch(
       })
     })
     bindEscKey()
-    bindUndoRedoKey()
     editor.value?.on('blur', () => {
       removeAllHotkeys()
       bindEscKey()
-      bindUndoRedoKey()
     })
   },
 )

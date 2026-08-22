@@ -74,4 +74,17 @@ describe('DOM page calculator', () => {
     expect(reads).toBe(2)
     expect(cache.stats()).toEqual({ hits: 1, misses: 2 })
   })
+
+  it('keeps logical block measurements independent from visual page zoom', () => {
+    const surface = document.createElement('div')
+    surface.className = 'kindy-page-editor-wrap'
+    surface.style.setProperty('--page-zoom', '0.5')
+    const editor = document.createElement('div')
+    const paragraph = document.createElement('p')
+    Object.defineProperty(paragraph, 'offsetHeight', { value: 40 })
+    editor.append(paragraph)
+    surface.append(editor)
+
+    expect(getBlockHeightsFromDOM(editor)[0].height).toBe(40)
+  })
 })

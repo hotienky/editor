@@ -79,6 +79,9 @@
     "dev": "vite --port 9000 --open --force",
     "preview": "vite preview",
     "preview:demo": "vite preview --config vite.demo.config.js",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:package": "node scripts/test-packed-consumer.mjs",
@@ -175,6 +178,7 @@
     "unplugin-vue-macros": "^2.14.5",
     "vite": "^7.3.1",
     "vite-bundle-visualizer": "^1.2.1",
+    "vitepress": "^1.6.4",
     "vitest": "^4.1.10",
     "vue": "^3.5.29"
   },

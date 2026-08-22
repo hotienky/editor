@@ -441,6 +441,11 @@ export default new ObjectSchema({
             validate: 'string',
             required: false,
           },
+          content: {
+            merge: 'replace',
+            validate() {},
+            required: false,
+          },
           fontColor: {
             merge: 'replace',
             validate: 'string',
@@ -553,6 +558,11 @@ export default new ObjectSchema({
           text: {
             merge: 'replace',
             validate: 'string',
+            required: false,
+          },
+          content: {
+            merge: 'replace',
+            validate() {},
             required: false,
           },
           fontColor: {

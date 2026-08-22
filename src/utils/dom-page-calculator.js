@@ -66,20 +66,6 @@ export function getPageContentHeight(editorDom, cmToPxFn) {
   return getPageGeometry(editorDom, cmToPxFn).contentHeight
 }
 
-/**
- * Read the zoom factor from CSS variable --page-zoom on the wrapper.
- *
- * @param {HTMLElement} editorDom
- * @returns {number} zoom factor (1 = 100%)
- */
-function getEditorZoom(editorDom) {
-  const wrap = editorDom?.closest?.('.kindy-page-editor-wrap')
-  if (!wrap) return 1
-  const raw = getComputedStyle(wrap).getPropertyValue('--page-zoom')?.trim()
-  const z = parseFloat(raw)
-  return (!isNaN(z) && z > 0) ? z : 1
-}
-
 /** Return the DOM elements that map one-to-one to top-level document nodes. */
 export function getTopLevelBlockElements(editorDom) {
   if (!editorDom) return []
@@ -98,17 +84,17 @@ export function createBlockMeasurementCache() {
   let misses = 0
 
   return {
-    get(element, zoom) {
+    get(element, layoutKey) {
       const entry = values.get(element)
-      if (entry?.zoom === zoom) {
+      if (entry?.layoutKey === layoutKey) {
         hits += 1
         return entry.value
       }
       misses += 1
       return undefined
     },
-    set(element, zoom, value) {
-      values.set(element, { zoom, value })
+    set(element, layoutKey, value) {
+      values.set(element, { layoutKey, value })
     },
     invalidate(element) {
       if (element) values.delete(element)
@@ -134,12 +120,14 @@ export function createBlockMeasurementCache() {
 export function getBlockHeightsFromDOM(editorDom, measurementCache) {
   if (!editorDom) return []
 
-  const zoom = getEditorZoom(editorDom)
+  // The page surface always lays out at 100%. View zoom is a parent transform,
+  // so offsetHeight is already the canonical logical measurement.
+  const layoutKey = 'logical-a4'
   const children = getTopLevelBlockElements(editorDom)
   const result = []
 
   for (const child of children) {
-    const cached = measurementCache?.get(child, zoom)
+    const cached = measurementCache?.get(child, layoutKey)
     if (cached) {
       result.push(cached)
       continue
@@ -147,9 +135,6 @@ export function getBlockHeightsFromDOM(editorDom, measurementCache) {
 
     // Layout height (unaffected by parent CSS transforms)
     let logicalHeight = child.offsetHeight
-    if (zoom !== 1 && logicalHeight > 0) {
-      logicalHeight = logicalHeight / zoom
-    }
 
     // Crucial: Fallback for empty lines (<p><br></p>) or unmeasured blocks.
     // NEVER skip a block, otherwise the array indices desynchronize with doc.child(i)!
@@ -175,7 +160,7 @@ export function getBlockHeightsFromDOM(editorDom, measurementCache) {
       forceBreak: isManualPageBreak,
       avoidBreak: (isTable || isImage || isCodeBlock) && !isManualPageBreak,
     }
-    measurementCache?.set(child, zoom, measurement)
+    measurementCache?.set(child, layoutKey, measurement)
     result.push(measurement)
   }
 

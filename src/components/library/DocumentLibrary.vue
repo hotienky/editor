@@ -250,8 +250,9 @@ const clientOffs = [
   libraryClient.on('changed', (payload) => { workspaceStatus.value = 'dirty'; emit('changed', payload) }),
   libraryClient.on('save-started', (payload) => { workspaceStatus.value = 'saving'; emit('save-started', payload) }),
   libraryClient.on('saved', async (payload) => {
-    workspaceStatus.value = 'saved'
-    editor.value?.markContentSaved?.()
+    const stillDirty = libraryClient.hasUnsavedChanges
+    workspaceStatus.value = stillDirty ? 'dirty' : 'saved'
+    if (!stillDirty) editor.value?.markContentSaved?.()
     liveSnapshot.value = libraryClient.current
     if (!previewVersionId.value) current.value = liveSnapshot.value
     await versions.value?.refresh()
@@ -317,6 +318,7 @@ function toLegacyHeaderFooter(value: KindyDocumentState['page']['header']) {
   return {
     enable: value?.enabled || false,
     text: (value?.text || textFromContent(value?.content)).trim(),
+    content: value?.content,
     layout: isBanner ? 'banner' : image ? 'split' : 'single',
     align: 'center',
     logo: image?.src || '',
@@ -366,8 +368,7 @@ function findImage(content?: { attrs?: Record<string, unknown>; content?: unknow
 }
 
 async function openDocument(document: DocumentSummary) {
-  cancelStateSync()
-  disconnectCollaboration()
+  if (document.id === activeDocumentId.value && current.value && !previewVersionId.value) return
   openController?.abort()
   const controller = new AbortController()
   openController = controller
@@ -376,6 +377,16 @@ async function openDocument(document: DocumentSummary) {
   previewVersionId.value = ''
   previewVersionNumber.value = null
   try {
+    // Navigation must never discard a transaction that has not reached the
+    // adapter yet. Flush the debounce buffer and finish the current save
+    // before loading another document.
+    if (current.value && canEdit.value) {
+      flushEditorState()
+      if (libraryClient.hasUnsavedChanges) await libraryClient.save('autosave')
+    }
+    if (controller.signal.aborted) return
+    cancelStateSync()
+    disconnectCollaboration()
     const snapshot = await libraryClient.open(document.id, undefined, controller.signal)
     if (controller.signal.aborted) return
     liveSnapshot.value = snapshot

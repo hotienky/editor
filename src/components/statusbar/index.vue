@@ -644,7 +644,7 @@ const autoWidth = (auto = true, padding = 50) => {
     const editorEl = document.querySelector(
       `${container} .kindy-zoomable-container`,
     )
-    const pageEl = editorEl?.querySelector('.kindy-zoomable-content')
+    const pageEl = editorEl?.querySelector('.kindy-page-editor-wrap')
     const editorWidth = editorEl?.clientWidth || 0
     const pageWidth = pageEl?.clientWidth || 0
     page.value.zoomLevel = Math.floor(

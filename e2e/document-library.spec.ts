@@ -5,6 +5,76 @@ import { unzipSync } from 'fflate'
 const realDocxPath = process.env.KINDY_REAL_DOCX
 
 test.describe('Document Library workspace', () => {
+  test('keeps a fixed A4 layout coordinate system while zooming', async ({ page }) => {
+    await page.goto('./')
+    await page.getByRole('button', { name: /Hợp đồng nguyên tắc/i }).click()
+
+    const surface = page.locator('.kindy-page-editor-wrap')
+    const zoomOut = page.locator('.kindy-zoom-level-bar button').nth(0)
+    const zoomIn = page.locator('.kindy-zoom-level-bar button').nth(1)
+    await expect(surface).toBeVisible()
+
+    const readMetrics = () => surface.evaluate((element) => {
+      const surfaceRect = element.getBoundingClientRect()
+      const shellRect = element.parentElement!.getBoundingClientRect()
+      const editor = element.querySelector<HTMLElement>('.kindy-editor')!
+      const style = getComputedStyle(element)
+      const overlays = [...element.querySelectorAll<HTMLElement>(
+        '.kindy-gdocs-header-zone, .kindy-gdocs-footer-zone, .kindy-page-repeated-header, .kindy-page-repeated-footer',
+      )]
+      return {
+        zoom: Number(style.getPropertyValue('--page-zoom')),
+        logicalWidth: (element as HTMLElement).offsetWidth,
+        logicalHeight: (element as HTMLElement).offsetHeight,
+        visualWidth: surfaceRect.width,
+        visualHeight: surfaceRect.height,
+        shellWidth: shellRect.width,
+        shellHeight: shellRect.height,
+        editorLogicalWidth: editor.offsetWidth,
+        editorLogicalHeight: editor.offsetHeight,
+        horizontalOverflow: editor.scrollWidth - editor.clientWidth,
+        overlayOverflow: overlays.some((overlay) => overlay.scrollWidth > overlay.clientWidth + 1),
+      }
+    })
+
+    const baseline = await readMetrics()
+    const a4WidthPx = (210 / 25.4) * 96
+    const a4HeightPx = (297 / 25.4) * 96
+    expect(baseline.zoom).toBe(1)
+    expect(baseline.logicalWidth).toBeCloseTo(a4WidthPx, 0)
+    expect(baseline.logicalHeight).toBeCloseTo(a4HeightPx, 0)
+    expect(baseline.horizontalOverflow).toBeLessThanOrEqual(0)
+    expect(baseline.overlayOverflow).toBe(false)
+
+    for (let step = 0; step < 5; step += 1) await zoomOut.click()
+    const zoomedOut = await readMetrics()
+    expect(zoomedOut.zoom).toBe(0.5)
+    expect(zoomedOut.logicalWidth).toBe(baseline.logicalWidth)
+    expect(zoomedOut.logicalHeight).toBe(baseline.logicalHeight)
+    expect(zoomedOut.editorLogicalWidth).toBe(baseline.editorLogicalWidth)
+    expect(zoomedOut.editorLogicalHeight).toBe(baseline.editorLogicalHeight)
+    expect(zoomedOut.visualWidth).toBeCloseTo(baseline.visualWidth * 0.5, 0)
+    expect(zoomedOut.visualHeight).toBeCloseTo(baseline.visualHeight * 0.5, 0)
+    expect(zoomedOut.shellWidth).toBeCloseTo(zoomedOut.visualWidth, 0)
+    expect(zoomedOut.shellHeight).toBeCloseTo(zoomedOut.visualHeight, 0)
+    expect(zoomedOut.horizontalOverflow).toBeLessThanOrEqual(0)
+    expect(zoomedOut.overlayOverflow).toBe(false)
+
+    for (let step = 0; step < 15; step += 1) await zoomIn.click()
+    const zoomedIn = await readMetrics()
+    expect(zoomedIn.zoom).toBe(2)
+    expect(zoomedIn.logicalWidth).toBe(baseline.logicalWidth)
+    expect(zoomedIn.logicalHeight).toBe(baseline.logicalHeight)
+    expect(zoomedIn.editorLogicalWidth).toBe(baseline.editorLogicalWidth)
+    expect(zoomedIn.editorLogicalHeight).toBe(baseline.editorLogicalHeight)
+    expect(zoomedIn.visualWidth).toBeCloseTo(baseline.visualWidth * 2, 0)
+    expect(zoomedIn.visualHeight).toBeCloseTo(baseline.visualHeight * 2, 0)
+    expect(zoomedIn.shellWidth).toBeCloseTo(zoomedIn.visualWidth, 0)
+    expect(zoomedIn.shellHeight).toBeCloseTo(zoomedIn.visualHeight, 0)
+    expect(zoomedIn.horizontalOverflow).toBeLessThanOrEqual(0)
+    expect(zoomedIn.overlayOverflow).toBe(false)
+  })
+
   test('imports the real contract header image and exposes page navigation', async ({ page }, testInfo) => {
     test.skip(!realDocxPath, 'Set KINDY_REAL_DOCX to run the local golden-corpus check.')
     test.setTimeout(60_000)
@@ -32,6 +102,35 @@ test.describe('Document Library workspace', () => {
     })
     await expect(pageStatus).toHaveAttribute('aria-label', `Trang ${totalPages} trên ${totalPages}`)
 
+    const signatureA = page.locator('.kindy-editor').getByText('ĐẠI DIỆN BÊN A', { exact: true }).last()
+    const signatureB = page.locator('.kindy-editor').getByText('ĐẠI DIỆN BÊN B', { exact: true }).last()
+    await expect(signatureA).toBeVisible()
+    await expect(signatureB).toBeVisible()
+    const signatureParagraph = signatureA.locator('xpath=ancestor::p[1]')
+    await expect(signatureParagraph.locator('.kindy-docx-tab')).toHaveCount(2)
+    const signatureGeometry = await signatureParagraph.evaluate((paragraph) => {
+      const tabs = [...paragraph.querySelectorAll<HTMLElement>('.kindy-docx-tab')]
+      const bounds = paragraph.getBoundingClientRect()
+      const scale = bounds.width / (paragraph as HTMLElement).offsetWidth
+      return {
+        paragraphLeft: bounds.left,
+        scale,
+        tabWidths: tabs.map((tab) => Number.parseFloat(tab.style.width) || 0),
+        tabPositions: tabs.map((tab) => Number(tab.dataset.position)),
+      }
+    })
+    const [signatureABox, signatureBBox] = await Promise.all([signatureA.boundingBox(), signatureB.boundingBox()])
+    expect(signatureGeometry.tabWidths.every((width) => width > 0)).toBe(true)
+    expect(signatureGeometry.tabPositions[0]).toBeCloseTo(1800 / 567, 2)
+    expect(signatureGeometry.tabPositions[1]).toBeCloseTo(7560 / 567, 2)
+    const pxPerCm = 96 / 2.54
+    const expectedCenterA = signatureGeometry.paragraphLeft + (signatureGeometry.tabPositions[0] * pxPerCm * signatureGeometry.scale)
+    const expectedCenterB = signatureGeometry.paragraphLeft + (signatureGeometry.tabPositions[1] * pxPerCm * signatureGeometry.scale)
+    expect(Math.abs((signatureABox!.x + signatureABox!.width / 2) - expectedCenterA)).toBeLessThan(12)
+    expect(Math.abs((signatureBBox!.x + signatureBBox!.width / 2) - expectedCenterB)).toBeLessThan(12)
+    await mkdir('.artifacts', { recursive: true })
+    await page.screenshot({ path: '.artifacts/real-docx-signature.png', fullPage: false })
+
     const automaticBreak = page.locator('.kindy-page-break-decoration').first()
     await expect(automaticBreak).toBeAttached()
     const repeatedHeader = automaticBreak.locator('.kindy-page-repeated-header img')
@@ -53,6 +152,35 @@ test.describe('Document Library workspace', () => {
       body: await page.screenshot({ fullPage: false }),
       contentType: 'image/png',
     })
+
+    // Imported Word comments are formatting metadata, not protected content.
+    // The commented signature placeholder must remain ordinary editable text.
+    const signaturePlaceholder = page.locator('.kindy-editor [data-comment]').filter({ hasText: '…' }).last()
+    await signaturePlaceholder.scrollIntoViewIfNeeded()
+    await expect(signaturePlaceholder).toBeVisible()
+    await expect(page.locator('.kindy-editor')).toHaveAttribute('contenteditable', 'true')
+    const signatureCommentId = await signaturePlaceholder.getAttribute('data-comment')
+    expect(signatureCommentId).toBeTruthy()
+    const signatureComment = page.locator(`.kindy-editor [data-comment="${signatureCommentId}"]`)
+    const placeholderText = await signaturePlaceholder.textContent()
+    expect(placeholderText?.length).toBeGreaterThan(1)
+    const placeholderBox = await signaturePlaceholder.boundingBox()
+    expect(placeholderBox).not.toBeNull()
+    await page.mouse.move(placeholderBox!.x + placeholderBox!.width - 1, placeholderBox!.y + placeholderBox!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(placeholderBox!.x + 1, placeholderBox!.y + placeholderBox!.height / 2, { steps: 8 })
+    await page.mouse.up()
+    await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe(placeholderText)
+    await page.keyboard.press('Backspace')
+    await expect(signatureComment).not.toBeAttached()
+    await expect(page.getByRole('status').filter({ hasText: 'Có thay đổi chưa lưu' })).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Đã lưu' })).toBeVisible({ timeout: 8_000 })
+
+    const importedDocument = page.getByRole('button', { name: /20260401|HD mua ban Solar/i }).first()
+    await page.getByRole('button', { name: /Hợp đồng nguyên tắc/i }).click()
+    await expect(page.locator('.kindy-editor')).toContainText('HỢP ĐỒNG NGUYÊN TẮC')
+    await importedDocument.click()
+    await expect(page.locator(`.kindy-editor [data-comment="${signatureCommentId}"]`)).toHaveCount(0)
     expect(pageErrors).toEqual([])
   })
 
@@ -173,6 +301,93 @@ test.describe('Document Library workspace', () => {
     await page.getByRole('button', { name: /Hợp đồng nguyên tắc/ }).click()
     await expect(page.getByRole('status').filter({ hasText: 'Đã lưu' })).toBeVisible()
     await expect(page.getByRole('button', { name: /Ký tự/ })).toBeVisible()
+  })
+
+  test('contract editing matrix persists formatting, lists, page breaks and undo/redo to DOCX', async ({ page }, testInfo) => {
+    test.setTimeout(60_000)
+    const pageErrors: Error[] = []
+    page.on('pageerror', (error) => pageErrors.push(error))
+    page.on('dialog', (dialog) => dialog.accept())
+
+    await page.goto('./')
+    const [sampleDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Tải DOCX mẫu để test import' }).click(),
+    ])
+    const samplePath = testInfo.outputPath('editing-matrix-source.docx')
+    await sampleDownload.saveAs(samplePath)
+    await page.locator('.kindy-explorer input[type="file"]').setInputFiles(samplePath)
+    await expect(page.getByRole('heading', { name: 'HỢP ĐỒNG NGUYÊN TẮC' })).toBeVisible()
+
+    const editor = page.locator('.kindy-editor')
+    await editor.click()
+    await editor.press('ControlOrMeta+A')
+    await editor.type('NỘI DUNG HỢP ĐỒNG')
+    await editor.press('Enter')
+    const formattedText = 'Điều khoản chỉnh sửa'
+    await editor.type(formattedText)
+    const formattedRun = editor.getByText(formattedText, { exact: true }).last()
+    await formattedRun.click({ clickCount: 3 })
+    await expect.poll(() => page.evaluate(() => window.getSelection()?.toString().trim())).toBe(formattedText)
+    await page.keyboard.press('ControlOrMeta+b')
+    await page.keyboard.press('ControlOrMeta+i')
+    await page.keyboard.press('ControlOrMeta+u')
+    await expect(formattedRun).toBeVisible()
+    await expect(editor.locator('b').filter({ hasText: formattedText })).toBeVisible()
+    await expect(editor.locator('em').filter({ hasText: formattedText })).toBeVisible()
+    await expect(editor.locator('u').filter({ hasText: formattedText })).toBeVisible()
+
+    await page.keyboard.press('ArrowRight')
+    await editor.press('Enter')
+    await editor.type('1. ')
+    await expect(editor.locator('ol')).toHaveCount(1)
+    await editor.type('Điều khoản thứ nhất')
+    await editor.press('ControlOrMeta+Enter')
+    await editor.type('PHỤ LỤC')
+    await expect(editor.locator('.kindy-page-break')).toHaveCount(1)
+
+    // ProseMirror groups adjacent typing transactions for 500ms. Separate the
+    // next edit so undo/redo represents one visible user action.
+    await page.waitForTimeout(650)
+    await editor.type(' BẢN 2')
+    await expect(editor).toContainText('PHỤ LỤC BẢN 2')
+    await page.waitForTimeout(650)
+    const platformModifier = process.platform === 'darwin' ? 'Meta' : 'Control'
+    await editor.press(`${platformModifier}+z`)
+    await expect(editor).not.toContainText('PHỤ LỤC BẢN 2')
+    await expect(editor).toContainText('PHỤ LỤC')
+    await expect(editor).toContainText(formattedText)
+    await editor.press(`${platformModifier}+y`)
+    await expect(editor).toContainText('PHỤ LỤC BẢN 2')
+    await expect(editor).toContainText(formattedText)
+
+    await expect(page.getByRole('status').filter({ hasText: 'Có thay đổi chưa lưu' })).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: 'Đã lưu' })).toBeVisible({ timeout: 8_000 })
+    const importedDocument = page.getByRole('button', { name: /editing-matrix-source/i })
+    await page.getByRole('button', { name: /Hợp đồng nguyên tắc/i }).click()
+    await expect(editor).toContainText('HỢP ĐỒNG NGUYÊN TẮC')
+    await importedDocument.click()
+    await expect(editor).toContainText(formattedText)
+    await expect(editor).toContainText('PHỤ LỤC')
+    await expect(editor.locator('ol')).toHaveCount(1)
+    await expect(editor.locator('.kindy-page-break')).toHaveCount(1)
+
+    const [exportDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Tải DOCX', exact: true }).click(),
+    ])
+    const exportedPath = testInfo.outputPath('editing-matrix-export.docx')
+    await exportDownload.saveAs(exportedPath)
+    const exportedArchive = unzipSync(await readFile(exportedPath))
+    const documentXml = new TextDecoder().decode(exportedArchive['word/document.xml'])
+    expect(documentXml).toContain('NỘI DUNG HỢP ĐỒNG')
+    expect(documentXml).toContain(formattedText)
+    expect(documentXml).toContain('<w:b')
+    expect(documentXml).toContain('<w:i')
+    expect(documentXml).toContain('<w:u')
+    expect(documentXml).toContain('<w:numPr>')
+    expect(documentXml).toContain('<w:br w:type="page"')
+    expect(pageErrors).toEqual([])
   })
 })
 

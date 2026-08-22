@@ -111,6 +111,31 @@ const getActiveListItemType = (selection) => {
 }
 const handleEditorKeyDown = (view, event) => {
   const customHandleKeyDown = options.value.document?.editorProps?.handleKeyDown
+  const modifier = event.ctrlKey || event.metaKey
+  const key = event.key.toLowerCase()
+  if (modifier && !event.altKey && !event.isComposing && key === 'z') {
+    const handled = event.shiftKey
+      ? editorInstance.commands.redo()
+      : editorInstance.commands.undo()
+    if (handled) event.preventDefault()
+    return handled
+  }
+  if (modifier && !event.altKey && !event.shiftKey && !event.isComposing && key === 'y') {
+    const handled = editorInstance.commands.redo()
+    if (handled) event.preventDefault()
+    return handled
+  }
+  if (
+    event.key === 'Enter' &&
+    (event.ctrlKey || event.metaKey) &&
+    !event.shiftKey &&
+    !event.altKey &&
+    !event.isComposing &&
+    editorInstance.commands.setPageBreak()
+  ) {
+    event.preventDefault()
+    return true
+  }
   if (
     event.key === 'Enter' &&
     !event.shiftKey &&
