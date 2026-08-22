@@ -67,6 +67,7 @@ export default defineConfig({
         {
           text: 'Tích hợp Backend & Storage',
           items: [
+            { text: 'Thiết kế Database & Backend', link: '/integration/database-setup' },
             { text: 'REST Document Adapter', link: '/integration/rest-adapter' },
             { text: 'Tự viết Custom Adapter', link: '/integration/custom-adapter' },
             { text: 'OpenAPI 3.1 Contract', link: '/integration/openapi-spec' },

@@ -18,6 +18,10 @@ npm install kindy-editor
 
 ## 2. Nhúng vào ứng dụng Vue 3
 
+> [!TIP]
+> **Chưa thiết kế Database hoặc Backend API?**
+> Xem ngay hướng dẫn chi tiết kèm mã nguồn SQL và code Backend tại: **[Thiết kế Database & Backend](/integration/database-setup)**.
+
 ### Cách A: Sử dụng Workspace hoàn chỉnh (`KindyDocumentLibrary`)
 
 Đây là phương thức nhanh nhất để có đầy đủ tính năng: Sidebar quản lý thư mục/tài liệu, Editor soạn thảo và Panel lịch sử phiên bản.

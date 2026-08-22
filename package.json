@@ -79,7 +79,7 @@
     "dev": "vite --port 9000 --open --force",
     "preview": "vite preview",
     "preview:demo": "vite preview --config vite.demo.config.js",
-    "docs:dev": "vitepress dev docs",
+    "docs:dev": "vitepress dev docs --port 9001 --open",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "test": "vitest run",

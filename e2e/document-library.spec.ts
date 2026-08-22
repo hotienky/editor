@@ -337,27 +337,39 @@ test.describe('Document Library workspace', () => {
     await expect(editor.locator('em').filter({ hasText: formattedText })).toBeVisible()
     await expect(editor.locator('u').filter({ hasText: formattedText })).toBeVisible()
 
-    await page.keyboard.press('ArrowRight')
-    await editor.press('Enter')
-    await editor.type('1. ')
+    const formattedBox = await formattedRun.boundingBox()
+    expect(formattedBox).not.toBeNull()
+    await page.mouse.click(
+      formattedBox!.x + formattedBox!.width - 2,
+      formattedBox!.y + formattedBox!.height / 2,
+    )
+    await page.keyboard.press('End')
+    await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() || '')).toBe('')
+    await expect(editor).toContainText(formattedText)
+    await page.keyboard.press('Enter')
+    await expect(editor).toContainText(formattedText)
+    await page.keyboard.type('1. ')
     await expect(editor.locator('ol')).toHaveCount(1)
-    await editor.type('Điều khoản thứ nhất')
-    await editor.press('ControlOrMeta+Enter')
-    await editor.type('PHỤ LỤC')
+    await page.keyboard.type('Điều khoản thứ nhất')
+    await expect(editor).toContainText(formattedText)
+    await page.keyboard.press('ControlOrMeta+Enter')
+    await page.keyboard.type('PHỤ LỤC')
     await expect(editor.locator('.kindy-page-break')).toHaveCount(1)
+    await expect(editor).toContainText(formattedText)
 
     // ProseMirror groups adjacent typing transactions for 500ms. Separate the
     // next edit so undo/redo represents one visible user action.
     await page.waitForTimeout(650)
-    await editor.type(' BẢN 2')
+    await page.keyboard.type(' BẢN 2')
     await expect(editor).toContainText('PHỤ LỤC BẢN 2')
+    await expect(editor).toContainText(formattedText)
     await page.waitForTimeout(650)
     const platformModifier = process.platform === 'darwin' ? 'Meta' : 'Control'
-    await editor.press(`${platformModifier}+z`)
+    await page.keyboard.press(`${platformModifier}+z`)
     await expect(editor).not.toContainText('PHỤ LỤC BẢN 2')
     await expect(editor).toContainText('PHỤ LỤC')
     await expect(editor).toContainText(formattedText)
-    await editor.press(`${platformModifier}+y`)
+    await page.keyboard.press(`${platformModifier}+y`)
     await expect(editor).toContainText('PHỤ LỤC BẢN 2')
     await expect(editor).toContainText(formattedText)
 

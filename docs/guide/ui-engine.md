@@ -4,24 +4,55 @@ Kindy Editor sở hữu kiến trúc UI Engine tách biệt hoàn toàn giữa *
 
 ---
 
-## 1. Cấu trúc Layout 3 vùng (`KindyDocumentLibraryShell`)
+## 1. Kiến trúc trang A4 và zoom
+
+Kindy Editor dùng **ProseMirror DOM + HTML/CSS**, không vẽ nội dung bằng `canvas`.
+Lựa chọn này giữ được con trỏ native, selection, IME tiếng Việt, accessibility,
+comment, Track Changes và khả năng chỉnh sửa trực tiếp từng node.
+
+Mỗi trang dọc A4 có hệ tọa độ logic cố định:
+
+- Kích thước: `210 × 297 mm` (`21 × 29.7 cm`).
+- Ở 96 CSS DPI: xấp xỉ `793.7 × 1122.5 px`.
+- Lề, font, tab, bảng và ảnh luôn được layout trong hệ tọa độ 100% này.
+- Zoom chỉ dùng `transform: scale(...)` trên toàn bộ bề mặt trang.
+- `kindy-page-scale-shell` giữ chỗ theo kích thước sau zoom để thanh cuộn hoạt động đúng.
+- Pagination đo `offsetHeight` logic trước transform nên số trang không thay đổi khi zoom.
+
+```text
+Scroll viewport
+  └─ Page scale shell (kích thước hiển thị = A4 × zoom)
+       └─ A4 logical surface (210 × 297 mm, luôn layout ở 100%)
+            ├─ Header overlay
+            ├─ ProseMirror editable DOM
+            ├─ Page-break decorations
+            └─ Footer overlay
+```
+
+Không được nhân zoom riêng vào chiều rộng trang, lề hoặc padding vì cách đó làm
+văn bản reflow và thay đổi số dòng. Canvas chỉ phù hợp cho preview tĩnh; không
+được dùng làm bề mặt chỉnh sửa canonical của SDK.
+
+---
+
+## 2. Cấu trúc Layout 3 vùng (`KindyDocumentLibraryShell`)
 
 Giao diện Workspace được chia làm 3 phân vùng độc lập:
 
 1. **Explorer Sidebar (Trái)**: Cây thư mục, danh sách tài liệu, tìm kiếm, nút import và template.
-2. **Main Workspace (Giữa)**: Thanh công cụ (Toolbar), Canvas phân trang soạn thảo, và thanh trạng thái (Statusbar).
+2. **Main Workspace (Giữa)**: Thanh công cụ (Toolbar), bề mặt DOM phân trang A4 và thanh trạng thái (Statusbar).
 3. **Version History Panel (Phải)**: Lịch sử các bản lưu (Revisions/Versions), so sánh, xem trước chế độ chỉ đọc và khôi phục.
 
 ```text
 ┌─────────────────┬──────────────────────────────────┬─────────────────┐
-│ KindyExplorer   │ KindyEditor & Canvas             │ VersionPanel    │
+│ KindyExplorer   │ KindyEditor & A4 DOM Viewport    │ VersionPanel    │
 │ (Folder/Files)  │ (Pagination, Toolbar, Ruler)     │ (History/Diff)  │
 └─────────────────┴──────────────────────────────────┴─────────────────┘
 ```
 
 ---
 
-## 2. Preset Hợp đồng mặc định (Contract Preset)
+## 3. Preset Hợp đồng mặc định (Contract Preset)
 
 Để tối ưu cho nghiệp vụ văn bản pháp lý, hành chính và hợp đồng, `KindyDocumentLibrary` mặc định kích hoạt cấu hình `CONTRACT_EDITOR_OPTIONS`:
 
@@ -43,7 +74,7 @@ Giao diện Workspace được chia làm 3 phân vùng độc lập:
 
 ---
 
-## 3. Tùy biến Theme (CSS Variables)
+## 4. Tùy biến Theme (CSS Variables)
 
 Kindy Editor hỗ trợ ghi đè trực tiếp các biến giao diện thông qua prop `:theme` hoặc CSS toàn cục:
 
@@ -64,7 +95,7 @@ Kindy Editor hỗ trợ ghi đè trực tiếp các biến giao diện thông qu
 
 ---
 
-## 4. Đa ngôn ngữ (i18n & Localization)
+## 5. Đa ngôn ngữ (i18n & Localization)
 
 SDK hỗ trợ sẵn các gói ngôn ngữ:
 - `vi-VN`: Tiếng Việt (Mặc định)

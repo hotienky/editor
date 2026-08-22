@@ -65,7 +65,9 @@ Tầng cơ sở định nghĩa các giao diện trừu tượng để giao tiế
 ### 2. Tầng Document Model & Codecs
 - **Model Schema (`src/model/schema.js`)**: Định nghĩa cấu trúc các loại node (paragraph, heading, table, docxTab...) và mark (bold, italic, color...) độc lập với framework.
 - **DOCX Codec (`src/codecs/docx.ts`)**: Bộ chuyển đổi hai chiều giữa file OOXML DOCX và `KindyDocumentState` JSON.
-- **Layout & Pagination Engine**: Đo đạc chiều cao khối nội dung, tính toán ngắt trang (page break) động, render canvas nhiều trang A4 theo chuẩn in ấn.
+- **Layout & Pagination Engine**: Đo chiều cao logic của DOM ProseMirror, tính
+  ngắt trang động và render bề mặt HTML/CSS A4 cố định. Zoom dùng một transform
+  đồng nhất trên toàn trang; engine không dùng canvas làm bề mặt chỉnh sửa.
 
 ### 3. Tầng Headless Core (`src/core/`)
 - **DocumentLibraryClient (`client.ts`)**: Quản lý vòng đời tài liệu, quản lý trạng thái `KindyDocumentState`, điều phối cơ chế tự động lưu (Autosave có debounce), và kiểm soát xung đột (Optimistic Concurrency).
