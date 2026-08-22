@@ -39,6 +39,7 @@ import CodeBlock from './code-block'
 import Columns from './columns'
 import Comment from './comment'
 import Datetime from './datetime'
+import { DocxParagraphLayout, DocxTab } from './docx-layout'
 import Echarts from './echarts'
 import File from './file'
 import FileHandler from './file-handler'
@@ -243,6 +244,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     ListItem,
     TaskItem.configure({ nested: true }),
     LineHeight,
+    DocxParagraphLayout,
+    DocxTab,
     SearchReplace,
 
     // Insert

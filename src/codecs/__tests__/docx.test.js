@@ -146,6 +146,55 @@ describe('DOCX codec', () => {
     expect(JSON.stringify(list)).toContain('Khoản 1.1')
   })
 
+  it('resolves inherited Word paragraph styles and preserves centered signature tab stops', async () => {
+    const state = ooxmlToDocumentState({
+      contentTypes: 'wordprocessingml.document',
+      stylesXml: `
+        <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial"/><w:sz w:val="20"/></w:rPr></w:rPrDefault></w:docDefaults>
+          <w:style w:type="paragraph" w:styleId="Noidungthuong">
+            <w:rPr><w:rFonts w:ascii="Segoe UI" w:hAnsi="Segoe UI"/><w:sz w:val="22"/></w:rPr>
+          </w:style>
+          <w:style w:type="paragraph" w:styleId="Chuky">
+            <w:basedOn w:val="Noidungthuong"/>
+            <w:pPr><w:tabs><w:tab w:val="center" w:pos="1800"/><w:tab w:val="center" w:pos="7560"/></w:tabs></w:pPr>
+            <w:rPr><w:b/></w:rPr>
+          </w:style>
+        </w:styles>`,
+      documentXml: `
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p><w:pPr><w:pStyle w:val="Chuky"/></w:pPr>
+              <w:r><w:tab/><w:t>ĐẠI DIỆN BÊN A</w:t></w:r>
+              <w:r><w:tab/><w:t>ĐẠI DIỆN BÊN B</w:t></w:r>
+            </w:p>
+            <w:sectPr/>
+          </w:body>
+        </w:document>`,
+      media: {},
+    })
+
+    const [signature] = state.content.content
+    expect(signature.attrs.docxLayout.tabStops).toEqual([
+      expect.objectContaining({ alignment: 'center', position: expect.closeTo(3.17, 2) }),
+      expect.objectContaining({ alignment: 'center', position: expect.closeTo(13.33, 2) }),
+    ])
+    expect(signature.content.map((node) => node.type)).toEqual(['docxTab', 'text', 'docxTab', 'text'])
+    expect(signature.content[0].attrs).toMatchObject({ alignment: 'center', index: 0 })
+    expect(signature.content[2].attrs).toMatchObject({ alignment: 'center', index: 1 })
+    expect(signature.content[1].marks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'bold' }),
+      expect.objectContaining({ type: 'textStyle', attrs: expect.objectContaining({ fontFamily: 'Segoe UI', fontSize: '11pt' }) }),
+    ]))
+
+    const exported = await exportDocx(state)
+    const archive = unzipSync(new Uint8Array(await exported.blob.arrayBuffer()))
+    const xml = strFromU8(archive['word/document.xml'])
+    expect(xml).toContain('<w:tabs>')
+    expect(xml).toContain('w:val="center"')
+    expect(xml.match(/<w:tab\/>/g)).toHaveLength(2)
+  })
+
   it('imports legacy VML Word images instead of treating them as embedded objects', () => {
     const state = ooxmlToDocumentState({
       contentTypes: 'wordprocessingml.document',

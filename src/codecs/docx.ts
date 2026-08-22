@@ -18,6 +18,9 @@ import {
   PageOrientation,
   Paragraph,
   SectionType,
+  Tab,
+  TabStopType,
+  LeaderType,
   Table,
   TableCell,
   TableRow,
@@ -84,6 +87,7 @@ export interface DocxPackageParts {
   documentXml: string
   relationshipsXml?: string
   numberingXml?: string
+  stylesXml?: string
   commentsXml?: string
   commentsExtendedXml?: string
   relatedXml?: Record<string, string>
@@ -102,7 +106,7 @@ const unsupportedOoxml: Array<[RegExp, string, string]> = [
 ]
 
 const supportedNodeTypes = new Set([
-  'doc', 'paragraph', 'heading', 'text', 'hardBreak', 'pageBreak',
+  'doc', 'paragraph', 'heading', 'text', 'hardBreak', 'pageBreak', 'docxTab',
   'bulletList', 'orderedList', 'listItem', 'table', 'tableRow', 'tableHeader',
   'tableCell', 'image', 'inlineImage', 'blockquote',
 ])
@@ -179,6 +183,7 @@ export async function extractDocxPackage(file: Blob, customLimits: Partial<DocxI
     documentXml: strFromU8(entries['word/document.xml']),
     relationshipsXml: entries['word/_rels/document.xml.rels'] ? strFromU8(entries['word/_rels/document.xml.rels']) : undefined,
     numberingXml: entries['word/numbering.xml'] ? strFromU8(entries['word/numbering.xml']) : undefined,
+    stylesXml: entries['word/styles.xml'] ? strFromU8(entries['word/styles.xml']) : undefined,
     commentsXml: entries['word/comments.xml'] ? strFromU8(entries['word/comments.xml']) : undefined,
     commentsExtendedXml: entries['word/commentsExtended.xml'] ? strFromU8(entries['word/commentsExtended.xml']) : undefined,
     relatedXml: Object.fromEntries(Object.entries(entries)
@@ -343,6 +348,203 @@ const xmlElements = (node: Element | Document, localName: string, direct = false
 const xmlFirst = (node: Element | Document, localName: string) => xmlElements(node, localName)[0]
 const xmlValue = (element?: Element) => element?.getAttribute('w:val') || element?.getAttribute('val') || element?.getAttribute('r:id') || element?.getAttribute('id') || undefined
 const twipsToCentimeters = (value: string | null | undefined) => Number(value || 0) / 567
+
+type DocxTabStop = {
+  alignment: string
+  position: number
+  leader?: string
+}
+
+type DocxParagraphFormat = {
+  textAlign?: string
+  line?: number
+  lineRule?: string
+  before?: number
+  after?: number
+  left?: number
+  right?: number
+  firstLine?: number
+  hanging?: number
+  keepNext?: boolean
+  keepLines?: boolean
+  pageBreakBefore?: boolean
+  tabStops?: DocxTabStop[]
+}
+
+type DocxRunFormat = {
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  strike?: boolean
+  subscript?: boolean
+  superscript?: boolean
+  fontFamily?: string
+  fontSize?: string
+  color?: string
+  backgroundColor?: string
+}
+
+type ResolvedDocxStyle = {
+  id: string
+  basedOn?: string
+  paragraph: DocxParagraphFormat
+  run: DocxRunFormat
+}
+
+type DocxStyleContext = {
+  paragraphDefault: DocxParagraphFormat
+  runDefault: DocxRunFormat
+  styles: Map<string, ResolvedDocxStyle>
+}
+
+const emptyStyleContext = (): DocxStyleContext => ({
+  paragraphDefault: {},
+  runDefault: {},
+  styles: new Map(),
+})
+
+const wordAttribute = (element: Element | undefined, name: string) =>
+  element?.getAttribute(`w:${name}`) || element?.getAttribute(name) || undefined
+
+function wordBoolean(element?: Element) {
+  if (!element) return undefined
+  const value = wordAttribute(element, 'val')
+  return value === undefined || !['0', 'false', 'off', 'no'].includes(value.toLowerCase())
+}
+
+function readParagraphFormat(properties?: Element): DocxParagraphFormat {
+  if (!properties) return {}
+  const spacing = xmlFirst(properties, 'spacing')
+  const indent = xmlFirst(properties, 'ind')
+  const [tabs] = xmlElements(properties, 'tabs', true)
+  const tabStops = tabs
+    ? xmlElements(tabs, 'tab', true)
+      .map((tab): DocxTabStop | null => {
+        const rawPosition = Number(wordAttribute(tab, 'pos'))
+        if (!Number.isFinite(rawPosition)) return null
+        return {
+          alignment: wordAttribute(tab, 'val') || 'left',
+          position: twipsToCentimeters(String(rawPosition)),
+          leader: wordAttribute(tab, 'leader') || undefined,
+        }
+      })
+      .filter((tab): tab is DocxTabStop => tab !== null && tab.alignment !== 'clear')
+    : undefined
+  const number = (element: Element | undefined, name: string) => {
+    const value = Number(wordAttribute(element, name))
+    return Number.isFinite(value) ? value : undefined
+  }
+  return {
+    textAlign: xmlValue(xmlFirst(properties, 'jc')),
+    line: number(spacing, 'line'),
+    lineRule: wordAttribute(spacing, 'lineRule'),
+    before: number(spacing, 'before'),
+    after: number(spacing, 'after'),
+    left: number(indent, 'left') ?? number(indent, 'start'),
+    right: number(indent, 'right') ?? number(indent, 'end'),
+    firstLine: number(indent, 'firstLine'),
+    hanging: number(indent, 'hanging'),
+    keepNext: wordBoolean(xmlFirst(properties, 'keepNext')),
+    keepLines: wordBoolean(xmlFirst(properties, 'keepLines')),
+    pageBreakBefore: wordBoolean(xmlFirst(properties, 'pageBreakBefore')),
+    tabStops,
+  }
+}
+
+function readRunFormat(properties?: Element): DocxRunFormat {
+  if (!properties) return {}
+  const fonts = xmlFirst(properties, 'rFonts')
+  const size = xmlValue(xmlFirst(properties, 'sz')) || xmlValue(xmlFirst(properties, 'szCs'))
+  const color = xmlValue(xmlFirst(properties, 'color'))
+  const shading = xmlFirst(properties, 'shd')
+  const highlight = xmlValue(xmlFirst(properties, 'highlight'))
+  const verticalAlign = xmlValue(xmlFirst(properties, 'vertAlign'))
+  const fill = wordAttribute(shading, 'fill')
+  return {
+    bold: wordBoolean(xmlFirst(properties, 'b')),
+    italic: wordBoolean(xmlFirst(properties, 'i')),
+    underline: wordBoolean(xmlFirst(properties, 'u')),
+    strike: wordBoolean(xmlFirst(properties, 'strike')) ?? wordBoolean(xmlFirst(properties, 'dstrike')),
+    subscript: verticalAlign ? verticalAlign === 'subscript' : undefined,
+    superscript: verticalAlign ? verticalAlign === 'superscript' : undefined,
+    fontFamily: wordAttribute(fonts, 'ascii') || wordAttribute(fonts, 'hAnsi') || wordAttribute(fonts, 'eastAsia'),
+    fontSize: size && Number.isFinite(Number(size)) ? `${Number(size) / 2}pt` : undefined,
+    color: color && color !== 'auto' ? `#${color}` : undefined,
+    backgroundColor: fill && fill !== 'auto' && fill !== 'FFFFFF'
+      ? `#${fill}`
+      : highlight && highlight !== 'none'
+        ? highlight
+        : undefined,
+  }
+}
+
+const definedEntries = <T extends Record<string, unknown>>(value: T) =>
+  Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined)) as Partial<T>
+
+function mergeParagraphFormat(...values: DocxParagraphFormat[]) {
+  const result: DocxParagraphFormat = {}
+  for (const value of values) Object.assign(result, definedEntries(value))
+  return result
+}
+
+function mergeRunFormat(...values: DocxRunFormat[]) {
+  const result: DocxRunFormat = {}
+  for (const value of values) Object.assign(result, definedEntries(value))
+  return result
+}
+
+function parseDocxStyles(stylesXml?: string): DocxStyleContext {
+  if (!stylesXml || typeof DOMParser === 'undefined') return emptyStyleContext()
+  const document = new DOMParser().parseFromString(stylesXml, 'application/xml')
+  if (document.querySelector('parsererror')) return emptyStyleContext()
+  const defaults = xmlFirst(document, 'docDefaults')
+  const paragraphDefaultProperties = defaults ? xmlFirst(xmlFirst(defaults, 'pPrDefault') || defaults, 'pPr') : undefined
+  const runDefaultProperties = defaults ? xmlFirst(xmlFirst(defaults, 'rPrDefault') || defaults, 'rPr') : undefined
+  const rawStyles = new Map<string, {
+    id: string
+    basedOn?: string
+    paragraph: DocxParagraphFormat
+    run: DocxRunFormat
+  }>()
+  for (const style of xmlElements(document, 'style')) {
+    if (wordAttribute(style, 'type') !== 'paragraph') continue
+    const id = wordAttribute(style, 'styleId') || ''
+    if (!id) continue
+    const [paragraphProperties] = xmlElements(style, 'pPr', true)
+    const [runProperties] = xmlElements(style, 'rPr', true)
+    rawStyles.set(id, {
+      id,
+      basedOn: xmlValue(xmlFirst(style, 'basedOn')),
+      paragraph: readParagraphFormat(paragraphProperties),
+      run: readRunFormat(runProperties),
+    })
+  }
+
+  const resolved = new Map<string, ResolvedDocxStyle>()
+  const resolving = new Set<string>()
+  const resolve = (id: string): ResolvedDocxStyle | undefined => {
+    if (resolved.has(id)) return resolved.get(id)
+    const style = rawStyles.get(id)
+    if (!style || resolving.has(id)) return undefined
+    resolving.add(id)
+    const base = style.basedOn ? resolve(style.basedOn) : undefined
+    const value: ResolvedDocxStyle = {
+      id,
+      basedOn: style.basedOn,
+      paragraph: mergeParagraphFormat(base?.paragraph || {}, style.paragraph),
+      run: mergeRunFormat(base?.run || {}, style.run),
+    }
+    resolving.delete(id)
+    resolved.set(id, value)
+    return value
+  }
+  for (const id of rawStyles.keys()) resolve(id)
+  return {
+    paragraphDefault: readParagraphFormat(paragraphDefaultProperties),
+    runDefault: readRunFormat(runDefaultProperties),
+    styles: resolved,
+  }
+}
 
 function parseRelationships(xml?: string) {
   const values = new Map<string, string>()
@@ -565,29 +767,24 @@ function ooxmlRun(
   relationships: Map<string, string>,
   parts: DocxPackageParts,
   assets: AssetReference[],
+  inheritedFormat: DocxRunFormat = {},
 ): JSONContent[] {
   const properties = xmlFirst(run, 'rPr')
+  const format = mergeRunFormat(inheritedFormat, readRunFormat(properties))
   const marks: KindyMark[] = []
-  if (properties) {
-    if (xmlFirst(properties, 'b')) marks.push({ type: 'bold' })
-    if (xmlFirst(properties, 'i')) marks.push({ type: 'italic' })
-    if (xmlFirst(properties, 'u')) marks.push({ type: 'underline' })
-    if (xmlFirst(properties, 'strike') || xmlFirst(properties, 'dstrike')) marks.push({ type: 'strike' })
-    if (xmlFirst(properties, 'vertAlign')) {
-      const value = xmlValue(xmlFirst(properties, 'vertAlign'))
-      if (value === 'subscript') marks.push({ type: 'subscript' })
-      if (value === 'superscript') marks.push({ type: 'superscript' })
-    }
-    const style: Record<string, unknown> = {}
-    const fonts = xmlFirst(properties, 'rFonts')
-    const font = fonts?.getAttribute('w:ascii') || fonts?.getAttribute('w:hAnsi') || fonts?.getAttribute('w:eastAsia')
-    const size = xmlValue(xmlFirst(properties, 'sz'))
-    const color = xmlValue(xmlFirst(properties, 'color'))
-    if (font) style.fontFamily = font
-    if (size && Number.isFinite(Number(size))) style.fontSize = `${Number(size) / 2}pt`
-    if (color && color !== 'auto') style.color = `#${color}`
-    if (Object.keys(style).length) marks.push({ type: 'textStyle', attrs: style })
-  }
+  if (format.bold) marks.push({ type: 'bold' })
+  if (format.italic) marks.push({ type: 'italic' })
+  if (format.underline) marks.push({ type: 'underline' })
+  if (format.strike) marks.push({ type: 'strike' })
+  if (format.subscript) marks.push({ type: 'subscript' })
+  if (format.superscript) marks.push({ type: 'superscript' })
+  const style = definedEntries({
+    fontFamily: format.fontFamily,
+    fontSize: format.fontSize,
+    color: format.color,
+    backgroundColor: format.backgroundColor,
+  })
+  if (Object.keys(style).length) marks.push({ type: 'textStyle', attrs: style })
 
   const tracked = run.parentElement?.localName === 'ins' || run.parentElement?.localName === 'del' ? run.parentElement : null
   if (tracked) {
@@ -604,7 +801,7 @@ function ooxmlRun(
     if (child.localName === 't' || child.localName === 'delText') {
       if (child.textContent) output.push({ type: 'text', text: child.textContent, marks: marks.length ? marks : undefined })
     } else if (child.localName === 'tab') {
-      output.push({ type: 'text', text: '\t', marks: marks.length ? marks : undefined })
+      output.push({ type: 'docxTab' })
     } else if (child.localName === 'br') {
       output.push({ type: child.getAttribute('w:type') === 'page' ? 'pageBreak' : 'hardBreak' })
     } else if (
@@ -647,19 +844,47 @@ function ooxmlParagraph(
   parts: DocxPackageParts,
   assets: AssetReference[],
   comments: Map<string, ParsedDocxComment> = new Map(),
+  styleContext: DocxStyleContext = emptyStyleContext(),
 ) {
   const properties = xmlFirst(element, 'pPr')
   const paragraphStyle = xmlValue(properties ? xmlFirst(properties, 'pStyle') : undefined) || ''
   const headingMatch = paragraphStyle.match(/(?:Heading|Tiêuđề|Titre)\s*([1-6])/i)
+  const resolvedStyle = styleContext.styles.get(paragraphStyle)
+  const format = mergeParagraphFormat(
+    styleContext.paragraphDefault,
+    resolvedStyle?.paragraph || {},
+    readParagraphFormat(properties),
+  )
+  const inheritedRunFormat = mergeRunFormat(
+    styleContext.runDefault,
+    resolvedStyle?.run || {},
+    readRunFormat(properties ? xmlFirst(properties, 'rPr') : undefined),
+  )
   const attrs: Record<string, unknown> = {}
-  const align = properties ? xmlValue(xmlFirst(properties, 'jc')) : undefined
-  if (align) attrs.textAlign = align === 'both' ? 'justify' : align
-  const spacing = properties ? xmlFirst(properties, 'spacing') : undefined
-  const line = spacing?.getAttribute('w:line') || spacing?.getAttribute('line')
-  if (line) attrs.lineHeight = Number(line) / 240
-  const indent = properties ? xmlFirst(properties, 'ind') : undefined
-  const left = indent?.getAttribute('w:left') || indent?.getAttribute('w:start') || indent?.getAttribute('left')
-  if (left) attrs.indent = twipsToCentimeters(left)
+  if (format.textAlign) attrs.textAlign = format.textAlign === 'both' ? 'justify' : format.textAlign
+  if (format.line) {
+    attrs.lineHeight = format.lineRule && format.lineRule !== 'auto'
+      ? `${format.line / 15}px`
+      : format.line / 240
+  }
+  if (format.before || format.after) {
+    attrs.margin = {
+      top: format.before ? String(format.before / 15) : undefined,
+      bottom: format.after ? String(format.after / 15) : undefined,
+    }
+  }
+  const layout = definedEntries({
+    left: format.left ? twipsToCentimeters(String(format.left)) : undefined,
+    right: format.right ? twipsToCentimeters(String(format.right)) : undefined,
+    firstLine: format.firstLine ? twipsToCentimeters(String(format.firstLine)) : undefined,
+    hanging: format.hanging ? twipsToCentimeters(String(format.hanging)) : undefined,
+    keepNext: format.keepNext,
+    keepLines: format.keepLines,
+    pageBreakBefore: format.pageBreakBefore,
+    tabStops: format.tabStops?.length ? format.tabStops : undefined,
+  })
+  if (Object.keys(layout).length) attrs.docxLayout = layout
+  if (format.left) attrs.indent = twipsToCentimeters(String(format.left))
 
   const content: JSONContent[] = []
   const activeComments: string[] = []
@@ -687,18 +912,31 @@ function ooxmlParagraph(
       if (index >= 0) activeComments.splice(index, 1)
       continue
     }
-    if (child.localName === 'r') content.push(...applyComments(ooxmlRun(child, relationships, parts, assets)))
+    if (child.localName === 'r') content.push(...applyComments(ooxmlRun(child, relationships, parts, assets, inheritedRunFormat)))
     if (child.localName === 'hyperlink' || child.localName === 'ins' || child.localName === 'del') {
       const hyperlinkId = child.getAttribute('r:id') || child.getAttribute('id')
       const href = hyperlinkId ? relationships.get(hyperlinkId) : undefined
       xmlElements(child, 'r', true).forEach((run) => {
-        const values = ooxmlRun(run, relationships, parts, assets)
+        const values = ooxmlRun(run, relationships, parts, assets, inheritedRunFormat)
         if (href) values.forEach((value) => {
           if (value.type === 'text') value.marks = [...(value.marks || []), { type: 'link', attrs: { href } }]
         })
         content.push(...applyComments(values))
       })
     }
+  }
+  let tabIndex = 0
+  for (const child of content) {
+    if (child.type !== 'docxTab') continue
+    const stop = format.tabStops?.[tabIndex]
+    const previousPosition = format.tabStops?.at(-1)?.position || 0
+    child.attrs = {
+      alignment: stop?.alignment || 'left',
+      position: stop?.position || previousPosition + (1.27 * (tabIndex + 1)),
+      leader: stop?.leader || 'none',
+      index: tabIndex,
+    }
+    tabIndex += 1
   }
   const numPr = properties ? xmlFirst(properties, 'numPr') : undefined
   const node = { type: headingMatch ? 'heading' : 'paragraph', attrs: headingMatch ? { ...attrs, level: Number(headingMatch[1]) } : attrs, content: content.length ? content : undefined } as JSONContent
@@ -714,6 +952,7 @@ function ooxmlTable(
   parts: DocxPackageParts,
   assets: AssetReference[],
   comments: Map<string, ParsedDocxComment> = new Map(),
+  styleContext: DocxStyleContext = emptyStyleContext(),
 ): JSONContent {
   let activeMerges = new Map<number, JSONContent>()
   const rows: JSONContent[] = []
@@ -755,7 +994,7 @@ function ooxmlTable(
         },
         content: [...cell.children]
           .filter((child) => child.localName === 'p')
-          .flatMap((paragraph) => ooxmlParagraph(paragraph, relationships, parts, assets, comments).nodes),
+          .flatMap((paragraph) => ooxmlParagraph(paragraph, relationships, parts, assets, comments, styleContext).nodes),
       }
       if (!node.content?.length) node.content = [{ type: 'paragraph' }]
       cells.push(node)
@@ -782,6 +1021,7 @@ function parseRelatedDocument(
   partName: string,
   parts: DocxPackageParts,
   assets: AssetReference[],
+  styleContext: DocxStyleContext,
 ): JSONContent | undefined {
   const xmlSource = parts.relatedXml?.[partName]
   if (!xmlSource || typeof DOMParser === 'undefined') return undefined
@@ -792,8 +1032,8 @@ function parseRelatedDocument(
   const root = xml.documentElement
   const content: JSONContent[] = []
   for (const child of [...root.children]) {
-    if (child.localName === 'p') content.push(...ooxmlParagraph(child, relationships, parts, assets).nodes)
-    else if (child.localName === 'tbl') content.push(ooxmlTable(child, relationships, parts, assets))
+    if (child.localName === 'p') content.push(...ooxmlParagraph(child, relationships, parts, assets, new Map(), styleContext).nodes)
+    else if (child.localName === 'tbl') content.push(ooxmlTable(child, relationships, parts, assets, new Map(), styleContext))
   }
   return { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] }
 }
@@ -804,6 +1044,7 @@ function parseHeaderFooterState(
   documentRelationships: Map<string, string>,
   parts: DocxPackageParts,
   assets: AssetReference[],
+  styleContext: DocxStyleContext,
 ): KindyHeaderFooterState {
   const values: Partial<Record<'default' | 'first' | 'even', JSONContent>> = {}
   for (const reference of xmlElements(section, `${type}Reference`, true)) {
@@ -811,7 +1052,7 @@ function parseHeaderFooterState(
     const target = relationId ? documentRelationships.get(relationId) : undefined
     const partName = target ? normalizeWordPartTarget(target) : undefined
     const variant = (reference.getAttribute('w:type') || reference.getAttribute('type') || 'default') as 'default' | 'first' | 'even'
-    const content = partName ? parseRelatedDocument(partName, parts, assets) : undefined
+    const content = partName ? parseRelatedDocument(partName, parts, assets, styleContext) : undefined
     if (content && ['default', 'first', 'even'].includes(variant)) values[variant] = content
   }
   return {
@@ -833,6 +1074,7 @@ function parseSectionState(
   documentRelationships: Map<string, string>,
   parts: DocxPackageParts,
   assets: AssetReference[],
+  styleContext: DocxStyleContext,
 ): KindySectionState & { breakType: string } {
   const size = xmlFirst(section, 'pgSz')
   const width = twipsToCentimeters(size?.getAttribute('w:w') || size?.getAttribute('w')) || 21
@@ -848,8 +1090,8 @@ function parseSectionState(
     orientation: landscape ? 'landscape' : 'portrait',
     margin: { top: readMargin('top'), right: readMargin('right'), bottom: readMargin('bottom'), left: readMargin('left') },
     pageNumberStart: Number.isFinite(start) && start > 0 ? start : undefined,
-    header: parseHeaderFooterState(section, 'header', documentRelationships, parts, assets),
-    footer: parseHeaderFooterState(section, 'footer', documentRelationships, parts, assets),
+    header: parseHeaderFooterState(section, 'header', documentRelationships, parts, assets, styleContext),
+    footer: parseHeaderFooterState(section, 'footer', documentRelationships, parts, assets, styleContext),
     breakType: xmlValue(xmlFirst(section, 'type')) || 'nextPage',
   }
 }
@@ -863,6 +1105,7 @@ export function ooxmlToDocumentState(parts: DocxPackageParts): KindyDocumentStat
   const relationships = parseRelationships(parts.relationshipsXml)
   const numberingKinds = parseNumberingKinds(parts.numberingXml)
   const comments = parseDocxComments(parts.commentsXml, parts.commentsExtendedXml)
+  const styleContext = parseDocxStyles(parts.stylesXml)
   const content: JSONContent[] = []
   const assets: AssetReference[] = []
   const sectionElements: Element[] = []
@@ -883,11 +1126,11 @@ export function ooxmlToDocumentState(parts: DocxPackageParts): KindyDocumentStat
   for (const child of [...body.children]) {
     if (child.localName === 'tbl') {
       resetActiveList()
-      content.push(ooxmlTable(child, relationships, parts, assets, comments))
+      content.push(ooxmlTable(child, relationships, parts, assets, comments, styleContext))
       continue
     }
     if (child.localName !== 'p') continue
-    const parsed = ooxmlParagraph(child, relationships, parts, assets, comments)
+    const parsed = ooxmlParagraph(child, relationships, parts, assets, comments, styleContext)
     for (const node of parsed.nodes) {
       if (node.type === 'pageBreak') {
         resetActiveList()
@@ -934,7 +1177,7 @@ export function ooxmlToDocumentState(parts: DocxPackageParts): KindyDocumentStat
 
   const [finalSection] = xmlElements(body, 'sectPr', true)
   if (finalSection) sectionElements.push(finalSection)
-  const sections = sectionElements.map((section, index) => parseSectionState(section, `section-${index + 1}`, relationships, parts, assets))
+  const sections = sectionElements.map((section, index) => parseSectionState(section, `section-${index + 1}`, relationships, parts, assets, styleContext))
   sectionBreakNodes.forEach((node, index) => {
     node.attrs = { ...node.attrs, type: sections[index + 1]?.breakType || 'nextPage', page: sections[index + 1] || null }
   })
@@ -1187,6 +1430,10 @@ async function inlineRuns(nodes: JSONContent[] = []): Promise<Array<TextRun | In
       children.push(new TextRun({ break: 1 }))
       continue
     }
+    if (node.type === 'docxTab') {
+      children.push(new TextRun({ children: [new Tab()] }))
+      continue
+    }
     if (node.type === 'inlineImage' || node.type === 'image') {
       const src = String(node.attrs?.src || '')
       if (!src) continue
@@ -1239,12 +1486,64 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
   if (node.type === 'pageBreak') return [new Paragraph({ children: [new PageBreak()] })]
   if (node.type === 'paragraph' || node.type === 'heading') {
     const level = Math.min(6, Math.max(1, Number(node.attrs?.level) || 1))
+    const docxLayout = node.attrs?.docxLayout && typeof node.attrs.docxLayout === 'object'
+      ? node.attrs.docxLayout as Record<string, any>
+      : {}
+    const margin = node.attrs?.margin && typeof node.attrs.margin === 'object'
+      ? node.attrs.margin as Record<string, any>
+      : {}
+    const tabStopType = (value: string) => ({
+      bar: TabStopType.BAR,
+      center: TabStopType.CENTER,
+      decimal: TabStopType.DECIMAL,
+      end: TabStopType.END,
+      left: TabStopType.LEFT,
+      num: TabStopType.NUM,
+      right: TabStopType.RIGHT,
+      start: TabStopType.START,
+    }[value] || TabStopType.LEFT)
+    const leaderType = (value: string) => ({
+      dot: LeaderType.DOT,
+      hyphen: LeaderType.HYPHEN,
+      middleDot: LeaderType.MIDDLE_DOT,
+      underscore: LeaderType.UNDERSCORE,
+    }[value])
+    const lineHeight = node.attrs?.lineHeight
+    const absoluteLineHeight = typeof lineHeight === 'string' && /px$/i.test(lineHeight)
+      ? Math.round(Number.parseFloat(lineHeight) * 15)
+      : undefined
     return [new Paragraph({
       children: await inlineRuns(node.content),
       heading: node.type === 'heading' ? HeadingLevel[`HEADING_${level}` as keyof typeof HeadingLevel] : undefined,
       alignment: alignment(String(node.attrs?.textAlign || node.attrs?.align || '')),
-      indent: node.attrs?.indent ? { left: centimetersToTwip(Number(node.attrs.indent)) } : undefined,
-      spacing: node.attrs?.lineHeight ? { line: Math.round(Number(node.attrs.lineHeight) * 240) } : undefined,
+      indent: Object.keys(docxLayout).length
+        ? {
+            left: docxLayout.left ? centimetersToTwip(Number(docxLayout.left)) : undefined,
+            right: docxLayout.right ? centimetersToTwip(Number(docxLayout.right)) : undefined,
+            firstLine: docxLayout.firstLine ? centimetersToTwip(Number(docxLayout.firstLine)) : undefined,
+            hanging: docxLayout.hanging ? centimetersToTwip(Number(docxLayout.hanging)) : undefined,
+          }
+        : node.attrs?.indent
+          ? { left: centimetersToTwip(Number(node.attrs.indent)) }
+          : undefined,
+      spacing: node.attrs?.lineHeight || margin.top || margin.bottom
+        ? {
+            line: absoluteLineHeight || (Number.isFinite(Number(lineHeight)) ? Math.round(Number(lineHeight) * 240) : undefined),
+            lineRule: absoluteLineHeight ? 'exact' : undefined,
+            before: margin.top ? Math.round(Number(margin.top) * 15) : undefined,
+            after: margin.bottom ? Math.round(Number(margin.bottom) * 15) : undefined,
+          }
+        : undefined,
+      keepNext: Boolean(docxLayout.keepNext),
+      keepLines: Boolean(docxLayout.keepLines),
+      pageBreakBefore: Boolean(docxLayout.pageBreakBefore),
+      tabStops: Array.isArray(docxLayout.tabStops)
+        ? docxLayout.tabStops.map((stop: Record<string, any>) => ({
+            type: tabStopType(String(stop.alignment || 'left')),
+            position: centimetersToTwip(Number(stop.position) || 0),
+            leader: leaderType(String(stop.leader || 'none')),
+          }))
+        : undefined,
       bullet: list?.kind === 'bullet' ? { level: list.level } : undefined,
       numbering: list?.kind === 'number' ? { reference: 'kindy-numbering', level: list.level } : undefined,
     })]

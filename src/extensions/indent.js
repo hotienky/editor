@@ -80,6 +80,9 @@ export default Extension.create({
           indent: {
             default: null,
             renderHTML: (attributes) => {
+              if (attributes.docxLayout?.left || attributes.docxLayout?.firstLine || attributes.docxLayout?.hanging) {
+                return {}
+              }
               const { indent, indentUnit } = attributes
               const { minLevel } = this.options
               if (!indent || indent <= minLevel) {

@@ -58,6 +58,7 @@ export const NodeTypes = {
       indentUnit: { default: null },
       margin: { default: null },
       wordWrap: { default: 'normal' },
+      docxLayout: { default: null },
     },
   },
 
@@ -73,6 +74,20 @@ export const NodeTypes = {
       indentUnit: { default: null },
       margin: { default: null },
       wordWrap: { default: 'normal' },
+      docxLayout: { default: null },
+    },
+  },
+
+  docxTab: {
+    name: 'docxTab',
+    group: NodeGroup.INLINE,
+    inline: true,
+    atom: true,
+    attributes: {
+      alignment: { default: 'left' },
+      position: { default: 1.27, type: 'number' },
+      leader: { default: 'none' },
+      index: { default: 0, type: 'number' },
     },
   },
 
