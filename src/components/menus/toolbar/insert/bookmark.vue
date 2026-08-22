@@ -7,7 +7,7 @@
   />
   <modal
     :visible="dialogVisible"
-    width="420px"
+    width="min(420px, 90vw)"
     draggable
     destroy-on-close
     :confirm-btn="t('insert.bookmark.ok')"
@@ -65,14 +65,15 @@
   </modal>
 </template>
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const container = inject('container')
 const editor = inject('editor')
 const page = inject('page')
 
 // 弹窗口显示隐藏 true显示 默认隐藏
-let dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 // 书签名称
-let bookmarkText = $ref('')
+let bookmarkText = ref('')
 // 书签数据
 let bookmarkData = []
 // 书签表格显示列
@@ -108,11 +109,11 @@ const insertBookmark = () => {
     // 存在-1
     if (!existbmName) {
       if (editor.value?.commands.setBookmark({ bookmarkName: bookmarkText })) {
-        dialogVisible = false
+        dialogVisible.value = false
       }
     } else {
       if (editor.value?.commands.focusBookmark(existbmName)) {
-        dialogVisible = false
+        dialogVisible.value = false
       }
     }
   } else {
@@ -154,7 +155,7 @@ const rowDelete = (row) => {
           tr.removeMark(pos, pos + element.outerText.length),
         )
       }
-      dialogVisible = false
+      dialogVisible.value = false
     }
   }
 }
@@ -165,7 +166,7 @@ const getCurWordAllBookmark = () => {
       bookmarkData = data
     })
   } catch (e) {
-    dialogVisible = false
+    dialogVisible.value = false
   }
 }
 watch(

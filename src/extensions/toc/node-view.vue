@@ -82,7 +82,7 @@ watch(
     const curTocTreeData = buildTocTree(toc)
     if (JSON.stringify(watchTreeData) !== JSON.stringify(curTocTreeData)) {
       watchTreeData = curTocTreeData
-      tocTreeData = JSON.parse(JSON.stringify(curTocTreeData))
+      tocTreeData = structuredClone(curTocTreeData)
     }
   },
   { immediate: true },

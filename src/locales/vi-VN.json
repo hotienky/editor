@@ -457,9 +457,90 @@
       "imageSize": "Kích thước hình ảnh",
       "unknownDimensions": "Kích thước không xác định",
       "notEmpty": "Vui lòng tải lên hình ảnh con dấu trước"
+    },
+    "contract": {
+      "text": "Hợp đồng",
+      "insertVariable": "Chèn biến",
+      "insertClause": "Chèn điều khoản",
+      "insertSignature": "Chèn vùng ký tên",
+      "templates": "Mẫu hợp đồng",
+      "variableLabel": "Tên biến",
+      "variableLabelPlaceholder": "VD: Tên bên A",
+      "variableType": "Kiểu dữ liệu",
+      "typeText": "Văn bản",
+      "typeDate": "Ngày",
+      "typeNumber": "Số",
+      "typeMoney": "Tiền tệ",
+      "typeParty": "Bên tham gia",
+      "required": "Bắt buộc"
     }
   },
   "page": {
+    "header": {
+      "text": "Đầu trang",
+      "show": "Hiện đầu trang",
+      "hide": "Ẩn đầu trang",
+      "placeholder": "Bấm để nhập nội dung Đầu trang (Header)...",
+      "dialogTitle": "Cấu hình Đầu trang (Header)",
+      "layoutLabel": "Kiểu bố cục Header",
+      "layoutSingle": "Đơn (1 Cột)",
+      "layoutSplit": "Song song 2 Bên (Chuẩn Hợp đồng)",
+      "textContent": "Nội dung văn bản Header",
+      "leftTextLabel": "Văn bản Bên Trái (Địa chỉ, SĐT...)",
+      "leftTextPlaceholder": "VD: 12 Đông Hưng Thuận 10, TP.HCM\nTel: (028) 37 157 567",
+      "rightTextLabel": "Văn bản Bên Phải (Tên công ty, Web...)",
+      "rightTextPlaceholder": "VD: CÔNG TY CỔ PHẦN TẬP ĐOÀN DAT\nWeb: www.datgroup.com.vn",
+      "logoLabel": "Ảnh Logo (Định dạng ảnh)",
+      "logoPlaceholder": "Dán URL ảnh hoặc tải tệp lên...",
+      "uploadLogo": "Tải ảnh lên",
+      "logoSize": "Cỡ Logo",
+      "fontColorLabel": "Màu chữ",
+      "fontSize": "Cỡ chữ",
+      "marginLabel": "Chiều cao lề Đầu trang (cm)",
+      "alignLabel": "Vị trí căn lề",
+      "alignLeft": "Trái",
+      "alignCenter": "Giữa",
+      "alignRight": "Phải",
+      "borderLabel": "Đường kẻ phân cách",
+      "showBorderText": "Hiện đường gạch ngang Word",
+      "badgeLabel": "Đầu trang • Cách lề trên: {margin} cm",
+      "formatOption": "Định dạng đầu trang...",
+      "hideOption": "Ẩn đầu trang",
+      "scopeLabel": "Phạm vi hiển thị",
+      "scopeAll": "Mọi trang (Từng trang)",
+      "scopeFile": "Theo tệp (Trang đầu & Trang cuối)"
+    },
+    "footer": {
+      "text": "Chân trang",
+      "show": "Hiện chân trang",
+      "hide": "Ẩn chân trang",
+      "placeholder": "Bấm để nhập nội dung Chân trang (Footer)...",
+      "dialogTitle": "Cấu hình Chân trang (Footer)",
+      "layoutLabel": "Kiểu bố cục Footer",
+      "layoutSingle": "Đơn (1 Cột)",
+      "layoutSplit": "Song song 2 Bên (Chuẩn Hợp đồng)",
+      "textContent": "Nội dung văn bản Footer",
+      "leftTextLabel": "Văn bản Bên Trái (Địa chỉ, SĐT...)",
+      "leftTextPlaceholder": "VD: 12 Đông Hưng Thuận 10, TP.HCM\nTel: (028) 37 157 567",
+      "rightTextLabel": "Văn bản Bên Phải (Website, Email...)",
+      "rightTextPlaceholder": "VD: Web: www.datgroup.com.vn\nEmail: info@datgroup.com.vn",
+      "logoLabel": "Ảnh Logo (Định dạng ảnh)",
+      "logoPlaceholder": "Dán URL ảnh hoặc tải tệp lên...",
+      "uploadLogo": "Tải ảnh lên",
+      "logoSize": "Cỡ Logo",
+      "fontSize": "Cỡ chữ",
+      "marginLabel": "Chiều cao lề Chân trang (cm)",
+      "alignLabel": "Vị trí căn lề",
+      "alignLeft": "Trái",
+      "alignCenter": "Giữa",
+      "alignRight": "Phải",
+      "borderLabel": "Đường kẻ phân cách",
+      "showBorderText": "Hiện đường gạch ngang Word",
+      "badgeLabel": "Chân trang • Cách lề dưới: {margin} cm",
+      "formatOption": "Định dạng chân trang...",
+      "hideOption": "Ẩn chân trang",
+      "defaultPageLabel": "Trang {number}"
+    },
     "bg": {
       "text": "Nền",
       "custom": "Tùy chỉnh nền trang",
@@ -472,6 +553,10 @@
     },
     "breakMarks": "Ngắt dòng",
     "break": "Ngắt trang",
+    "status": "Trang {current} / {total}",
+    "statusAria": "Trang {current} trên {total}",
+    "goTo": "Đi tới trang",
+    "goToAction": "Đi tới",
     "lineNumber": "Số dòng",
     "margin": "Lề",
     "orientation": {
@@ -696,6 +781,27 @@
     "hide": "Ẩn mục lục",
     "empty": "Không có mục lục"
   },
+  "comment": {
+    "title": "Bình luận",
+    "add": "Thêm bình luận",
+    "show": "Hiện bình luận",
+    "hide": "Ẩn bình luận",
+    "empty": "Chưa có bình luận nào",
+    "emptyTip": "Chọn một đoạn văn bản rồi bấm nút \"Thêm bình luận\" để bắt đầu",
+    "placeholder": "Nhập nội dung bình luận...",
+    "noBody": "Nhấp đúp để nhập nội dung bình luận",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa bình luận",
+    "deleteConfirm": "Bạn có chắc chắn muốn xóa bình luận này?",
+    "resolve": "Giải quyết",
+    "reopen": "Mở lại",
+    "resolvedTip": "Đã giải quyết",
+    "reply": "Trả lời",
+    "replyPlaceholder": "Viết câu trả lời...",
+    "selectTextTip": "Vui lòng chọn một đoạn văn bản trong tài liệu trước khi thêm bình luận.",
+    "anonymous": "Người dùng ẩn danh"
+  },
   "spellcheck": {
     "enable": "Bật kiểm tra chính tả",
     "disable": "Tắt kiểm tra chính tả"
@@ -847,6 +953,7 @@
     "confirm": "In ngay"
   },
   "dialog": {
+    "confirm": "Xác nhận",
     "cancel": "Hủy"
   },
   "copy": {
@@ -859,5 +966,68 @@
       "title": "Thông báo",
       "body": "Nội dung clipboard đã được dán, nhưng hình ảnh đi kèm không được xử lý đúng. Vui lòng sao chép và thay thế thủ công các hình ảnh chưa được xử lý trong tài liệu."
     }
+  },
+  "versionHistory": {
+    "title": "Lịch sử phiên bản (Version History)",
+    "autoSaveTip": "Tất cả thay đổi đều được lưu tự động thành các bản ghi lịch sử.",
+    "currentTag": "Hiện tại",
+    "restoreThis": "Khôi phục bản này"
+  },
+  "preferences": {
+    "title": "Tùy chọn tự động thay thế (Preferences)",
+    "smartQuotes": {
+      "sectionTitle": "NGOẶC KÉP THÔNG MINH (SMART QUOTES)",
+      "enableLabel": "Bật Ngoặc kép thông minh (\"\" vs \"\")",
+      "tip": "Tắt tùy chọn này khi lập trình để viết dấu ngoặc kép thẳng \"\" không bị lỗi cú pháp code."
+    },
+    "autoSubstitutions": {
+      "sectionTitle": "BẢNG KÝ TỰ TỰ ĐỘNG THAY THẾ (AUTO-SUBSTITUTIONS)",
+      "shortcutLabel": "Phím tắt",
+      "replacementLabel": "Thay thế bằng",
+      "descriptionLabel": "Mô tả",
+      "arrowRight": "Mũi tên sang phải",
+      "arrowLeft": "Mũi tên sang trái",
+      "copyright": "Bản quyền Copyright",
+      "registered": "Thương hiệu Registered",
+      "trademark": "Nhãn hiệu Trademark",
+      "half": "Phân số một phần hai",
+      "quarter": "Phân số một phần tư",
+      "threeQuarters": "Phân số ba phần tư"
+    }
+  },
+  "ruler": {
+    "marginLeftTooltip": "Kéo viền lề trái trang A4",
+    "marginRightTooltip": "Kéo viền lề phải trang A4",
+    "firstLineIndentTooltip": "Thụt lề dòng đầu tiên (First Line Indent)",
+    "leftIndentTooltip": "Thụt lề trái đoạn văn (Left Indent)",
+    "rightIndentTooltip": "Thụt lề phải đoạn văn (Right Indent)",
+    "marginLeftValue": "Lề trái: {value} cm",
+    "marginRightValue": "Lề phải: {value} cm",
+    "firstLineIndentValue": "Thụt lề dòng đầu: {value} cm",
+    "leftIndentValue": "Thụt lề trái đoạn: {value} cm",
+    "rightIndentValue": "Thụt lề phải đoạn: {value} cm"
+  },
+  "tabs": {
+    "title": "TABS TÀI LIỆU ({count})",
+    "addNew": "Thêm Tab mới",
+    "contextMenu": {
+      "rename": "Đổi tên (Rename)",
+      "duplicate": "Nhân bản (Duplicate)",
+      "moveUp": "Di chuyển lên",
+      "moveDown": "Di chuyển xuống",
+      "delete": "Xóa Tab"
+    }
+  },
+  "suggestions": {
+    "title": "ĐỀ XUẤT CHỈNH SỬA ({count})",
+    "defaultAuthor": "Người dùng",
+    "actionInsert": "Thêm:",
+    "actionDelete": "Xóa:",
+    "accept": "✓ Duyệt",
+    "reject": "✗ Từ chối",
+    "justNow": "Vừa xong"
+  },
+  "common": {
+    "options": "Tùy chọn"
   }
 }

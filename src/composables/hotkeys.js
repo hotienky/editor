@@ -4,7 +4,7 @@ export function useHotkeys(keys, onTrigger) {
   hotkeys.filter = () => true
   hotkeys(keys, (e) => {
     e.preventDefault()
-    onTrigger()
+    onTrigger(e)
     return false
   })
 }

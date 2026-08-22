@@ -1,0 +1,21 @@
+{
+  "name": "@umo/document",
+  "version": "0.1.0",
+  "description": "Document Model for Open Document Platform",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "keywords": [
+    "document",
+    "model",
+    "ast",
+    "editor"
+  ],
+  "author": "UMO Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

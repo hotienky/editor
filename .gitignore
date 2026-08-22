@@ -3,7 +3,12 @@ node_modules/
 
 # Build output
 dist/
+demo-dist/
 package/
+*.tgz
+.artifacts/
+playwright-report/
+test-results/
 
 # Editor directories and files
 .idea/
@@ -34,8 +39,9 @@ vite.config.js.timestamp*
 types/imports.d.ts
 types/components.d.ts
 
-# Lock files
-package-lock.json
+# Lock files from package managers not used by this repository
+**/package-lock.json
+!/package-lock.json
 yarn.lock
 pnpm-lock.yaml
 

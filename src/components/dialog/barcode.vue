@@ -1,7 +1,7 @@
 <template>
   <modal
     :visible="visible"
-    width="714px"
+    width="min(714px, 92vw)"
     @confirm="submitBarcode"
     @close="emit('update:visible', false)"
   >
@@ -187,6 +187,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import JsBarcode from 'jsbarcode'
 import { svgToDataURL } from '@/utils/file'
 
@@ -268,8 +269,8 @@ const dialogTitle = computed(() =>
     : t('tools.barcode.text'),
 )
 
-let config = $ref({ ...defaultConfig })
-let renderError = $ref(false)
+let config = ref({ ...defaultConfig })
+let renderError = ref(false)
 const barcodeSvgRef = ref(null)
 
 const resolveInitialContent = () => props.content || props.value?.content || ''

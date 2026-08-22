@@ -15,7 +15,7 @@ const isLocale = (value) => {
   }
   if (isRecord(value)) {
     for (const key of Object.keys(value)) {
-      if (!['en_US', 'zh_CN', 'vi_VN'].includes(key)) {
+      if (!['en_US', 'zh_CN', 'vi_VN', 'it_IT', 'ru_RU'].includes(key)) {
         return false
       }
     }
@@ -33,9 +33,9 @@ export default new ObjectSchema({
   locale: {
     merge: 'replace',
     validate(value) {
-      if (value && !['en-US', 'zh-CN', 'vi-VN'].includes(value)) {
+      if (value && !['en-US', 'zh-CN', 'vi-VN', 'it-IT', 'ru-RU'].includes(value)) {
         throw new Error(
-          'Key "locale": must be one of "zh-CN", "en-US" or "vi-VN".',
+          'Key "locale": must be one of "vi-VN", "en-US", "zh-CN", "it-IT" or "ru-RU".',
         )
       }
     },
@@ -224,6 +224,11 @@ export default new ObjectSchema({
         },
         required: false,
       },
+      allowModeSwitch: {
+        merge: 'replace',
+        validate: 'boolean',
+        required: false,
+      },
       menus: {
         merge: 'replace',
         validate(value) {
@@ -245,6 +250,30 @@ export default new ObjectSchema({
         required: false,
       },
     },
+  },
+  statusbar: {
+    required: false,
+    merge: 'replace',
+    validate: 'object',
+    schema: Object.fromEntries(
+      [
+        'showOutline',
+        'showSpellcheck',
+        'showShortcuts',
+        'showReset',
+        'showLayout',
+        'showPageStatus',
+        'showWordCount',
+        'showBranding',
+        'showFullscreen',
+        'showPreview',
+        'showZoom',
+        'showLocale',
+      ].map((key) => [
+        key,
+        { merge: 'replace', validate: 'boolean', required: false },
+      ]),
+    ),
   },
   page: {
     merge: 'replace',
@@ -309,7 +338,21 @@ export default new ObjectSchema({
         validate: 'string',
         required: false,
       },
+      sections: {
+        merge: 'replace',
+        validate(value) {
+          if (value && !Array.isArray(value)) {
+            throw new Error('Key "page": Key "sections" must be an array.')
+          }
+        },
+        required: false,
+      },
       showBreakMarks: {
+        merge: 'replace',
+        validate: 'boolean',
+        required: false,
+      },
+      showRuler: {
         merge: 'replace',
         validate: 'boolean',
         required: false,
@@ -383,6 +426,244 @@ export default new ObjectSchema({
           },
         },
       },
+      header: {
+        required: false,
+        merge: 'replace',
+        validate: 'object',
+        schema: {
+          enable: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          text: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          content: {
+            merge: 'replace',
+            validate() {},
+            required: false,
+          },
+          fontColor: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontSize: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          fontWeight: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontFamily: {
+            merge: 'replace',
+            validate(value) {
+              if (value !== null && typeof value !== 'string') {
+                throw new Error(
+                  'Key "header": Key "fontFamily" must be a string.',
+                )
+              }
+            },
+            required: false,
+          },
+          align: {
+            merge: 'replace',
+            validate(value) {
+              if (value && !['left', 'center', 'right'].includes(value)) {
+                throw new Error(
+                  'Key "header": Key "align" must be one of "left", "center" or "right".',
+                )
+              }
+            },
+            required: false,
+          },
+          marginTop: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          logo: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          logoWidth: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          logoHeight: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          layout: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          leftText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          rightText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          showBorder: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          scope: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          variants: {
+            merge: 'replace',
+            validate: 'object',
+            required: false,
+          },
+          differentFirstPage: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          differentOddEven: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+        },
+      },
+      footer: {
+        required: false,
+        merge: 'replace',
+        validate: 'object',
+        schema: {
+          enable: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          text: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          content: {
+            merge: 'replace',
+            validate() {},
+            required: false,
+          },
+          fontColor: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontSize: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          fontWeight: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          fontFamily: {
+            merge: 'replace',
+            validate(value) {
+              if (value !== null && typeof value !== 'string') {
+                throw new Error(
+                  'Key "footer": Key "fontFamily" must be a string.',
+                )
+              }
+            },
+            required: false,
+          },
+          align: {
+            merge: 'replace',
+            validate(value) {
+              if (value && !['left', 'center', 'right'].includes(value)) {
+                throw new Error(
+                  'Key "footer": Key "align" must be one of "left", "center" or "right".',
+                )
+              }
+            },
+            required: false,
+          },
+          marginBottom: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          logo: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          logoWidth: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          logoHeight: {
+            merge: 'replace',
+            validate: 'number',
+            required: false,
+          },
+          layout: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          leftText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          rightText: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          showBorder: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          scope: {
+            merge: 'replace',
+            validate: 'string',
+            required: false,
+          },
+          variants: {
+            merge: 'replace',
+            validate: 'object',
+            required: false,
+          },
+          differentFirstPage: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          differentOddEven: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+        },
+      },
       size: {
         required: false,
         merge: 'replace',
@@ -420,6 +701,11 @@ export default new ObjectSchema({
       content: {
         merge: 'replace',
         validate() {},
+        required: false,
+      },
+      assets: {
+        merge: 'replace',
+        validate: 'array',
         required: false,
       },
       placeholder: {

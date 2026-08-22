@@ -8,7 +8,7 @@
     <modal
       :visible="dialogVisible"
       icon="math"
-      width="734px"
+      width="min(734px, 92vw)"
       :confirm-btn="{
         disabled: latexValue === '',
       }"
@@ -55,7 +55,7 @@
           <t-button
             theme="default"
             variant="base"
-            @click="dialogVisible = false"
+            @click="dialogVisible.value = false"
           >
             {{ t('tools.math.cancel') }}
           </t-button>
@@ -82,6 +82,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { loadResource } from '@/utils/load-resource'
 
 const props = defineProps({
@@ -184,10 +185,10 @@ const templates = [
   '\\sup',
 ]
 
-let dialogVisible = $ref(false)
-const containerRef = $ref()
-let latexLoaded = $ref(false)
-let latexValue = $ref('')
+const dialogVisible = ref(false)
+const containerRef = ref()
+let latexLoaded = ref(false)
+let latexValue = ref('')
 
 const loadKatex = async () => {
   const { cdnUrl } = options.value
@@ -256,7 +257,7 @@ const insertMath = ({ value }) => {
   if (value === 'block') {
     editor.value?.chain().focus().insertBlockMath({ latex: latexValue }).run()
   }
-  dialogVisible = false
+  dialogVisible.value = false
 }
 
 const updateMath = () => {

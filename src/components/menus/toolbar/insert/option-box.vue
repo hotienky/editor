@@ -23,7 +23,9 @@
           />
         </t-select>
         <div class="kindy-virtual-group"></div>
-        <div class="kindy-option-box-title">{{ t('insert.option.content') }}</div>
+        <div class="kindy-option-box-title">
+          {{ t('insert.option.content') }}
+        </div>
         <div class="kindy-option-box-container">
           <div class="kindy-option-box-container-center">
             <t-button
@@ -92,6 +94,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { shortId } from '@/utils/short-id'
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
@@ -105,9 +108,9 @@ const props = defineProps({
   },
 })
 
-let items = $ref([])
-let target = $ref('checkbox')
-let showCheckAll = $ref(false)
+let items = ref([])
+let target = ref('checkbox')
+let showCheckAll = ref(false)
 
 // 初始化界面上的数据值
 const initData = () => {
@@ -201,7 +204,7 @@ const confirm = () => {
   const _optionData = {
     dataType: 'optionBox',
     target: target === 'checkbox' ? 'checkbox' : 'radio',
-    items: JSON.parse(JSON.stringify(noEmptyData)),
+    items: structuredClone(noEmptyData),
     checked: _checkAll,
     checkAll: showCheckAll === true ? true : false,
   }
@@ -225,7 +228,7 @@ watch(
         const node = editor.value ? getSelectionNode(editor.value) : null
         const attrs = node?.attrs || {}
         if (node?.type?.name === 'optionBox') {
-          items = JSON.parse(JSON.stringify(attrs?.items || []))
+          items = structuredClone(attrs?.items || [])
           target = attrs?.target || 'checkbox'
           showCheckAll = attrs?.checkAll || false
           console.log(items)

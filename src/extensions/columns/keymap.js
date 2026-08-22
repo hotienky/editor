@@ -8,20 +8,7 @@ import { keymap } from '@tiptap/pm/keymap'
 import { TextSelection } from '@tiptap/pm/state'
 import { canSplit, liftTarget } from '@tiptap/pm/transform'
 
-const findParentNodeByType = ($pos, typeName) => {
-  for (let { depth } = $pos; depth > 0; depth--) {
-    const node = $pos.node(depth)
-    if (node.type.name === typeName) {
-      return {
-        node,
-        depth,
-        index: depth > 0 ? $pos.index(depth - 1) : 0,
-        pos: depth > 0 ? $pos.before(depth) : 0,
-      }
-    }
-  }
-  return null
-}
+import { findParentNodeByType } from './utils'
 
 const findParentColumn = ($pos) => findParentNodeByType($pos, 'column')
 

@@ -26,10 +26,11 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const wraperRef = ref(null)
-const contentRef = $ref(null)
-let hidePrev = $ref(true)
-let hideNext = $ref(true)
+const contentRef = ref(null)
+let hidePrev = ref(true)
+let hideNext = ref(true)
 
 const checkScrollPosition = () => {
   const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = contentRef || {}

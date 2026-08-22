@@ -15,6 +15,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject } from 'vue'
 import { shortId } from '@/utils/short-id'
 
 const props = defineProps({
@@ -35,7 +36,7 @@ const props = defineProps({
 const editor = inject('editor')
 const { t } = useI18n()
 
-let dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 const isEditMode = computed(() => props.replace || !!props.content)
 
 const setBarcode = (imageValue) => {

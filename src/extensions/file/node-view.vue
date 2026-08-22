@@ -16,7 +16,10 @@
         <img :src="fileIcon" class="icon-file" />
       </div>
       <div class="kindy-file-info">
-        <div class="kindy-file-name" :title="attrs.name || t('file.unknownName')">
+        <div
+          class="kindy-file-name"
+          :title="attrs.name || t('file.unknownName')"
+        >
           {{ attrs.name || t('file.unknownName') }}
         </div>
         <div class="kindy-file-meta">

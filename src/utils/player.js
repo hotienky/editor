@@ -1,6 +1,5 @@
 import '@/assets/styles/plyr.less'
 
-import { useI18n } from '@/composables/i18n'
 import { loadResource } from '@/utils/load-resource'
 
 const locales = {
@@ -113,12 +112,11 @@ const locales = {
   },
 }
 
-export const player = async (container, cdnUrl) => {
-  const { locale } = useI18n()
+export const player = async (container, cdnUrl, locale = 'en-US') => {
   await loadResource(`${cdnUrl}/libs/plyr/plyr.css`, 'css', 'plyr-style')
   await loadResource(`${cdnUrl}/libs/plyr/plyr.min.js`, 'script', 'plyr-script')
   return new Plyr(container, {
-    i18n: locales[locale.value],
+    i18n: locales[locale] || locales['en-US'],
     settings: [],
     tooltips: { controls: true },
     storage: { key: 'kindy-editor:player' },

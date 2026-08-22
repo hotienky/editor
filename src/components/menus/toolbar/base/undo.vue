@@ -4,12 +4,12 @@
     :text="t('base.undo')"
     shortcut="Ctrl+Z"
     hide-text
-    :disabled="historyRecords.done.length === 0"
+    :disabled="!canUndo"
     @menu-click="menuClick"
   />
 </template>
 
 <script setup>
-const historyRecords = inject('historyRecords')
+const canUndo = inject('canUndo')
 const menuClick = inject('undoHistory')
 </script>

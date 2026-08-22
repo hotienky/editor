@@ -51,14 +51,15 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getSelectionText } from '@/utils/selection'
 
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-let text = $ref('')
-let href = $ref('')
-const error = $ref({ text: false, href: false })
+let text = ref('')
+let href = ref('')
+const error = ref({ text: false, href: false })
 const insertLink = () => {
   if (text === '') {
     error.text = true

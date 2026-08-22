@@ -96,6 +96,9 @@
             <menus-toolbar-insert-code-block
               v-if="!disableMenu('code-block')"
             />
+            <menus-toolbar-insert-building-blocks
+              v-if="!disableMenu('building-blocks')"
+            />
             <menus-toolbar-insert-symbol v-if="!disableMenu('symbol')" />
             <menus-toolbar-insert-chinese-date
               v-if="!disableMenu('chinese-date')"
@@ -222,6 +225,8 @@
             </div>
           </div>
           <div class="kindy-virtual-group">
+            <menus-toolbar-page-header />
+            <menus-toolbar-page-footer />
             <menus-toolbar-page-break />
             <menus-toolbar-page-break-marks />
             <menus-toolbar-page-line-number />
@@ -263,9 +268,12 @@
         </template>
         <template v-if="currentMenu === 'export'">
           <div class="kindy-virtual-group">
+            <menus-toolbar-export-word v-if="!disableMenu('export-word')" />
+            <menus-toolbar-export-import-word v-if="!disableMenu('import-word')" />
             <menus-toolbar-export-image v-if="!disableMenu('export-image')" />
             <menus-toolbar-export-pdf v-if="!disableMenu('export-pdf')" />
             <menus-toolbar-export-text v-if="!disableMenu('export-text')" />
+            <menus-toolbar-export-docs-ast />
           </div>
           <div class="kindy-virtual-group">
             <menus-toolbar-export-share v-if="!disableMenu('share')" />
@@ -281,6 +289,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   menus: {
     type: Array,
@@ -299,13 +308,11 @@ const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
-const scrollableRef = $ref(null)
+const scrollableRef = ref(null)
 const changeMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()
-  if (scrollableRef) {
-    scrollableRef.update()
-  }
+  scrollableRef.value?.update?.()
 }
 </script>
 

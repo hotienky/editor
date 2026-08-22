@@ -40,6 +40,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
@@ -64,7 +65,7 @@ const options = [
 ]
 
 // 列表类型
-let listStyleType = $ref('left')
+let listStyleType = ref('left')
 watch(
   () => popupVisible.value,
   (val) => {

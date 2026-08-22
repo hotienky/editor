@@ -55,10 +55,11 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
-let spacing = $ref(0)
+let spacing = ref(0)
 watch(
   () => popupVisible.value,
   (visible) => {

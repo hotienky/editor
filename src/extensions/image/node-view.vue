@@ -1,7 +1,7 @@
 <template>
   <node-view-wrapper
     ref="containerRef"
-    as="figure"
+    :as="attrs.inline ? 'span' : 'figure'"
     class="kindy-node-view"
     :class="wrapperClass"
     :style="nodeStyle"
@@ -73,7 +73,7 @@
                 :src="attrs.src"
                 :alt="attrs.alt || attrs.title || attrs.name || 'image'"
                 draggable="false"
-                crossorigin="anonymous"
+                :crossorigin="imageCrossOrigin"
               />
             </div>
           </template>
@@ -91,7 +91,7 @@
             }"
             :data-id="attrs.id"
             :data-preview="attrs.previewType"
-            crossorigin="anonymous"
+            :crossorigin="imageCrossOrigin"
             loading="lazy"
             @load="onLoad"
             @error="onError"
@@ -105,6 +105,7 @@
         </drager>
       </div>
       <node-view-content
+        v-if="!attrs.inline"
         v-show="showAlt"
         as="figcaption"
         class="kindy-node-image-alt kindy-node-image-alt-content"
@@ -177,6 +178,10 @@ let imageLayoutCommitFrameId = 0
 let dragPreviewFrameId = 0
 
 const isDataImageSrc = (src) => String(src || '').startsWith('data:image')
+const imageCrossOrigin = $computed(() => {
+  const source = String(attrs.src || '')
+  return source.startsWith('data:') || source.startsWith('blob:') ? undefined : 'anonymous'
+})
 const isNodeSelected = $computed(() => !!props.selected)
 
 const hasRichAltContent = $computed(() => props.node.content.size > 0)
@@ -735,6 +740,57 @@ const renderPlantumlToImageSrc = async (seq) => {
     return
   }
   applyRenderedDiagram(await response.text(), seq)
+}
+
+const normalizeFlowchartContent = (content) => {
+  if (!content) return { data: '', config: {} }
+  const text = String(content).trim()
+
+  // Try to parse as JSON with config
+  try {
+    const parsed = JSON.parse(text)
+    if (parsed && typeof parsed === 'object') {
+      return {
+        data: parsed.data || parsed.diagram || parsed.code || '',
+        config: parsed.config || parsed.options || {},
+      }
+    }
+  } catch {
+    // Not JSON, treat as plain flowchart code
+  }
+
+  // Check for YAML-like config block (---\n...\n---\n<diagram>)
+  const configMatch = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+  if (configMatch) {
+    try {
+      const config = {}
+      configMatch[1].split('\n').forEach(line => {
+        const [key, ...valueParts] = line.split(':')
+        if (key && valueParts.length > 0) {
+          config[key.trim()] = valueParts.join(':').trim()
+        }
+      })
+      return { data: configMatch[2].trim(), config }
+    } catch {
+      // Fall through
+    }
+  }
+
+  // Plain text flowchart code
+  return { data: text, config: {} }
+}
+
+const initFlowchartBaseConfig = (config = {}) => {
+  return {
+    startNode: config.startNode || config.start || null,
+    endNode: config.endNode || config.end || null,
+    lineWidth: parseInt(config.lineWidth || config.lineWidth, 10) || 1,
+    lineLength: parseInt(config.lineLength, 10) || 60,
+    fontSize: parseInt(config.fontSize, 10) || 14,
+    fontColor: config.fontColor || config.fontColor || '#333333',
+    yesText: config.yesText || 'Yes',
+    noText: config.noText || 'No',
+  }
 }
 
 const getFlowchartNodeConfig = (value, fallback) => {

@@ -1,5 +1,3 @@
-import { useI18n } from '@/composables/i18n'
-
 const locales = {
   'zh-CN': 'zh',
   'en-US': 'en',
@@ -7,10 +5,11 @@ const locales = {
 
 // https://www.diagrams.com/doc/faq/embed-mode
 class DiagramEditor {
-  constructor({ domain, params, container }) {
+  constructor({ domain, params, container, locale }) {
     this.frame = undefined
     this.container = container
     this.domain = 'https://embed.diagrams.net'
+    this.locale = locale || 'en-US'
     // https://www.drawio.com/doc/faq/supported-url-parameters
     this.params = {
       ui: 'atlas',
@@ -40,7 +39,7 @@ class DiagramEditor {
           this.handleMessage(msg)
         }
       } catch (e) {
-        console.error(e)
+        console.warn('Failed to parse diagram message:', e)
       }
     }
   }
@@ -62,8 +61,7 @@ class DiagramEditor {
     const params = Object.keys(this.params)
       .map((key) => `${key}=${this.params[key]}`)
       .join('&')
-    const { locale } = useI18n()
-    const lang = locales[locale.value]
+    const lang = locales[this.locale] || 'en'
     const frame = document.createElement('iframe')
     frame.setAttribute('class', 'kindy-diagrams-iframe')
     frame.setAttribute('src', `${this.domain}?${params}&lang=${lang}`)

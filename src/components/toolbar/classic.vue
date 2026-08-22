@@ -4,7 +4,7 @@
       <div v-if="menus.length > 1" class="kindy-virtual-group">
         <t-select
           v-if="selectVisible"
-          v-model="currentMenu"
+          v-model="localCurrentMenu"
           :popup-props="{
             destroyOnClose: true,
             attach: container,
@@ -25,7 +25,7 @@
           />
         </t-select>
       </div>
-      <template v-if="currentMenu === 'base'">
+      <template v-if="localCurrentMenu === 'base'">
         <div class="kindy-virtual-group">
           <menus-toolbar-base-undo />
           <menus-toolbar-base-redo />
@@ -68,11 +68,11 @@
         <div class="kindy-virtual-group">
           <menus-toolbar-base-print v-if="!disableMenu('print')" />
         </div>
-        <div class="virtual-group is-slot">
+        <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_base" toolbar-mode="classic" />
         </div>
       </template>
-      <template v-if="currentMenu === 'insert'">
+      <template v-if="localCurrentMenu === 'insert'">
         <div class="kindy-virtual-group">
           <menus-toolbar-insert-link v-if="!disableMenu('link')" />
           <menus-toolbar-insert-image v-if="!disableMenu('image')" />
@@ -84,6 +84,9 @@
           <menus-toolbar-insert-text-box v-if="!disableMenu('text-box')" />
           <menus-toolbar-insert-details v-if="!disableMenu('details')" />
           <menus-toolbar-insert-code-block v-if="!disableMenu('code-block')" />
+          <menus-toolbar-insert-building-blocks
+            v-if="!disableMenu('building-blocks')"
+          />
           <menus-toolbar-insert-symbol v-if="!disableMenu('symbol')" />
           <menus-toolbar-insert-chinese-date
             v-if="!disableMenu('chinese-date')"
@@ -108,11 +111,11 @@
           <menus-toolbar-insert-template v-if="!disableMenu('template')" />
           <menus-toolbar-insert-web-page v-if="!disableMenu('web-page')" />
         </div>
-        <div class="virtual-group is-slot">
+        <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_insert" toolbar-mode="classic" />
         </div>
       </template>
-      <template v-if="currentMenu === 'table'">
+      <template v-if="localCurrentMenu === 'table'">
         <div class="kindy-virtual-group">
           <menus-toolbar-table-insert />
           <menus-toolbar-table-fix />
@@ -148,11 +151,11 @@
         <div class="kindy-virtual-group">
           <menus-toolbar-table-delete />
         </div>
-        <div class="virtual-group is-slot">
+        <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_table" toolbar-mode="classic" />
         </div>
       </template>
-      <template v-if="currentMenu === 'tools'">
+      <template v-if="localCurrentMenu === 'tools'">
         <div class="kindy-virtual-group">
           <menus-toolbar-tools-signature v-if="!disableMenu('signature')" />
           <menus-toolbar-tools-stamp v-if="!disableMenu('stamp')" />
@@ -171,28 +174,30 @@
             v-if="!disableMenu('chinese-case')"
           />
         </div>
-        <div class="virtual-group is-slot">
+        <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_tools" toolbar-mode="classic" />
         </div>
       </template>
-      <template v-if="currentMenu === 'page'">
+      <template v-if="localCurrentMenu === 'page'">
         <div class="kindy-virtual-group">
           <menus-toolbar-page-margin />
           <menus-toolbar-page-size v-if="page.layout === 'page'" />
           <menus-toolbar-page-orientation v-if="page.layout === 'page'" />
         </div>
         <div class="kindy-virtual-group">
+          <menus-toolbar-page-header />
+          <menus-toolbar-page-footer />
           <menus-toolbar-page-break />
           <menus-toolbar-page-break-marks />
           <menus-toolbar-page-line-number />
           <menus-toolbar-page-watermark v-if="!disableMenu('watermark')" />
           <menus-toolbar-page-background v-if="!disableMenu('background')" />
         </div>
-        <div class="virtual-group is-slot">
+        <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_page" toolbar-mode="classic" />
         </div>
       </template>
-      <template v-if="currentMenu === 'view'">
+      <template v-if="localCurrentMenu === 'view'">
         <div class="kindy-virtual-group">
           <menus-toolbar-view-toc v-if="!disableMenu('toc')" />
           <menus-toolbar-view-fullscreen v-if="!disableMenu('fullscreen')" />
@@ -217,12 +222,14 @@
         <div class="kindy-virtual-group">
           <menus-toolbar-view-reset v-if="!disableMenu('reset')" />
         </div>
-        <div class="virtual-group is-slot">
+        <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_view" toolbar-mode="classic" />
         </div>
       </template>
-      <template v-if="currentMenu === 'export'">
+      <template v-if="localCurrentMenu === 'export'">
         <div class="kindy-virtual-group">
+          <menus-toolbar-export-word v-if="!disableMenu('export-word')" />
+          <menus-toolbar-export-import-word v-if="!disableMenu('import-word')" />
           <menus-toolbar-export-image v-if="!disableMenu('export-image')" />
           <menus-toolbar-export-pdf v-if="!disableMenu('export-pdf')" />
           <menus-toolbar-export-text v-if="!disableMenu('export-text')" />
@@ -231,7 +238,7 @@
           <menus-toolbar-export-share v-if="!disableMenu('share')" />
           <menus-toolbar-export-embed v-if="!disableMenu('embed')" />
         </div>
-        <div class="virtual-group is-slot">
+        <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_export" toolbar-mode="classic" />
         </div>
       </template>
@@ -240,6 +247,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const props = defineProps({
   menus: {
     type: Array,
@@ -262,28 +270,27 @@ const disableMenu = (name) => {
   return options.value.disableExtensions.includes(name)
 }
 
-// eslint-disable-next-line vue/no-dupe-keys
-let currentMenu = $ref('')
+const localCurrentMenu = ref('')
 watch(
   () => props.currentMenu,
   async (val) => {
-    currentMenu = val
+    localCurrentMenu.value = val
     await nextTick()
-    scrollableRef?.update()
+    scrollableRef.value?.update?.()
   },
   { immediate: true },
 )
-const scrollableRef = $ref(null)
+const scrollableRef = ref(null)
 const toggoleMenu = async (menu) => {
   emits('menu-change', menu)
   await nextTick()
-  scrollableRef?.update()
+  scrollableRef.value?.update?.()
 }
 </script>
 
 <style lang="less" scoped>
 .kindy-scrollable-container {
-  padding: 10px;
+  padding: 6px 10px;
 }
 .kindy-classic-menu {
   display: inline-flex;

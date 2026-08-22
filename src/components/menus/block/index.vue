@@ -26,11 +26,12 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { DragHandle } from '@tiptap/extension-drag-handle-vue-3'
 
 const editor = inject('editor')
-let selectedNode = $ref(null)
-let selectedNodePos = $ref(null)
+let selectedNode = ref(null)
+let selectedNodePos = ref(null)
 
 const nodeChange = ({ node, pos }) => {
   selectedNode = node || null
@@ -55,7 +56,7 @@ const dropdownVisible = (visible) => {
     transform: translateX(-15px);
     padding: 2px;
     border-radius: 3px;
-    background-color: #fff;
+    background-color: var(--kindy-color-white);
     margin-top: -5px;
     &:hover {
       outline: none;

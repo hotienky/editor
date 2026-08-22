@@ -9,9 +9,14 @@
 </template>
 
 <script setup>
+import { useDocumentTabs } from '@/composables/document-tabs'
+
 const editor = inject('editor')
+const { addTab } = useDocumentTabs()
 
 const setPageBreak = () => {
-  editor.value?.chain().focus().setPageBreak().run()
+  if (editor.value) {
+    editor.value.chain().focus().setPageBreak().run()
+  }
 }
 </script>

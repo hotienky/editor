@@ -27,6 +27,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { TextSelection } from '@tiptap/pm/state'
 
 const container = inject('container')
@@ -36,7 +37,7 @@ const page = inject('page')
 defineEmits(['close'])
 
 // 最终可视化数据
-let tocData = $ref([])
+let tocData = ref([])
 const buildTocTree = (tocArray) => {
   const root = []
   const stack = []
@@ -71,7 +72,7 @@ const buildTocTree = (tocArray) => {
 }
 
 const tocDebounceFn = useDebounceFn((toc) => {
-  tocData = buildTocTree(toc)
+  tocData.value = buildTocTree(toc)
 }, 1000)
 
 watch(
@@ -83,30 +84,29 @@ watch(
 )
 
 const headingActive = (value) => {
-  if (!editor.value) {
-    return
+  if (!editor.value || !value || !value[0]) return
+
+  const [targetId] = value
+  const nodeElement =
+    editor.value.view.dom.querySelector(`[data-toc-id="${targetId}"]`) ||
+    editor.value.view.dom.querySelector(`#${targetId}`)
+
+  if (nodeElement) {
+    nodeElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+    try {
+      const pos = editor.value.view.posAtDOM(nodeElement, 0)
+      if (pos !== undefined && pos !== null) {
+        const { tr } = editor.value.view.state
+        const resolvedPos = tr.doc.resolve(Math.min(pos, tr.doc.content.size - 1))
+        tr.setSelection(TextSelection.near(resolvedPos))
+        editor.value.view.dispatch(tr)
+        editor.value.view.focus()
+      }
+    } catch (err) {
+      // Fallback: use basic scrollIntoView
+    }
   }
-  const nodeElement = editor.value.view.dom.querySelector(
-    `[data-toc-id="${value[0]}"]`,
-  )
-  const pageContainer = document.querySelector(
-    `${container} .kindy-zoomable-container`,
-  )
-  const pageHeader = pageContainer?.querySelector('.kindy-page-node-header')
-  if (!nodeElement || !pageContainer || !pageHeader) {
-    return
-  }
-  const { zoomLevel } = page.value
-  pageContainer.scrollTo({
-    top: Math.round(
-      ((nodeElement.offsetTop + pageHeader.offsetHeight) * zoomLevel) / 100,
-    ),
-  })
-  const pos = editor.value.view.posAtDOM(nodeElement, 0)
-  const { tr } = editor.value.view.state
-  tr.setSelection(new TextSelection(tr.doc.resolve(pos)))
-  editor.value.view.dispatch(tr)
-  editor.value.view.focus()
 }
 
 const baseTocWidth = 320
@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
 
 <style lang="less">
 .kindy-toc-container {
-  width: 320px;
+  width: min(320px, 80vw);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

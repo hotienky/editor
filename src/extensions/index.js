@@ -37,7 +37,9 @@ import BulletList from './bullet-list'
 import Callout from './callout'
 import CodeBlock from './code-block'
 import Columns from './columns'
+import Comment from './comment'
 import Datetime from './datetime'
+import { DocxParagraphLayout, DocxTab } from './docx-layout'
 import Echarts from './echarts'
 import File from './file'
 import FileHandler from './file-handler'
@@ -47,6 +49,7 @@ import HorizontalRule from './horizontal-rule'
 import Iframe from './iframe'
 import { BlockImage, InlineImage } from './image'
 import Indent from './indent'
+import { AutoSubstitutions } from './substitutions'
 import InsertNewline from './insert-newline'
 import LetterSpacing from './letter-spacing'
 import LineHeight from './line-height'
@@ -63,6 +66,10 @@ import OfficePaste from './office-paste'
 import OptionBox from './option-box'
 import OrderedList from './ordered-list'
 import PageBreak from './page-break'
+import Header from './header'
+import Footer from './footer'
+import Pagination from './pagination'
+import SectionBreak from './section-break'
 import Placeholder from './placeholder'
 import SearchReplace from './search-replace'
 import Selection from './selection'
@@ -74,6 +81,7 @@ import Toc from './toc'
 import TypeWriter from './type-writer'
 import Video from './video'
 import WordWrap from './word-wrap'
+import TrackChanges from '@/collaboration/track-changes'
 
 const nodeTypes = [
   'paragraph',
@@ -113,12 +121,16 @@ const nodeTypes = [
   'mention',
   'blockMath',
   'inlineMath',
+  'contractVariable',
+  'contractClause',
+  'signatureBlock',
 ]
 
 export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
   const {
     page,
     document: doc,
+    user,
     users,
     file,
     disableExtensions,
@@ -143,7 +155,6 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     video: Video,
     audio: Audio,
     'code-block': CodeBlock,
-    symbol: Symbol,
     math: Mathematics.configure({
       katex: { throwOnError: false },
     }),
@@ -168,6 +179,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     toc: Toc,
     'text-box': TextBox,
     'web-page': Iframe,
+    comment: Comment,
   }
 
   const buildInExtensions = [
@@ -197,8 +209,11 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     UndoRedo.extend({
       addKeyboardShortcuts() {
-        // 返回空对象表示移除所有默认快捷键
-        return {}
+        return {
+          'Mod-z': () => this.editor.commands.undo(),
+          'Mod-y': () => this.editor.commands.redo(),
+          'Shift-Mod-z': () => this.editor.commands.redo(),
+        }
       },
     }),
     Focus.configure({
@@ -229,9 +244,11 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     ListItem,
     TaskItem.configure({ nested: true }),
     LineHeight,
+    DocxParagraphLayout,
+    DocxTab,
     SearchReplace,
 
-    // 插入
+    // Insert
     File,
     Details.configure({
       HTMLAttributes: {
@@ -249,19 +266,28 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
       },
     }),
 
-    // 表格
+    // Table
     Table,
     TableRow,
     TableCell,
     TableHeader,
 
-    // 工具
+    // Tools
     Echarts,
 
-    // 页面
+    // Page
     PageBreak,
+    SectionBreak,
+    Header,
+    Footer,
+    TrackChanges.configure({
+      user: {
+        id: user?.id,
+        name: user?.label || user?.name || user?.id || 'Anonymous',
+      },
+    }),
 
-    // 其他
+    // Other
     Selection,
     InsertNewline,
     NodeRange,
@@ -319,6 +345,8 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
     }),
     TypeWriter,
     OfficePaste,
+    Pagination,
+    AutoSubstitutions,
   ]
 
   // 合并扩展

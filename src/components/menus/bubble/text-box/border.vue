@@ -75,6 +75,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getSelectionNode } from '@/utils/selection'
 
 const { popupVisible, togglePopup } = usePopup()
@@ -95,8 +96,8 @@ const styles = [
   { style: 'double', width: 3 },
 ]
 
-const borderColor = $ref('#000')
-let colorPickerVisible = $ref(false)
+const borderColor = ref('#000')
+let colorPickerVisible = ref(false)
 
 const colorChange = (color) => {
   const textBox = editor.value ? getSelectionNode(editor.value) : null

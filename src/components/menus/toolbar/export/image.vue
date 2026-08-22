@@ -11,7 +11,7 @@
 
 <script setup>
 import domtoimage from 'dom-to-image-more'
-import { saveAs } from 'file-saver'
+import saveAs from 'file-saver'
 
 const { toBlob } = domtoimage
 const container = inject('container')

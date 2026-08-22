@@ -72,18 +72,19 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const { popupVisible } = usePopup()
 const container = inject('container')
 const editor = inject('editor')
 const $toolbar = useState('toolbar', inject('options'))
 const popupContentRef = ref(null)
 
-const options = $ref([
+const options = ref([
   { label: t('base.heading.paragraph'), desc: 'text', value: 'paragraph' },
 ])
 for (const i of Array.from({ length: 6 }).keys()) {
   const level = i + 1
-  options.push({
+  options.value.push({
     label: `${t('base.heading.text', { level })}`,
     desc: `h${level}`,
     value: level,

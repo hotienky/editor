@@ -4,7 +4,7 @@
     :visible="searchReplace"
     :footer="false"
     :z-index="200"
-    width="360px"
+    width="min(360px, 90vw)"
     mode="modeless"
     draggable
     @opened="autofocus = true"
@@ -92,23 +92,24 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { getSelectionText } from '@/utils/selection'
 
 const editor = inject('editor')
 const searchReplace = inject('searchReplace')
 
-let autofocus = $ref(false)
-let searchText = $ref('')
-let replaceText = $ref('')
-const caseSensitive = $ref(false)
+let autofocus = ref(false)
+let searchText = ref('')
+let replaceText = ref('')
+const caseSensitive = ref(false)
 
 const resultLength = computed(
   () => editor.value?.storage.searchAndReplace?.results.length || 0,
 )
 
 const clear = () => {
-  searchText = ''
-  replaceText = ''
+  searchText.value = ''
+  replaceText.value = ''
   editor.value?.commands.resetIndex()
 }
 
@@ -119,9 +120,9 @@ const search = (clearIndex = false) => {
   if (clearIndex) {
     editor.value.commands.resetIndex()
   }
-  editor.value.commands.setSearchTerm(searchText)
-  editor.value.commands.setReplaceTerm(replaceText)
-  editor.value.commands.setCaseSensitive(caseSensitive)
+  editor.value.commands.setSearchTerm(searchText.value)
+  editor.value.commands.setReplaceTerm(replaceText.value)
+  editor.value.commands.setCaseSensitive(caseSensitive.value)
 }
 
 const goToSelection = () => {
@@ -141,7 +142,7 @@ const goToSelection = () => {
 }
 
 watch(
-  () => searchText.trim(),
+  () => searchText.value?.trim(),
   (val, oldVal) => {
     if (!val) {
       clear()
@@ -152,12 +153,12 @@ watch(
   },
 )
 watch(
-  () => replaceText.trim(),
+  () => replaceText.value?.trim(),
   (val, oldVal) => (val === oldVal ? null : search()),
 )
 
 watch(
-  () => caseSensitive,
+  () => caseSensitive.value,
   (val, oldVal) => {
     if (val !== oldVal) {
       search(true)
@@ -185,7 +186,7 @@ const replaceAll = () => editor.value?.commands.replaceAll()
 watch(
   () => searchReplace.value,
   (visible) => {
-    searchText = visible ? getSelectionText(editor.value) : ''
+    searchText.value = visible && editor.value ? getSelectionText(editor.value) : ''
   },
 )
 </script>

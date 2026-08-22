@@ -4,6 +4,7 @@ import { ReplaceStep } from '@tiptap/pm/transform'
 
 import { columnsKeymap } from './keymap'
 import { gridResizingPlugin } from './resize'
+import { findParentNodeByType } from './utils'
 
 const Column = Node.create({
   name: 'column',
@@ -63,21 +64,6 @@ const ColumnContainer = Node.create({
     ]
   },
 })
-
-const findParentNodeByType = ($pos, typeName) => {
-  const { depth: maxDepth } = $pos
-  for (let depth = maxDepth; depth > 0; depth -= 1) {
-    const node = $pos.node(depth)
-    if (node.type.name === typeName) {
-      return {
-        node,
-        depth,
-        pos: $pos.before(depth),
-      }
-    }
-  }
-  return null
-}
 
 const insertedColumnContainer = (tr) => {
   for (const step of tr.steps) {

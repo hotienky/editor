@@ -61,7 +61,7 @@ const getParsedImageElement = (element) => {
     return cached
   }
   const sourceElement =
-    element.tagName.toLowerCase() === 'img'
+    ['img', 'inline-img'].includes(element.tagName.toLowerCase())
       ? element
       : element.querySelector('img')
   const parsed = {
@@ -179,6 +179,39 @@ const createImageAttributes = () => ({
   previewType: { default: 'image' },
   showTitle: { default: false },
   inline: { default: false },
+  // Image wrapping modes
+  wrapMode: {
+    default: 'none',
+    parseHTML: (element) => element.getAttribute('data-wrap-mode') || 'none',
+  },
+  wrapSide: {
+    default: 'right',
+    parseHTML: (element) => element.getAttribute('data-wrap-side') || 'right',
+  },
+  wrapMarginH: {
+    default: 8,
+    parseHTML: (element) => parseInt(element.getAttribute('data-wrap-margin-h'), 10) || 8,
+  },
+  wrapMarginV: {
+    default: 4,
+    parseHTML: (element) => parseInt(element.getAttribute('data-wrap-margin-v'), 10) || 4,
+  },
+  wrapPadding: {
+    default: 0,
+    parseHTML: (element) => parseInt(element.getAttribute('data-wrap-padding'), 10) || 0,
+  },
+  wrapBorderColor: {
+    default: '#cccccc',
+    parseHTML: (element) => element.getAttribute('data-wrap-border-color') || '#cccccc',
+  },
+  wrapBorderStyle: {
+    default: 'solid',
+    parseHTML: (element) => element.getAttribute('data-wrap-border-style') || 'solid',
+  },
+  wrapBorderWidth: {
+    default: 0,
+    parseHTML: (element) => parseInt(element.getAttribute('data-wrap-border-width'), 10) || 0,
+  },
   initialAttrs: {
     default: null,
     renderHTML: () => ({}),
@@ -368,11 +401,35 @@ export const BlockImage = BaseImage.extend({
     ]
   },
   renderHTML({ HTMLAttributes }) {
-    const { src, alt, title, width, height, ...figureAttributes } =
-      HTMLAttributes
+    const {
+      src,
+      alt,
+      title,
+      width,
+      height,
+      wrapMode,
+      wrapSide,
+      wrapMarginH,
+      wrapMarginV,
+      wrapPadding,
+      wrapBorderColor,
+      wrapBorderStyle,
+      wrapBorderWidth,
+      ...figureAttributes
+    } = HTMLAttributes
     return [
       'figure',
-      mergeAttributes(figureAttributes, { 'data-type': 'image' }),
+      mergeAttributes(figureAttributes, {
+        'data-type': 'image',
+        'data-wrap-mode': wrapMode,
+        'data-wrap-side': wrapSide,
+        'data-wrap-margin-h': wrapMarginH,
+        'data-wrap-margin-v': wrapMarginV,
+        'data-wrap-padding': wrapPadding,
+        'data-wrap-border-color': wrapBorderColor,
+        'data-wrap-border-style': wrapBorderStyle,
+        'data-wrap-border-width': wrapBorderWidth,
+      }),
       [
         'img',
         mergeAttributes(this.options.HTMLAttributes, {
@@ -403,20 +460,82 @@ export const BlockImage = BaseImage.extend({
     return {
       ...this.parent?.(),
       setImage: createInsertImageCommand(this.name, false),
-      toggleImageCrop:
-        () =>
-        ({ state, tr, dispatch }) => {
-          const pos = getSelectedImagePosition(state.selection, this.name)
-          if (typeof pos !== 'number') {
+      setImageWrapMode:
+        (mode) =>
+        ({ state, dispatch }) => {
+          const currentImage = getSelectedImageNode(state.selection)
+          if (!currentImage) {
             return false
           }
           if (dispatch) {
-            dispatch(
-              tr.setMeta('imageCrop', {
-                action: 'toggle',
-                pos,
-              }),
+            const tr = state.tr.setNodeMarkup(currentImage.pos, undefined, {
+              ...currentImage.node.attrs,
+              wrapMode: mode,
+            })
+            tr.setSelection(NodeSelection.create(tr.doc, currentImage.pos))
+            dispatch(tr)
+          }
+          return true
+        },
+      setImageWrapSide:
+        (side) =>
+        ({ state, dispatch }) => {
+          const currentImage = getSelectedImageNode(state.selection)
+          if (!currentImage) {
+            return false
+          }
+          if (dispatch) {
+            const tr = state.tr.setNodeMarkup(currentImage.pos, undefined, {
+              ...currentImage.node.attrs,
+              wrapSide: side,
+            })
+            tr.setSelection(NodeSelection.create(tr.doc, currentImage.pos))
+            dispatch(tr)
+          }
+          return true
+        },
+      setImageWrapMargin:
+        (margin) =>
+        ({ state, dispatch }) => {
+          const currentImage = getSelectedImageNode(state.selection)
+          if (!currentImage) {
+            return false
+          }
+          if (dispatch) {
+            const tr = state.tr.setNodeMarkup(currentImage.pos, undefined, {
+              ...currentImage.node.attrs,
+              wrapMarginH: margin.horizontal ?? currentImage.node.attrs.wrapMarginH,
+              wrapMarginV: margin.vertical ?? currentImage.node.attrs.wrapMarginV,
+            })
+            tr.setSelection(NodeSelection.create(tr.doc, currentImage.pos))
+            dispatch(tr)
+          }
+          return true
+        },
+      resetImageToInitial:
+        () =>
+        ({ state, dispatch }) => {
+          const currentImage = getSelectedImageNode(state.selection)
+          if (!currentImage) {
+            return false
+          }
+          const nextAttrs = getResetImageAttrs(currentImage.node)
+          if (!nextAttrs) {
+            return false
+          }
+          if (dispatch) {
+            const nextNode = currentImage.node.type.create(
+              nextAttrs,
+              currentImage.node.content,
+              currentImage.node.marks,
             )
+            const tr = state.tr.replaceWith(
+              currentImage.pos,
+              currentImage.pos + currentImage.node.nodeSize,
+              nextNode,
+            )
+            tr.setSelection(NodeSelection.create(tr.doc, currentImage.pos))
+            dispatch(tr)
           }
           return true
         },
@@ -426,6 +545,7 @@ export const BlockImage = BaseImage.extend({
 
 export const InlineImage = BaseImage.extend({
   name: 'inlineImage',
+  priority: 110,
   inline: true,
   group: 'inline',
   addAttributes() {
@@ -438,13 +558,21 @@ export const InlineImage = BaseImage.extend({
     }
   },
   parseHTML() {
-    return [{ tag: 'inline-img' }]
+    return [
+      {
+        tag: 'img[data-kindy-inline-image]',
+        getAttrs: (element) => shouldParseImageElement(element) ? null : false,
+      },
+      {
+        tag: 'inline-img',
+        getAttrs: (element) => shouldParseImageElement(element) ? null : false,
+      },
+    ]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['inline-img', mergeAttributes(HTMLAttributes)]
-  },
-  addNodeView() {
-    return VueNodeViewRenderer(NodeView)
+    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+      'data-kindy-inline-image': 'true',
+    })]
   },
   addCommands() {
     return {

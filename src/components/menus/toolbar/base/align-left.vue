@@ -17,13 +17,10 @@
 </template>
 
 <script setup>
+import { execute } from '@umo/editor'
 const editor = inject('editor')
 const setAlignLeft = () => {
-  if (editor.value?.can().chain().focus().setTextAlign('left').run()) {
-    editor.value.chain().focus().setTextAlign('left').run()
-  }
-  if (editor.value?.can().chain().focus().setNodeAlign('flex-start').run()) {
-    editor.value.chain().focus().setNodeAlign('flex-start').run()
-  }
+  execute(editor.value, 'setTextAlign', 'left')
+  execute(editor.value, 'setNodeAlign', 'flex-start')
 }
 </script>

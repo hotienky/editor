@@ -50,6 +50,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject } from 'vue'
 const { popupVisible, togglePopup } = usePopup()
 const container = inject('container')
 const page = inject('page')
@@ -64,7 +65,7 @@ const backgrounds = [
 ]
 
 // 更多颜色
-const moreColorPicker = $ref(false)
+const moreColorPicker = ref(false)
 const backgroundChange = (color) => {
   page.value.background = color
 }

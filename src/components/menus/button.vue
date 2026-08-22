@@ -1,6 +1,6 @@
 <template>
   <t-tooltip
-    :content="getTooltipContent"
+    :content="tooltipContent"
     :visible="tooltipVisible && !tooltipForceHide"
     theme="light"
     placement="top"
@@ -28,6 +28,8 @@
           :disabled="
             !forceEnabled && (disabled || editor?.isEditable === false)
           "
+          :aria-label="text || tooltip || undefined"
+          :aria-pressed="menuActive || undefined"
           v-bind="attrs"
           @click="menuClick"
         >
@@ -64,6 +66,8 @@
             :disabled="
               !forceEnabled && (disabled || editor?.isEditable === false)
             "
+            :aria-label="text || tooltip || undefined"
+            :aria-haspopup="'menu'"
           >
             <div class="kindy-button-content" @click="menuClick">
               <slot />
@@ -133,6 +137,8 @@
               :disabled="
                 !forceEnabled && (disabled || editor?.isEditable === false)
               "
+              :aria-label="text || tooltip || undefined"
+              :aria-haspopup="'menu'"
             >
               <div class="kindy-button-content" @click="menuClick">
                 <slot />
@@ -202,6 +208,9 @@
             :disabled="
               !forceEnabled && (disabled || editor?.isEditable === false)
             "
+            :aria-label="text || tooltip || undefined"
+            :aria-haspopup="'popup'"
+            :aria-expanded="popupVisible || undefined"
           >
             <div class="kindy-button-content" @click="menuClick">
               <slot />
@@ -274,6 +283,9 @@
               :disabled="
                 !forceEnabled && (disabled || editor?.isEditable === false)
               "
+              :aria-label="text || tooltip || undefined"
+              :aria-haspopup="'popup'"
+              :aria-expanded="popupVisible || undefined"
               @click="togglePopup(!popupVisible)"
             >
               <div class="kindy-button-content">
@@ -321,6 +333,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import { isString } from '@tool-belt/type-predicates'
 
 import { getShortcut } from '@/utils/shortcut'
@@ -403,7 +416,7 @@ const props = defineProps({
     default: false,
   },
 })
-const emits = defineEmits(['toggle-popup'])
+const emits = defineEmits(['toggle-popup', 'menu-click'])
 
 const attrs = useAttrs()
 const container = inject('container')
@@ -411,6 +424,7 @@ const editor = inject('editor')
 const options = inject('options')
 const $toolbar = useState('toolbar', options)
 const menuClick = (...args) => {
+  emits('menu-click', ...args)
   if (attrs.onMenuClickThrough) {
     attrs.onMenuClickThrough(...args)
   } else if (attrs.onMenuClick) {
@@ -418,8 +432,8 @@ const menuClick = (...args) => {
   }
 }
 
-const tooltipVisible = $ref(false)
-let tooltipForceHide = $ref(false)
+const tooltipVisible = ref(false)
+let tooltipForceHide = ref(false)
 const popupVisileChange = (visible) => {
   // 隐藏 Tooltip，适用于 select、dropdown、popup 等子组件展开时，隐藏 Tooltip
   tooltipForceHide = visible
@@ -436,6 +450,8 @@ const getTooltipContent = () => {
   }
   return ''
 }
+
+const tooltipContent = computed(() => getTooltipContent())
 watch(
   () => props.popupVisible,
   (val) => {
@@ -492,8 +508,13 @@ onClickOutside(
   &.active {
     background-color: var(--kindy-button-hover-background);
     .kindy-button-icon-arrow.kindy-button-handle {
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: var(--kindy-color-hover-background);
     }
+  }
+  &:focus-visible {
+    outline: 2px solid var(--kindy-primary-color);
+    outline-offset: 1px;
+    border-radius: var(--kindy-radius);
   }
   .kindy-button-content {
     display: flex;
@@ -532,6 +553,11 @@ onClickOutside(
       &:hover {
         background-color: var(--td-bg-color-container-active);
       }
+      &:focus-visible {
+        outline: 2px solid var(--kindy-primary-color);
+        outline-offset: -2px;
+        border-radius: var(--kindy-radius);
+      }
     }
   }
   &.huge {
@@ -568,6 +594,11 @@ onClickOutside(
         position: absolute;
         left: calc(50% + 12px);
         top: 2px;
+      }
+    }
+    &:not(.show-text) {
+      .kindy-button-content .kindy-button-text {
+        display: none !important;
       }
     }
     &.has-arrow {

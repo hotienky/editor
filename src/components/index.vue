@@ -1,8 +1,8 @@
 <template>
   <t-config-provider
-    :key="options.editorKey"
+    :key="options?.editorKey || 'default'"
     :global-config="{
-      ...localeConfig[locale],
+      ...(localeConfig?.[locale || 'vi-VN'] || {}),
       classPrefix: 'kindy',
     }"
   >
@@ -65,6 +65,7 @@ import enConfig from 'tdesign-vue-next/esm/locale/en_US'
 import cnConfig from 'tdesign-vue-next/esm/locale/zh_CN'
 
 import { getTypewriterRunState } from '@/extensions/type-writer'
+import { createEditorDocumentState } from '@/core/editor-state'
 import { i18n } from '@/i18n'
 import { propsOptions } from '@/options'
 import { contentTransform } from '@/utils/content-transform'
@@ -77,7 +78,7 @@ import {
 import { getOptions } from '@/utils/options'
 import { getSelectionNode, getSelectionText } from '@/utils/selection'
 import { shortId } from '@/utils/short-id'
-import { getCurrentInstance } from 'vue'
+import { getCurrentInstance, ref, shallowRef } from 'vue'
 const { toBlob, toJpeg, toPng } = domToImage
 
 defineOptions({ name: 'KindyEditor' })
@@ -121,9 +122,10 @@ const historyRecords = ref({
   editorCount: 0,
 })
 
-const container = $ref(`#kindy-editor-${shortId(4)}`)
+const container = ref(`#kindy-editor-${shortId(4)}`)
 const defaultOptions = inject('defaultOptions', {})
-const options = ref(getOptions(props, defaultOptions))
+const initialOptions = getOptions(props, defaultOptions) || getOptions({}, defaultOptions)
+const options = ref(initialOptions)
 const editor = ref(null)
 const savedAt = ref(null)
 const page = ref({})
@@ -141,8 +143,21 @@ const typeWriterIsRunning = ref(false)
 const $toolbar = useState('toolbar', options)
 const $document = useState('document', options)
 const $layout = useState('layout', options)
+watch(
+  () => options.value.toolbar,
+  (toolbar) => {
+    if (toolbar.allowModeSwitch === false) {
+      $toolbar.value = {
+        ...$toolbar.value,
+        mode: toolbar.defaultMode || 'classic',
+        show: true,
+      }
+    }
+  },
+  { immediate: true, deep: true },
+)
 
-provide('container', container)
+provide('container', container.value)
 provide('options', options)
 provide('editor', editor)
 provide('savedAt', savedAt)
@@ -159,6 +174,10 @@ provide('destroyed', destroyed)
 provide('historyRecords', historyRecords)
 provide('typeWriterIsRunning', typeWriterIsRunning)
 
+// Bình luận (giống Word)
+const commentStore = createCommentStore(options, editor)
+provide('commentStore', commentStore)
+
 watch(
   () => options.value.page,
   ({
@@ -167,18 +186,24 @@ watch(
     defaultMargin,
     defaultOrientation,
     watermark,
+    header,
+    footer,
+    sections,
     showBreakMarks,
     showBookmark,
     showLineNumber,
     showToc,
   }) => {
     page.value = {
-      layout: $layout.value || layouts[0],
+      layout: layouts.includes($layout.value) ? $layout.value : layouts[0],
       size: options.value.dicts?.pageSizes.find((item) => item.default),
       margin: defaultMargin,
       background: defaultBackground,
       orientation: defaultOrientation,
       watermark,
+      header,
+      footer,
+      sections: Array.isArray(sections) ? sections : [],
       showBreakMarks,
       showBookmark,
       showLineNumber,
@@ -202,14 +227,14 @@ watch(
   },
 )
 
-let toolbarKey = $ref(shortId())
+let toolbarKey = ref(shortId())
 let toolbarActive = ref(null)
 provide('toolbarActive', toolbarActive)
 watch(
   () => [options.value.document?.readOnly, editor.value?.isEditable],
   async () => {
     await nextTick()
-    toolbarKey = shortId()
+    toolbarKey.value = shortId()
   },
 )
 
@@ -257,11 +282,11 @@ watch(
 )
 
 // 定时保存
-let contentUpdated = $ref(false)
-let isFirstUpdate = $ref(true)
-let autoSaveInterval = $ref(null)
-let isSaving = $ref(false)
-const shouldBlockUnload = () => isSaving || contentUpdated
+let contentUpdated = ref(false)
+let isFirstUpdate = ref(true)
+let autoSaveInterval = null
+let isSaving = ref(false)
+const shouldBlockUnload = () => isSaving.value || contentUpdated.value
 const handleBeforeUnload = (event) => {
   if (!shouldBlockUnload()) {
     return
@@ -276,16 +301,16 @@ const clearAutoSaveInterval = () => {
   }
 }
 watch(
-  () => contentUpdated,
+  () => contentUpdated.value,
   (val) => {
     const { autoSave } = options.value.document
     if (!autoSave?.enabled) {
       return
     }
-    if (isFirstUpdate) {
-      isFirstUpdate = false
+    if (isFirstUpdate.value) {
+      isFirstUpdate.value = false
       setTimeout(() => {
-        contentUpdated = false
+        contentUpdated.value = false
       })
       return
     }
@@ -295,7 +320,7 @@ watch(
     }
     autoSaveInterval = setInterval(() => {
       saveContent()
-      contentUpdated = false
+      contentUpdated.value = false
       clearAutoSaveInterval()
     }, autoSave.interval)
   },
@@ -313,7 +338,7 @@ watch(
     })
     editor.value.on('update', ({ editor }) => {
       emits('changed', { editor })
-      contentUpdated = true
+      contentUpdated.value = true
     })
     editor.value.on('selectionUpdate', ({ editor }) => {
       emits('changed:selection', { editor })
@@ -417,7 +442,6 @@ watch(
       oldData: oldPageMargin,
     })
   },
-  { deep: true },
 )
 
 watch(
@@ -489,7 +513,6 @@ watch(
       oldData: oldPageWatermark,
     })
   },
-  { deep: true },
 )
 
 watch(
@@ -497,14 +520,12 @@ watch(
   () => {
     emits('print')
   },
-  { deep: true },
 )
 
 // i18n Setup
+const SUPPORTED_LOCALES = ['vi-VN', 'en-US', 'zh-CN', 'it-IT', 'ru-RU']
 const { t, locale, mergeLocaleMessage } = useI18n()
 const $locale = useStorage('kindy-editor:locale', options.value.locale)
-locale.value = $locale.value
-consoleCopyright()
 const getLocaleMessage = (lang) => {
   const translations = options.value.translations?.[lang.replaceAll('-', '_')]
   if (isRecord(translations)) {
@@ -512,7 +533,22 @@ const getLocaleMessage = (lang) => {
   }
   return {}
 }
-mergeLocaleMessage(locale.value, getLocaleMessage(locale.value))
+const applyLocale = (lang, persist = true) => {
+  if (!SUPPORTED_LOCALES.includes(lang)) {
+    throw new Error(`"locale" must be one of ${SUPPORTED_LOCALES.join(', ')}.`)
+  }
+  mergeLocaleMessage(lang, getLocaleMessage(lang))
+  locale.value = lang
+  options.value.locale = lang
+  if (persist) $locale.value = lang
+}
+const initialLocale = SUPPORTED_LOCALES.includes(props.locale)
+  ? props.locale
+  : SUPPORTED_LOCALES.includes($locale.value)
+    ? $locale.value
+    : options.value.locale
+applyLocale(initialLocale)
+consoleCopyright(t)
 const { appContext } = getCurrentInstance()
 if (appContext) {
   appContext.config.globalProperties.t = t
@@ -524,23 +560,45 @@ watch(
     emits('changed:locale', { locale, oldLocale })
   },
 )
+watch(
+  () => props.locale,
+  (value) => {
+    if (value && value !== locale.value) applyLocale(value)
+  },
+)
 
 // Global Locale Config
-const localeConfig = $ref({
+const localeConfig = ref({
   'zh-CN': cnConfig,
   'en-US': enConfig,
-  'vi-VN': enConfig,
+  'vi-VN': {
+    ...enConfig,
+    dialog: {
+      confirm: 'Xác nhận',
+      cancel: 'Hủy',
+    },
+    popconfirm: {
+      confirm: 'Xác nhận',
+      cancel: 'Hủy',
+    },
+  },
+  'it-IT': enConfig,
+  'ru-RU': enConfig,
 })
 
 // Options Setup
 const setOptions = (value) => {
   try {
-    options.value = getOptions(value, defaultOptions)
+    const nextOptions = getOptions(value, defaultOptions)
+    if (!nextOptions) return options.value
+    options.value = nextOptions
     const $locale = useStorage('kindy-editor:locale', options.value.locale)
     if (!$locale.value) {
       $locale.value = options.value.locale
     }
-  } catch {}
+  } catch (error) {
+    console.warn('[KindyEditor] Invalid reactive options update was ignored.', error)
+  }
   return options.value
 }
 
@@ -818,32 +876,14 @@ const getContent = (format = 'html') => {
 }
 
 // Locale Methods
-const setLocale = (lang, silent = true) => {
-  if (!['zh-CN', 'en-US', 'vi-VN'].includes(lang)) {
-    throw new Error('"params" must be one of "zh-CN", "en-US" or "vi-VN".')
+const setLocale = (lang) => {
+  if (!SUPPORTED_LOCALES.includes(lang)) {
+    throw new Error(`"params" must be one of ${SUPPORTED_LOCALES.join(', ')}.`)
   }
   if (locale.value === lang) {
     return
   }
-  if (silent) {
-    $locale.value = lang
-    location.reload()
-    return
-  }
-  const dialog = useConfirm({
-    attach: container,
-    theme: 'warning',
-    header: t('changeLocale.title'),
-    body: t('changeLocale.message'),
-    confirmBtn: {
-      theme: 'warning',
-      content: t('changeLocale.confirm'),
-    },
-    onConfirm() {
-      dialog.destroy()
-      setTimeout(() => setLocale(lang), 300)
-    },
-  })
+  applyLocale(lang)
 }
 
 const getLocale = () => locale.value
@@ -1000,6 +1040,17 @@ const print = () => {
   }
 }
 
+const preparePrint = async () => ({
+  html: await getVanillaHTML(),
+  page: structuredClone(page.value),
+})
+
+const getState = () => createEditorDocumentState({
+  content: getJSON(),
+  assets: structuredClone($document.value.assets || []),
+  page: page.value,
+})
+
 const toggleFullscreen = (isFullscreen) => {
   if (isFullscreen !== undefined) {
     if (!isBoolean(isFullscreen)) {
@@ -1014,7 +1065,9 @@ const toggleFullscreen = (isFullscreen) => {
 const reset = (silent) => {
   const resetLocalStorage = () => {
     const keys = Object.keys(localStorage)
-    const kindyEditorKeys = keys.filter((key) => key.startsWith('kindy-editor:'))
+    const kindyEditorKeys = keys.filter((key) =>
+      key.startsWith('kindy-editor:'),
+    )
     kindyEditorKeys.forEach((key) => localStorage.removeItem(key))
     location.reload()
   }
@@ -1050,16 +1103,16 @@ const saveContent = async (showMessage = true) => {
     return
   }
   if (editor.value) {
-    // 保存前先同步一份最新内容，避免 onSave 第三个参数读取到旧值
-    $document.value.content = editor.value.getHTML()
+    // Sync latest content before saving (JSON as primary)
+    $document.value.content = editor.value.getJSON()
   }
   const saveBack = {
-    status: '', // 可选值：'success' | 'error'  // 状态描述文本（用于前端提示或日志）
-    message: '', // 例如：'保存失败：网络异常'
-    showMessage: true, // 是否展示message
+    status: '',
+    message: '',
+    showMessage: true,
   }
   try {
-    isSaving = true
+    isSaving.value = true
     useMessage(
       'loading',
       {
@@ -1067,15 +1120,15 @@ const saveContent = async (showMessage = true) => {
         content: t('save.saving'),
         placement: 'bottom',
         closeBtn: true,
-        duration: 0, // 需要手工关闭，不会自动关闭了
+        duration: 0,
         offset: [0, -20],
       },
       getCurrentInstance(),
     )
     const _saveBack = await options.value?.onSave?.(
       {
-        html: editor.value?.getHTML(),
         json: editor.value?.getJSON(),
+        html: editor.value?.getHTML(),
         text: editor.value?.getText(),
       },
       page.value,
@@ -1084,7 +1137,7 @@ const saveContent = async (showMessage = true) => {
     if (!_saveBack) {
       throw new Error('`onSave` callback must return a value.')
     }
-    // 兼容老的保存回调
+    // Backward compatibility with old save callback
     if (typeof _saveBack === 'string') {
       if (_saveBack) {
         saveBack.status = 'success'
@@ -1097,7 +1150,7 @@ const saveContent = async (showMessage = true) => {
       for (const key in _saveBack) {
         saveBack[key] = _saveBack[key]
       }
-      // 没有返回这个
+      // Default showMessage if not provided
       if (_saveBack['showMessage'] === undefined) {
         saveBack['showMessage'] = showMessage
       }
@@ -1115,7 +1168,7 @@ const saveContent = async (showMessage = true) => {
       return
     }
     emits('saved')
-    contentUpdated = false
+    contentUpdated.value = false
     if (saveBack.showMessage) {
       useMessage('success', {
         attach: container,
@@ -1136,11 +1189,11 @@ const saveContent = async (showMessage = true) => {
         offset: [0, -20],
       })
     }
-    console.error(error?.message)
   } finally {
-    isSaving = false
+    isSaving.value = false
   }
 }
+const markContentSaved = () => { contentUpdated.value = false }
 const getAllBookmarks = () => {
   let bookmarkData
   editor.value?.commands.getAllBookmarks(function (_data) {
@@ -1193,31 +1246,47 @@ const getContentExcerpt = (charLimit = 100, more = ' ...') => {
   }
   return text?.substring(0, charLimit) + more
 }
-/* 撤销 重做操作*/
+/* Undo/Redo — using Editing Engine UndoManager */
+import { getUndoManager } from '@umo/editor'
+
+const undoManager = getUndoManager()
+
 const undoHistory = () => {
-  undoHistoryRecord(historyRecords, function (record) {
+  let handled = false
+  undoManager.undo((record) => {
+    handled = true
     if (record?.type === 'editor') {
       editor?.value?.chain().focus().undo().run()
     } else if (record?.type === 'page' && record?.proType) {
-      // 撤销
       if (page?.value && record.oldData !== undefined) {
         page.value[record.proType] = record.oldData
       }
     }
   })
+  if (!handled && editor?.value?.can().undo()) {
+    editor.value.chain().focus().undo().run()
+  }
 }
+
 const redoHistory = () => {
-  redoHistoryRecord(historyRecords, function (record) {
+  let handled = false
+  undoManager.redo((record) => {
+    handled = true
     if (record?.type === 'editor') {
       editor?.value?.chain().focus().redo().run()
     } else if (record?.type === 'page' && record?.proType) {
-      //  恢复
       if (page?.value && record.newData !== undefined) {
         page.value[record.proType] = record.newData
       }
     }
   })
+  if (!handled && editor?.value?.can().redo()) {
+    editor.value.chain().focus().redo().run()
+  }
 }
+
+const canUndo = computed(() => undoManager.canUndo || Boolean(editor.value?.can().undo()))
+const canRedo = computed(() => undoManager.canRedo || Boolean(editor.value?.can().redo()))
 
 // Hotkeys Setup
 watch(
@@ -1232,14 +1301,6 @@ watch(
         if (fullscreen.value) {
           fullscreen.value = false
         }
-      })
-    }
-    const bindUndoRedoKey = () => {
-      useHotkeys('ctrl+z, command+z', () => {
-        undoHistory()
-      })
-      useHotkeys('ctrl+y, command+y', () => {
-        redoHistory()
       })
     }
     editor.value?.on('focus', () => {
@@ -1259,11 +1320,9 @@ watch(
       })
     })
     bindEscKey()
-    bindUndoRedoKey()
     editor.value?.on('blur', () => {
       removeAllHotkeys()
       bindEscKey()
-      bindUndoRedoKey()
     })
   },
 )
@@ -1278,6 +1337,8 @@ provide('reset', reset)
 provide('getVanillaHTML', getVanillaHTML)
 provide('undoHistory', undoHistory)
 provide('redoHistory', redoHistory)
+provide('canUndo', canUndo)
+provide('canRedo', canRedo)
 // Exposing Methods
 defineExpose({
   getOptions: () => options.value,
@@ -1301,8 +1362,10 @@ defineExpose({
   getText,
   getHTML,
   getJSON,
+  getState,
   getVanillaHTML,
   saveContent,
+  markContentSaved,
   getContentExcerpt,
   getEditor: () => editor,
   useEditor: () => editor.value,
@@ -1315,12 +1378,21 @@ defineExpose({
     editor.value?.commands.setCurrentNodeSelection(),
   getLocale,
   getI18n,
+  addComment: (text) => commentStore.addComment(text),
+  toggleCommentSidebar: (visible) => commentStore.toggle(visible),
+  getComments: () => commentStore.comments,
+  getCommentCount: () => commentStore.getCommentCount(),
+  removeComment: (id) => commentStore.removeComment(id),
+  resolveComment: (id, resolved) => commentStore.setResolved(id, resolved),
+  focusComment: (id) => commentStore.focus(id),
+  addReply: (id, text) => commentStore.addReply(id, text),
   setReadOnly(readOnly = true) {
     if (options.value.document) {
       options.value.document.readOnly = readOnly
     }
   },
   print,
+  preparePrint,
   focus,
   blur,
   toggleFullscreen,

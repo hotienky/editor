@@ -60,14 +60,15 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
 const table = Array.from({ length: 8 }, () =>
   Array.from({ length: 10 }, () => ''),
 )
-const selected = $ref({ rows: 0, cols: 0 })
-const withHeaderRow = $ref(true)
+const selected = ref({ rows: 0, cols: 0 })
+const withHeaderRow = ref(true)
 
 const isSelected = (rows, cols) => {
   return (

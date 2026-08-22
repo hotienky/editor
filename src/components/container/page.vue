@@ -1,73 +1,194 @@
 <template>
   <div class="kindy-main-container">
-    <container-toc
-      v-if="pageOptions.showToc"
-      @close="pageOptions.showToc = false"
-    />
-    <div
-      :class="`kindy-zoomable-container kindy-${pageOptions.layout}-container kindy-scrollbar`"
-    >
-      <div
-        class="kindy-zoomable-content"
-        :style="{
-          width: pageZoomWidth,
-          height: pageZoomHeight,
-        }"
-      >
-        <t-watermark
-          class="kindy-page-content"
-          :style="{
-            '--kindy-page-orientation': pageOptions.orientation,
-            '--kindy-page-background': pageOptions.background,
-            '--kindy-page-margin-top': pageOptions.margin?.top + 'cm',
-            '--kindy-page-margin-bottom': pageOptions.margin?.bottom + 'cm',
-            '--kindy-page-margin-left': pageOptions.margin?.left + 'cm',
-            '--kindy-page-margin-right': pageOptions.margin?.right + 'cm',
-            '--kindy-page-width':
-              pageOptions.layout === 'page' ? pageSize.width + 'cm' : 'auto',
-            '--kindy-page-height':
-              pageOptions.layout === 'page' ? pageSize.height + 'cm' : '100%',
-            width:
-              pageOptions.layout === 'page' ? pageSize.width + 'cm' : '100%',
-            transform: `scale(${pageOptions.zoomLevel ? pageOptions.zoomLevel / 100 : 1})`,
-          }"
-          :alpha="pageOptions.watermark.alpha"
-          v-bind="watermarkOptions"
-          :watermark-content="pageOptions.watermark"
-        >
-          <div class="kindy-page-node-header" contenteditable="false">
-            <div
-              class="kindy-page-corner corner-tl"
-              style="width: var(--kindy-page-margin-left)"
-            ></div>
+    <!-- WORKSPACE -->
+    <div class="kindy-editor-workspace">
+      <container-toc
+        v-if="pageOptions.showToc"
+        @close="pageOptions.showToc = false"
+      />
+      <container-tabs />
 
-            <div class="kindy-page-node-header-content"></div>
+      <!-- SCROLL CONTAINER (grey canvas like Google Docs) -->
+      <div
+        ref="scrollContainer"
+        class="kindy-zoomable-container kindy-scrollbar"
+        :class="`kindy-${pageOptions.layout}-container`"
+        @scroll="onScroll"
+      >
+        <!-- SINGLE CONTINUOUS EDITOR (like Google Docs / Word Online) -->
+        <div class="kindy-page-canvas">
+          <container-ruler v-if="pageOptions.showRuler === true" />
+
+          <!-- EDITOR — single continuous ProseMirror instance -->
+          <!-- Page breaks are inserted as ProseMirror decorations by pagination.js -->
+          <div
+            class="kindy-page-scale-shell"
+            :style="{
+              '--page-width': (pageSize?.width || 21) + 'cm',
+              '--page-height': (pageSize?.height || 29.7) + 'cm',
+              '--page-zoom': (pageOptions?.zoomLevel || 100) / 100,
+              '--kindy-page-surface-height': pageSurfaceLogicalHeight > 0
+                ? pageSurfaceLogicalHeight + 'px'
+                : null,
+              '--margin-top': contentMarginTop + 'cm',
+              '--margin-bottom': contentMarginBottom + 'cm',
+              '--margin-left': (pageOptions?.margin?.left ?? 2.54) + 'cm',
+              '--margin-right': (pageOptions?.margin?.right ?? 2.54) + 'cm',
+              '--kindy-page-margin-top': contentMarginTop + 'cm',
+              '--kindy-page-margin-bottom': contentMarginBottom + 'cm',
+              '--kindy-page-margin-left': (pageOptions?.margin?.left ?? 2.54) + 'cm',
+              '--kindy-page-margin-right': (pageOptions?.margin?.right ?? 2.54) + 'cm',
+              '--kindy-page-width': (pageSize?.width || 21) + 'cm',
+              '--kindy-page-height': (pageSize?.height || 29.7) + 'cm',
+            }"
+          >
             <div
-              class="kindy-page-corner corner-tr"
-              style="width: var(--kindy-page-margin-right)"
-            ></div>
-          </div>
-          <div class="kindy-page-node-content">
+              ref="pageSurface"
+              class="kindy-page-editor-wrap"
+            >
+            <!-- GOOGLE DOCS STYLE HEADER OVERLAY -->
+            <div
+              v-if="pageOptions.header?.enable !== false"
+              class="kindy-gdocs-header-zone"
+              @dblclick="openHeaderDialog"
+              title="Double click to edit Header"
+            >
+              <div class="kindy-gdocs-hf-badge">
+                <span class="badge-title">{{ t('page.header.badgeLabel', { margin: pageOptions.header?.marginTop || 1.25 }) }}</span>
+                <t-dropdown
+                  :options="[
+                    { content: t('page.header.formatOption'), value: 'dialog' },
+                    { content: t('page.header.hideOption'), value: 'hide' }
+                  ]"
+                  @click="onHeaderOptionSelect"
+                >
+                  <t-button size="small" variant="text" class="kindy-gdocs-options-btn">
+                    <span>{{ t('common.options') }}</span>
+                    <icon name="caret-down" />
+                  </t-button>
+                </t-dropdown>
+              </div>
+
+              <div v-if="pageOptions.header?.layout === 'banner'" class="kindy-gdocs-hf-banner">
+                <img
+                  v-if="pageOptions.header?.logo"
+                  :src="pageOptions.header.logo"
+                  :style="{
+                    '--kindy-imported-image-width': (pageOptions.header.logoWidth || 720) + 'px',
+                    '--kindy-imported-image-height': (pageOptions.header.logoHeight || 48) + 'px'
+                  }"
+                  alt="Document header"
+                  draggable="false"
+                />
+              </div>
+              <div v-else-if="pageOptions.header?.layout === 'split'" class="kindy-gdocs-hf-split">
+                <div class="kindy-gdocs-hf-left">
+                  <img
+                    v-if="pageOptions.header?.logo"
+                    :src="pageOptions.header.logo"
+                    :style="{ width: (pageOptions.header.logoWidth || 110) + 'px' }"
+                    alt="Logo"
+                  />
+                  <span v-if="pageOptions.header?.leftText">{{ pageOptions.header.leftText }}</span>
+                </div>
+                <div
+                  class="kindy-gdocs-hf-right"
+                  :style="{
+                    color: pageOptions.header?.fontColor || '#0072bc',
+                    fontSize: (pageOptions.header?.fontSize || 14) + 'px',
+                    fontWeight: pageOptions.header?.fontWeight || 'bold',
+                    fontFamily: pageOptions.header?.fontFamily || 'inherit'
+                  }"
+                >
+                  {{ pageOptions.header?.rightText || pageOptions.header?.text }}
+                </div>
+              </div>
+              <div
+                v-else
+                class="kindy-gdocs-hf-single"
+                :style="{
+                  textAlign: pageOptions.header?.align || 'center',
+                  color: pageOptions.header?.fontColor || '#0072bc',
+                  fontSize: (pageOptions.header?.fontSize || 14) + 'px',
+                  fontWeight: pageOptions.header?.fontWeight || 'bold'
+                }"
+              >
+                <img
+                  v-if="pageOptions.header?.logo"
+                  :src="pageOptions.header.logo"
+                  :style="{ width: (pageOptions.header.logoWidth || 110) + 'px', display: 'inline-block', verticalAlign: 'middle', marginRight: '8px' }"
+                  alt="Logo"
+                />
+                <span>{{ pageOptions.header?.text || pageOptions.header?.leftText || pageOptions.header?.rightText }}</span>
+              </div>
+            </div>
+
+            <!-- RIGHT-MARGIN GOOGLE DOCS (+) ADD COMMENT ACTION BUTTON -->
+            <div
+              v-if="hasSelection"
+              class="kindy-gdocs-selection-add-comment-btn"
+              :style="{ top: selectionBtnTop + 'px' }"
+              title="Thêm bình luận (Cmd+Option+M)"
+              @mousedown.prevent
+              @click="addCommentFromSelection"
+            >
+              <icon name="comment" />
+            </div>
+
             <editor>
               <template #bubble_menu="props">
                 <slot name="bubble_menu" v-bind="props" />
               </template>
             </editor>
+
+            <!-- GOOGLE DOCS STYLE FOOTER OVERLAY -->
+              <div
+                v-if="pageOptions.footer?.enable"
+                class="kindy-gdocs-footer-zone"
+                @dblclick="openFooterDialog"
+                title="Double click to edit Footer"
+              >
+              <div class="kindy-gdocs-hf-badge footer-badge">
+                <span class="badge-title">{{ t('page.footer.badgeLabel', { margin: pageOptions.footer?.marginBottom || 1.25 }) }}</span>
+                <t-dropdown
+                  :options="[
+                    { content: t('page.footer.formatOption'), value: 'dialog' },
+                    { content: t('page.footer.hideOption'), value: 'hide' }
+                  ]"
+                  @click="onFooterOptionSelect"
+                >
+                  <t-button size="small" variant="text" class="kindy-gdocs-options-btn">
+                    <span>{{ t('common.options') }}</span>
+                    <icon name="caret-down" />
+                  </t-button>
+                </t-dropdown>
+              </div>
+
+              <div
+                class="kindy-gdocs-hf-single"
+                :style="{
+                  textAlign: pageOptions.footer?.align || 'center',
+                  color: pageOptions.footer?.fontColor || '#64748b',
+                  fontSize: (pageOptions.footer?.fontSize || 12) + 'px'
+                }"
+              >
+                <docx-fragment
+                  v-if="pageOptions.footer?.content"
+                  :content="pageOptions.footer.content"
+                />
+                <span v-else>{{ pageOptions.footer?.text || pageOptions.footer?.leftText || pageOptions.footer?.rightText || 'Trang 1' }}</span>
+              </div>
+              </div>
+            </div>
           </div>
-          <div class="kindy-page-node-footer" contenteditable="false">
-            <div
-              class="kindy-page-corner corner-bl"
-              style="width: var(--kindy-page-margin-left)"
-            ></div>
-            <div class="kindy-page-node-footer-content"></div>
-            <div
-              class="kindy-page-corner corner-br"
-              style="width: var(--kindy-page-margin-right)"
-            ></div>
-          </div>
-        </t-watermark>
+        </div>
       </div>
+
+      <!-- RIGHT SIDEBAR (Comments / Suggestions panel on the right like Google Docs) -->
+      <container-suggestions />
     </div>
+
+    <!-- FLOATING PAGE STATUS -->
     <div class="kindy-main-floating-actions">
       <t-back-top
         style="position: relative"
@@ -76,6 +197,7 @@
         size="small"
       />
     </div>
+
     <t-image-viewer
       :attach="container"
       v-model:visible="imageViewer.visible"
@@ -86,275 +208,819 @@
     />
     <container-search-replace />
     <container-print />
+    <container-comment v-if="commentStore.visible" />
+    <dialog-header-footer v-model:visible="hfDialogVisible" :target-type="hfDialogType" />
+    <dialog-preferences v-model:visible="prefDialogVisible" />
+    <dialog-version-history v-model:visible="historyDialogVisible" />
   </div>
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef, nextTick, onBeforeUnmount } from 'vue'
+import Editor from '@/components/editor/index.vue'
+import DialogHeaderFooter from '@/components/dialog/header-footer.vue'
+import DialogPreferences from '@/components/dialog/preferences.vue'
+import DialogVersionHistory from '@/components/dialog/version-history.vue'
+import ContainerTabs from '@/components/container/tabs.vue'
+import ContainerSuggestions from '@/components/container/suggestions.vue'
+import ContainerRuler from '@/components/container/ruler.vue'
+import DocxFragment from '@/components/container/docx-fragment.vue'
+
 const container = inject('container')
 const imageViewer = inject('imageViewer')
 const pageOptions = inject('page')
+const editor = inject('editor')
+const commentStore = inject('commentStore')
 
-// 页面大小
-const pageSize = $computed(() => {
-  const { width, height } = pageOptions.value.size || { width: 0, height: 0 }
-  return {
-    width: pageOptions.value.orientation === 'portrait' ? width : height,
-    height: pageOptions.value.orientation === 'portrait' ? height : width,
-  }
-})
-// 页面缩放后的大小
-const pageZoomWidth = $computed(() => {
-  if (pageOptions.value.layout === 'web') {
-    return '100%'
-  }
-  return `calc(${pageSize.width}cm * ${pageOptions.value.zoomLevel ? pageOptions.value.zoomLevel / 100 : 1})`
-})
+const scrollContainer = ref(null)
+const pageSurface = ref(null)
+const pageSurfaceLogicalHeight = ref(0)
+let pageSurfaceObserver = null
 
-// 页面内容变化后更新页面高度
-let pageZoomHeight = $ref('')
-let pageContentEl = $ref(null)
-let pageHeightRaf = 0
-let pageHeightObserver = $ref(null)
-const updatePageZoomHeight = () => {
-  if (pageOptions.value.layout === 'web') {
-    pageZoomHeight = 'auto'
-    return
-  }
-  if (!pageContentEl) {
-    console.warn('The element <.kindy-page-content> does not exist.')
-    return
-  }
-  const height = `${(pageContentEl.clientHeight * (pageOptions.value.zoomLevel || 1)) / 100}px`
-  if (pageZoomHeight !== height) {
-    pageZoomHeight = height
-  }
+const syncPageSurfaceHeight = () => {
+  const surface = pageSurface.value
+  if (!surface) return
+  const zoom = Math.max(0.01, Number(pageOptions.value?.zoomLevel || 100) / 100)
+  const transformedHeight = surface.getBoundingClientRect().height
+  pageSurfaceLogicalHeight.value = transformedHeight > 0
+    ? transformedHeight / zoom
+    : surface.offsetHeight
 }
-const schedulePageZoomHeight = () => {
-  if (pageHeightRaf) {
-    cancelAnimationFrame(pageHeightRaf)
-  }
-  pageHeightRaf = requestAnimationFrame(() => {
-    pageHeightRaf = 0
-    updatePageZoomHeight()
-  })
-}
-onMounted(async () => {
-  await nextTick()
-  pageContentEl = document.querySelector(`${container} .kindy-page-content`)
-  if (pageContentEl) {
-    pageHeightObserver = new ResizeObserver(() => {
-      schedulePageZoomHeight()
-    })
-    pageHeightObserver.observe(pageContentEl)
-  } else {
-    console.warn('The element <.kindy-page-content> does not exist.')
-  }
-  schedulePageZoomHeight()
-})
-onUnmounted(() => {
-  if (pageHeightObserver) {
-    pageHeightObserver.disconnect()
-    pageHeightObserver = null
-  }
-  if (pageHeightRaf) {
-    cancelAnimationFrame(pageHeightRaf)
-  }
-})
 
-// 页面变化后，更新页面高度
 watch(
-  () => [
-    pageOptions.value.layout,
-    pageOptions.value.zoomLevel,
-    pageOptions.value.size,
-    pageOptions.value.orientation,
-  ],
-  () => {
-    schedulePageZoomHeight()
+  pageSurface,
+  (surface) => {
+    pageSurfaceObserver?.disconnect()
+    pageSurfaceObserver = null
+    if (!surface) return
+    if (typeof ResizeObserver !== 'undefined') {
+      pageSurfaceObserver = new ResizeObserver(syncPageSurfaceHeight)
+      pageSurfaceObserver.observe(surface)
+    }
+    nextTick(syncPageSurfaceHeight)
   },
-  { deep: true },
+  { immediate: true },
 )
 
-// 水印
-const watermarkOptions = $ref({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 0,
-  type: undefined,
+onBeforeUnmount(() => {
+  pageSurfaceObserver?.disconnect()
+  pageSurfaceObserver = null
 })
+
+let hfDialogVisible = ref(false)
+let prefDialogVisible = ref(false)
+let historyDialogVisible = ref(false)
+let hfDialogType = ref('header')
+let isHeaderFocused = ref(false)
+let isFooterFocused = ref(false)
+let currentPageFromScroll = ref(1)
+
+const openHeaderDialog = () => {
+  hfDialogType.value = 'header'
+  hfDialogVisible.value = true
+}
+
+const openFooterDialog = () => {
+  hfDialogType.value = 'footer'
+  hfDialogVisible.value = true
+}
+
+const onHeaderOptionSelect = (data) => {
+  if (data.value === 'dialog') {
+    openHeaderDialog()
+  } else if (data.value === 'hide') {
+    pageOptions.value.header.enable = false
+  }
+}
+
+const onFooterOptionSelect = (data) => {
+  if (data.value === 'dialog') {
+    openFooterDialog()
+  } else if (data.value === 'hide') {
+    pageOptions.value.footer.enable = false
+  }
+}
+
+let hasSelection = ref(false)
+let selectionBtnTop = ref(100)
+
+const updateSelectionState = () => {
+  if (!editor?.value) return
+  const { selection } = editor.value.state
+  if (!selection || selection.empty) {
+    hasSelection.value = false
+    return
+  }
+  hasSelection.value = true
+  try {
+    const coords = editor.value.view.coordsAtPos(selection.from)
+    const canvasEl = document.querySelector('.kindy-page-editor-wrap')
+    if (canvasEl) {
+      const canvasRect = canvasEl.getBoundingClientRect()
+      selectionBtnTop.value = Math.max(16, coords.top - canvasRect.top - 6)
+    }
+  } catch (e) {
+    // fallback position
+  }
+}
+
+const addCommentFromSelection = () => {
+  commentStore.addComment()
+  commentStore.toggle(true)
+}
+
 watch(
-  () => pageOptions.value.watermark,
-  (watermarkObj = { type: '' }) => {
-    const { type } = watermarkObj
-    if (type === 'compact') {
-      watermarkOptions.width = 320
-      watermarkOptions.y = 240
-    } else {
-      watermarkOptions.width = 480
-      watermarkOptions.y = 360
+  () => editor.value,
+  (instance) => {
+    if (instance) {
+      instance.on('open-header-footer', (type) => {
+        hfDialogType.value = type || 'header'
+        hfDialogVisible.value = true
+      })
+      instance.on('selectionUpdate', updateSelectionState)
+      instance.on('transaction', updateSelectionState)
     }
   },
-  { deep: true, immediate: true },
+  { immediate: true },
 )
 
-// 图片预览
-let previewImages = $ref([])
-let currentImageIndex = $ref(0)
+const activeConfig = $computed(() => {
+  if (isHeaderFocused.value) return pageOptions.value.header
+  if (isFooterFocused.value) return pageOptions.value.footer
+  return pageOptions.value.header
+})
+
+const totalPageNum = $computed(() => {
+  if (editor.value?.storage?.pagination?.totalPages) {
+    return editor.value.storage.pagination.totalPages
+  }
+  return 1
+})
+
+const currentPageNum = $computed(() => {
+  return currentPageFromScroll.value || 1
+})
+
+const publishPaginationStatus = () => {
+  const total = Math.max(1, Number(editor.value?.storage?.pagination?.totalPages) || 1)
+  const current = Math.max(1, Math.min(Number(currentPageFromScroll.value) || 1, total))
+  pageOptions.value.paginationStatus = { currentPage: current, totalPages: total }
+}
+
+const layoutTree = $computed(() => {
+  return editor.value?.storage?.pagination?.layoutTree || null
+})
+
+const pageSize = $computed(() => {
+  const { width, height } = pageOptions.value.size || { width: 21, height: 29.7 }
+  return {
+    width: pageOptions.value.orientation === 'landscape' ? height : width,
+    height: pageOptions.value.orientation === 'landscape' ? width : height,
+  }
+})
+
+// Imported Word headers can be positioned independently from w:pgMar. Keep a
+// usable header/footer band in the browser preview so anchored logos never get
+// collapsed when the DOCX body margin is unusually small.
+const contentMarginTop = $computed(() => {
+  const configured = Number(pageOptions.value?.margin?.top ?? 2.54)
+  if (pageOptions.value?.header?.enable === false) return configured
+  return Math.max(configured, pageOptions.value?.header?.layout === 'banner' ? 1.8 : 1.5)
+})
+
+const contentMarginBottom = $computed(() => {
+  const configured = Number(pageOptions.value?.margin?.bottom ?? 2.54)
+  return pageOptions.value?.footer?.enable ? Math.max(configured, 1.5) : configured
+})
+
+const pagesList = $computed(() => {
+  if (layoutTree?.pages && layoutTree.pages.length > 0) {
+    return layoutTree.pages.map((page) => ({
+      index: page.pageNumber - 1,
+      pageNumber: page.pageNumber,
+      isFirst: page.pageNumber === 1,
+      isLast: page.pageNumber === layoutTree.totalPages,
+      isOdd: page.pageNumber % 2 !== 0,
+      contentHeight: page.contentHeight,
+    }))
+  }
+
+  const list = []
+  const totalPages = totalPageNum
+  for (let i = 0; i < totalPages; i++) {
+    const pageNum = i + 1
+    list.push({
+      index: i,
+      pageNumber: pageNum,
+      isFirst: i === 0,
+      isLast: i === totalPages - 1,
+      isOdd: pageNum % 2 !== 0,
+    })
+  }
+  return list
+})
+
+const shouldShowHeader = (pageInfo) => {
+  const config = pageOptions.value.header
+  if (!config?.enable) return false
+  if (config.scope === 'first_last' && !pageInfo.isFirst) return false
+  return true
+}
+
+const shouldShowFooter = (pageInfo) => {
+  const config = pageOptions.value.footer
+  if (!config?.enable) return false
+  if (config.scope === 'first_last' && !pageInfo.isLast) return false
+  return true
+}
+
+const onScroll = () => {
+  if (!scrollContainer.value) return
+  const isAtDocumentEnd = scrollContainer.value.scrollTop + scrollContainer.value.clientHeight
+    >= scrollContainer.value.scrollHeight - 2
+  const containerRect = scrollContainer.value.getBoundingClientRect()
+  const breaks = scrollContainer.value.querySelectorAll('[data-page-number]')
+  let current = 1
+  for (const pageBreak of breaks) {
+    const pageNumber = Number(pageBreak.getAttribute('data-page-number'))
+    if (!Number.isFinite(pageNumber)) continue
+    const rect = pageBreak.getBoundingClientRect()
+    if (rect.bottom <= containerRect.top + 160) current = Math.max(current, pageNumber)
+  }
+  currentPageFromScroll.value = isAtDocumentEnd
+    ? totalPageNum
+    : Math.max(1, Math.min(current, totalPageNum))
+  publishPaginationStatus()
+}
 
 watch(
-  () => imageViewer.value.visible,
-  async (visible) => {
-    if (!visible) {
-      previewImages = []
-      currentImageIndex = 0
+  () => editor.value,
+  (nextEditor, previousEditor) => {
+    if (previousEditor) previousEditor.off('transaction', publishPaginationStatus)
+    if (nextEditor) {
+      nextEditor.on('transaction', publishPaginationStatus)
+      requestAnimationFrame(publishPaginationStatus)
+    }
+  },
+  { immediate: true },
+)
+
+const activateHeaderMode = (e) => {
+  if (e) e.stopPropagation()
+  isHeaderFocused.value = true
+  isFooterFocused.value = false
+}
+
+const activateFooterMode = (e) => {
+  if (e) e.stopPropagation()
+  isFooterFocused.value = true
+  isHeaderFocused.value = false
+}
+
+const closeHeaderFooterMode = () => {
+  isHeaderFocused.value = false
+  isFooterFocused.value = false
+}
+
+const openDialogFromBar = () => {
+  hfDialogType.value = isHeaderFocused.value ? 'header' : 'footer'
+  hfDialogVisible.value = true
+}
+
+const onBarLogoChange = (files) => {
+  const file = files[0]?.raw || files[0]
+  if (file && activeConfig) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      activeConfig.logo = e.target.result
+      activeConfig.enable = true
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const setHeader = () => {
+  hfDialogType.value = 'header'
+  hfDialogVisible.value = true
+}
+
+const setFooter = () => {
+  hfDialogType.value = 'footer'
+  hfDialogVisible.value = true
+}
+
+const onPageClick = (event) => {
+  const { target } = event
+  const isInsideHF = target?.closest?.('.kindy-page-header, .kindy-page-footer, .kindy-hf-context-bar')
+  if (!isInsideHF) {
+    isHeaderFocused.value = false
+    isFooterFocused.value = false
+  }
+
+  const commentEl = target?.closest?.('[data-comment]')
+  if (commentEl && editor?.value) {
+    const id = commentEl.getAttribute('data-comment')
+    if (id) {
+      commentStore?.toggle(true)
+      commentStore?.focus(id)
       return
     }
-    await nextTick()
-    const images = document.querySelectorAll(
-      `${container} .kindy-page-node-content img[src][data-preview]`,
+  }
+  if (editor?.value && !isInsideHF) {
+    const isInteractive = target?.closest?.(
+      'button, input, select, textarea, a, .t-popup, .t-dropdown, .kindy-comment-sidebar, .t-dialog',
     )
-    Array.from(images).forEach((image, index) => {
-      const src = image.getAttribute('src')
-      const nodeId = image.getAttribute('data-id')
-      previewImages.push(src)
-      if (nodeId === imageViewer.value.current) {
-        currentImageIndex = index
-      }
-    })
+    if (!isInteractive && !editor.value.isFocused) {
+      editor.value.commands.focus()
+    }
+  }
+}
+
+const previewImages = $computed(() => {
+  if (!imageViewer.value?.visible) return []
+  const images = editor.value?.dom?.querySelectorAll('img') || []
+  return Array.from(images).map((img) => img.src)
+})
+
+const currentImageIndex = $computed({
+  get() {
+    return previewImages.indexOf(imageViewer.value?.currentImage)
   },
-)
+  set(index) {
+    imageViewer.value.currentImage = previewImages[index]
+  },
+})
 </script>
 
 <style lang="less">
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* MAIN CONTAINER                                                            */
+/* ═══════════════════════════════════════════════════════════════════════════ */
 .kindy-main-container {
-  height: 100%;
   display: flex;
   position: relative;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+
+  .kindy-editor-workspace {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* SCROLL CONTAINER (grey canvas like Google Docs)                           */
+/* ═══════════════════════════════════════════════════════════════════════════ */
 .kindy-zoomable-container {
   flex: 1;
-  scroll-behavior: smooth;
+  overflow: auto;
+  position: relative;
+  box-sizing: border-box;
+  background-color: var(--kindy-container-background, #e8eaed);
+  padding: 32px 0;
+
   &.kindy-page-container {
-    padding: 20px 50px;
-    box-sizing: border-box;
-    .kindy-zoomable-content {
-      margin: 0 auto;
-      box-shadow:
-        rgba(0, 0, 0, 0.06) 0px 0px 10px 0px,
-        rgba(0, 0, 0, 0.04) 0px 0px 0px 1px;
+    display: flex;
+    justify-content: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* PAGES WRAPPER                                                             */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+.kindy-pages-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* PAGE CANVAS — single continuous editor, no per-page DOM splitting          */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+.kindy-page-canvas {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* PAGE HEADER                                                               */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+.kindy-page-header {
+  position: relative;
+  box-sizing: border-box;
+  width: var(--page-width, 21cm);
+  padding-left: var(--margin-left, 2.54cm);
+  padding-right: var(--margin-right, 2.54cm);
+  padding-top: 0.3cm;
+  padding-bottom: 0.2cm;
+  min-height: 1.5cm;
+  background: var(--kindy-page-background, #ffffff);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 2px 2px 0 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  color: #64748b;
+  z-index: 2;
+
+  &:hover {
+    background: rgba(2, 132, 199, 0.04);
+  }
+
+  &.is-focused {
+    outline: 1.5px dashed var(--kindy-primary-color, #0284c7);
+    outline-offset: -2px;
+    background: rgba(2, 132, 199, 0.04);
+
+    &::before {
+      content: attr(data-label);
+      position: absolute;
+      top: -20px;
+      left: 12px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      background: var(--kindy-primary-color, #0284c7);
+      padding: 2px 10px;
+      border-radius: 4px 4px 0 0;
+      z-index: 20;
+      pointer-events: none;
     }
   }
-  &.kindy-web-container {
+
+  .kindy-hf-content {
     display: flex;
-    .kindy-zoomable-content {
-      flex: 1;
-      .kindy-page-corner {
-        display: none;
-      }
-      .kindy-page-content {
-        min-height: 100%;
-        .kindy-page-node-content {
-          min-height: 100px;
-        }
-      }
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    font-size: var(--hf-font-size, 12px);
+    color: var(--hf-font-color, #64748b);
+    font-family: var(--hf-font-family, inherit);
+    font-weight: var(--hf-font-weight, normal);
+    text-align: var(--hf-align, left);
+
+    &.has-border {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
     }
   }
-  .kindy-page-content {
-    transform-origin: 0 0;
-    box-sizing: border-box;
+
+  .kindy-hf-left,
+  .kindy-hf-right {
     display: flex;
-    position: relative;
-    box-sizing: border-box;
-    background-color: var(--kindy-page-background);
-    width: var(--kindy-page-width);
-    min-height: var(--kindy-page-height);
-    overflow: visible !important;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .kindy-hf-single {
     display: flex;
-    flex-direction: column;
-    [contenteditable] {
-      outline: none;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .kindy-hf-textarea {
+    width: 100%;
+    border: 1px solid var(--kindy-primary-color, #0284c7);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: inherit;
+    outline: none;
+    resize: none;
+  }
+
+  .kindy-hf-logo {
+    height: auto;
+    max-height: 32px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* PAGE SCALE SHELL — zoom changes only the viewport scale, never layout      */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+.kindy-page-scale-shell {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--page-width, 21cm) * var(--page-zoom, 1));
+  height: calc(
+    var(--kindy-page-surface-height, var(--page-height, 29.7cm)) *
+      var(--page-zoom, 1)
+  );
+  min-height: calc(var(--page-height, 29.7cm) * var(--page-zoom, 1));
+}
+
+/* Logical document surface. It always remains in a 100% A4 coordinate      */
+/* system; the parent shell reserves exactly the transformed visual size.    */
+.kindy-page-editor-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: var(--page-width, 21cm);
+  height: max-content;
+  min-height: var(--page-height, 29.7cm);
+  padding-top: var(--margin-top, 2.54cm);
+  padding-bottom: var(--margin-bottom, 2.54cm);
+  padding-left: var(--margin-left, 2.54cm);
+  padding-right: var(--margin-right, 2.54cm);
+  background: var(--kindy-page-background, #ffffff);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: scale(var(--page-zoom, 1));
+  transform-origin: top left;
+  transition: opacity 0.25s ease, filter 0.25s ease;
+  z-index: 1;
+
+  [contenteditable] {
+    outline: none;
+  }
+}
+
+.kindy-gdocs-selection-add-comment-btn {
+  position: absolute;
+  right: -42px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #1a73e8;
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.15), 0 1px 2px rgba(60, 64, 67, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 50;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s ease;
+
+  &:hover {
+    transform: scale(1.1);
+    background: #f8fafc;
+    color: #1557b0;
+  }
+}
+
+.kindy-gdocs-header-zone {
+  position: absolute;
+  top: 0.2cm;
+  left: var(--margin-left, 2.54cm);
+  right: var(--margin-right, 2.54cm);
+  height: calc(var(--margin-top, 2.54cm) - 0.35cm);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
+  z-index: 10;
+  border-bottom: 1px transparent dashed;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  padding-bottom: 4px;
+
+  &:hover {
+    border-bottom-color: #1a73e8;
+    background: rgba(26, 115, 232, 0.03);
+
+    .kindy-gdocs-hf-badge {
+      opacity: 1;
     }
   }
 }
 
-.kindy-page-node-header {
-  height: var(--kindy-page-margin-top);
-  overflow: hidden;
+.kindy-gdocs-footer-zone {
+  position: absolute;
+  bottom: 0.4cm;
+  left: var(--margin-left, 2.54cm);
+  right: var(--margin-right, 2.54cm);
+  height: calc(var(--margin-bottom, 2.54cm) - 0.6cm);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
+  z-index: 10;
+  border-top: 1px transparent dashed;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  padding-top: 4px;
+
+  &:hover {
+    border-top-color: #1a73e8;
+    background: rgba(26, 115, 232, 0.03);
+
+    .kindy-gdocs-hf-badge {
+      opacity: 1;
+    }
+  }
 }
 
-.kindy-page-node-footer {
-  height: var(--kindy-page-margin-bottom);
-  overflow: hidden;
+.kindy-gdocs-hf-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 500;
+  color: #5f6368;
+  margin-bottom: 4px;
+  opacity: 0.75;
+  transition: opacity 0.2s ease;
+
+  &.footer-badge {
+    margin-bottom: 0;
+    margin-top: 4px;
+  }
+
+  .badge-title {
+    letter-spacing: 0.2px;
+  }
+
+  .kindy-gdocs-options-btn {
+    font-size: 11px;
+    height: 22px;
+    padding: 0 6px;
+    color: #1a73e8;
+
+    &:hover {
+      background: rgba(26, 115, 232, 0.08);
+    }
+  }
 }
 
-.kindy-page-node-header,
-.kindy-page-node-footer {
+.kindy-gdocs-hf-split {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
-.kindy-page-corner {
-  box-sizing: border-box;
-  position: relative;
-  z-index: 10;
+.kindy-gdocs-hf-left,
+.kindy-gdocs-hf-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.kindy-page-corner {
-  @media print {
-    opacity: 0;
-  }
+.kindy-gdocs-hf-single {
+  width: 100%;
+}
 
-  &::after {
-    position: absolute;
-    content: '';
+.kindy-gdocs-hf-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--page-width, 21cm) - 24px);
+  max-width: calc(var(--page-width, 21cm) - 24px);
+  margin-left: calc(-1 * var(--margin-left, 2.54cm) + 12px);
+
+  img {
     display: block;
-    height: 1cm;
-    width: 1cm;
-    border: solid 1px rgba(0, 0, 0, 0.08);
-  }
-
-  &.corner-tl::after {
-    border-top: none;
-    border-left: none;
-    bottom: 0;
-    right: 0;
-  }
-
-  &.corner-tr::after {
-    border-top: none;
-    border-right: none;
-    bottom: 0;
-    left: 0;
-  }
-
-  &.corner-bl::after {
-    border-bottom: none;
-    border-left: none;
-    top: 0;
-    right: 0;
-  }
-
-  &.corner-br::after {
-    border-bottom: none;
-    border-right: none;
-    top: 0;
-    left: 0;
+    width: min(var(--kindy-imported-image-width, 720px), 100%);
+    height: auto;
+    max-height: calc(var(--margin-top, 2.54cm) - 0.3cm);
+    object-fit: contain;
   }
 }
 
-.kindy-page-node-header-content,
-.kindy-page-node-footer-content {
-  flex: 1;
-}
-
-.kindy-page-node-content {
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* PAGE BREAK DECORATION — visual separator between pages (via ProseMirror)   */
+/* Injected automatically by pagination.js as a Decoration.widget             */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+.kindy-page-break-decoration {
   position: relative;
-  box-sizing: border-box;
-  flex-shrink: 1;
+  display: block;
+  width: 100%;
+  height: var(--kindy-page-spacer-height, 72px);
+  margin: 0 !important;
+  background: transparent;
+  user-select: none;
+  pointer-events: none;
+  z-index: 5;
+  line-height: 0;
+  font-size: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: var(--kindy-page-separator-offset, 24px);
+    left: calc(-1 * var(--margin-left, 2.54cm));
+    width: calc(100% + var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm));
+    height: var(--kindy-page-gap, 24px);
+    box-sizing: border-box;
+    background: var(--kindy-container-background, #e8eaed);
+    border-top: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+  }
+
 }
 
+.kindy-page-repeated-header,
+.kindy-page-repeated-footer {
+  position: absolute;
+  left: calc(-1 * var(--margin-left, 2.54cm) + 12px);
+  width: calc(var(--page-width, 21cm) - 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kindy-page-repeated-header {
+  top: calc(var(--kindy-page-separator-offset, 24px) + var(--kindy-page-gap, 24px) + 12px);
+  height: calc(var(--margin-top, 2.54cm) - 18px);
+
+  img {
+    display: block;
+    width: min(var(--kindy-imported-image-width, 720px), 100%);
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
+  }
+}
+
+.kindy-page-repeated-footer {
+  top: calc(var(--kindy-page-separator-offset, 24px) - var(--margin-bottom, 2.54cm) + 12px);
+  height: calc(var(--margin-bottom, 2.54cm) - 18px);
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* HF CONTEXT BAR (floating ribbon when editing header/footer)               */
+/* ═══════════════════════════════════════════════════════════════════════════ */
+.kindy-hf-context-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--kindy-border-color, #e2e8f0);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  flex-wrap: wrap;
+
+  .kindy-hf-bar-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--kindy-primary-color, #0284c7);
+  }
+
+  .kindy-hf-bar-divider {
+    width: 1px;
+    height: 20px;
+    background: #cbd5e1;
+  }
+
+  .kindy-hf-bar-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+
+    label {
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .unit {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    .kindy-color-box {
+      width: 28px;
+      height: 28px;
+      padding: 1px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+/* FLOATING ACTIONS                                                         */
+/* ═══════════════════════════════════════════════════════════════════════════ */
 .kindy-main-floating-actions {
   position: absolute;
   bottom: 25px;

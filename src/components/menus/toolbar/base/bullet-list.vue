@@ -40,6 +40,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 const { popupVisible, togglePopup } = usePopup()
 const editor = inject('editor')
 
@@ -49,7 +50,7 @@ const options = [
   { label: t('list.bullet.square'), value: 'square' },
 ]
 
-let listStyleType = $ref('')
+let listStyleType = ref('')
 watch(
   () => popupVisible.value,
   (val) => {

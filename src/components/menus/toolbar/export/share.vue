@@ -7,7 +7,7 @@
   />
   <modal
     :visible="dialogVisible"
-    width="420px"
+    width="min(420px, 90vw)"
     :confirm-btn="t('export.share.copy')"
     @confirm="copyLink"
     @close="dialogVisible = false"
@@ -29,13 +29,14 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject } from 'vue'
 const options = inject('options')
 const container = inject('container')
-let dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 
 const copyLink = () => {
   useCopy(options.value.shareUrl, t('export.share.copied'), container)
-  dialogVisible = false
+  dialogVisible.value = false
 }
 </script>
 

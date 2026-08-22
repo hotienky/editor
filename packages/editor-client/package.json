@@ -1,0 +1,26 @@
+{
+  "name": "@umo/editor-client",
+  "version": "0.1.0",
+  "description": "UMO Editor Client — Google Docs-like editor built on Open Document Platform",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./style": "./src/styles/editor.css"
+  },
+  "peerDependencies": {
+    "vue": ">=3.0.0"
+  },
+  "dependencies": {
+    "@umo/document": "*",
+    "@umo/layout": "*",
+    "@umo/render": "*",
+    "@umo/editor": "*",
+    "@umo/collaboration": "*",
+    "@umo/storage": "*",
+    "@umo/io": "*",
+    "@umo/plugin": "*",
+    "@umo/ai": "*",
+    "@umo/vue": "*"
+  }
+}

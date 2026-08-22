@@ -457,9 +457,91 @@
       "imageSize": "Image Dimensions",
       "unknownDimensions": "Unknown dimensions",
       "notEmpty": "Please upload a stamp image first"
+    },
+    "contract": {
+      "text": "Contract",
+      "insertVariable": "Insert Variable",
+      "insertClause": "Insert Clause",
+      "insertSignature": "Insert Signature Block",
+      "templates": "Contract Templates",
+      "variableLabel": "Variable Name",
+      "variableLabelPlaceholder": "e.g., Party A Name",
+      "variableType": "Data Type",
+      "typeText": "Text",
+      "typeDate": "Date",
+      "typeNumber": "Number",
+      "typeMoney": "Money",
+      "typeParty": "Party",
+      "required": "Required"
     }
   },
   "page": {
+    "header": {
+      "text": "Header",
+      "show": "Show Header",
+      "hide": "Hide Header",
+      "placeholder": "Click to edit Header...",
+      "dialogTitle": "Header Configuration",
+      "textContent": "Text Content",
+      "logoLabel": "Logo Image",
+      "logoPlaceholder": "Paste image URL or upload file...",
+      "uploadLogo": "Upload Image",
+      "logoSize": "Logo Size",
+      "alignLabel": "Alignment",
+      "alignLeft": "Left",
+      "alignCenter": "Center",
+      "alignRight": "Right",
+      "borderLabel": "Border Line",
+      "showBorderText": "Show Word-style border line",
+      "layoutLabel": "Layout",
+      "layoutSingle": "Single (Header/Footer on every page)",
+      "layoutSplit": "Different for first page",
+      "leftTextLabel": "Left text",
+      "leftTextPlaceholder": "Enter left header text...",
+      "rightTextLabel": "Right text",
+      "rightTextPlaceholder": "Enter right header text...",
+      "marginLabel": "Top margin",
+      "fontSize": "Font size",
+      "fontColorLabel": "Font color",
+      "badgeLabel": "Header • Top margin: {margin} cm",
+      "formatOption": "Format header...",
+      "hideOption": "Hide header",
+      "scopeLabel": "Display scope",
+      "scopeAll": "All pages (Same for every page)",
+      "scopeFile": "By file (First page & Other pages)"
+    },
+    "footer": {
+      "text": "Footer",
+      "show": "Show Footer",
+      "hide": "Hide Footer",
+      "placeholder": "Click to edit Footer...",
+      "dialogTitle": "Footer Configuration",
+      "textContent": "Text Content",
+      "logoLabel": "Logo Image",
+      "logoPlaceholder": "Paste image URL or upload file...",
+      "uploadLogo": "Upload Image",
+      "logoSize": "Logo Size",
+      "alignLabel": "Alignment",
+      "alignLeft": "Left",
+      "alignCenter": "Center",
+      "alignRight": "Right",
+      "borderLabel": "Border Line",
+      "showBorderText": "Show Word-style border line",
+      "layoutLabel": "Layout",
+      "layoutSingle": "Single (Footer on every page)",
+      "layoutSplit": "Different for first page",
+      "leftTextLabel": "Left text",
+      "leftTextPlaceholder": "Enter left footer text...",
+      "rightTextLabel": "Right text",
+      "rightTextPlaceholder": "Enter right footer text...",
+      "marginLabel": "Bottom margin",
+      "fontSize": "Font size",
+      "fontColorLabel": "Font color",
+      "badgeLabel": "Footer • Bottom margin: {margin} cm",
+      "formatOption": "Format footer...",
+      "hideOption": "Hide footer",
+      "defaultPageLabel": "Page {number}"
+    },
     "bg": {
       "text": "Background",
       "custom": "Custom Page Background",
@@ -472,6 +554,10 @@
     },
     "breakMarks": "Line Breaks",
     "break": "Page Break",
+    "status": "Page {current} / {total}",
+    "statusAria": "Page {current} of {total}",
+    "goTo": "Go to page",
+    "goToAction": "Go",
     "lineNumber": "Line Numbers",
     "margin": "Margins",
     "orientation": {
@@ -696,6 +782,27 @@
     "hide": "Hide Document Map",
     "empty": "No Document Map Available"
   },
+  "comment": {
+    "title": "Comments",
+    "add": "New Comment",
+    "show": "Show Comments",
+    "hide": "Hide Comments",
+    "empty": "No comments yet",
+    "emptyTip": "Select a piece of text, then click \"New Comment\" to start",
+    "placeholder": "Type a comment...",
+    "noBody": "Double-click to type a comment",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete comment",
+    "deleteConfirm": "Are you sure you want to delete this comment?",
+    "resolve": "Resolve",
+    "reopen": "Reopen",
+    "resolvedTip": "Resolved",
+    "reply": "Reply",
+    "replyPlaceholder": "Write a reply...",
+    "selectTextTip": "Please select some text in the document before adding a comment.",
+    "anonymous": "Anonymous"
+  },
   "spellcheck": {
     "enable": "Enable Spell Check",
     "disable": "Disable Spell Check"
@@ -859,5 +966,68 @@
       "title": "Notice",
       "body": "The clipboard content has been pasted, but included images were not processed correctly. Please manually copy and replace the unprocessed images in the document."
     }
+  },
+  "versionHistory": {
+    "title": "Version History",
+    "autoSaveTip": "All changes are saved automatically as version history records.",
+    "currentTag": "Current",
+    "restoreThis": "Restore this version"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "smartQuotes": {
+      "sectionTitle": "SMART QUOTES",
+      "enableLabel": "Enable Smart Quotes (\"\" vs \"\")",
+      "tip": "Disable this option when programming to prevent straight quotes \"\" from causing syntax errors in code."
+    },
+    "autoSubstitutions": {
+      "sectionTitle": "AUTO-SUBSTITUTIONS",
+      "shortcutLabel": "Shortcut",
+      "replacementLabel": "Replace with",
+      "descriptionLabel": "Description",
+      "arrowRight": "Right arrow",
+      "arrowLeft": "Left arrow",
+      "copyright": "Copyright",
+      "registered": "Registered trademark",
+      "trademark": "Trademark",
+      "half": "One half fraction",
+      "quarter": "One quarter fraction",
+      "threeQuarters": "Three quarters fraction"
+    }
+  },
+  "ruler": {
+    "marginLeftTooltip": "Drag to adjust left page margin",
+    "marginRightTooltip": "Drag to adjust right page margin",
+    "firstLineIndentTooltip": "First Line Indent",
+    "leftIndentTooltip": "Left Indent",
+    "rightIndentTooltip": "Right Indent",
+    "marginLeftValue": "Left margin: {value} cm",
+    "marginRightValue": "Right margin: {value} cm",
+    "firstLineIndentValue": "First line indent: {value} cm",
+    "leftIndentValue": "Left indent: {value} cm",
+    "rightIndentValue": "Right indent: {value} cm"
+  },
+  "tabs": {
+    "title": "DOCUMENT TABS ({count})",
+    "addNew": "Add new Tab",
+    "contextMenu": {
+      "rename": "Rename",
+      "duplicate": "Duplicate",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "delete": "Delete Tab"
+    }
+  },
+  "suggestions": {
+    "title": "EDITING SUGGESTIONS ({count})",
+    "defaultAuthor": "User",
+    "actionInsert": "Insert:",
+    "actionDelete": "Delete:",
+    "accept": "✓ Accept",
+    "reject": "✗ Reject",
+    "justNow": "Just now"
+  },
+  "common": {
+    "options": "Options"
   }
 }

@@ -101,7 +101,9 @@ export default Mark.create({
                 }
               }
             })
-          } catch (e) {}
+          } catch (e) {
+            console.warn('Failed to parse bookmarks:', e)
+          }
           callback(bookmarkData)
           return true
         },

@@ -28,6 +28,7 @@ import { nodeViewProps, NodeViewWrapper } from '@tiptap/vue-3'
 import { safeNodePos, selectNodePos } from '@/utils/position'
 import { audioNodeTypes, scheduleFileDelete, srcAttrs } from '@/utils/file'
 import { player } from '@/utils/player'
+import { useI18n } from '@/composables/i18n'
 
 import { updateAttributesWithoutHistory } from '../file'
 
@@ -37,6 +38,7 @@ const { getPos } = props
 const options = inject('options')
 const editor = inject('editor')
 const uploadFileMap = inject('uploadFileMap')
+const { locale } = useI18n()
 
 const containerRef = ref(null)
 const audioRef = $ref(null)
@@ -62,7 +64,7 @@ const nodeStyle = $computed(() => {
 })
 
 onMounted(async () => {
-  playerInstance = await player(audioRef, options.value.cdnUrl)
+  playerInstance = await player(audioRef, options.value.cdnUrl, locale.value)
   playerInstance.on('ready', () => (playerShow = true))
   if (attrs.uploaded || !attrs.id) {
     return

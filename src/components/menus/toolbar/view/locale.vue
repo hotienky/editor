@@ -31,6 +31,16 @@ const themes = computed(() => {
       value: 'en-US',
       active: locale.value === 'en-US',
     },
+    {
+      content: '🇮🇹 Italiano',
+      value: 'it-IT',
+      active: locale.value === 'it-IT',
+    },
+    {
+      content: '🇷🇺 Русский',
+      value: 'ru-RU',
+      active: locale.value === 'ru-RU',
+    },
   ]
 })
 

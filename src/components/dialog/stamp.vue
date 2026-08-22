@@ -1,7 +1,7 @@
 <template>
   <modal
     :visible="visible"
-    width="560px"
+    width="min(560px, 92vw)"
     @confirm="submitStamp"
     @close="emit('update:visible', false)"
   >
@@ -94,6 +94,7 @@
 </template>
 
 <script setup>
+import { ref, computed, watch, inject, shallowRef } from 'vue'
 import prettyBytes from 'pretty-bytes'
 import {
   buildCroppedImageFileName,
@@ -138,10 +139,10 @@ const cropperHostRef = ref(null)
 const cropperImageRef = ref(null)
 
 const cropper = new ImageCropper()
-let selectedPreset = $ref('company')
+let selectedPreset = ref('company')
 let cropInitialSelection = null
-let pickerSelectionPending = $ref(false)
-let restoreFilePickerHandler = $ref(null)
+let pickerSelectionPending = ref(false)
+let restoreFilePickerHandler = ref(null)
 
 const uploadAccept = computed(() => getImageAccept(options.value))
 const uploadMaxSize = computed(() => {

@@ -1,0 +1,15 @@
+{
+  "name": "@umo/storage",
+  "version": "0.1.0",
+  "description": "Storage Engine for Open Document Platform - snapshots, operations, version history",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "lint": "oxlint --fix src"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

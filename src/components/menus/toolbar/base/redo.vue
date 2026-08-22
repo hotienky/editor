@@ -4,14 +4,12 @@
     :text="t('base.redo')"
     shortcut="Ctrl+Y / Ctrl+Shift+Z"
     hide-text
-    :disabled="historyRecords.undone.length === 0"
+    :disabled="!canRedo"
     @menu-click="menuClick"
   />
 </template>
 
 <script setup>
-/* 重做*/
-const historyRecords = inject('historyRecords')
-
+const canRedo = inject('canRedo')
 const menuClick = inject('redoHistory')
 </script>

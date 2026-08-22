@@ -432,6 +432,10 @@
     },
     "breakMarks": "Показать разрывы страниц",
     "break": "Разрыв страницы",
+    "status": "Страница {current} / {total}",
+    "statusAria": "Страница {current} из {total}",
+    "goTo": "Перейти к странице",
+    "goToAction": "Перейти",
     "lineNumber": "Номера строк",
     "margin": "Поля",
     "orientation": {

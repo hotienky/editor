@@ -1,0 +1,61 @@
+:root {
+  --vp-c-brand-1: #0b74de;
+  --vp-c-brand-2: #085cb2;
+  --vp-c-brand-3: #064585;
+  --vp-c-brand-soft: rgba(11, 116, 222, 0.12);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #0b74de 30%, #38bdf8);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #0b74de 50%, #38bdf8 50%);
+  --vp-home-hero-image-filter: blur(44px);
+}
+
+.dark {
+  --vp-c-brand-1: #38bdf8;
+  --vp-c-brand-2: #0284c7;
+  --vp-c-brand-3: #0369a1;
+  --vp-c-brand-soft: rgba(56, 189, 248, 0.16);
+
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #38bdf8 30%, #818cf8);
+}
+
+/* Feature cards enhancement */
+.VPFeature {
+  border: 1px solid var(--vp-c-bg-soft) !important;
+  transition: all 0.3s ease !important;
+}
+
+.VPFeature:hover {
+  border-color: var(--vp-c-brand-1) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(11, 116, 222, 0.12);
+}
+
+/* Table styling enhancement */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  margin: 1.5rem 0;
+  border-collapse: collapse;
+}
+
+.vp-doc th {
+  background-color: var(--vp-c-bg-soft);
+  font-weight: 600;
+}
+
+.vp-doc td, .vp-doc th {
+  padding: 10px 14px;
+  border: 1px solid var(--vp-c-divider);
+}
+
+/* Badges */
+.badge-pro {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}

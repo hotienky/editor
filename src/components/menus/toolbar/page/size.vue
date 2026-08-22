@@ -30,14 +30,16 @@
         </t-dropdown-item>
       </t-dropdown-menu>
     </template>
-    <page-options :visible="dialogVisible" @close="dialogVisible = false" />
+    <page-options :visible="dialogVisible" @close="dialogVisible.value = false" />
   </menus-button>
 </template>
 
 <script setup>
+import { ref, inject } from 'vue'
+
 const page = inject('page')
 const options = inject('options')
-const dialogVisible = $ref(false)
+const dialogVisible = ref(false)
 </script>
 
 <style lang="less">

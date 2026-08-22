@@ -1,5 +1,8 @@
 <template>
-  <node-view-wrapper ref="containerRef" class="kindy-node-view kindy-code-block">
+  <node-view-wrapper
+    ref="containerRef"
+    class="kindy-node-view kindy-code-block"
+  >
     <div
       :class="`kindy-node-container hover-shadow kindy-node-code-block kindy-node-code-block-theme-${attrs.theme}`"
     >

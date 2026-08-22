@@ -1,5 +1,5 @@
-import { InvisibleNode } from '@tiptap/extension-invisible-characters'
 import InvisibleCharacters, {
+  InvisibleNode,
   HardBreakNode,
   ParagraphNode,
 } from '@tiptap/extension-invisible-characters'
