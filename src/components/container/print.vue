@@ -9,6 +9,7 @@ import { createPageConfig, getContentArea } from '@umo/layout'
 import { shouldShowHeaderFooter, getHeaderFooterContent } from '@umo/layout'
 import { getPageNumberText } from '@umo/layout'
 import { estimateBlockHeight } from '@umo/layout'
+import { resolvePrintPageConfig } from '@/utils/print-sections'
 
 const container = inject('container')
 const editor = inject('editor')
@@ -89,7 +90,7 @@ const splitContentByLayout = (htmlContent, pageOptions) => {
           // Skip manual page-break nodes in print output (handled by @page CSS)
           if (
             child.nodeType === Node.ELEMENT_NODE &&
-            child.classList?.contains('kindy-page-break')
+            (child.classList?.contains('kindy-page-break') || child.classList?.contains('kindy-section-break'))
           ) {
             continue
           }
@@ -101,11 +102,11 @@ const splitContentByLayout = (htmlContent, pageOptions) => {
         }
       }
       if (pageContent.length > 0 || pages.length === 0) {
-        pages.push(pageContent.join(''))
+        pages.push({ html: pageContent.join(''), layout: layoutPage })
       }
     }
 
-    return pages.length > 0 ? pages : [children.map((c) => c.outerHTML || '').join('')]
+    return pages.length > 0 ? pages : [{ html: children.map((c) => c.outerHTML || '').join(''), layout: null }]
   }
 
   // Fallback: split by manual pageBreak nodes if layoutTree is not ready
@@ -115,10 +116,10 @@ const splitContentByLayout = (htmlContent, pageOptions) => {
   for (const child of children) {
     if (
       child.nodeType === Node.ELEMENT_NODE &&
-      child.classList?.contains('kindy-page-break')
+      (child.classList?.contains('kindy-page-break') || child.classList?.contains('kindy-section-break'))
     ) {
       if (currentPageContent.length > 0) {
-        pages.push(currentPageContent.join(''))
+        pages.push({ html: currentPageContent.join(''), layout: null })
         currentPageContent = []
       }
     } else {
@@ -130,10 +131,10 @@ const splitContentByLayout = (htmlContent, pageOptions) => {
     }
   }
   if (currentPageContent.length > 0) {
-    pages.push(currentPageContent.join(''))
+    pages.push({ html: currentPageContent.join(''), layout: null })
   }
 
-  return pages.length > 0 ? pages : [htmlContent]
+  return pages.length > 0 ? pages : [{ html: htmlContent, layout: null }]
 }
 
 const renderHeader = (pageNumber, totalPages, headerConfig) => {
@@ -234,36 +235,38 @@ const getIframeCode = () => {
   const preparedContent = prepareEchartsForPrint(editorContent)
   const pages = splitContentByLayout(preparedContent, page.value)
   const totalPages = pages.length
-
-  const headerHtml = (pageNumber) => renderHeader(pageNumber, totalPages, header)
-  const footerHtml = (pageNumber) => renderFooter(pageNumber, totalPages, footer)
-
-  const pageWidth = orientation === 'portrait' ? size?.width : size?.height
-  const pageHeight = orientation === 'portrait' ? size?.height : size?.width
+  const fallback = { orientation, size, margin, background, header, footer }
+  const resolvedPages = pages.map((entry, index) => resolvePrintPageConfig(entry, index, pages, fallback))
+  const pageRules = new Map()
+  for (const config of resolvedPages) {
+    pageRules.set(config.sectionIndex, `@page kindy-section-${config.sectionIndex} { size: ${config.pageWidth}cm ${config.pageHeight}cm; margin: 0; }`)
+  }
 
   let pagesHtml = ''
   for (let i = 0; i < pages.length; i++) {
     const pageNumber = i + 1
+    const config = resolvedPages[i]
 
     pagesHtml += `
-      <div class="kindy-print-page" style="
-        width: ${pageWidth}cm;
-        height: ${pageHeight}cm;
-        padding: ${margin?.top}cm ${margin?.right}cm ${margin?.bottom}cm ${margin?.left}cm;
+      <div class="kindy-print-page" data-section="${config.sectionId}" style="
+        page: kindy-section-${config.sectionIndex};
+        width: ${config.pageWidth}cm;
+        height: ${config.pageHeight}cm;
+        padding: ${config.margin?.top}cm ${config.margin?.right}cm ${config.margin?.bottom}cm ${config.margin?.left}cm;
         box-sizing: border-box;
         page-break-after: ${i < pages.length - 1 ? 'always' : 'auto'};
         position: relative;
-        background: ${background};
+        background: ${config.background};
         overflow: hidden;
       ">
-        ${headerHtml(pageNumber)}
+        ${renderHeader(config.sectionPageNumber, totalPages, config.header)}
         <div class="kindy-print-page-content" style="
           flex: 1;
           min-height: 0;
         ">
-          ${pages[i]}
+          ${pages[i].html}
         </div>
-        ${footerHtml(pageNumber)}
+        ${renderFooter(config.sectionPageNumber, totalPages, config.footer)}
       </div>
     `
   }
@@ -308,11 +311,7 @@ const getIframeCode = () => {
       [contenteditable] {
         outline: none;
       }
-      @page {
-        size: ${pageWidth}cm ${pageHeight}cm;
-        margin: 0;
-        background-color: ${background};
-      }
+      ${Array.from(pageRules.values()).join('\n')}
       </style>
     </head>
     <body class="is-print">
@@ -339,7 +338,7 @@ const printPage = () => {
   // Small delay to allow repaginate's setTimeout (200ms debounce) to settle
   // then generate the iframe code from fresh layoutTree
   setTimeout(() => {
-    iframeCode = getIframeCode()
+    iframeCode.value = getIframeCode()
 
     const dialog = useConfirm({
       attach: container,
@@ -350,8 +349,8 @@ const printPage = () => {
       onConfirm() {
         dialog.destroy()
         setTimeout(() => {
-          if (iframeRef && iframeRef.contentWindow) {
-            iframeRef.contentWindow.print()
+          if (iframeRef.value?.contentWindow) {
+            iframeRef.value.contentWindow.print()
           }
         }, 300)
       },

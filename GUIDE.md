@@ -1,462 +1,173 @@
-# Hướng Dẫn Sử Dụng Chi Tiết & Tích Hợp API Backend `kindy-editor`
+# Hướng dẫn tích hợp Document Library SDK v2
 
-Tài liệu này hướng dẫn chi tiết cách khai thác **toàn bộ tính năng** của trình biên tập `kindy-editor` và cách **kết nối API Backend / Database** chuẩn thương mại.
+## 1. Ranh giới trách nhiệm
 
----
+Kindy SDK chịu trách nhiệm:
 
-## 📌 MỤC LỤC
+- Hiển thị responsive `DocumentLibraryShell`, Explorer, Editor và VersionPanel.
+- Chuẩn hóa trạng thái UI `idle/dirty/saving/saved/read-only/preview/conflict/error`.
+- Chuyển DOCX thuộc compatibility profile sang ProseMirror JSON.
+- Validate OOXML, báo feature ngoài profile và export OOXML DOCX thật.
+- Debounce autosave, cancellation, event và optimistic concurrency.
+- Chuẩn hóa API client, REST adapter và error codes.
 
-1. [Tổng Quan & Cài Đặt](#1-tổng-quan--cài-đặt)
-2. [Hướng Dẫn Tích Hợp Tất Cả Các Framework](#2-hướng-dẫn-tích-hợp-tất-cả-các-framework)
-3. [Hướng Dẫn Chi Tiết Tất Cả Tính Năng](#3-hướng-dẫn-chi-tiết-tất-cả-tính-năng)
-   - [3.1. Phân trang dạng Word & Khổ giấy](#31-phân-trang-dạng-word--khổ-giấy)
-   - [3.2. Hệ thống Bình luận (Word-Style Comments)](#32-hệ-thống-bình-luận-word-style-comments)
-   - [3.3. Chữ ký điện tử & Con dấu](#33-chữ-ký-điện-tử--con-dấu)
-   - [3.4. Định dạng văn bản & Phông chữ Tiếng Việt](#34-định-dạng-văn-bản--phông-chữ-tiếng-việt)
-   - [3.5. Chèn Bảng & Thao tác Ô](#35-chèn-bảng--thao-tác-ô)
-   - [3.6. Chèn Hình ảnh, Video, Audio & File đính kèm](#36-chèn-hình-ảnh-video-audio--file-đính-kèm)
-   - [3.7. Công thức toán học (KaTeX) & Code Block](#37-công-thức-toán-học-katex--code-block)
-   - [3.8. Tìm kiếm & Thay thế (Search & Replace)](#38-tìm-kiếm--thay-thế-search--replace)
-   - [3.9. Xuất file PDF, Hình ảnh & In ấn](#39-xuất-file-pdf-hình-ảnh--in-ấn)
-   - [3.10. Chế độ giao diện (Ribbon/Classic, Dark Mode, ReadOnly)](#310-chế-độ-giao-diện-ribbonclassic-dark-mode-readonly)
-4. [Tích Hợp API Backend & Database (Full API Connection Guide)](#4-tích-hợp-api-backend--database-full-api-connection-guide)
-   - [4.1. Thiết kế Cấu trúc Database (Database Schema)](#41-thiết-kế-cấu-trúc-database-database-schema)
-   - [4.2. API Lưu tài liệu & Tự động lưu (`onSave` / `autoSave`)](#42-api-lưu-tài-liệu--tự-động-lưu-onsave--autosave)
-   - [4.3. API Tải tệp lên Server / Cloud Storage (`onFileUpload`)](#43-api-tải-tệp-lên-server--cloud-storage-onfileupload)
-   - [4.4. API Tìm kiếm người dùng Mention (`onMentionSearch`)](#44-api-tìm-kiếm-người-dùng-mention-onmentionsearch)
-   - [4.5. Lịch sử & Quản lý phiên bản tài liệu (Document History / Revisions)](#45-lịch-sử--quản-lý-phiên-bản-tài-liệu-document-history--revisions)
-5. [Tra Cứu Phương Thức API (Methods Reference)](#5-tra-cứu-phương-thức-api-methods-reference)
+Server ứng dụng chủ chịu trách nhiệm:
 
----
+- User, authentication, authorization và tenant isolation.
+- Database metadata, object storage, retention, backup và audit log.
+- Sinh revision/version bền vững, chống ghi đè đồng thời.
+- Malware scanning, quota, rate limiting và signed URL nếu sử dụng.
+- Yjs provider/WebSocket server nếu bật realtime.
 
-## 1. TỔNG QUAN & CÀI ĐẶT
+## 1.1. UI engine và lifecycle
 
-`kindy-editor` là trình biên tập văn bản WYSIWYG chuẩn Office hiện đại được đóng gói đa định dạng (ESM, CJS, IIFE CDN, TypeScript).
+`KindyDocumentLibrary` là orchestration component; `KindyDocumentLibraryShell` chỉ làm layout. Luồng mở tài liệu chuẩn:
 
-```bash
-# Cài đặt qua NPM
-npm install kindy-editor
-
-# hoặc Yarn / PNPM
-yarn add kindy-editor
-pnpm add kindy-editor
+```text
+Explorer open event
+  → client.open(documentId)
+  → adapter.loadState
+  → migrate KindyDocumentState
+  → mount KindyEditor
+  → apply capabilities.edit
+  → ready/opened events
 ```
 
----
+Không để Explorer, toolbar tùy biến hoặc application component ghi thẳng storage. Mọi save/version/artifact phải đi qua workspace handle, `DocumentLibraryClient` hoặc adapter để giữ `baseRevisionId` và event semantics.
 
-## 2. HƯỚNG DẪN TÍCH HỢP TẤT CẢ CÁC FRAMEWORK
+Khi preview một version cũ, workspace chỉ load snapshot read-only và giữ live snapshot riêng. Chỉ `restoreVersion` mới thay state hiện hành ở backend. Chi tiết UI, slots và theme nằm tại [`docs/ui-engine.md`](./docs/ui-engine.md).
 
-### 2.1. Vue 3 (SPA & Global Plugin)
+## 2. Dữ liệu lưu trên server
 
-```vue
-<template>
-  <div style="height: 100vh;">
-    <KindyEditor ref="editorRef" v-bind="options" />
-  </div>
-</template>
+Một triển khai tối thiểu thường có:
 
-<script setup>
-import { ref } from 'vue'
-import { KindyEditor } from 'kindy-editor'
-import 'kindy-editor/style'
+```text
+documents
+  id, title, file_name, folder_id, tags, metadata
+  current_revision_id, current_version_id, created_at, updated_at
 
-const editorRef = ref(null)
-const options = ref({
-  locale: 'vi-VN',
-  theme: 'light',
-  document: {
-    title: 'Hợp đồng kinh tế',
-    content: '<h1>HỢP ĐỒNG MẪU</h1><p>Nội dung hợp đồng...</p>',
-  },
-  async onSave(content) {
-    await fetch('/api/documents/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html: content.html })
-    })
-  }
-})
-</script>
+document_revisions
+  id, document_id, base_revision_id, state_json, reason
+  client_mutation_id (unique per document), created_at, created_by
+
+document_versions
+  id, document_id, revision_id, number, label, created_at, created_by
+
+document_artifacts
+  id, document_id, version_id, format, object_key
+  file_name, mime_type, size, checksum, created_at
+
+folders
+  id, parent_id, name
 ```
 
-### 2.2. React.js
+`state_json` là `KindyDocumentState`. Không dùng HTML làm state lâu dài. Artifact `original-docx` phải giữ nguyên bytes người dùng upload; artifact `docx` là output của serializer.
 
-Dùng hàm helper `mountKindyEditor`:
+## 3. Save và conflict
 
-```tsx
-import React, { useEffect, useRef } from 'react'
-import { mountKindyEditor } from 'kindy-editor'
-import 'kindy-editor/style'
+`PUT /documents/{id}/state` nhận:
 
-export function KindyEditorReact(props) {
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    const instance = mountKindyEditor(containerRef.current, {
-      locale: 'vi-VN',
-      ...props
-    })
-    return () => instance.unmount()
-  }, [])
-
-  return <div ref={containerRef} style={{ width: '100%', height: '100vh' }} />
+```json
+{
+  "state": { "schemaVersion": "2.0", "content": {}, "page": {}, "assets": [] },
+  "baseRevisionId": "rev-10",
+  "reason": "autosave",
+  "clientMutationId": "70f8..."
 }
 ```
 
-### 2.3. Next.js (App Router & Pages Router)
+Transaction phía server:
 
-Tạo Client Component với `next/dynamic` (`ssr: false`):
+1. Lock hoặc compare-and-swap document.
+2. Nếu `current_revision_id !== baseRevisionId`, trả HTTP 409 với code `VERSION_CONFLICT`.
+3. Nếu `clientMutationId` đã xử lý, trả lại kết quả cũ (idempotency).
+4. Ghi revision mới và cập nhật `current_revision_id` atomically.
+5. Với manual save, có thể tạo version bền vững và trả trong `version`.
 
-```tsx
-'use client'
-import dynamic from 'next/dynamic'
+SDK dừng autosave sau conflict. Ứng dụng chủ phải cho người dùng reload hoặc tạo document copy; không nên tự merge âm thầm.
 
-const KindyEditor = dynamic(
-  () => import('./KindyEditorReact').then((mod) => mod.KindyEditorReact),
-  { ssr: false }
-)
+## 4. Import DOCX
 
-export default function Page() {
-  return (
-    <main style={{ height: '100vh' }}>
-      <KindyEditor locale="vi-VN" />
-    </main>
-  )
-}
+```text
+File input
+  → Worker validate ZIP/OOXML
+  → compatibility report
+  → semantic conversion
+  → người dùng xác nhận warning
+  → POST /documents/import (original file + JSON + report)
 ```
 
-### 2.4. Vanilla JS / HTML Direct (CDN)
+Các guard server vẫn bắt buộc dù client đã validate:
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="https://unpkg.com/kindy-editor/dist/kindy-editor.css">
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <script src="https://unpkg.com/kindy-editor/dist/kindy-editor.iife.js"></script>
-</head>
-<body>
-  <div id="editor" style="height: 100vh;"></div>
-  <script>
-    const { mountKindyEditor } = KindyEditor;
-    mountKindyEditor('#editor', { locale: 'vi-VN' });
-  </script>
-</body>
-</html>
+- Extension, MIME, magic bytes và OOXML content types.
+- Giới hạn compressed size, uncompressed size, số ZIP entry và compression ratio.
+- Từ chối encrypted/password-protected package.
+- Virus/malware scanning.
+- Không tin file name hoặc URL do client gửi.
+
+## 5. Export DOCX và print/PDF
+
+`exportDocx(state)` mặc định strict. Khi có node ngoài profile, hàm ném `DOCX_UNSUPPORTED`. UI có thể hiển thị report rồi gọi lại `{ mode: 'best-effort' }` sau khi người dùng xác nhận.
+
+Profile mặc định là `kindy-docx-v2.0`. Dùng `{ profile: 'kindy-docx-v2.1' }`
+cho sections/header/footer và `kindy-docx-v2.2` cho comments/Track Changes.
+Workspace nhận prop `docxProfile` tương ứng; không tự nâng profile âm thầm.
+
+DOCX output là ZIP/OOXML từ package `docx`; test phải kiểm tra `word/document.xml` và mở qua LibreOffice/Word mà không repair.
+
+PDF v2.0:
+
+```ts
+await workspace.preparePrint()
+workspace.print()
 ```
 
----
+Nếu hệ thống cần PDF Blob deterministic hoặc render server-side, đó là service của ứng dụng chủ và nằm ngoài runtime browser của SDK.
 
-## 3. HƯỚNG DẪN CHI TIẾT TẤT CẢ TÍNH NĂNG
+## 6. Auth và transport
 
-### 3.1. Phân trang dạng Word & Khổ giấy
-- **Khổ giấy chuẩn**: A4 (210x297mm), A3, A5, Letter, Legal...
-- **Căn lề (Margin)**: Lề trên, dưới, trái, phải tính theo `mm` hoặc `px`.
-- **Hướng trang**: Dọc (Portrait) hoặc Ngang (Landscape).
-- **Header & Footer**: Nhập nội dung đầu trang, chân trang và đánh số trang tự động.
-- **Ngắt trang (Page Break)**: Chèn ngắt trang chủ động bằng phím `Ctrl + Enter` hoặc qua menu *Chèn > Ngắt trang*.
-
-Cấu hình trong Option:
-```javascript
-page: {
-  layouts: ['page', 'web'], // 'page': phân trang Word, 'web': cuộn liên tục
-  defaultMargin: { top: 20, bottom: 20, left: 25, right: 25 },
-  defaultOrientation: 'portrait',
-}
-```
-
----
-
-### 3.2. Hệ thống Bình luận (Word-Style Comments)
-- **Tạo bình luận**: Bôi đen đoạn chữ ➔ Bấm nút **Bình luận** (hoặc ấn `Ctrl + Alt + M`).
-- **Tọa độ Y**: Bình luận trên Sidebar bên phải tự động cuộn khớp chính xác hàng ngang của đoạn chữ được chọn trên trang.
-- **Phản hồi (Reply)**: Nhập bình luận con trong từng thẻ thảo luận.
-- **Hoàn thành (Resolve)**: Bấm biểu tượng tích xanh ➔ Thẻ bình luận chuyển sang màu xám mờ (`kindy-comment-resolved`), giữ văn bản sạch sẽ.
-- **Xóa / Từ chối (Reject)**: Bấm biểu tượng thùng rác ➔ Gỡ bỏ thẻ bình luận, khôi phục văn bản gốc.
-
----
-
-### 3.3. Chữ ký điện tử & Con dấu
-- **Vẽ ký trực tuyến**: Hỗ trợ nét vẽ mượt (Smooth curves), chỉnh màu nét (Line color), độ dày nét (Line width), và nút Xóa/Hủy.
-- **Tải ảnh chữ ký**: Tải ảnh từ máy tính ➔ Cắt ảnh (Crop tool) ngay trong giao diện.
-- **Chèn con dấu**: Hỗ trợ chèn ảnh con dấu tròn/vuông nổi trên trang văn bản.
-
----
-
-### 3.4. Định dạng văn bản & Phông chữ Tiếng Việt
-- **Bộ phông Tiếng Việt nét mịn**: `San Francisco`, `Segoe UI`, `Roboto`, `Arial`, `Times New Roman`, `Courier New`...
-- **Kích thước font**: Tính theo điểm `pt` tiêu chuẩn Word (8pt - 72pt).
-- **Định dạng**: In đậm (`Ctrl+B`), In nghiêng (`Ctrl+I`), Gạch chân (`Ctrl+U`), Gạch ngang, Chỉ số trên (`X²`), Chỉ số dưới (`H₂O`).
-- **Màu chữ & Highlight**: Bộ bảng màu HSL phong phú, hỗ trợ Gradient và Custom Hex Color.
-
----
-
-### 3.5. Chèn Bảng & Thao tác Ô
-- **Khởi tạo**: Chọn lưới số dòng x số cột (VD: 3x4, 5x5).
-- **Thao tác**: Thêm dòng trên/dưới, Thêm cột trái/phải, Xóa dòng/cột, Xóa toàn bộ bảng.
-- **Gộp & Tách ô (Merge/Split Cells)**: Bôi đen các ô ➔ Bấm *Gộp ô* hoặc *Tách ô*.
-- **Tùy chỉnh ô**: Đổi màu nền ô (Cell background), Đường viền (Border style & color), Căn lề nội dung ô (Trái, Giữa, Phải).
-
----
-
-### 3.6. Chèn Hình ảnh, Video, Audio & File đính kèm
-- **Hình ảnh**: Thay đổi kích thước (Resize handles), Cắt hình ảnh (Crop), Căn vị trí (Trái, Giữa, Phải, Nổi tràn lề), Đặt tiêu đề ảnh (Caption).
-- **Video & Audio**: Nhúng video MP4/WebM hoặc liên kết Youtube/Vimeo có sẵn trình phát đa phương tiện.
-- **File đính kèm**: Hiển thị thẻ Card đính kèm gồm tên tệp, dung lượng `KB/MB` và nút Tải về.
-
----
-
-### 3.7. Công thức toán học (KaTeX) & Code Block
-- **Công thức Toán**: Nhập công thức dạng TeX/LaTeX (VD: `\frac{-b \pm \sqrt{b^2-4ac}}{2a}`) ➔ Render KaTeX sắc nét.
-- **Khối Mã nguồn (Code Block)**: Hỗ trợ tô màu cú pháp (Syntax Highlighting) cho JavaScript, Python, C++, HTML, CSS, Java, SQL...
-
----
-
-### 3.8. Tìm kiếm & Thay thế (Search & Replace)
-- Nhấn `Ctrl + F` hoặc bấm nút *Tìm kiếm & Thay thế*.
-- Hỗ trợ: Phân biệt hoa thường (Match Case), Thay thế từng từ (Replace), Thay thế tất cả (Replace All), Hiển thị số lượng kết quả tìm thấy.
-
----
-
-### 3.9. Xuất file PDF, Hình ảnh & In ấn
-- **Xuất PDF**: Chuyển đổi toàn bộ các trang tài liệu chuẩn lề A4 thành tệp PDF chất lượng cao.
-- **Xuất Hình ảnh**: Xuất trang thành tệp PNG hoặc JPEG.
-- **In ấn**: Gọi hộp thoại in `Ctrl + P` chuẩn trình duyệt.
-
----
-
-### 3.10. Chế độ giao diện (Ribbon/Classic, Dark Mode, ReadOnly)
-- **Ribbon mode**: Thanh công cụ chia theo các Tab (*Chính, Chèn, Xem, Công cụ*) chuẩn Microsoft Word.
-- **Classic mode**: Thanh công cụ 1 hàng gọn nhẹ chuẩn Google Docs.
-- **Dark mode**: Chế độ tối tự động hoặc bật thủ công.
-- **ReadOnly**: Chế độ Chỉ đọc (Xem tài liệu, không cho phép chỉnh sửa).
-
----
-
-## 4. TÍCH HỢP API BACKEND & DATABASE (FULL API CONNECTION GUIDE)
-
-### 4.1. Thiết kế Cấu trúc Database (Database Schema)
-
-Dưới đây là sơ đồ SQL chuẩn cho MySQL / PostgreSQL để lưu trữ tài liệu, bình luận và lịch sử phiên bản:
-
-```sql
--- 1. Bảng lưu trữ Tài liệu (Documents)
-CREATE TABLE documents (
-  id VARCHAR(64) PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  content LONGTEXT NOT NULL, -- Lưu chuỗi HTML chứa cả thẻ bình luận nhúng
-  status VARCHAR(20) DEFAULT 'draft', -- 'draft', 'published', 'archived'
-  created_by VARCHAR(64) NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 2. Bảng lưu trữ Lịch sử phiên bản (Document Revisions)
-CREATE TABLE document_revisions (
-  id VARCHAR(64) PRIMARY KEY,
-  document_id VARCHAR(64) NOT NULL,
-  version INT NOT NULL,
-  content LONGTEXT NOT NULL,
-  created_by VARCHAR(64) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
-);
-
--- 3. (Tùy chọn) Bảng lưu vết Bình luận riêng nếu cần hệ thống Thông báo (Comments Audit Log)
-CREATE TABLE comments_log (
-  id VARCHAR(64) PRIMARY KEY,
-  document_id VARCHAR(64) NOT NULL,
-  user_id VARCHAR(64) NOT NULL,
-  user_name VARCHAR(100) NOT NULL,
-  comment_text TEXT NOT NULL,
-  status VARCHAR(20) DEFAULT 'open', -- 'open', 'resolved'
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-### 4.2. API Lưu tài liệu & Tự động lưu (`onSave` / `autoSave`)
-
-Cấu hình trong Option `kindy-editor`:
-
-```javascript
-const options = {
-  locale: 'vi-VN',
-  document: {
-    title: 'Báo cáo doanh số Q3',
-    content: initialHtmlFromDatabase,
-    autoSave: {
-      enabled: true,
-      interval: 30000, // Tự động lưu mỗi 30 giây
+```ts
+const adapter = createRestDocumentAdapter({
+  baseUrl: '/document-api',
+  transport: async (url, init) => fetch(url, {
+    ...init,
+    credentials: 'include',
+    headers: {
+      ...init?.headers,
+      Authorization: `Bearer ${await getAccessToken()}`,
     },
-  },
-  
-  // Hàm Callback được gọi khi bấm nút "Lưu" hoặc ấn Ctrl + S hoặc Tự động lưu
-  async onSave(content, page, document) {
-    try {
-      const response = await fetch('/api/documents/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: document.id || 'doc_101',
-          title: document.title,
-          html: content.html, // Chuỗi HTML chứa văn bản & bình luận
-          json: content.json, // (Tùy chọn) JSON object nếu cần
-        }),
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        return { success: true, message: 'Đã lưu tài liệu thành công!' }
-      }
-      return { success: false, message: data.errorMessage }
-    } catch (error) {
-      return { success: false, message: 'Lỗi kết nối Server' }
-    }
-  },
-}
-```
-
----
-
-### 4.3. API Tải tệp lên Server / Cloud Storage (`onFileUpload`)
-
-Khi người dùng chèn Hình ảnh, Video, Audio hoặc Tệp đính kèm, `kindy-editor` sẽ gọi callback `onFileUpload` để đẩy tệp lên Server / AWS S3 / Cloudinary:
-
-```javascript
-const options = {
-  async onFileUpload(file) {
-    const formData = new FormData()
-    formData.append('file', file)
-
-    // Đẩy tệp lên Backend API của bạn
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    })
-
-    const data = await res.json()
-    // Backend trả về đường dẫn URL và thông tin tệp
-    return {
-      id: data.fileId,
-      url: data.fileUrl, // URL xem ảnh/tệp (VD: 'https://cdn.mysite.com/uploads/img.png')
-      name: file.name,
-      type: file.type,
-      size: file.size,
-    }
-  },
-
-  // Callback khi người dùng xóa tệp khỏi tài liệu
-  async onFileDelete(id, url, type) {
-    await fetch(`/api/upload/${id}`, { method: 'DELETE' })
-  },
-}
-```
-
----
-
-### 4.4. API Tìm kiếm người dùng Mention (`onMentionSearch`)
-
-Khi người dùng gõ ký tự `@` trên tài liệu, `kindy-editor` gọi callback `onMentionSearch` để gợi ý danh sách nhân viên/thành viên từ Server:
-
-```javascript
-const options = {
-  async onMentionSearch(query) {
-    const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`)
-    const users = await res.json()
-    
-    // Trả về mảng danh sách người dùng
-    return users.map((user) => ({
-      id: user.id,
-      label: user.fullName, // Tên hiển thị khi gõ @
-      avatar: user.avatarUrl,
-      bio: user.department,
-    }))
-  },
-}
-```
-
----
-
-### 4.5. Lịch sử & Quản lý phiên bản tài liệu (Document History / Revisions)
-
-Khi gọi API lưu từ phía Client, ở Backend Node.js / Express / Python / Java, bạn xử lý lưu bản ghi Revision như sau:
-
-#### Ví dụ Node.js / Express Controller Backend:
-
-```javascript
-app.post('/api/documents/save', async (req, res) => {
-  const { id, title, html } = req.body
-  const userId = req.user.id
-
-  // 1. Cập nhật bản ghi tài liệu chính
-  await db.query(
-    `INSERT INTO documents (id, title, content, created_by)
-     VALUES (?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE title = ?, content = ?, updated_at = NOW()`,
-    [id, title, html, userId, title, html]
-  )
-
-  // 2. Tính số version tiếp theo
-  const [rows] = await db.query(
-    `SELECT COUNT(*) as total FROM document_revisions WHERE document_id = ?`,
-    [id]
-  )
-  const nextVersion = (rows[0].total || 0) + 1
-
-  // 3. Lưu một bản ghi lịch sử vào document_revisions
-  await db.query(
-    `INSERT INTO document_revisions (id, document_id, version, content, created_by)
-     VALUES (?, ?, ?, ?, ?)`,
-    [`rev_${Date.now()}`, id, nextVersion, html, userId]
-  )
-
-  res.json({ success: true, version: nextVersion })
+  }),
 })
 ```
 
----
+Không đưa access token vào Kindy state, asset metadata, localStorage hoặc log. Backend phải kiểm tra quyền trên từng document/artifact/version; quyền UI chỉ giúp ẩn thao tác, không phải security boundary.
 
-## 5. TRA CỨU PHƯƠNG THỨC API (METHODS REFERENCE)
+## 7. Audit
 
-Khi gắn `ref="editorRef"` trên Vue/React hoặc dùng `mountKindyEditor`:
+Audit phía server tối thiểu gồm: actor, tenant, document, action, revision/version, timestamp, result, IP/request ID và client mutation ID. Không log toàn bộ nội dung hợp đồng hay token. Các action quan trọng: import, view, save, export, artifact download, restore, permission denied và conflict.
 
-```javascript
-// 1. Lấy nội dung HTML
-const html = editorRef.value.getContent('html')
+## 8. Realtime
 
-// 2. Lấy nội dung JSON
-const json = editorRef.value.getContent('json')
+`YjsCollaborationAdapter` chỉ nhận `providerFactory`:
 
-// 3. Lấy chữ thô Plain Text
-const text = editorRef.value.getContent('text')
-
-// 4. Đặt nội dung mới
-editorRef.value.setContent('<h1>Nội dung mới</h1>')
-
-// 5. Chèn nội dung tại con trỏ
-editorRef.value.insertContent('<p>Đoạn văn mới</p>')
-
-// 6. Lấy danh sách toàn bộ Bình luận (Mảng Object)
-const comments = editorRef.value.getComments()
-
-// 7. Giải quyết / Accept bình luận
-editorRef.value.setResolved(commentId, true)
-
-// 8. Từ chối / Xóa bình luận
-editorRef.value.removeComment(commentId)
-
-// 9. Xuất file PDF
-await editorRef.value.exportPdf('tai-lieu.pdf')
-
-// 10. Xuất hình ảnh PNG/JPEG
-await editorRef.value.exportImage('png', 'tai-lieu.png')
-
-// 11. In tài liệu
-editorRef.value.print()
-
-// 12. Đổi giao diện Sáng/Tối
-editorRef.value.setTheme('dark')
+```ts
+const collaboration = createYjsCollaborationAdapter({
+  providerFactory: ({ documentId, user, editor }) => createCompanyYjsProvider({ documentId, user, editor }),
+})
 ```
+
+SDK không tạo WebSocket URL và không ship server. Provider phải xử lý auth, reconnect, awareness và document isolation.
+
+## 9. Contract test
+
+Chạy cùng một test suite với Memory adapter, REST mock và adapter thật. Tối thiểu kiểm tra create → load → save → conflict → versions → restore → artifact. OpenAPI không quy định auth bắt buộc để không khóa kiến trúc của hệ thống tích hợp.
+
+## 10. Production checklist
+
+- Chạy `npm run typecheck`, `npm test` và `npm run build` với đúng package lock.
+- Validate OpenAPI implementation bằng contract test.
+- Kiểm tra permission ở backend, không chỉ dựa vào `document.capabilities` trên UI.
+- Test import/export bằng golden DOCX corpus và Microsoft Word/LibreOffice.
+- Test responsive layout và keyboard navigation sau khi override theme.
+- Benchmark corpus 100 trang của hệ thống theo [`docs/performance.md`](./docs/performance.md).
+- Thiết lập backup/restore object storage và database; SDK không thực hiện backup.

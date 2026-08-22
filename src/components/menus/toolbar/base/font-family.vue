@@ -71,8 +71,8 @@ const usedFonts = ref([])
 const fontStatusMap = ref({})
 const downloadingFonts = ref([])
 const autoDownloadedFonts = ref([])
-let autoDownloadRunning = ref(false)
-let restoringDownloadedFonts = ref(true)
+const autoDownloadRunning = ref(false)
+const restoringDownloadedFonts = ref(true)
 
 const selectedFont = computed(() => {
   if (!editor.value || typeWriterIsRunning.value) {
@@ -173,7 +173,7 @@ const setFontStatus = (font, supported) => {
   if (!font) {
     return
   }
-  fontStatusMap[font] = supported
+  fontStatusMap.value[font] = supported
 }
 
 const refreshFontSupportStatus = () => {
@@ -185,16 +185,16 @@ const refreshFontSupportStatus = () => {
   })
 }
 
-const isDownloadingFont = (font) => downloadingFonts.includes(font)
+const isDownloadingFont = (font) => downloadingFonts.value.includes(font)
 
 const isFontSupported = (item) => {
   if (!item?.value) {
     return true
   }
-  if (fontStatusMap[item.value] === undefined) {
+  if (fontStatusMap.value[item.value] === undefined) {
     setFontStatus(item.value, detectFontAvailability(item.value))
   }
-  return !!fontStatusMap[item.value]
+  return !!fontStatusMap.value[item.value]
 }
 
 const canDownloadFont = (item) =>
@@ -241,7 +241,7 @@ const loadWebFont = async (
     }
     return true
   }
-  downloadingFonts.push(fontItem.value)
+  downloadingFonts.value.push(fontItem.value)
   try {
     const fontFace = new FontFace(fontItem.value, buildFontSource(fontItem), {
       style: fontItem.style || 'normal',
@@ -272,9 +272,9 @@ const loadWebFont = async (
     }
     return false
   } finally {
-    const index = downloadingFonts.indexOf(fontItem.value)
+    const index = downloadingFonts.value.indexOf(fontItem.value)
     if (index > -1) {
-      downloadingFonts.splice(index, 1)
+      downloadingFonts.value.splice(index, 1)
     }
   }
 }
@@ -345,10 +345,10 @@ const allFonts = computed(() => {
       children: getFontsByValues($recent.value.fonts),
     })
   }
-  if (usedFonts.length > 0) {
+  if (usedFonts.value.length > 0) {
     all.unshift({
       label: t('base.fontFamily.used'),
-      children: getFontsByValues(usedFonts),
+      children: getFontsByValues(usedFonts.value),
     })
   }
   return all
@@ -382,17 +382,17 @@ const getUsedFontValues = () => {
 const getUsedFonts = () => {
   const values = getUsedFontValues()
   for (const font of values) {
-    if (!usedFonts.includes(font)) {
-      usedFonts.push(font)
+    if (!usedFonts.value.includes(font)) {
+      usedFonts.value.push(font)
     }
   }
 }
 
 const autoDownloadDocumentFonts = async () => {
-  if (restoringDownloadedFonts) {
+  if (restoringDownloadedFonts.value) {
     return
   }
-  if (autoDownloadRunning) {
+  if (autoDownloadRunning.value) {
     return
   }
   const downloadedFontValues = new Set(
@@ -410,13 +410,13 @@ const autoDownloadDocumentFonts = async () => {
         item?.url &&
         !isFontSupported(item) &&
         !isDownloadingFont(item.value) &&
-        !autoDownloadedFonts.includes(item.value) &&
+        !autoDownloadedFonts.value.includes(item.value) &&
         !downloadedFontValues.has(item.value),
     )
   if (!targets.length) {
     return
   }
-  autoDownloadRunning = true
+  autoDownloadRunning.value = true
   try {
     // Keep only one auto-download loading message visible.
     MessagePlugin.closeAll()
@@ -432,8 +432,8 @@ const autoDownloadDocumentFonts = async () => {
       })
       if (downloaded) {
         downloadedCount += 1
-        if (!autoDownloadedFonts.includes(item.value)) {
-          autoDownloadedFonts.push(item.value)
+        if (!autoDownloadedFonts.value.includes(item.value)) {
+          autoDownloadedFonts.value.push(item.value)
         }
       }
     }
@@ -443,7 +443,7 @@ const autoDownloadDocumentFonts = async () => {
       useMessage('success', t('base.fontFamily.autoDownloadDone'))
     }
   } finally {
-    autoDownloadRunning = false
+    autoDownloadRunning.value = false
   }
 }
 
@@ -481,9 +481,9 @@ watch(
 
 onMounted(async () => {
   ensureRecentState()
-  restoringDownloadedFonts = true
+  restoringDownloadedFonts.value = true
   await restoreDownloadedFonts()
-  restoringDownloadedFonts = false
+  restoringDownloadedFonts.value = false
   await autoDownloadDocumentFonts()
 })
 </script>

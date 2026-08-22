@@ -72,7 +72,7 @@ const buildTocTree = (tocArray) => {
 }
 
 const tocDebounceFn = useDebounceFn((toc) => {
-  tocData = buildTocTree(toc)
+  tocData.value = buildTocTree(toc)
 }, 1000)
 
 watch(

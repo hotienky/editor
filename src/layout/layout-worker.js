@@ -47,7 +47,7 @@ self.onmessage = async function(e) {
 // ─── Handlers ──────────────────────────────────────────────────────────────
 
 async function handleInit(payload) {
-  config = payload.config
+  ;({ config } = payload)
   initialized = true
 }
 

@@ -303,9 +303,10 @@ ${content}
       case 'code':
         return `<code>${text}</code>`
 
-      case 'link':
+      case 'link': {
         const href = this._escapeHtml(mark.attrs?.href || '')
         return `<a href="${href}">${text}</a>`
+      }
 
       case 'subscript':
         return `<sub>${text}</sub>`

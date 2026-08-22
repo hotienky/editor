@@ -1,138 +1,180 @@
-# Getting Started with Open Document Platform
+# Bắt đầu với Kindy Document Library SDK v2
 
-A modular document engine for building Google Docs-like editors.
+Tài liệu này tạo một workspace DOCX chạy bằng Memory adapter, sau đó chuyển sang REST adapter.
 
-## Quick Start
+## 1. Yêu cầu môi trường
 
-### 1. Install Packages
+- Node.js `^20.19.0` hoặc `>=22.12.0`.
+- Vue `^3.5.0` khi dùng UI.
+- Trình duyệt hiện đại có `fetch`, `AbortController`, Web Worker và `structuredClone` hoặc JSON fallback.
+
+## 2. Cài package
 
 ```bash
-npm install @umo/document @umo/layout @umo/render @umo/editor
+npm install kindy-editor vue
 ```
 
-### 2. Basic Usage
+Import stylesheet một lần tại entry của ứng dụng:
 
-```javascript
-import { createDocument } from '@umo/document'
-import { LayoutEngine } from '@umo/layout'
-import { PageRenderer } from '@umo/render'
-
-// Create document
-const doc = createDocument({
-  type: 'doc',
-  content: [
-    {
-      type: 'heading',
-      attrs: { level: 1 },
-      content: [{ type: 'text', text: 'Hello World' }],
-    },
-    {
-      type: 'paragraph',
-      content: [{ type: 'text', text: 'This is my first document.' }],
-    },
-  ],
-})
-
-// Compute layout
-const engine = new LayoutEngine()
-const layout = engine.compute(doc.children, {
-  size: { width: 21, height: 29.7 },
-  margin: { top: 2.54, right: 2.54, bottom: 2.54, left: 2.54 },
-})
-
-// Render to DOM
-const renderer = new PageRenderer()
-layout.pages.forEach((page) => {
-  const element = renderer.renderPage(page)
-  document.getElementById('viewport').appendChild(element)
-})
+```ts
+import 'kindy-editor/style'
 ```
 
-### 3. Vue Integration
+Container của workspace phải có chiều cao xác định:
+
+```css
+html, body, #app { height: 100%; margin: 0; }
+.document-screen { height: 100vh; }
+```
+
+## 3. Demo bằng Memory adapter
 
 ```vue
 <template>
-  <EditorProvider :config="config">
-    <UMOEditor />
-  </EditorProvider>
+  <div class="document-screen">
+    <KindyDocumentLibrary
+      :adapter="adapter"
+      :autosave="{ enabled: true, delay: 1500 }"
+      locale="vi-VN"
+      @error="console.error"
+    />
+  </div>
 </template>
 
-<script setup>
-import { EditorProvider, UMOEditor } from '@umo/vue'
+<script setup lang="ts">
+import {
+  KindyDocumentLibrary,
+  createMemoryDocumentAdapter,
+} from 'kindy-editor'
+import 'kindy-editor/style'
 
-const config = {
-  locale: 'vi-VN',
-}
+const adapter = createMemoryDocumentAdapter({
+  folders: [
+    { id: 'contracts', name: 'Hợp đồng', parentId: null },
+    { id: 'forms', name: 'Biểu mẫu', parentId: null },
+  ],
+})
 </script>
 ```
 
-### 4. React Integration
+Từ giao diện, chọn **Tạo mới**, nhập nội dung, chờ autosave hoặc nhấn **Lưu** để tạo version bền vững trong adapter.
 
-```jsx
-import { EditorProvider, UMOEditor } from '@umo/react'
+Memory adapter không dùng `localStorage`; reload trang sẽ mất dữ liệu.
 
-function App() {
-  return (
-    <EditorProvider>
-      <UMOEditor />
-    </EditorProvider>
-  )
-}
+## 4. Kết nối REST backend
+
+Đổi adapter mà không thay UI:
+
+```ts
+import { createRestDocumentAdapter } from 'kindy-editor'
+
+const adapter = createRestDocumentAdapter({
+  baseUrl: '/api/document-library',
+  transport: async (url, init) => {
+    const token = await getAccessToken()
+    return fetch(url, {
+      ...init,
+      credentials: 'include',
+      headers: {
+        ...init?.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    })
+  },
+})
 ```
 
-## Package Overview
+SDK không giữ token. Backend phải kiểm tra quyền trên từng document, version và artifact; `capabilities` chỉ điều khiển UI.
 
-| Package | Description |
-|---------|-------------|
-| `@umo/document` | Document model and AST |
-| `@umo/layout` | Pagination and layout engine |
-| `@umo/render` | DOM rendering |
-| `@umo/editor` | Commands and transactions |
-| `@umo/collaboration` | Real-time collaboration |
-| `@umo/storage` | Document persistence |
-| `@umo/io` | Import/Export formats |
-| `@umo/plugin` | Plugin system |
-| `@umo/ai` | AI features |
-| `@umo/vue` | Vue 3 adapter |
-| `@umo/react` | React adapter |
-| `@umo/editor-client` | Ready-to-use editor |
-| `@umo/performance` | Performance utilities |
+Các endpoint và schema nằm trong [`../openapi/document-api.yaml`](../openapi/document-api.yaml).
 
-## Architecture
+## 5. Seed document và template
 
+`MemoryDocumentAdapter` nhận `DocumentSnapshot[]` để test tích hợp:
+
+```ts
+import {
+  createEmptyDocumentState,
+  createMemoryDocumentAdapter,
+} from 'kindy-editor'
+
+const state = createEmptyDocumentState({
+  content: {
+    type: 'doc',
+    content: [{
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'Nội dung mẫu' }],
+    }],
+  },
+})
+
+const adapter = createMemoryDocumentAdapter({
+  documents: [{
+    document: {
+      id: 'template-1',
+      title: 'Mẫu hợp đồng',
+      fileName: 'mau-hop-dong.docx',
+      isTemplate: true,
+      currentRevisionId: 'rev-1',
+      currentVersionId: 'version-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      capabilities: { view: true, edit: false },
+    },
+    state,
+    revisionId: 'rev-1',
+    version: {
+      id: 'version-1',
+      documentId: 'template-1',
+      number: 1,
+      revisionId: 'rev-1',
+      reason: 'template',
+      createdAt: new Date().toISOString(),
+    },
+  }],
+})
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Application Layer                     │
-│  (UMO Editor, Custom Editors, CMS Integration)          │
-├─────────────────────────────────────────────────────────┤
-│                  Framework Adapters                      │
-│            (Vue 3, React, Web Components)               │
-├─────────────────────────────────────────────────────────┤
-│                     Core Engine                          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
-│  │ Document │ │  Layout  │ │  Render  │ │  Editor  │  │
-│  │  Model   │ │  Engine  │ │  Engine  │ │  Engine  │  │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
-├─────────────────────────────────────────────────────────┤
-│                  Platform Services                       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
-│  │Collab    │ │ Storage  │ │    IO    │ │  Plugin  │  │
-│  │(Yjs)     │ │          │ │          │ │  System  │  │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
-├─────────────────────────────────────────────────────────┤
-│                  Infrastructure                          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐               │
-│  │   AI     │ │Perf      │ │  Tests   │               │
-│  │Platform  │ │Utilities │ │          │               │
-│  └──────────┘ └──────────┘ └──────────┘               │
-└─────────────────────────────────────────────────────────┘
+
+## 6. Lấy workspace handle
+
+```vue
+<KindyDocumentLibrary ref="workspace" :adapter="adapter" />
 ```
 
-## Next Steps
+```ts
+const state = workspace.value.getState()
+await workspace.value.save()
 
-- [Document Model Guide](./document.md)
-- [Layout Engine Guide](./layout.md)
-- [Render Engine Guide](./render.md)
-- [Editor Guide](./editor.md)
-- [Collaboration Guide](./collaboration.md)
-- [Plugin Development Guide](./plugin.md)
+const result = await workspace.value.exportDocx({
+  mode: 'strict',
+  store: true,
+})
+
+workspace.value.print()
+workspace.value.toggleExplorer(false)
+workspace.value.toggleVersions(true)
+```
+
+Các method công khai đầy đủ nằm trong [API reference](./api-reference.md).
+
+## 7. Kiểm tra integration tối thiểu
+
+Trước khi nối backend thật, kiểm tra tuần tự:
+
+1. Explorer tải được document, folder và template.
+2. Create/import trả document rồi `loadState` mở được snapshot.
+3. Gõ nội dung làm phát `changed` và autosave gọi `saveState`.
+4. Manual save tạo version và VersionPanel làm mới.
+5. Mở version phải read-only; quay lại bản hiện hành phải editable.
+6. Restore tạo revision/version mới, không sửa bytes của version cũ.
+7. Export tạo ZIP/OOXML hợp lệ; print mở được print dialog.
+8. Hai client lưu cùng `baseRevisionId` phải khiến client thứ hai nhận `VERSION_CONFLICT`.
+
+Với DOCX thực tế, kiểm tra thêm `CompatibilityReport`: floating image sẽ được làm phẳng thành inline; EMF/WMF/TIFF không thuộc profile render ổn định. Sections/header/footer dùng `docxProfile="kindy-docx-v2.1"`; comments/Track Changes dùng v2.2. Xem ma trận hỗ trợ trước khi bật strict profile cao hơn.
+
+## 8. Bước tiếp theo
+
+- [UI engine](./ui-engine.md)
+- [Backend và security](../GUIDE.md)
+- [DOCX compatibility](../CAPABILITIES.md)
+- [Performance](./performance.md)

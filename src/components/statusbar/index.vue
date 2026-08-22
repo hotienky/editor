@@ -355,19 +355,19 @@ const reset = inject('reset')
 
 // 字数统计
 const showWordCount = ref(false)
-let totalCharacters = ref(0)
-let selectionCharacters = ref(0)
+const totalCharacters = ref(0)
+const selectionCharacters = ref(0)
 const updateTotalCharacters = () => {
   if (!editor.value) {
-    totalCharacters = 0
+    totalCharacters.value = 0
     return
   }
   const count = editor.value.storage?.characterCount?.characters?.()
-  totalCharacters = typeof count === 'number' ? count : 0
+  totalCharacters.value = typeof count === 'number' ? count : 0
 }
 const updateSelectionCharacters = () => {
   if (!editor.value) {
-    selectionCharacters = 0
+    selectionCharacters.value = 0
     return
   }
   const { selection } = editor.value.state
@@ -376,7 +376,7 @@ const updateSelectionCharacters = () => {
     selection.to,
     '',
   )
-  selectionCharacters = text.length
+  selectionCharacters.value = text.length
 }
 const updateTotalCharactersDebounced = useDebounceFn(updateTotalCharacters, 200)
 const updateSelectionCharactersDebounced = useDebounceFn(
@@ -432,9 +432,9 @@ const toggleFullscreen = () => {
   fullscreen.value = !fullscreen.value
 }
 
-let documentFullscreen = ref(null)
+const documentFullscreen = shallowRef(null)
 onMounted(() => {
-  documentFullscreen = useFullscreen(document.querySelector(container))
+  documentFullscreen.value = useFullscreen(document.querySelector(container))
 })
 
 // 演示模式
@@ -471,9 +471,9 @@ watch(
 
 // 演示模式倒计时
 const countdownSetting = ref(false)
-let countdownValue = ref('')
+const countdownValue = ref('')
 const countdownChange = (value) => {
-  countdownValue = value
+  countdownValue.value = value
 }
 
 watch(
@@ -481,21 +481,21 @@ watch(
   async (enabled) => {
     if (enabled) {
       try {
-        await documentFullscreen?.enter?.()
+        await documentFullscreen.value?.enter?.()
       } catch {}
       if (page.value.layout === 'page') {
         autoWidth(false, 10)
       }
     } else {
       try {
-        await documentFullscreen?.exit?.()
+        await documentFullscreen.value?.exit?.()
       } catch {}
       zoomReset()
     }
   },
 )
 watch(
-  () => documentFullscreen?.isFullscreen,
+  () => documentFullscreen.value?.isFullscreen?.value,
   (isFullscreen) => {
     if (!isFullscreen) {
       exitPreview()

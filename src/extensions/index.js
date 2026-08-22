@@ -68,6 +68,7 @@ import PageBreak from './page-break'
 import Header from './header'
 import Footer from './footer'
 import Pagination from './pagination'
+import SectionBreak from './section-break'
 import Placeholder from './placeholder'
 import SearchReplace from './search-replace'
 import Selection from './selection'
@@ -79,6 +80,7 @@ import Toc from './toc'
 import TypeWriter from './type-writer'
 import Video from './video'
 import WordWrap from './word-wrap'
+import TrackChanges from '@/collaboration/track-changes'
 
 const nodeTypes = [
   'paragraph',
@@ -127,6 +129,7 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
   const {
     page,
     document: doc,
+    user,
     users,
     file,
     disableExtensions,
@@ -271,8 +274,15 @@ export const getDefaultExtensions = ({ container, options, uploadFileMap }) => {
 
     // Page
     PageBreak,
+    SectionBreak,
     Header,
     Footer,
+    TrackChanges.configure({
+      user: {
+        id: user?.id,
+        name: user?.label || user?.name || user?.id || 'Anonymous',
+      },
+    }),
 
     // Other
     Selection,

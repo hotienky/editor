@@ -12,9 +12,9 @@
         class="suggestion-card"
       >
         <div class="card-author">
-          <t-avatar size="small" :content="item.author?.name?.[0] || 'U'" />
-          <span class="author-name">{{ item.author?.name || t('suggestions.defaultAuthor') }}</span>
-          <span class="card-time">{{ item.createdAt }}</span>
+          <t-avatar size="small" :content="item.author?.[0] || 'U'" />
+          <span class="author-name">{{ item.author || t('suggestions.defaultAuthor') }}</span>
+          <span class="card-time">{{ formatTime(item.timestamp) }}</span>
         </div>
 
         <div class="card-content">
@@ -48,27 +48,37 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
+import { collectTrackChanges } from '@/collaboration/track-changes'
 
-const suggestions = ref([
-  {
-    id: 'sug-1',
-    type: 'insert',
-    text: 'tính năng cộng tác thời gian thực',
-    author: { name: 'Nguyễn Văn A' },
-    createdAt: 'Vừa xong',
-  },
-])
+const editor = inject('editor')
+const suggestions = ref([])
+let attachedEditor = null
+
+const refresh = () => {
+  suggestions.value = collectTrackChanges(editor.value?.state)
+}
+
+const onTransaction = () => refresh()
+watch(editor, (value) => {
+  attachedEditor?.off('transaction', onTransaction)
+  attachedEditor = value
+  attachedEditor?.on('transaction', onTransaction)
+  refresh()
+}, { immediate: true })
+onBeforeUnmount(() => attachedEditor?.off('transaction', onTransaction))
 
 const acceptSuggestion = (id) => {
-  const idx = suggestions.value.findIndex((s) => s.id === id)
-  if (idx !== -1) suggestions.value.splice(idx, 1)
+  editor.value?.commands?.acceptTrackChange?.(id)
+  refresh()
 }
 
 const rejectSuggestion = (id) => {
-  const idx = suggestions.value.findIndex((s) => s.id === id)
-  if (idx !== -1) suggestions.value.splice(idx, 1)
+  editor.value?.commands?.rejectTrackChange?.(id)
+  refresh()
 }
+
+const formatTime = (timestamp) => timestamp ? new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(Number(timestamp))) : ''
 </script>
 
 <style lang="less" scoped>
@@ -164,4 +174,9 @@ const rejectSuggestion = (id) => {
     }
   }
 }
+</style>
+
+<style>
+.kindy-editor-container span[data-track][data-track-type='insert'] { background: color-mix(in srgb, #22c55e 18%, transparent); text-decoration: underline; text-decoration-color: #16a34a; }
+.kindy-editor-container span[data-track][data-track-type='delete'] { background: color-mix(in srgb, #ef4444 14%, transparent); color: #b91c1c; text-decoration: line-through; }
 </style>

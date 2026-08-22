@@ -6,12 +6,40 @@
  */
 
 import { Mark, mergeAttributes } from '@tiptap/core'
+import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
+
+const trackChangesKey = new PluginKey('kindyTrackChanges')
 
 /**
  * Generate a unique ID for track changes
  */
 function generateId() {
   return `tc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+/**
+ * Read tracked changes without executing a Tiptap command. Getter commands
+ * still dispatch an empty transaction, so using them from a transaction
+ * listener creates an endless transaction -> refresh loop.
+ */
+export function collectTrackChanges(state, markName = 'trackChange') {
+  const changes = []
+  state?.doc?.descendants((node, pos) => {
+    node.marks.forEach((mark) => {
+      if (mark.type.name === markName) {
+        changes.push({
+          id: mark.attrs.id,
+          type: mark.attrs.type,
+          author: mark.attrs.author,
+          timestamp: mark.attrs.timestamp,
+          text: node.text || '',
+          from: pos,
+          to: pos + node.nodeSize,
+        })
+      }
+    })
+  })
+  return changes
 }
 
 /**
@@ -30,6 +58,8 @@ export const TrackChanges = Mark.create({
   addOptions() {
     return {
       HTMLAttributes: {},
+      enabled: false,
+      user: { name: 'Anonymous' },
     }
   },
 
@@ -78,6 +108,35 @@ export const TrackChanges = Mark.create({
 
   addCommands() {
     return {
+      enableTrackChanges:
+        (user = this.options.user) =>
+        () => {
+          this.storage.enabled = true
+          this.storage.user = user
+          return true
+        },
+      disableTrackChanges:
+        () =>
+        () => {
+          this.storage.enabled = false
+          return true
+        },
+      deleteTrackedSelection:
+        () =>
+        ({ state, dispatch }) => {
+          if (!this.storage.enabled) return false
+          let { from, to } = state.selection
+          if (from === to && from > 1) from -= 1
+          if (from === to) return false
+          if (dispatch) {
+            const mark = state.schema.marks[this.name].create({
+              id: generateId(), type: 'delete', author: this.storage.user?.name || 'Anonymous', timestamp: Date.now(),
+            })
+            const tr = state.tr.addMark(from, to, mark)
+            dispatch(tr.setSelection(TextSelection.create(tr.doc, to)).setMeta(trackChangesKey, true))
+          }
+          return true
+        },
       /**
        * Mark the current selection as a tracked change
        * @param {Object} attrs - { type: 'insert'|'delete', author, text }
@@ -111,8 +170,9 @@ export const TrackChanges = Mark.create({
                 found = true
                 if (dispatch) {
                   const {tr} = state
-                  tr.removeMark(pos, pos + node.nodeSize, mark.type)
-                  dispatch(tr)
+                  if (mark.attrs.type === 'delete') tr.delete(pos, pos + node.nodeSize)
+                  else tr.removeMark(pos, pos + node.nodeSize, mark.type)
+                  dispatch(tr.setMeta(trackChangesKey, true))
                 }
               }
             })
@@ -154,7 +214,7 @@ export const TrackChanges = Mark.create({
                 tr.removeMark(range.from, range.to, state.schema.marks[this.name])
               }
             }
-            dispatch(tr)
+            dispatch(tr.setMeta(trackChangesKey, true))
           }
 
           return found
@@ -167,26 +227,31 @@ export const TrackChanges = Mark.create({
         () =>
         ({ state, dispatch }) => {
           const { doc } = state
-          const marksToRemove = []
+          const insertions = []
+          const deletions = []
 
           doc.descendants((node, pos) => {
             node.marks.forEach((mark) => {
               if (mark.type.name === this.name) {
-                marksToRemove.push({ from: pos, to: pos + node.nodeSize, mark })
+                const item = { from: pos, to: pos + node.nodeSize, mark }
+                if (mark.attrs.type === 'delete') deletions.push(item)
+                else insertions.push(item)
               }
             })
           })
 
-          if (marksToRemove.length > 0 && dispatch) {
+          if ((insertions.length || deletions.length) && dispatch) {
             const {tr} = state
-            marksToRemove.sort((a, b) => b.from - a.from)
-            for (const { from, to, mark } of marksToRemove) {
+            deletions.sort((a, b) => b.from - a.from)
+            for (const { from, to } of deletions) tr.delete(from, to)
+            insertions.sort((a, b) => b.from - a.from)
+            for (const { from, to, mark } of insertions) {
               tr.removeMark(from, to, mark.type)
             }
-            dispatch(tr)
+            dispatch(tr.setMeta(trackChangesKey, true))
           }
 
-          return marksToRemove.length > 0
+          return insertions.length + deletions.length > 0
         },
 
       /**
@@ -226,7 +291,7 @@ export const TrackChanges = Mark.create({
               tr.removeMark(from, to, state.schema.marks[this.name])
             }
 
-            dispatch(tr)
+            dispatch(tr.setMeta(trackChangesKey, true))
           }
 
           return insertions.length + deletions.length > 0
@@ -238,35 +303,82 @@ export const TrackChanges = Mark.create({
       getTrackChanges:
         () =>
         ({ state }) => {
-          const { doc } = state
-          const changes = []
-
-          doc.descendants((node, pos) => {
-            node.marks.forEach((mark) => {
-              if (mark.type.name === this.name) {
-                changes.push({
-                  id: mark.attrs.id,
-                  type: mark.attrs.type,
-                  author: mark.attrs.author,
-                  timestamp: mark.attrs.timestamp,
-                  text: node.text || '',
-                  from: pos,
-                  to: pos + node.nodeSize,
-                })
-              }
-            })
-          })
-
-          return changes
+          return collectTrackChanges(state, this.name)
         },
     }
   },
 
   addStorage() {
     return {
-      enabled: false,
-      changes: [],
+      enabled: this.options.enabled,
+      user: this.options.user,
     }
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      Backspace: () => this.storage.enabled ? this.editor.commands.deleteTrackedSelection() : false,
+      Delete: () => this.storage.enabled ? this.editor.commands.deleteTrackedSelection() : false,
+    }
+  },
+
+  addProseMirrorPlugins() {
+    return [new Plugin({
+      key: trackChangesKey,
+      appendTransaction: (transactions, _oldState, newState) => {
+        const isHistoryTransaction = transactions.some((transaction) => Object.keys(transaction.meta).some((key) => key.startsWith('history$')))
+        if (!this.storage.enabled || isHistoryTransaction || !transactions.some((transaction) => transaction.docChanged) || transactions.some((transaction) => transaction.getMeta(trackChangesKey))) return null
+        const markType = newState.schema.marks[this.name]
+        if (!markType) return null
+        const ranges = []
+        const deletions = []
+        transactions.forEach((transaction, transactionIndex) => {
+          let stepDocument = transaction.before
+          transaction.steps.forEach((step, stepIndex) => {
+            if (step.slice && Number.isInteger(step.from) && Number.isInteger(step.to) && step.to > step.from) {
+              const deleted = stepDocument.slice(step.from, step.to)
+              let inlineOnly = deleted.content.size > 0
+              deleted.content.forEach((node) => { if (!node.isInline) inlineOnly = false })
+              if (inlineOnly) {
+                let position = transaction.mapping.slice(stepIndex + 1).map(step.from, -1)
+                for (let later = transactionIndex + 1; later < transactions.length; later += 1) {
+                  position = transactions[later].mapping.map(position, -1)
+                }
+                deletions.push({ position, content: deleted.content })
+              }
+            }
+            const applied = step.apply(stepDocument)
+            if (!applied.failed) stepDocument = applied.doc
+          })
+          transaction.mapping.maps.forEach((map, index) => {
+            map.forEach((_oldStart, _oldEnd, newStart, newEnd) => {
+              if (newEnd > newStart) {
+                const rest = transaction.mapping.slice(index + 1)
+                ranges.push({ from: rest.map(newStart), to: rest.map(newEnd) })
+              }
+            })
+          })
+        })
+        if (!ranges.length && !deletions.length) return null
+        const tr = newState.tr.setMeta(trackChangesKey, true)
+        const author = this.storage.user?.name || 'Anonymous'
+        deletions.sort((a, b) => b.position - a.position)
+        deletions.forEach(({ position, content }) => {
+          const from = Math.max(0, Math.min(position, tr.doc.content.size))
+          tr.insert(from, content)
+          tr.addMark(from, from + content.size, markType.create({
+            id: generateId(), type: 'delete', author, timestamp: Date.now(),
+          }))
+        })
+        const insertionAttrs = { id: generateId(), type: 'insert', author, timestamp: Date.now() }
+        ranges.forEach(({ from, to }) => {
+          const mappedFrom = tr.mapping.map(from, 1)
+          const mappedTo = tr.mapping.map(to, -1)
+          if (mappedTo > mappedFrom) tr.addMark(mappedFrom, mappedTo, markType.create(insertionAttrs))
+        })
+        return tr.steps.length ? tr : null
+      },
+    })]
   },
 })
 

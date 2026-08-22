@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import { saveAs } from 'file-saver'
+import saveAs from 'file-saver'
 
 const editor = inject('editor')
 const options = inject('options')

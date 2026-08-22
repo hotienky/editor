@@ -108,8 +108,8 @@ const resultLength = computed(
 )
 
 const clear = () => {
-  searchText = ''
-  replaceText = ''
+  searchText.value = ''
+  replaceText.value = ''
   editor.value?.commands.resetIndex()
 }
 
@@ -120,9 +120,9 @@ const search = (clearIndex = false) => {
   if (clearIndex) {
     editor.value.commands.resetIndex()
   }
-  editor.value.commands.setSearchTerm(searchText)
-  editor.value.commands.setReplaceTerm(replaceText)
-  editor.value.commands.setCaseSensitive(caseSensitive)
+  editor.value.commands.setSearchTerm(searchText.value)
+  editor.value.commands.setReplaceTerm(replaceText.value)
+  editor.value.commands.setCaseSensitive(caseSensitive.value)
 }
 
 const goToSelection = () => {
@@ -158,7 +158,7 @@ watch(
 )
 
 watch(
-  () => caseSensitive,
+  () => caseSensitive.value,
   (val, oldVal) => {
     if (val !== oldVal) {
       search(true)
@@ -186,7 +186,7 @@ const replaceAll = () => editor.value?.commands.replaceAll()
 watch(
   () => searchReplace.value,
   (visible) => {
-    searchText = visible && editor.value ? getSelectionText(editor.value) : ''
+    searchText.value = visible && editor.value ? getSelectionText(editor.value) : ''
   },
 )
 </script>

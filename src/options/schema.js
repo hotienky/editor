@@ -309,6 +309,15 @@ export default new ObjectSchema({
         validate: 'string',
         required: false,
       },
+      sections: {
+        merge: 'replace',
+        validate(value) {
+          if (value && !Array.isArray(value)) {
+            throw new Error('Key "page": Key "sections" must be an array.')
+          }
+        },
+        required: false,
+      },
       showBreakMarks: {
         merge: 'replace',
         validate: 'boolean',
@@ -480,6 +489,21 @@ export default new ObjectSchema({
             validate: 'string',
             required: false,
           },
+          variants: {
+            merge: 'replace',
+            validate: 'object',
+            required: false,
+          },
+          differentFirstPage: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          differentOddEven: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
         },
       },
       footer: {
@@ -574,6 +598,21 @@ export default new ObjectSchema({
             validate: 'string',
             required: false,
           },
+          variants: {
+            merge: 'replace',
+            validate: 'object',
+            required: false,
+          },
+          differentFirstPage: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
+          differentOddEven: {
+            merge: 'replace',
+            validate: 'boolean',
+            required: false,
+          },
         },
       },
       size: {
@@ -613,6 +652,11 @@ export default new ObjectSchema({
       content: {
         merge: 'replace',
         validate() {},
+        required: false,
+      },
+      assets: {
+        merge: 'replace',
+        validate: 'array',
         required: false,
       },
       placeholder: {

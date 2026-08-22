@@ -1,8 +1,8 @@
 <template>
   <t-config-provider
-    :key="options.editorKey"
+    :key="options?.editorKey || 'default'"
     :global-config="{
-      ...localeConfig[locale],
+      ...(localeConfig?.[locale || 'vi-VN'] || {}),
       classPrefix: 'kindy',
     }"
   >
@@ -65,6 +65,7 @@ import enConfig from 'tdesign-vue-next/esm/locale/en_US'
 import cnConfig from 'tdesign-vue-next/esm/locale/zh_CN'
 
 import { getTypewriterRunState } from '@/extensions/type-writer'
+import { createEditorDocumentState } from '@/core/editor-state'
 import { i18n } from '@/i18n'
 import { propsOptions } from '@/options'
 import { contentTransform } from '@/utils/content-transform'
@@ -123,7 +124,8 @@ const historyRecords = ref({
 
 const container = ref(`#kindy-editor-${shortId(4)}`)
 const defaultOptions = inject('defaultOptions', {})
-const options = ref(getOptions(props, defaultOptions))
+const initialOptions = getOptions(props, defaultOptions) || getOptions({}, defaultOptions)
+const options = ref(initialOptions)
 const editor = ref(null)
 const savedAt = ref(null)
 const page = ref({})
@@ -173,6 +175,7 @@ watch(
     watermark,
     header,
     footer,
+    sections,
     showBreakMarks,
     showBookmark,
     showLineNumber,
@@ -187,6 +190,7 @@ watch(
       watermark,
       header,
       footer,
+      sections: Array.isArray(sections) ? sections : [],
       showBreakMarks,
       showBookmark,
       showLineNumber,
@@ -217,7 +221,7 @@ watch(
   () => [options.value.document?.readOnly, editor.value?.isEditable],
   async () => {
     await nextTick()
-    toolbarKey = shortId()
+    toolbarKey.value = shortId()
   },
 )
 
@@ -267,9 +271,9 @@ watch(
 // 定时保存
 let contentUpdated = ref(false)
 let isFirstUpdate = ref(true)
-let autoSaveInterval = ref(null)
+let autoSaveInterval = null
 let isSaving = ref(false)
-const shouldBlockUnload = () => isSaving || contentUpdated
+const shouldBlockUnload = () => isSaving.value || contentUpdated.value
 const handleBeforeUnload = (event) => {
   if (!shouldBlockUnload()) {
     return
@@ -284,16 +288,16 @@ const clearAutoSaveInterval = () => {
   }
 }
 watch(
-  () => contentUpdated,
+  () => contentUpdated.value,
   (val) => {
     const { autoSave } = options.value.document
     if (!autoSave?.enabled) {
       return
     }
-    if (isFirstUpdate) {
-      isFirstUpdate = false
+    if (isFirstUpdate.value) {
+      isFirstUpdate.value = false
       setTimeout(() => {
-        contentUpdated = false
+        contentUpdated.value = false
       })
       return
     }
@@ -303,7 +307,7 @@ watch(
     }
     autoSaveInterval = setInterval(() => {
       saveContent()
-      contentUpdated = false
+      contentUpdated.value = false
       clearAutoSaveInterval()
     }, autoSave.interval)
   },
@@ -321,7 +325,7 @@ watch(
     })
     editor.value.on('update', ({ editor }) => {
       emits('changed', { editor })
-      contentUpdated = true
+      contentUpdated.value = true
     })
     editor.value.on('selectionUpdate', ({ editor }) => {
       emits('changed:selection', { editor })
@@ -509,7 +513,7 @@ watch(
 const { t, locale, mergeLocaleMessage } = useI18n()
 const $locale = useStorage('kindy-editor:locale', options.value.locale)
 locale.value = $locale.value
-consoleCopyright()
+consoleCopyright(t)
 const getLocaleMessage = (lang) => {
   const translations = options.value.translations?.[lang.replaceAll('-', '_')]
   if (isRecord(translations)) {
@@ -550,12 +554,16 @@ const localeConfig = ref({
 // Options Setup
 const setOptions = (value) => {
   try {
-    options.value = getOptions(value, defaultOptions)
+    const nextOptions = getOptions(value, defaultOptions)
+    if (!nextOptions) return options.value
+    options.value = nextOptions
     const $locale = useStorage('kindy-editor:locale', options.value.locale)
     if (!$locale.value) {
       $locale.value = options.value.locale
     }
-  } catch {}
+  } catch (error) {
+    console.warn('[KindyEditor] Invalid reactive options update was ignored.', error)
+  }
   return options.value
 }
 
@@ -1015,6 +1023,17 @@ const print = () => {
   }
 }
 
+const preparePrint = async () => ({
+  html: await getVanillaHTML(),
+  page: structuredClone(page.value),
+})
+
+const getState = () => createEditorDocumentState({
+  content: getJSON(),
+  assets: structuredClone($document.value.assets || []),
+  page: page.value,
+})
+
 const toggleFullscreen = (isFullscreen) => {
   if (isFullscreen !== undefined) {
     if (!isBoolean(isFullscreen)) {
@@ -1076,7 +1095,7 @@ const saveContent = async (showMessage = true) => {
     showMessage: true,
   }
   try {
-    isSaving = true
+    isSaving.value = true
     useMessage(
       'loading',
       {
@@ -1132,7 +1151,7 @@ const saveContent = async (showMessage = true) => {
       return
     }
     emits('saved')
-    contentUpdated = false
+    contentUpdated.value = false
     if (saveBack.showMessage) {
       useMessage('success', {
         attach: container,
@@ -1154,9 +1173,10 @@ const saveContent = async (showMessage = true) => {
       })
     }
   } finally {
-    isSaving = false
+    isSaving.value = false
   }
 }
+const markContentSaved = () => { contentUpdated.value = false }
 const getAllBookmarks = () => {
   let bookmarkData
   editor.value?.commands.getAllBookmarks(function (_data) {
@@ -1335,8 +1355,10 @@ defineExpose({
   getText,
   getHTML,
   getJSON,
+  getState,
   getVanillaHTML,
   saveContent,
+  markContentSaved,
   getContentExcerpt,
   getEditor: () => editor,
   useEditor: () => editor.value,
@@ -1363,6 +1385,7 @@ defineExpose({
     }
   },
   print,
+  preparePrint,
   focus,
   blur,
   toggleFullscreen,

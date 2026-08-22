@@ -147,7 +147,7 @@ export class MarkdownExporter {
 
     // Handle multi-line content
     const lines = content.split('\n')
-    const firstLine = lines[0]
+    const [firstLine] = lines
     const rest = lines.slice(1).map(line => `  ${line}`).join('\n')
 
     return `${prefix}${firstLine}${rest ? `\n${  rest}` : ''}`
@@ -275,9 +275,10 @@ export class MarkdownExporter {
       case 'code':
         return `\`${text}\``
 
-      case 'link':
+      case 'link': {
         const href = mark.attrs?.href || ''
         return `[${text}](${href})`
+      }
 
       case 'subscript':
         return `<sub>${text}</sub>`

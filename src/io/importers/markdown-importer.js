@@ -57,8 +57,8 @@ export class MarkdownImporter {
       // Heading
       const headingMatch = line.match(/^(#{1,6})\s+(.+)/)
       if (headingMatch) {
-        const level = headingMatch[1].length
-        const text = headingMatch[2]
+        const [, hashes, text] = headingMatch
+        const level = hashes.length
         children.push({
           type: 'heading',
           attrs: { level },

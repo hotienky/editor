@@ -287,8 +287,8 @@ watch(
 )
 
 const activeConfig = $computed(() => {
-  if (isHeaderFocused) return pageOptions.value.header
-  if (isFooterFocused) return pageOptions.value.footer
+  if (isHeaderFocused.value) return pageOptions.value.header
+  if (isFooterFocused.value) return pageOptions.value.footer
   return pageOptions.value.header
 })
 
@@ -300,7 +300,7 @@ const totalPageNum = $computed(() => {
 })
 
 const currentPageNum = $computed(() => {
-  return currentPageFromScroll || 1
+  return currentPageFromScroll.value || 1
 })
 
 const layoutTree = $computed(() => {
@@ -357,8 +357,8 @@ const shouldShowFooter = (pageInfo) => {
 }
 
 const onScroll = () => {
-  if (!scrollContainer) return
-  const { scrollTop } = scrollContainer
+  if (!scrollContainer.value) return
+  const { scrollTop } = scrollContainer.value
   const zoomLevel = pageOptions.value.zoomLevel || 100
 
   if (layoutTree?.pages && layoutTree.pages.length > 0) {
@@ -366,38 +366,38 @@ const onScroll = () => {
     for (let i = layoutTree.pages.length - 1; i >= 0; i--) {
       const page = layoutTree.pages[i]
       if (scrollTop >= (page.contentStartY || 0) * zoom - 100) {
-        currentPageFromScroll = page.pageNumber
+        currentPageFromScroll.value = page.pageNumber
         return
       }
     }
-    currentPageFromScroll = 1
+    currentPageFromScroll.value = 1
   } else {
     const pageHeightPx = (pageSize.height * 96 / 2.54) * (zoomLevel / 100)
     const page = Math.floor(scrollTop / pageHeightPx) + 1
-    currentPageFromScroll = Math.max(1, Math.min(page, totalPageNum))
+    currentPageFromScroll.value = Math.max(1, Math.min(page, totalPageNum))
   }
 }
 
 const activateHeaderMode = (e) => {
   if (e) e.stopPropagation()
-  isHeaderFocused = true
-  isFooterFocused = false
+  isHeaderFocused.value = true
+  isFooterFocused.value = false
 }
 
 const activateFooterMode = (e) => {
   if (e) e.stopPropagation()
-  isFooterFocused = true
-  isHeaderFocused = false
+  isFooterFocused.value = true
+  isHeaderFocused.value = false
 }
 
 const closeHeaderFooterMode = () => {
-  isHeaderFocused = false
-  isFooterFocused = false
+  isHeaderFocused.value = false
+  isFooterFocused.value = false
 }
 
 const openDialogFromBar = () => {
-  hfDialogType = isHeaderFocused ? 'header' : 'footer'
-  hfDialogVisible = true
+  hfDialogType.value = isHeaderFocused.value ? 'header' : 'footer'
+  hfDialogVisible.value = true
 }
 
 const onBarLogoChange = (files) => {
@@ -413,21 +413,21 @@ const onBarLogoChange = (files) => {
 }
 
 const setHeader = () => {
-  hfDialogType = 'header'
-  hfDialogVisible = true
+  hfDialogType.value = 'header'
+  hfDialogVisible.value = true
 }
 
 const setFooter = () => {
-  hfDialogType = 'footer'
-  hfDialogVisible = true
+  hfDialogType.value = 'footer'
+  hfDialogVisible.value = true
 }
 
 const onPageClick = (event) => {
   const { target } = event
   const isInsideHF = target?.closest?.('.kindy-page-header, .kindy-page-footer, .kindy-hf-context-bar')
   if (!isInsideHF) {
-    isHeaderFocused = false
-    isFooterFocused = false
+    isHeaderFocused.value = false
+    isFooterFocused.value = false
   }
 
   const commentEl = target?.closest?.('[data-comment]')
@@ -520,6 +520,7 @@ const currentImageIndex = $computed({
 /* ═══════════════════════════════════════════════════════════════════════════ */
 .kindy-page-canvas {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
   width: 100%;
@@ -626,8 +627,10 @@ const currentImageIndex = $computed({
 /* ═══════════════════════════════════════════════════════════════════════════ */
 .kindy-page-editor-wrap {
   position: relative;
+  flex: 0 0 auto;
   box-sizing: border-box;
   width: calc(var(--page-width, 21cm) * var(--page-zoom, 1));
+  height: max-content;
   min-height: calc(var(--page-height, 29.7cm) * var(--page-zoom, 1));
   padding-top: calc(var(--margin-top, 2.54cm) * var(--page-zoom, 1));
   padding-bottom: calc(var(--margin-bottom, 2.54cm) * var(--page-zoom, 1));
@@ -779,27 +782,34 @@ const currentImageIndex = $computed({
 .kindy-page-break-decoration {
   position: relative;
   display: block;
-  /* Extend full page width, compensating for left/right margins and zoom */
-  width: calc(100% + calc(var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm)) * var(--page-zoom, 1));
-  margin-left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1));
-  margin-right: calc(-1 * var(--margin-right, 2.54cm) * var(--page-zoom, 1));
-  height: 24px;
-  background: var(--kindy-container-background, #e8eaed);
-  border-top: 1px solid #cbd5e1;
-  border-bottom: 1px solid #cbd5e1;
-  margin-top: 24px;
-  margin-bottom: 24px;
+  width: 100%;
+  height: var(--kindy-page-spacer-height, 72px);
+  margin: 0 !important;
+  background: transparent;
   user-select: none;
   pointer-events: none;
   z-index: 5;
   line-height: 0;
   font-size: 0;
 
+  &::before {
+    content: '';
+    position: absolute;
+    top: var(--kindy-page-separator-offset, 24px);
+    left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1));
+    width: calc(100% + calc(var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm)) * var(--page-zoom, 1));
+    height: var(--kindy-page-gap, 24px);
+    box-sizing: border-box;
+    background: var(--kindy-container-background, #e8eaed);
+    border-top: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+  }
+
   &::after {
     content: attr(data-page);
     position: absolute;
     right: 24px;
-    top: 50%;
+    top: calc(var(--kindy-page-separator-offset, 24px) + var(--kindy-page-gap, 24px) / 2);
     transform: translateY(-50%);
     font-size: 11px;
     font-weight: 600;

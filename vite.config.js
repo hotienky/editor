@@ -7,9 +7,9 @@ import { TDesignResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 import VueMacros from 'unplugin-vue-macros/vite'
 import { defineConfig } from 'vite'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 
 import pkg from './package.json'
+import { createKindySvgSpritePlugin } from './scripts/vite-svg-sprite-plugin.mjs'
 import copyright from './src/utils/copyright'
 
 // Plugin: copy src/kindy-editor.d.ts → dist/kindy-editor.d.ts after build
@@ -46,9 +46,8 @@ const vuePlugins = {
     resolvers: [TDesignResolver({ library: 'vue-next', esm: true })],
     dts: './types/components.d.ts',
   }),
-  SvgIcons: createSvgIconsPlugin({
-    iconDirs: [`${process.cwd()}/src/assets/icons`],
-    symbolId: 'kindy-icon-[name]',
+  SvgIcons: createKindySvgSpritePlugin({
+    iconDir: `${process.cwd()}/src/assets/icons`,
     customDomId: 'kindy-icons',
   }),
 }
@@ -71,7 +70,6 @@ const buildConfig = {
       // ESM — for Vue 3 / Vite / modern bundlers
       {
         banner: copyright,
-        intro: `import './kindy-editor.css'`,
         format: 'es',
         entryFileNames: 'kindy-editor.js',
       },
@@ -80,17 +78,6 @@ const buildConfig = {
         banner: copyright,
         format: 'cjs',
         entryFileNames: 'kindy-editor.cjs',
-        exports: 'named',
-        globals: {
-          vue: 'Vue',
-        },
-      },
-      // IIFE — for CDN <script src> usage
-      {
-        banner: copyright,
-        format: 'iife',
-        name: 'KindyEditor',
-        entryFileNames: 'kindy-editor.iife.js',
         exports: 'named',
         globals: {
           vue: 'Vue',

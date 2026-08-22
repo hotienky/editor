@@ -24,7 +24,10 @@ export default {
       },
       defaultOrientation: 'portrait',
       defaultBackground: '#fff',
-      showBreakMarks: true,
+      // Optional Kindy v2 section metadata. The editor remains one
+      // ProseMirror document; pagination/print consume this array.
+      sections: [],
+      showBreakMarks: false,
       showRuler: false,
       showLineNumber: false,
       showBookmark: false,
@@ -39,12 +42,12 @@ export default {
         text: '',
       },
       header: {
-        enable: true,
-        layout: 'split',
+        enable: false,
+        layout: 'single',
         text: '',
         leftText: '',
-        rightText: 'CÔNG TY CỔ PHẦN TẬP ĐOÀN DAT',
-        logo: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 50" width="180" height="50"><path fill="%230072BC" d="M10 5h22c16 0 26 9 26 20s-10 20-26 20H10V5zm16 11v18h6c7 0 11-4 11-9s-4-9-11-9h-6z"/><path fill="%230072BC" d="M80 5h14l16 40H95l-3-8H78l-3 8H64L80 5zm7 10l-6 17h12l-6-17z"/><circle cx="87" cy="27" r="4.5" fill="%23FF6B00"/><path fill="%230072BC" d="M118 5h34v11h-11v29h-12V16h-11V5z"/></svg>',
+        rightText: '',
+        logo: '',
         fontColor: '#0072bc',
         fontSize: 14,
         fontFamily: 'Arial',
@@ -73,6 +76,7 @@ export default {
   document: {
     title: '',
     content: { type: 'doc', content: [{ type: 'paragraph' }] }, // JSON AST format (primary)
+    assets: [],
     placeholder: {
       en_US: 'Please enter the document content...',
       zh_CN: '请输入文档内容...',

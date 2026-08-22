@@ -1,335 +1,250 @@
-# kindy-editor (Kindy Editor)
+# Kindy Editor v2
 
-Trình biên tập tài liệu chuẩn Office (Word-like Document Editor) hiện đại dựa trên **Vue 3** và **Tiptap 3**. Được tùy biến, tối ưu hóa và hỗ trợ 100% giao diện **Tiếng Việt**.
+Kindy Editor là SDK Document Library chuyên cho DOCX, xây dựng bằng Vue 3 và Tiptap/ProseMirror. Thư viện cung cấp giao diện quản lý tài liệu, editor trên web, lịch sử phiên bản, DOCX codec và hợp đồng API để ứng dụng chủ kết nối backend của mình.
 
-[![npm version](https://img.shields.io/npm/v/kindy-editor.svg)](https://www.npmjs.com/package/kindy-editor)
-[![license](https://img.shields.io/github/license/hotienky/editor.svg)](./LICENSE)
+Kindy Editor **không** cung cấp backend, database, authentication, object storage hoặc nghiệp vụ hợp đồng. JSON `KindyDocumentState` là trạng thái chỉnh sửa chuẩn; DOCX gốc và DOCX export là artifact do server ứng dụng chủ lưu.
 
-> 📘 **Tài liệu Hướng dẫn Chi tiết & Kết nối API Backend**: [GUIDE.md](./GUIDE.md)
+## Phạm vi v2.0
 
----
+- Import DOCX trong Web Worker, kiểm tra ZIP/OOXML và trả `CompatibilityReport`.
+- Chỉnh sửa nội dung bằng Tiptap/ProseMirror với toolbar Kindy hiện có.
+- Explorer theo thư mục, tìm kiếm, tạo tài liệu trống và tạo từ template.
+- Autosave có debounce, cancellation và optimistic concurrency.
+- Lưu thủ công tạo version, xem read-only và khôi phục version.
+- Export DOCX OOXML thật bằng package `docx`.
+- In hoặc Save as PDF qua print dialog của trình duyệt.
+- UI engine có shell responsive, theme tokens, locale messages, slots và typed hooks.
 
-## ✨ Tính năng nổi bật
+Khả năng round-trip DOCX chỉ được cam kết trong [Kindy DOCX Compatibility Profile](./CAPABILITIES.md). Kindy không phải Microsoft Word layout engine và không cam kết giữ nguyên mọi tính năng OOXML.
 
-- 📄 **Phân trang dạng Word (Page-based Pagination)**: Hỗ trợ ngắt trang, căn lề, khổ giấy (A4, A3, Letter, Legal...) chân trang & đầu trang (Header/Footer).
-- 💬 **Hệ thống Bình luận (Word-style Comments)**: Bôi đen văn bản để gắn bình luận, phản hồi (Reply), hoàn thành (Resolve), cuộn mượt và highlight từng người dùng theo tọa độ Y.
-- 🇻🇳 **Tiếng Việt 100%**: Chuẩn hóa toàn bộ nhãn giao diện, bộ cỡ chữ tiêu chuẩn (`pt`), từ điển ký hiệu và phông chữ mượt mà.
-- 🎨 **Giao diện hiện đại (Ribbon & Classic)**: Hỗ trợ 2 chế độ thanh công cụ dạng Ribbon (như MS Word) hoặc Classic, chế độ tối (Dark mode).
-- 🌐 **Đa nền tảng**: Tích hợp dễ dàng vào **Vue 3**, **React.js**, **Next.js**, **Nuxt 3**, **Angular**, **Svelte**, hoặc **Vanilla JS (CDN)**.
-- 🗄️ **Lưu trữ linh hoạt**: Tự động mã hóa nhúng bình luận vào HTML/JSON hoặc tách riêng lưu vào cơ sở dữ liệu (Database).
+## Kiến trúc
 
----
+```text
+Ứng dụng chủ
+  ├─ KindyDocumentLibrary
+  │    ├─ DocumentLibraryShell       layout/responsive/theme
+  │    ├─ KindyDocumentExplorer      list/search/folder/import/template
+  │    ├─ KindyEditor                Tiptap/ProseMirror editor
+  │    └─ KindyVersionPanel          preview/restore
+  ├─ DocumentLibraryClient           autosave/conflict/events
+  ├─ DOCX codecs / browser print
+  └─ DocumentApiAdapter
+       ├─ RestDocumentAdapter
+       ├─ MemoryDocumentAdapter
+       └─ adapter riêng của ứng dụng
+```
 
-## 📦 Cài đặt
+UI không gọi URL cố định và không biết token. Mọi IO đi qua `DocumentApiAdapter`.
+
+## Cài đặt
 
 ```bash
 npm install kindy-editor
-# hoặc
-pnpm add kindy-editor
-# hoặc
-yarn add kindy-editor
 ```
 
----
+```ts
+import 'kindy-editor/style'
+```
 
-## 🚀 Hướng dẫn tích hợp (Integration Guides)
+Vue phải được cài trong ứng dụng chủ và đáp ứng peer dependency `vue ^3.5.0`.
 
-Thư viện `kindy-editor` hỗ trợ đa dạng môi trường dự án:
-
-### 1. Vue 3 (Vite / Webpack)
+## Quick start với REST API
 
 ```vue
 <template>
-  <div style="height: 100vh;">
-    <KindyEditor ref="editorRef" v-bind="editorOptions" />
-  </div>
+  <KindyDocumentLibrary
+    ref="workspace"
+    :adapter="adapter"
+    :autosave="{ enabled: true, delay: 5000 }"
+    :ui="{ explorerWidth: '320px', versionsWidth: '300px' }"
+    :theme="{ '--kindy-library-primary': '#0b74de' }"
+    locale="vi-VN"
+    style="height: 100vh"
+    @saved="onSaved"
+    @error="onError"
+  />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
-import { KindyEditor } from 'kindy-editor'
+import {
+  KindyDocumentLibrary,
+  createRestDocumentAdapter,
+} from 'kindy-editor'
 import 'kindy-editor/style'
 
-const editorRef = ref(null)
-const editorOptions = ref({
-  locale: 'vi-VN',
-  document: {
-    title: 'Tài liệu mới',
-    content: '<h1>Nội dung ban đầu</h1>',
-  },
-  async onSave(content) {
-    console.log('Đã lưu:', content)
-  },
+const workspace = ref()
+const adapter = createRestDocumentAdapter({
+  baseUrl: '/document-api',
+  transport: (url, init) => fetch(url, {
+    ...init,
+    credentials: 'include',
+    headers: { ...init?.headers, 'x-tenant-id': 'acme' },
+  }),
 })
+
+function onSaved(result: unknown) {
+  console.info('Saved', result)
+}
+
+function onError(error: unknown) {
+  console.error(error)
+}
 </script>
 ```
 
-### 2. Vue 3 Global Plugin (`main.js`)
+Server phải triển khai contract trong [`openapi/document-api.yaml`](./openapi/document-api.yaml). OpenAPI không bắt buộc cơ chế auth; cookie, bearer token hoặc API gateway do ứng dụng chủ quyết định.
 
-```javascript
-import { createApp } from 'vue'
-import App from './App.vue'
-import { useKindyEditor } from 'kindy-editor'
-import 'kindy-editor/style'
+## Chạy demo không cần backend
 
-const app = createApp(App)
+```ts
+import { createMemoryDocumentAdapter } from 'kindy-editor'
 
-// Đăng ký toàn cục component <KindyEditor />
-app.use(useKindyEditor, {
-  locale: 'vi-VN',
-  theme: 'light',
-})
-
-app.mount('#app')
+const adapter = createMemoryDocumentAdapter()
 ```
 
-### 3. React.js (SPA)
+`MemoryDocumentAdapter` chỉ dành cho demo và test; dữ liệu mất khi reload trang.
 
-Dùng hàm helper `mountKindyEditor`:
-
-```tsx
-import React, { useEffect, useRef } from 'react'
-import { mountKindyEditor } from 'kindy-editor'
-import 'kindy-editor/style'
-
-export function KindyEditorReact(props) {
-  const containerRef = useRef(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    const instance = mountKindyEditor(containerRef.current, props)
-    return () => instance.unmount()
-  }, [])
-
-  return <div ref={containerRef} style={{ width: '100%', height: '100vh' }} />
-}
-```
-
-### 4. Next.js (App Router / Pages Router)
-
-Vì Rich Text Editor thao tác với DOM trình duyệt, hãy load Client Component bằng `next/dynamic` (`ssr: false`):
-
-```tsx
-'use client'
-
-import dynamic from 'next/dynamic'
-
-const KindyEditor = dynamic(
-  () => import('./KindyEditorReact').then((mod) => mod.KindyEditorReact),
-  { ssr: false }
-)
-
-export default function DocumentPage() {
-  return (
-    <main style={{ height: '100vh' }}>
-      <KindyEditor locale="vi-VN" />
-    </main>
-  )
-}
-```
-
-### 5. Angular Component
-
-```typescript
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, Input } from '@angular/core';
-import { mountKindyEditor } from 'kindy-editor';
-import 'kindy-editor/style';
-
-@Component({
-  selector: 'app-kindy-editor',
-  template: `<div #editorContainer style="height: 100vh; width: 100%;"></div>`
-})
-export class KindyEditorComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('editorContainer') editorContainer!: ElementRef;
-  @Input() locale: string = 'vi-VN';
-  private instance: any;
-
-  ngAfterViewInit() {
-    this.instance = mountKindyEditor(this.editorContainer.nativeElement, {
-      locale: this.locale,
-    });
-  }
-
-  ngOnDestroy() {
-    if (this.instance) {
-      this.instance.unmount();
-    }
-  }
-}
-```
-
-### 6. Svelte / SvelteKit Component
-
-```svelte
-<script>
-  import { onMount, onDestroy } from 'svelte';
-  import { mountKindyEditor } from 'kindy-editor';
-  import 'kindy-editor/style';
-
-  export let locale = 'vi-VN';
-  let container;
-  let instance;
-
-  onMount(() => {
-    instance = mountKindyEditor(container, { locale });
-  });
-
-  onDestroy(() => {
-    if (instance) instance.unmount();
-  });
-</script>
-
-<div bind:this={container} style="height: 100vh; width: 100%;"></div>
-```
-
-### 7. SolidJS Component
-
-```tsx
-import { onMount, onCleanup } from 'solid-js';
-import { mountKindyEditor } from 'kindy-editor';
-import 'kindy-editor/style';
-
-export function KindyEditorSolid(props) {
-  let containerRef;
-  let instance;
-
-  onMount(() => {
-    instance = mountKindyEditor(containerRef, {
-      locale: 'vi-VN',
-      ...props,
-    });
-  });
-
-  onCleanup(() => {
-    if (instance) instance.unmount();
-  });
-
-  return <div ref={containerRef} style={{ height: '100vh', width: '100%' }} />;
-}
-```
-
-### 8. Vanilla JS / CDN (Direct Script Tag)
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <link rel="stylesheet" href="https://unpkg.com/kindy-editor/dist/kindy-editor.css">
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <script src="https://unpkg.com/kindy-editor/dist/kindy-editor.iife.js"></script>
-</head>
-<body>
-  <div id="editor-container" style="height: 100vh;"></div>
-
-  <script>
-    const { mountKindyEditor } = KindyEditor;
-    mountKindyEditor('#editor-container', {
-      locale: 'vi-VN',
-    });
-  </script>
-</body>
-</html>
-```
-
----
-
-## ⚙️ Cấu hình (Props & Options API)
-
-| Thuộc tính | Kiểu dữ liệu | Mặc định | Mô tả |
-|---|---|---|---|
-| `locale` | `string` | `'vi-VN'` | Ngôn ngữ giao diện (`vi-VN`, `en-US`, `zh-CN`) |
-| `theme` | `string` | `'light'` | Chế độ giao diện (`light`, `dark`, `auto`) |
-| `skin` | `string` | `'default'` | Phong cách thanh công cụ (`default`, `modern`) |
-| `height` | `string` | `'100%'` | Chiều cao khung biên tập |
-| `toolbar.mode` | `string` | `'ribbon'` | Chế độ thanh công cụ (`ribbon` hoặc `classic`) |
-| `document.title` | `string` | `''` | Tiêu đề tài liệu mặc định |
-| `document.content` | `string` \| `object` | `''` | Nội dung HTML hoặc JSON ban đầu |
-| `document.readOnly` | `boolean` | `false` | Chế độ chỉ đọc (Chỉ xem) |
-| `document.autoSave` | `object` | `{ enabled: false }` | Tự động lưu (`enabled: true, interval: 30000`) |
-
----
-
-## 🛠️ Danh sách Phương thức (Methods API)
-
-Thông qua `ref` của component (hoặc `mountKindyEditor` instance):
-
-```javascript
-// 1. Lấy nội dung HTML
-const html = editorRef.value.getContent('html')
-
-// 2. Lấy nội dung JSON
-const json = editorRef.value.getContent('json')
-
-// 3. Đặt nội dung mới
-editorRef.value.setContent('<h1>Nội dung mới</h1>')
-
-// 4. Chèn nội dung tại vị trí con trỏ
-editorRef.value.insertContent('<p>Đoạn văn mới</p>')
-
-// 5. Xuất tài liệu PDF
-await editorRef.value.exportPdf('tai-lieu.pdf')
-
-// 6. Xuất trang thành hình ảnh
-await editorRef.value.exportImage('png', 'tai-lieu.png')
-
-// 7. In tài liệu
-editorRef.value.print()
-
-// 8. Đổi giao diện tối / sáng
-editorRef.value.setTheme('dark')
-```
-
----
-
-## 💬 Hệ thống Bình luận (Word-style Comments)
-
-### Cơ chế lưu trữ:
-Bình luận được lưu trực tiếp dưới dạng thẻ `span` chứa thuộc tính `data-comment` và `data-thread` trong tài liệu HTML/JSON:
-
-```html
-<span
-  data-comment="c1a2b3"
-  data-color="rgba(255, 213, 79, 0.4)"
-  data-thread='{"id":"c1a2b3","text":"Cần chỉnh sửa","replies":[]}'
-  class="kindy-comment"
->
-  Đoạn văn bản được bình luận
-</span>
-```
-
-### Lưu trữ Cơ sở dữ liệu (Database Integration):
-- **Cách 1 (Khuyên dùng)**: Lưu toàn bộ chuỗi HTML chứa thẻ `<span data-comment>` vào 1 cột `content TEXT` trong Database. Khi mở lại, bình luận tự động khôi phục 100%.
-- **Cách 2**: Lưu riêng danh sách mảng object comment qua API `editorRef.value.getComments()`.
-
----
-
-## 💻 Dự án Mẫu (Examples)
-
-Thư mục `examples/` chứa các ứng dụng mẫu đầy đủ:
-- ⚛️ **[examples/react-demo](./examples/react-demo)**: React.js + IndexedDB Database Persistence.
-
----
-
-## 🛠️ Lệnh phát triển (Development Commands)
+Trong repository:
 
 ```bash
-# Cài đặt phụ thuộc
 npm install
-
-# Chạy server phát triển (Dev server tại http://localhost:9000/kindy-editor)
 npm run dev
-
-# Đóng gói sản phẩm (Production build ra thư mục dist/)
-npm run build
-
-# Định dạng code
-npm run format
 ```
 
----
+Mở `http://localhost:9000/kindy-editor`.
 
-## 📄 License & Credits
+## Dùng editor độc lập
 
-- Phát hành theo giấy phép [MIT License](./LICENSE).
-- Dựa trên mã nguồn gốc [Umo Editor](https://github.com/umodoc/editor) bởi đội ngũ umodoc.
-- Bản quyền thuộc về **Kindy** ([GitHub](https://github.com/hotienky)).
+```vue
+<KindyEditor
+  ref="editor"
+  :document="{ content: initialState.content, assets: initialState.assets }"
+  :page="initialState.page"
+/>
+```
+
+```ts
+const state = editor.value.getState()
+editor.value.setContent(nextContent)
+editor.value.setReadOnly(true)
+const printable = await editor.value.preparePrint()
+editor.value.print()
+```
+
+Vanilla/React/Angular/Svelte có thể dùng mount helper:
+
+```ts
+import { mountKindyEditor } from 'kindy-editor'
+
+const mounted = mountKindyEditor('#editor', {
+  locale: 'vi-VN',
+  document: { content: initialState.content },
+})
+
+mounted.instance.setContent(nextState.content)
+mounted.instance.print()
+mounted.unmount()
+```
+
+V2.0 chưa có native React component; wrapper dùng Vue mount helper.
+
+## Dùng headless client
+
+Subpath `kindy-editor/core` không tải Vue UI:
+
+```ts
+import {
+  createDocumentLibrary,
+  createRestDocumentAdapter,
+} from 'kindy-editor/core'
+
+const client = createDocumentLibrary({
+  adapter: createRestDocumentAdapter({ baseUrl: '/document-api' }),
+  autosave: { enabled: true, delay: 5000 },
+})
+
+const snapshot = await client.open('document-123')
+client.updateState(snapshot.state)
+await client.save('manual')
+```
+
+`VERSION_CONFLICT` dừng autosave. SDK không tự merge hoặc ghi đè revision mới hơn:
+
+```ts
+client.on('save-failed', (error) => {
+  if (error.code === 'VERSION_CONFLICT') {
+    // Hiển thị lựa chọn reload hoặc lưu thành bản sao.
+  }
+})
+```
+
+`kindy-editor/core` dùng được trong Node/SSR. Entry `kindy-editor` chứa Vue UI và
+các công cụ browser như cropper/print, vì vậy chỉ import nó trong bundle phía client.
+
+## Import và export DOCX
+
+```ts
+import { importDocxInWorker, exportDocx } from 'kindy-editor'
+
+const imported = await importDocxInWorker(file, {
+  mode: 'best-effort',
+  profile: 'kindy-docx-v2.0',
+})
+if (imported.report.issues.length) {
+  // Hiển thị warning trước khi tiếp tục.
+}
+
+const output = await exportDocx(imported.state) // strict mặc định
+```
+
+UI workspace tự xử lý luồng xác nhận best-effort khi import hoặc download. API programmatic mặc định strict và ném `DOCX_UNSUPPORTED` nếu state có feature ngoài profile.
+Mặc định là v2.0. Chọn `kindy-docx-v2.1` cho sections/header/footer hoặc
+`kindy-docx-v2.2` cho comments/Track Changes sau khi integration đã chạy corpus tương ứng.
+
+## Public components
+
+| Export | Mục đích |
+|---|---|
+| `KindyDocumentLibrary` | Workspace hoàn chỉnh, kết nối adapter và điều phối state |
+| `KindyDocumentLibraryShell` | Layout ba vùng độc lập cho UI tùy biến |
+| `KindyDocumentExplorer` | List/search/folder/import/template độc lập |
+| `KindyEditor` | Editor độc lập |
+| `KindyVersionPanel` | Lịch sử version độc lập |
+
+## Events chuẩn
+
+`ready`, `opened`, `changed`, `save-started`, `saved`, `save-failed`, `created`, `imported`, `compatibility-warning`, `version-restored`, `printed`, `error`.
+
+## Error codes
+
+`DOCX_INVALID`, `DOCX_UNSUPPORTED`, `IMPORT_FAILED`, `EXPORT_FAILED`, `ADAPTER_ERROR`, `NETWORK_ERROR`, `VERSION_CONFLICT`, `DOCUMENT_NOT_FOUND`, `OPERATION_CANCELLED`.
+
+## Hiệu năng tài liệu dài
+
+Import parsing đã chạy ngoài main thread. Editor vẫn dùng một ProseMirror instance liên tục; pagination cache phép đo block và workspace gom state sync. Trên production preview cục bộ (Chrome 151, Apple M2/24GB, 40 mẫu), corpus 100 trang text mở khoảng 0,49 giây với typing p95 21,5ms; mixed mở khoảng 0,85 giây với typing p95 36,5ms. Pagination cached của hai corpus lần lượt khoảng 2,8ms và 3,7ms. Đây là regression baseline, không phải SLA cho mọi thiết bị. Corpus mixed 200 trang vẫn chỉ được xem là stress limit. Xem [Performance guide](./docs/performance.md) để biết phương pháp đo và giới hạn.
+
+## Tài liệu
+
+- [Bắt đầu tích hợp](./docs/getting-started.md)
+- [UI engine, theme, responsive và slots](./docs/ui-engine.md)
+- [API reference](./docs/api-reference.md)
+- [Backend, security và adapter](./GUIDE.md)
+- [DOCX capability matrix](./CAPABILITIES.md)
+- [Performance và tài liệu 100 trang](./docs/performance.md)
+- [Migration v1 → v2](./MIGRATION.md)
+- [REST OpenAPI](./openapi/document-api.yaml)
+
+## Phát triển và kiểm thử
+
+```bash
+npm test
+npm run test:e2e
+npm run test:package
+npm run test:libreoffice # cần có soffice; CI tự cài LibreOffice
+npm run typecheck
+npm run lint:check
+npm run build
+```
+
+License: MIT.

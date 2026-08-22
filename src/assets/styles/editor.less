@@ -48,7 +48,7 @@
     counter-reset: title;
     color: var(--kindy-content-text-color);
     width: 100%;
-    padding: 0 var(--kindy-page-margin-right) 0 var(--kindy-page-margin-left);
+    padding: 0;
     box-sizing: border-box;
     overflow-wrap: anywhere;
     word-wrap: break-word;
@@ -60,7 +60,7 @@
       var(--kindy-page-height) - var(--kindy-page-margin-top) -
         var(--kindy-page-margin-bottom)
     );
-    float: left;
+    float: none;
     font-family: var(--kindy-font-family);
     font-size: var(--kindy-font-size);
     font-display: swap;
@@ -498,35 +498,41 @@
     .kindy-page-divider();
   }
 
-  .kindy-page-break {
-    display: flex !important;
-    align-items: center;
-    justify-content: flex-end;
+  .kindy-page-break,
+  .kindy-section-break {
+    display: block !important;
     position: relative !important;
     box-sizing: border-box !important;
-    padding-right: 24px !important;
-
-    /* Google Docs & MS Word Physical Page Gap */
-    width: calc(100% + calc(var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm)) * var(--page-zoom, 1)) !important;
-    margin-left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1)) !important;
-    margin-right: calc(-1 * var(--margin-right, 2.54cm) * var(--page-zoom, 1)) !important;
-    margin-top: 24px !important;
-    margin-bottom: 24px !important;
-    height: 24px !important;
-    background: var(--kindy-container-background, #e8eaed) !important;
-    border-top: 1px solid #cbd5e1 !important;
-    border-bottom: 1px solid #cbd5e1 !important;
+    width: 100% !important;
+    height: var(--kindy-page-spacer-height, 72px) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
     user-select: none;
     z-index: 10;
     break-before: page;
     page-break-before: always;
 
     /* Prevent weird double breaks stacking */
-    & + .kindy-page-break {
+    & + .kindy-page-break,
+    & + .kindy-section-break {
       display: none !important;
     }
 
-    /* Google Docs / MS Word Page Break Badge */
+    &::before {
+      content: '';
+      position: absolute;
+      top: var(--kindy-page-separator-offset, 24px);
+      left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1));
+      width: calc(100% + calc(var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm)) * var(--page-zoom, 1));
+      height: var(--kindy-page-gap, 24px);
+      box-sizing: border-box;
+      background: var(--kindy-container-background, #e8eaed);
+      border-top: 1px solid #cbd5e1;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
     &::after {
       content: attr(data-content);
       font-size: 11px;
@@ -539,9 +545,9 @@
       background-color: #ffffff;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
       position: absolute;
-      left: 50%;
-      top: -10px;
-      transform: translateX(-50%);
+      right: 24px;
+      top: calc(var(--kindy-page-separator-offset, 24px) + var(--kindy-page-gap, 24px) / 2);
+      transform: translateY(-50%);
       pointer-events: none;
       z-index: 20;
     }
@@ -558,6 +564,10 @@
       break-before: page;
 
       &::after {
+        display: none;
+      }
+
+      &::before {
         display: none;
       }
     }
@@ -928,5 +938,3 @@
     }
   }
 }
-
-
