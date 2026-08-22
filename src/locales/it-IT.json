@@ -380,6 +380,10 @@
     },
     "breakMarks": "Interruzioni di riga",
     "break": "Interruzione di pagina",
+    "status": "Pagina {current} / {total}",
+    "statusAria": "Pagina {current} di {total}",
+    "goTo": "Vai alla pagina",
+    "goToAction": "Vai",
     "lineNumber": "Numeri di riga",
     "margin": "Margini",
     "orientation": {

@@ -508,6 +508,10 @@
     },
     "breakMarks": "显示换行",
     "break": "分页符",
+    "status": "第 {current} / {total} 页",
+    "statusAria": "第 {current} 页，共 {total} 页",
+    "goTo": "转到页面",
+    "goToAction": "转到",
     "lineNumber": "显示行号",
     "margin": "页边距",
     "orientation": {

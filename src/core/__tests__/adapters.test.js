@@ -22,6 +22,27 @@ async function adapterContract(adapter) {
 describe('DocumentApiAdapter contract', () => {
   it('passes for MemoryDocumentAdapter', async () => adapterContract(createMemoryDocumentAdapter()))
 
+  it('binds the exact imported DOCX bytes to the initial revision', async () => {
+    const adapter = createMemoryDocumentAdapter()
+    const bytes = Uint8Array.from([80, 75, 3, 4, 75, 73, 78, 68, 89])
+    const document = await adapter.importDocument({
+      title: 'Hợp đồng có ảnh',
+      fileName: 'hop-dong-co-anh.docx',
+      file: new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }),
+      state: createEmptyDocumentState(),
+      compatibilityReport: { profile: 'kindy-docx-v2.0', supported: true, issues: [] },
+    })
+
+    expect(document.originalSource).toMatchObject({
+      revisionId: document.currentRevisionId,
+      format: 'original-docx',
+      fileName: 'hop-dong-co-anh.docx',
+    })
+    const artifact = await adapter.getArtifact(document.id, document.originalSource.artifactId)
+    expect(new Uint8Array(await artifact.blob.arrayBuffer())).toEqual(bytes)
+    expect((await adapter.loadState(document.id)).document.originalSource).toEqual(document.originalSource)
+  })
+
   it('passes for RestDocumentAdapter through the mock OpenAPI transport', async () => {
     const mock = createMockDocumentTransport()
     await adapterContract(createRestDocumentAdapter({ baseUrl: mock.baseUrl, transport: mock.transport }))

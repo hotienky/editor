@@ -25,9 +25,16 @@ export function resolveLibraryUi(options?: Partial<KindyLibraryUiOptions>): Kind
 export function resolveLibraryMessages(locale?: string, overrides?: Partial<KindyLibraryMessages>): KindyLibraryMessages
 export function createLibraryTheme(overrides?: Record<string, string>): Record<string, string>
 
+export interface KindyContractToolbarOptions { showSaveLabel: boolean; defaultMode: 'classic' | 'ribbon'; allowModeSwitch: boolean; menus: Array<'base' | 'insert' | 'table' | 'tools' | 'page' | 'view' | 'export'> }
+export interface KindyContractStatusbarOptions { showOutline: boolean; showSpellcheck: boolean; showShortcuts: boolean; showReset: boolean; showLayout: boolean; showPageStatus: boolean; showWordCount: boolean; showBranding: boolean; showFullscreen: boolean; showPreview: boolean; showZoom: boolean; showLocale: boolean }
+export interface KindyContractEditorOptions { editorKey: string; toolbar: KindyContractToolbarOptions; statusbar: KindyContractStatusbarOptions; page: { layouts: ['page']; showRuler: boolean }; disableExtensions: string[] }
+export const CONTRACT_EDITOR_OPTIONS: Readonly<KindyContractEditorOptions>
+export function createContractEditorOptions(overrides?: Record<string, unknown>): KindyContractEditorOptions & Record<string, unknown>
+
 export interface DocumentCapabilities { view?: boolean; edit?: boolean; comment?: boolean; review?: boolean; download?: boolean; restore?: boolean; manage?: boolean }
 export interface DocumentSummary { id: string; title: string; fileName: string; folderId?: string | null; tags?: string[]; currentVersionId?: string; currentRevisionId?: string; isTemplate?: boolean; updatedAt: string; createdAt?: string; capabilities?: DocumentCapabilities }
-export interface DocumentRecord extends DocumentSummary { description?: string; metadata?: Record<string, unknown> }
+export interface OriginalDocxSource { artifactId: string; revisionId: string; format: 'original-docx'; fileName: string; compatibilityReport?: CompatibilityReport }
+export interface DocumentRecord extends DocumentSummary { description?: string; metadata?: Record<string, unknown>; originalSource?: OriginalDocxSource }
 export interface DocumentVersion { id: string; documentId: string; number: number; revisionId: string; reason: SaveReason | 'create' | 'import' | 'restore' | 'template'; createdAt: string; createdBy?: { id?: string; name?: string }; label?: string }
 export interface DocumentSnapshot { document: DocumentRecord; state: KindyDocumentState; revisionId: string; version?: DocumentVersion }
 export interface DocumentArtifact { id: string; documentId: string; versionId?: string; format: ArtifactFormat; fileName: string; mimeType: string; size?: number; url?: string; blob?: Blob; createdAt: string }
@@ -117,7 +124,7 @@ export interface CollaborationAdapter { connect(context: { documentId: string; r
 export class YjsCollaborationAdapter implements CollaborationAdapter { constructor(options: { providerFactory(context: { documentId: string; user?: { id?: string; name?: string; color?: string }; editor: unknown }): unknown | Promise<unknown> }) }
 export function createYjsCollaborationAdapter(options: ConstructorParameters<typeof YjsCollaborationAdapter>[0]): YjsCollaborationAdapter
 
-export interface KindyEditorOptions { editorKey?: string; locale?: 'vi-VN' | 'en-US' | 'zh-CN'; theme?: 'light' | 'dark' | 'auto'; skin?: 'default' | 'modern'; height?: string; toolbar?: Record<string, unknown>; page?: Record<string, unknown>; document?: { title?: string; content?: string | JSONContent; assets?: AssetReference[]; readOnly?: boolean; autoSave?: { enabled: boolean; interval?: number } }; translations?: Record<string, Record<string, string>>; [key: string]: unknown }
+export interface KindyEditorOptions { editorKey?: string; locale?: 'vi-VN' | 'en-US' | 'zh-CN' | 'it-IT' | 'ru-RU'; theme?: 'light' | 'dark' | 'auto'; skin?: 'default' | 'modern'; height?: string; toolbar?: Partial<KindyContractToolbarOptions>; statusbar?: Partial<KindyContractStatusbarOptions>; page?: Record<string, unknown>; document?: { title?: string; content?: string | JSONContent; assets?: AssetReference[]; readOnly?: boolean; autoSave?: { enabled: boolean; interval?: number } }; translations?: Record<string, Record<string, string>>; disableExtensions?: string[]; [key: string]: unknown }
 export interface KindyDocumentLibraryProps {
   adapter?: DocumentApiAdapter
   client?: DocumentLibraryClient
@@ -148,8 +155,13 @@ export interface KindyEditorHandle {
   focus(): void
   destroy(): void
 }
+export interface KindyDocumentLibraryHandle {
+  importDocument(): void
+  downloadDocx(): Promise<void>
+  print(): void
+}
 export const KindyEditor: DefineComponent<KindyEditorOptions, KindyEditorHandle, object>
-export const KindyDocumentLibrary: DefineComponent<KindyDocumentLibraryProps>
+export const KindyDocumentLibrary: DefineComponent<KindyDocumentLibraryProps, KindyDocumentLibraryHandle, object>
 export const KindyDocumentLibraryShell: Component
 export const KindyDocumentExplorer: Component
 export const KindyVersionPanel: Component

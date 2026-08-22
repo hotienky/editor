@@ -424,17 +424,35 @@ function imageFromOoxml(
   parts: DocxPackageParts,
   assets: AssetReference[],
 ): JSONContent | null {
-  const blip = xmlFirst(element, 'blip')
-  const imageData = xmlFirst(element, 'imagedata')
-  const relationId = blip?.getAttribute('r:embed') || blip?.getAttribute('embed')
-    || imageData?.getAttribute('r:id') || imageData?.getAttribute('id')
-  const target = relationId ? relationships.get(relationId) : undefined
-  const mediaName = target ? normalizeWordPartTarget(target) : undefined
-  const media = mediaName ? parts.media[mediaName] : undefined
-  if (!relationId || !mediaName || !media || !isBrowserRenderableImage(mediaName)) return null
+  // A Word run may contain mc:AlternateContent with a DrawingML choice and a
+  // VML fallback. Do not stop at the first relationship: it is common for the
+  // primary choice to be EMF/WMF while the fallback is a browser-safe PNG.
+  const relationshipCandidates = [
+    ...xmlElements(element, 'blip').flatMap((value) => [
+      value.getAttribute('r:embed'),
+      value.getAttribute('embed'),
+      value.getAttribute('r:link'),
+      value.getAttribute('link'),
+    ]),
+    ...xmlElements(element, 'imagedata').flatMap((value) => [
+      value.getAttribute('r:id'),
+      value.getAttribute('id'),
+    ]),
+  ].filter((value, index, values): value is string => Boolean(value) && values.indexOf(value) === index)
+  const resolved = relationshipCandidates
+    .map((relationId) => {
+      const target = relationships.get(relationId)
+      const mediaName = target ? normalizeWordPartTarget(target) : undefined
+      const media = mediaName ? parts.media[mediaName] : undefined
+      return { relationId, mediaName, media }
+    })
+    .find((candidate) => candidate.mediaName && candidate.media && isBrowserRenderableImage(candidate.mediaName))
+  if (!resolved?.mediaName || !resolved.media) return null
+  const { relationId, mediaName, media } = resolved
 
   const dataUrl = bytesToDataUrl(media, mediaName)
   const metadata = xmlFirst(element, 'docPr') || xmlFirst(element, 'cNvPr')
+  const imageData = xmlFirst(element, 'imagedata')
   const alt = metadata?.getAttribute('descr') || imageData?.getAttribute('o:title') || ''
   const title = metadata?.getAttribute('title') || metadata?.getAttribute('name') || alt
   const id = `docx-${mediaName.replace(/[^a-z\d_-]/gi, '-')}`
@@ -589,7 +607,12 @@ function ooxmlRun(
       output.push({ type: 'text', text: '\t', marks: marks.length ? marks : undefined })
     } else if (child.localName === 'br') {
       output.push({ type: child.getAttribute('w:type') === 'page' ? 'pageBreak' : 'hardBreak' })
-    } else if (child.localName === 'drawing' || child.localName === 'pict') {
+    } else if (
+      child.localName === 'drawing'
+      || child.localName === 'pict'
+      || xmlElements(child, 'drawing').length > 0
+      || xmlElements(child, 'pict').length > 0
+    ) {
       const image = imageFromOoxml(child, relationships, parts, assets)
       if (image) output.push(image)
     }
@@ -1005,6 +1028,21 @@ function unsupportedStateIssues(
   if (!supportedNode) {
     issues.push({ code: 'UNSUPPORTED_NODE', feature: node.type!, severity: 'warning', message: `Node “${node.type}” is outside the ${profile} profile.`, location: path })
   }
+  if (node.type === 'image' || node.type === 'inlineImage') {
+    const source = String(node.attrs?.src || '')
+    const type = imageTypeFromSource(source)
+    if (!source) {
+      issues.push({
+        code: 'IMAGE_SOURCE_MISSING', feature: 'image', severity: 'warning',
+        message: 'The image has no source and cannot be written to DOCX.', location: path,
+      })
+    } else if (!type) {
+      issues.push({
+        code: 'IMAGE_FORMAT_UNVERIFIED', feature: 'image', severity: 'warning',
+        message: 'The image format cannot be verified as PNG, JPEG, GIF or BMP for DOCX export.', location: path,
+      })
+    }
+  }
   node.marks?.forEach((mark) => {
     const supportedMark = supportedMarkTypes.has(mark.type)
       || (profileRank(profile) >= 2 && (mark.type === 'trackChange' || mark.type === 'comment'))
@@ -1038,17 +1076,35 @@ function fontSizeHalfPoints(value: unknown) {
   return Number.isFinite(number) ? Math.round(number * 2) : undefined
 }
 
-async function loadImage(source: string) {
+type SerializableImageType = 'jpg' | 'png' | 'gif' | 'bmp'
+
+function imageTypeFromSource(source: string): SerializableImageType | undefined {
+  const dataType = source.match(/^data:image\/([^;,]+)/i)?.[1]?.toLowerCase().replace('jpeg', 'jpg')
+  const pathType = (() => {
+    try {
+      return new URL(source, 'https://kindy.invalid').pathname.split('.').pop()?.toLowerCase().replace('jpeg', 'jpg')
+    } catch {
+      return undefined
+    }
+  })()
+  const type = dataType || pathType
+  return type === 'jpg' || type === 'png' || type === 'gif' || type === 'bmp' ? type : undefined
+}
+
+async function loadImage(source: string): Promise<{ type: SerializableImageType; data: Uint8Array }> {
   if (source.startsWith('data:')) {
     const [meta, payload] = source.split(',', 2)
-    const type = meta.match(/^data:image\/([^;,]+)/)?.[1]?.replace('jpeg', 'jpg') || 'png'
+    const type = imageTypeFromSource(source)
+    if (!type) throw new Error('Image type is not supported by the DOCX serializer.')
     const binary = meta.includes(';base64') ? atob(payload) : decodeURIComponent(payload)
     return { type, data: Uint8Array.from(binary, (char) => char.charCodeAt(0)) }
   }
   const response = await fetch(source)
   if (!response.ok) throw new Error(`Image fetch failed (${response.status}).`)
   const mime = response.headers.get('content-type') || 'image/png'
-  return { type: mime.split('/')[1]?.replace('jpeg', 'jpg') || 'png', data: new Uint8Array(await response.arrayBuffer()) }
+  const type = imageTypeFromSource(`data:${mime},`)
+  if (!type) throw new Error(`Image type ${mime} is not supported by the DOCX serializer.`)
+  return { type, data: new Uint8Array(await response.arrayBuffer()) }
 }
 
 function numericRevisionId(value: unknown) {
@@ -1138,7 +1194,7 @@ async function inlineRuns(nodes: JSONContent[] = []): Promise<Array<TextRun | In
         const image = await loadImage(src)
         children.push(new ImageRun({
           data: image.data,
-          type: image.type as 'png',
+          type: image.type,
           transformation: { width: Number(node.attrs?.width) || 320, height: Number(node.attrs?.height) || 180 },
         }))
       } catch {

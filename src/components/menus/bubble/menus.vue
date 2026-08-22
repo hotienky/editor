@@ -29,24 +29,13 @@
     <menus-bubble-image-reset />
     <menus-bubble-image-reset-all />
     <div class="kindy-bubble-menu-divider"></div>
-    <menus-bubble-image-preview
-      v-if="
-        attrs('image')?.type?.startsWith('image') ||
-        attrs('inlineImage')?.type?.startsWith('image')
-      "
-    />
+    <menus-bubble-image-preview v-if="isPreviewableImage()" />
     <menus-bubble-image-edit />
     <menus-bubble-image-open />
     <menus-bubble-node-duplicate
       v-if="is('image') && attrs('image').draggable"
     />
-    <menus-bubble-node-tofile
-      v-if="
-        attrs('image').type.startsWith('image') &&
-        attrs('image').previewType !== null &&
-        attrs('inlineImage').previewType !== null
-      "
-    />
+    <menus-bubble-node-tofile v-if="isPreviewableImage()" />
     <menus-bubble-image-convert />
     <div class="kindy-bubble-menu-divider"></div>
     <menus-bubble-node-delete />
@@ -202,7 +191,16 @@ const is = (type) => {
 const isNodeSelection = () =>
   editor.value?.state.selection instanceof NodeSelection
 const attrs = (type) => {
-  return editor.value.getAttributes(type)
+  return editor.value?.getAttributes(type) || {}
+}
+const selectedImageAttrs = () => {
+  if (is('image')) return attrs('image')
+  if (is('inlineImage')) return attrs('inlineImage')
+  return {}
+}
+const isPreviewableImage = () => {
+  const imageAttrs = selectedImageAttrs()
+  return String(imageAttrs.type || '').startsWith('image') && imageAttrs.previewType !== null
 }
 
 const getCurrentNode = (type) => {

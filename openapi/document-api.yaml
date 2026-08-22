@@ -179,6 +179,17 @@ components:
         updatedAt: { type: string, format: date-time }
         metadata: { type: object, additionalProperties: true }
         capabilities: { type: object, additionalProperties: { type: boolean } }
+        originalSource:
+          $ref: '#/components/schemas/OriginalDocxSource'
+    OriginalDocxSource:
+      type: object
+      required: [artifactId, revisionId, format, fileName]
+      properties:
+        artifactId: { type: string }
+        revisionId: { type: string }
+        format: { const: original-docx }
+        fileName: { type: string }
+        compatibilityReport: { type: object, additionalProperties: true }
     CreateDocumentInput:
       type: object
       required: [title]

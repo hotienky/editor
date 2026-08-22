@@ -1,7 +1,10 @@
 <template>
   <div v-if="!page.preview?.enabled" class="kindy-status-bar">
     <div class="kindy-status-bar-left">
-      <tooltip :content="page.showToc ? t('toc.hide') : t('toc.show')">
+      <tooltip
+        v-if="statusbarOptions.showOutline"
+        :content="page.showToc ? t('toc.hide') : t('toc.show')"
+      >
         <t-button
           class="kindy-status-bar-button"
           :class="{ active: page.showToc }"
@@ -13,7 +16,7 @@
         </t-button>
       </tooltip>
       <tooltip
-        v-if="options.document?.enableSpellcheck"
+        v-if="statusbarOptions.showSpellcheck && options.document?.enableSpellcheck"
         :content="
           $document?.enableSpellcheck
             ? t('spellcheck.disable')
@@ -30,7 +33,7 @@
           <icon name="spellcheck" color="red" />
         </t-button>
       </tooltip>
-      <tooltip :content="t('shortcut.title')">
+      <tooltip v-if="statusbarOptions.showShortcuts" :content="t('shortcut.title')">
         <t-button
           class="kindy-status-bar-button"
           variant="text"
@@ -40,7 +43,7 @@
           <icon name="shortcut" />
         </t-button>
       </tooltip>
-      <tooltip :content="t('resetAll.title')">
+      <tooltip v-if="statusbarOptions.showReset" :content="t('resetAll.title')">
         <t-button
           class="kindy-status-bar-button"
           variant="text"
@@ -50,8 +53,9 @@
           <icon name="clear-cache" />
         </t-button>
       </tooltip>
-      <div class="kindy-status-bar-split"></div>
+      <div v-if="showLeadingDivider" class="kindy-status-bar-split"></div>
       <t-dropdown
+        v-if="statusbarOptions.showLayout && layouts.length > 1"
         :attach="container"
         :popup-props="{
           onVisibleChange(visible) {
@@ -67,7 +71,7 @@
           size="small"
         >
           <icon :name="`layout-${page.layout}`" />
-          {{ currentLayout.content }}
+          {{ currentLayout?.content }}
           <icon
             name="arrow-down"
             :style="{
@@ -90,9 +94,48 @@
           </t-dropdown-item>
         </t-dropdown-menu>
       </t-dropdown>
-      <div class="kindy-status-bar-split"></div>
+      <div
+        v-if="statusbarOptions.showLayout && layouts.length > 1"
+        class="kindy-status-bar-split"
+      ></div>
       <t-popup
-        v-if="editor"
+        v-if="page.layout === 'page' && statusbarOptions.showPageStatus"
+        v-model="showPageJump"
+        trigger="click"
+        placement="top-left"
+      >
+        <t-button
+          class="kindy-status-bar-button auto-width kindy-page-status-button"
+          variant="text"
+          size="small"
+          :aria-label="pageStatusAria"
+        >
+          {{ pageStatusText }}
+        </t-button>
+        <template #content>
+          <form class="kindy-page-jump" @submit.prevent="goToPage">
+            <label for="kindy-page-jump-input">{{ pageCopy.goTo }}</label>
+            <div class="kindy-page-jump-row">
+              <input
+                id="kindy-page-jump-input"
+                v-model.number="pageJumpValue"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                :max="totalPages"
+              />
+              <span>/ {{ totalPages }}</span>
+              <t-button size="small" theme="primary" type="submit">{{ pageCopy.goToAction }}</t-button>
+            </div>
+          </form>
+        </template>
+      </t-popup>
+      <div
+        v-if="page.layout === 'page' && statusbarOptions.showPageStatus && statusbarOptions.showWordCount"
+        class="kindy-status-bar-split"
+      ></div>
+      <t-popup
+        v-if="editor && statusbarOptions.showWordCount"
         v-model="showWordCount"
         trigger="click"
         placement="top-left"
@@ -136,9 +179,10 @@
           </div>
         </template>
       </t-popup>
-      <div class="kindy-status-bar-split"></div>
+      <div v-if="statusbarOptions.showBranding" class="kindy-status-bar-split"></div>
       <!-- 请遵循开源协议，勿删除或隐藏版权信息！ -->
       <t-button
+        v-if="statusbarOptions.showBranding"
         class="kindy-status-bar-button auto-width"
         variant="text"
         size="small"
@@ -149,6 +193,7 @@
     </div>
     <div class="kindy-status-bar-right">
       <tooltip
+        v-if="statusbarOptions.showFullscreen"
         :content="`${fullscreen?.isFullscreen ? t('fullscreen.disable') : t('fullscreen.title')} (${getShortcut('Ctrl+F11')})`"
       >
         <t-button
@@ -161,6 +206,7 @@
         </t-button>
       </tooltip>
       <tooltip
+        v-if="statusbarOptions.showPreview"
         :content="
           page.preview?.enabled ? t('preview.disable') : t('preview.title')
         "
@@ -175,8 +221,11 @@
           <icon name="preview" />
         </t-button>
       </tooltip>
-      <div class="kindy-status-bar-split"></div>
-      <div v-if="page.layout === 'page'" class="kindy-zoom-level-bar">
+      <div v-if="showRightDivider" class="kindy-status-bar-split"></div>
+      <div
+        v-if="page.layout === 'page' && statusbarOptions.showZoom"
+        class="kindy-zoom-level-bar"
+      >
         <tooltip :content="`${t('zoom.zoomOut')} (${getShortcut('Ctrl-')})`">
           <t-button
             class="kindy-status-bar-button"
@@ -238,6 +287,7 @@
         </tooltip>
       </div>
       <t-dropdown
+        v-if="statusbarOptions.showLocale"
         :attach="container"
         :options="langs"
         placement="top-left"
@@ -347,6 +397,69 @@ const editor = inject('editor')
 const page = inject('page')
 const options = inject('options')
 const $document = useState('document', options)
+const statusbarOptions = computed(() => options.value.statusbar || {})
+const hasLeadingTools = computed(() => Boolean(
+  statusbarOptions.value.showOutline
+    || (statusbarOptions.value.showSpellcheck && options.value.document?.enableSpellcheck)
+    || statusbarOptions.value.showShortcuts
+    || statusbarOptions.value.showReset,
+))
+const showLeadingDivider = computed(() => Boolean(
+  hasLeadingTools.value
+    && (
+      (statusbarOptions.value.showLayout && options.value.page.layouts.length > 1)
+      || statusbarOptions.value.showPageStatus
+      || statusbarOptions.value.showWordCount
+      || statusbarOptions.value.showBranding
+    ),
+))
+const showRightDivider = computed(() => Boolean(
+  (statusbarOptions.value.showFullscreen || statusbarOptions.value.showPreview)
+    && (statusbarOptions.value.showZoom || statusbarOptions.value.showLocale),
+))
+
+const showPageJump = ref(false)
+const pageJumpValue = ref(1)
+const totalPages = computed(() => Math.max(
+  1,
+  Number(page.value.paginationStatus?.totalPages)
+    || Number(editor.value?.storage?.pagination?.totalPages)
+    || 1,
+))
+const currentPage = computed(() => Math.max(
+  1,
+  Math.min(
+    Number(page.value.paginationStatus?.currentPage)
+      || Number(editor.value?.storage?.pagination?.currentPage)
+      || 1,
+    totalPages.value,
+  ),
+))
+
+const pageCopy = computed(() => {
+  if (locale.value.startsWith('vi')) return { page: 'Trang', of: 'trên', goTo: 'Đi tới trang', goToAction: 'Đi tới' }
+  if (locale.value.startsWith('zh')) return { page: '第', of: '/', goTo: '转到页面', goToAction: '转到', suffix: '页' }
+  if (locale.value.startsWith('it')) return { page: 'Pagina', of: 'di', goTo: 'Vai alla pagina', goToAction: 'Vai' }
+  if (locale.value.startsWith('ru')) return { page: 'Страница', of: 'из', goTo: 'Перейти к странице', goToAction: 'Перейти' }
+  return { page: 'Page', of: 'of', goTo: 'Go to page', goToAction: 'Go' }
+})
+const pageStatusText = computed(() => locale.value.startsWith('zh')
+  ? `${pageCopy.value.page} ${currentPage.value} / ${totalPages.value} ${pageCopy.value.suffix}`
+  : `${pageCopy.value.page} ${currentPage.value} / ${totalPages.value}`,
+)
+const pageStatusAria = computed(
+  () => `${pageCopy.value.page} ${currentPage.value} ${pageCopy.value.of} ${totalPages.value}`,
+)
+
+watch(currentPage, (value) => { pageJumpValue.value = value }, { immediate: true })
+
+const goToPage = () => {
+  const target = Math.max(1, Math.min(Number(pageJumpValue.value) || 1, totalPages.value))
+  pageJumpValue.value = target
+  editor.value?.commands?.scrollToPage?.(target)
+  page.value.paginationStatus = { currentPage: target, totalPages: totalPages.value }
+  showPageJump.value = false
+}
 
 // 快捷键抽屉
 const showShortcut = ref(false)
@@ -562,6 +675,8 @@ const langs = [
   { content: '🇻🇳 Tiếng Việt', value: 'vi-VN' },
   { content: '🇨🇳 简体中文', value: 'zh-CN' },
   { content: '🇱🇷 English', value: 'en-US' },
+  { content: '🇮🇹 Italiano', value: 'it-IT' },
+  { content: '🇷🇺 Русский', value: 'ru-RU' },
 ]
 const setLocale = inject('setLocale')
 
@@ -570,7 +685,7 @@ const lang = computed(
 )
 const changeLang = (dropdownItem) => {
   const { value } = dropdownItem
-  if (lang.value === value) {
+  if (locale.value === value) {
     return
   }
   setLocale(value, false)
@@ -662,6 +777,12 @@ watch(
       color: var(--kindy-primary-color);
     }
   }
+  .kindy-page-status-button {
+    min-width: 78px;
+    padding: 0 8px;
+    font-variant-numeric: tabular-nums;
+    color: #3c4043;
+  }
   &-left {
     display: flex;
     align-items: center;
@@ -682,6 +803,37 @@ watch(
       .kindy-lang-button {
         display: none !important;
       }
+    }
+  }
+}
+.kindy-page-jump {
+  width: 220px;
+  padding: 12px;
+  color: #3c4043;
+  font-size: 12px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  &-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    input {
+      width: 54px;
+      height: 28px;
+      box-sizing: border-box;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      padding: 0 7px;
+      color: #202124;
+      outline: none;
+
+      &:focus { border-color: #1a73e8; }
     }
   }
 }

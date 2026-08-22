@@ -29,13 +29,12 @@
             </template>
           </toolbar-classic>
     <div
+      v-if="showToolbarActions"
       class="kindy-toolbar-actions"
       :class="`kindy-toolbar-actions-${$toolbar.mode}`"
     >
       <t-popup
-        v-if="
-          options.toolbar.showSaveLabel && options.document.readOnly !== true
-        "
+        v-if="showSaveStatus"
         v-model="statusPopup"
         :attach="container"
         trigger="click"
@@ -94,6 +93,7 @@
         </template>
       </t-popup>
       <t-dropdown
+        v-if="options.toolbar.allowModeSwitch !== false"
         trigger="click"
         size="small"
         placement="bottom-right"
@@ -148,25 +148,30 @@ const options = inject('options')
 const $toolbar = useState('toolbar', options)
 let statusPopup = ref(false)
 const online = useOnline()
+const showSaveStatus = computed(
+  () => options.value.toolbar.showSaveLabel && options.value.document.readOnly !== true,
+)
+const showToolbarActions = computed(
+  () => showSaveStatus.value || options.value.toolbar.allowModeSwitch !== false,
+)
 
 // 工具栏菜单
-const defaultToolbarMenus = [
-  { label: t('toolbar.base'), value: 'base' },
-  { label: t('toolbar.insert'), value: 'insert' },
-  { label: t('toolbar.table'), value: 'table' },
-  { label: t('toolbar.tools'), value: 'tools' },
-  { label: t('toolbar.page'), value: 'page' },
-  { label: t('toolbar.view'), value: 'view' },
-  { label: t('toolbar.export'), value: 'export' },
-]
-let toolbarMenus = defaultToolbarMenus
-if (options.value.toolbar?.menus) {
-  toolbarMenus = options.value.toolbar?.menus.map(
-    (item) => defaultToolbarMenus.filter((menu) => menu.value === item)[0],
-  )
-}
+const toolbarMenus = computed(() => {
+  const defaultToolbarMenus = [
+    { label: t('toolbar.base'), value: 'base' },
+    { label: t('toolbar.insert'), value: 'insert' },
+    { label: t('toolbar.table'), value: 'table' },
+    { label: t('toolbar.tools'), value: 'tools' },
+    { label: t('toolbar.page'), value: 'page' },
+    { label: t('toolbar.view'), value: 'view' },
+    { label: t('toolbar.export'), value: 'export' },
+  ]
+  return (options.value.toolbar?.menus || ['base'])
+    .map((item) => defaultToolbarMenus.find((menu) => menu.value === item))
+    .filter(Boolean)
+})
 if (!toolbarActive.value) {
-  toolbarActive.value = toolbarMenus[0].value
+  toolbarActive.value = toolbarMenus.value[0]?.value || 'base'
 }
 const menuChange = (menu) => {
   toolbarActive.value = menu

@@ -553,6 +553,10 @@
     },
     "breakMarks": "Ngắt dòng",
     "break": "Ngắt trang",
+    "status": "Trang {current} / {total}",
+    "statusAria": "Trang {current} trên {total}",
+    "goTo": "Đi tới trang",
+    "goToAction": "Đi tới",
     "lineNumber": "Số dòng",
     "margin": "Lề",
     "orientation": {

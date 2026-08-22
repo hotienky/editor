@@ -161,6 +161,40 @@ describe('DOCX codec', () => {
     expect(state.assets[0]).toMatchObject({ fileName: 'legacy.png', mimeType: 'image/png' })
   })
 
+  it('imports the renderable fallback image from mc:AlternateContent', () => {
+    const state = ooxmlToDocumentState({
+      contentTypes: 'wordprocessingml.document',
+      numberingXml: undefined,
+      relationshipsXml: '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdVector" Target="media/logo.emf" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"/><Relationship Id="rIdFallback" Target="media/logo.png" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"/></Relationships>',
+      documentXml: '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:v="urn:schemas-microsoft-com:vml"><w:body><w:p><w:r><mc:AlternateContent><mc:Choice Requires="wps"><w:drawing><wp:inline><wp:extent cx="304800" cy="228600"/><wp:docPr id="1" name="Logo chính" descr="Logo hợp đồng"/><a:graphic><a:graphicData><pic:pic><pic:blipFill><a:blip r:embed="rIdVector"/></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></mc:Choice><mc:Fallback><w:pict><v:shape style="width:24pt;height:18pt"><v:imagedata r:id="rIdFallback"/></v:shape></w:pict></mc:Fallback></mc:AlternateContent></w:r></w:p><w:sectPr/></w:body></w:document>',
+      media: {
+        'word/media/logo.emf': Uint8Array.from([1, 0, 0, 0]),
+        'word/media/logo.png': Uint8Array.from([137, 80, 78, 71]),
+      },
+    })
+    const [image] = state.content.content[0].content
+    expect(image.type).toBe('inlineImage')
+    expect(image.attrs).toMatchObject({ width: 32, height: 24, alt: 'Logo hợp đồng', name: 'logo.png' })
+    expect(image.attrs.src).toMatch(/^data:image\/png;base64,/)
+    expect(state.assets).toEqual([
+      expect.objectContaining({ fileName: 'logo.png', mimeType: 'image/png' }),
+    ])
+  })
+
+  it('rejects image formats the DOCX serializer cannot safely write in strict mode', async () => {
+    const state = createEmptyDocumentState({
+      content: { type: 'doc', content: [{
+        type: 'paragraph',
+        content: [{ type: 'inlineImage', attrs: { src: 'data:image/webp;base64,UklGRg==', width: 20, height: 20 } }],
+      }] },
+    })
+    await expect(exportDocx(state)).rejects.toMatchObject({ code: 'DOCX_UNSUPPORTED' })
+    const result = await exportDocx(state, { mode: 'best-effort' })
+    expect(result.report.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: 'IMAGE_FORMAT_UNVERIFIED' }),
+    ]))
+  })
+
   it('normalizes landscape OOXML dimensions to canonical portrait size plus orientation', () => {
     const state = ooxmlToDocumentState({
       contentTypes: 'wordprocessingml.document',

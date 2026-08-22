@@ -61,7 +61,7 @@ const getParsedImageElement = (element) => {
     return cached
   }
   const sourceElement =
-    element.tagName.toLowerCase() === 'img'
+    ['img', 'inline-img'].includes(element.tagName.toLowerCase())
       ? element
       : element.querySelector('img')
   const parsed = {
@@ -545,6 +545,7 @@ export const BlockImage = BaseImage.extend({
 
 export const InlineImage = BaseImage.extend({
   name: 'inlineImage',
+  priority: 110,
   inline: true,
   group: 'inline',
   addAttributes() {
@@ -557,13 +558,21 @@ export const InlineImage = BaseImage.extend({
     }
   },
   parseHTML() {
-    return [{ tag: 'inline-img' }]
+    return [
+      {
+        tag: 'img[data-kindy-inline-image]',
+        getAttrs: (element) => shouldParseImageElement(element) ? null : false,
+      },
+      {
+        tag: 'inline-img',
+        getAttrs: (element) => shouldParseImageElement(element) ? null : false,
+      },
+    ]
   },
   renderHTML({ HTMLAttributes }) {
-    return ['inline-img', mergeAttributes(HTMLAttributes)]
-  },
-  addNodeView() {
-    return VueNodeViewRenderer(NodeView)
+    return ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+      'data-kindy-inline-image': 'true',
+    })]
   },
   addCommands() {
     return {

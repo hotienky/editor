@@ -143,6 +143,19 @@ const typeWriterIsRunning = ref(false)
 const $toolbar = useState('toolbar', options)
 const $document = useState('document', options)
 const $layout = useState('layout', options)
+watch(
+  () => options.value.toolbar,
+  (toolbar) => {
+    if (toolbar.allowModeSwitch === false) {
+      $toolbar.value = {
+        ...$toolbar.value,
+        mode: toolbar.defaultMode || 'classic',
+        show: true,
+      }
+    }
+  },
+  { immediate: true, deep: true },
+)
 
 provide('container', container.value)
 provide('options', options)
@@ -182,7 +195,7 @@ watch(
     showToc,
   }) => {
     page.value = {
-      layout: $layout.value || layouts[0],
+      layout: layouts.includes($layout.value) ? $layout.value : layouts[0],
       size: options.value.dicts?.pageSizes.find((item) => item.default),
       margin: defaultMargin,
       background: defaultBackground,
@@ -510,10 +523,9 @@ watch(
 )
 
 // i18n Setup
+const SUPPORTED_LOCALES = ['vi-VN', 'en-US', 'zh-CN', 'it-IT', 'ru-RU']
 const { t, locale, mergeLocaleMessage } = useI18n()
 const $locale = useStorage('kindy-editor:locale', options.value.locale)
-locale.value = $locale.value
-consoleCopyright(t)
 const getLocaleMessage = (lang) => {
   const translations = options.value.translations?.[lang.replaceAll('-', '_')]
   if (isRecord(translations)) {
@@ -521,7 +533,22 @@ const getLocaleMessage = (lang) => {
   }
   return {}
 }
-mergeLocaleMessage(locale.value, getLocaleMessage(locale.value))
+const applyLocale = (lang, persist = true) => {
+  if (!SUPPORTED_LOCALES.includes(lang)) {
+    throw new Error(`"locale" must be one of ${SUPPORTED_LOCALES.join(', ')}.`)
+  }
+  mergeLocaleMessage(lang, getLocaleMessage(lang))
+  locale.value = lang
+  options.value.locale = lang
+  if (persist) $locale.value = lang
+}
+const initialLocale = SUPPORTED_LOCALES.includes(props.locale)
+  ? props.locale
+  : SUPPORTED_LOCALES.includes($locale.value)
+    ? $locale.value
+    : options.value.locale
+applyLocale(initialLocale)
+consoleCopyright(t)
 const { appContext } = getCurrentInstance()
 if (appContext) {
   appContext.config.globalProperties.t = t
@@ -531,6 +558,12 @@ watch(
   () => locale.value,
   (locale, oldLocale) => {
     emits('changed:locale', { locale, oldLocale })
+  },
+)
+watch(
+  () => props.locale,
+  (value) => {
+    if (value && value !== locale.value) applyLocale(value)
   },
 )
 
@@ -549,6 +582,8 @@ const localeConfig = ref({
       cancel: 'Hủy',
     },
   },
+  'it-IT': enConfig,
+  'ru-RU': enConfig,
 })
 
 // Options Setup
@@ -841,32 +876,14 @@ const getContent = (format = 'html') => {
 }
 
 // Locale Methods
-const setLocale = (lang, silent = true) => {
-  if (!['zh-CN', 'en-US', 'vi-VN'].includes(lang)) {
-    throw new Error('"params" must be one of "zh-CN", "en-US" or "vi-VN".')
+const setLocale = (lang) => {
+  if (!SUPPORTED_LOCALES.includes(lang)) {
+    throw new Error(`"params" must be one of ${SUPPORTED_LOCALES.join(', ')}.`)
   }
   if (locale.value === lang) {
     return
   }
-  if (silent) {
-    $locale.value = lang
-    location.reload()
-    return
-  }
-  const dialog = useConfirm({
-    attach: container,
-    theme: 'warning',
-    header: t('changeLocale.title'),
-    body: t('changeLocale.message'),
-    confirmBtn: {
-      theme: 'warning',
-      content: t('changeLocale.confirm'),
-    },
-    onConfirm() {
-      dialog.destroy()
-      setTimeout(() => setLocale(lang), 300)
-    },
-  })
+  applyLocale(lang)
 }
 
 const getLocale = () => locale.value

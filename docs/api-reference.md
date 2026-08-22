@@ -39,7 +39,7 @@ Workspace hoàn chỉnh kết nối UI với `DocumentLibraryClient`.
 | `theme` | `Record<string,string>` | `{}` | CSS variable overrides |
 | `messages` | `Partial<KindyLibraryMessages>` | `{}` | Override Library UI labels |
 | `ui` | `Partial<KindyLibraryUiOptions>` | defaults | Layout/density/panels |
-| `editorOptions` | `Record<string,unknown>` | `{}` | Chuyển vào `KindyEditor` |
+| `editorOptions` | `Record<string,unknown>` | preset Contract | Override cấu hình `KindyEditor`; mặc định compact và page-only |
 | `showVersions` | `boolean` | `true` | Backward-compatible versions switch |
 | `confirmCompatibility` | `(report) => boolean \| Promise<boolean>` | `window.confirm` | Xác nhận best-effort import/export |
 
@@ -60,6 +60,7 @@ Phải truyền đúng một trong `adapter` hoặc `client`. Khi tự truyền 
 | `compatibility-warning` | `CompatibilityReport` |
 | `version-restored` | `DocumentSnapshot` |
 | `printed` | `DocumentRecord` |
+| `locale-changed` | `string` |
 | `error` | `unknown` |
 
 ### Exposed handle
@@ -69,8 +70,9 @@ workspace.client
 workspace.openDocument(document)
 workspace.closeDocument()
 workspace.save()
-workspace.exportDocx({ mode, store, fileName })
+workspace.exportDocx({ mode, store, fileName, preferOriginal })
 workspace.downloadDocx()
+workspace.importDocument() // mở file picker và import qua client/adapter
 workspace.preparePrint()
 workspace.print()
 workspace.getState()
@@ -81,7 +83,7 @@ workspace.toggleExplorer(open?)
 workspace.toggleVersions(open?)
 ```
 
-`exportDocx()` trả Blob nhưng không tự download. `downloadDocx()` chạy flow UI strict → confirm best-effort → download.
+`exportDocx()` trả `{ blob, report, source }` nhưng không tự download; `source` là `original` hoặc `serialized`. Mặc định hàm ưu tiên blob gốc nếu `DocumentRecord.originalSource.revisionId` vẫn là revision đang mở; đặt `preferOriginal: false` để buộc serialize. `downloadDocx()` cũng ưu tiên artifact gốc (Blob hoặc URL), sau đó mới chạy flow strict → confirm best-effort → download.
 `save()` luôn flush transaction đang chờ. `flushState()` chỉ đồng bộ editor vào client và đánh dấu dirty, không tự tạo version.
 
 ## `KindyDocumentLibraryShell`
@@ -163,11 +165,12 @@ Editor Vue độc lập. Props đầy đủ vẫn tương thích options hiện 
 
 ```ts
 interface KindyEditorOptions {
-  locale?: 'vi-VN' | 'en-US' | 'zh-CN'
+  locale?: 'vi-VN' | 'en-US' | 'zh-CN' | 'it-IT' | 'ru-RU'
   theme?: 'light' | 'dark' | 'auto'
   skin?: 'default' | 'modern'
   height?: string
   toolbar?: Record<string, unknown>
+  statusbar?: Record<string, boolean>
   page?: Record<string, unknown>
   document?: {
     title?: string
@@ -177,6 +180,23 @@ interface KindyEditorOptions {
     autoSave?: { enabled: boolean; interval?: number }
   }
   translations?: Record<string, Record<string, string>>
+}
+```
+
+### Contract editor preset
+
+```ts
+CONTRACT_EDITOR_OPTIONS
+createContractEditorOptions(overrides?)
+```
+
+Preset mặc định của `KindyDocumentLibrary` dùng `toolbar.defaultMode = 'classic'`, `toolbar.allowModeSwitch = false`, các nhóm `base/insert/table/page/export`, `page.layouts = ['page']` và vô hiệu hóa các extension ngoài phạm vi hợp đồng. Trong workspace, Import/Export trên toolbar được chuyển sang pipeline của `DocumentLibraryClient` để giữ đúng revision và artifact. Các field status bar:
+
+```ts
+{
+  showOutline, showSpellcheck, showShortcuts, showReset,
+  showLayout, showPageStatus, showWordCount, showBranding,
+  showFullscreen, showPreview, showZoom, showLocale
 }
 ```
 
@@ -226,6 +246,20 @@ interface KindyDocumentState {
 ```
 
 State phải là JSON serializable. Không lưu Vue proxy, DOM node, File object hoặc callback trong state.
+
+`DocumentRecord` của một tài liệu import có thể chứa:
+
+```ts
+originalSource?: {
+  artifactId: string
+  revisionId: string
+  format: 'original-docx'
+  fileName: string
+  compatibilityReport?: CompatibilityReport
+}
+```
+
+Backend REST phải trả binding này từ `/documents/import` nếu muốn workspace hỗ trợ tải nguyên bản byte-for-byte.
 
 ```ts
 const state = createEmptyDocumentState({ content, page, assets })

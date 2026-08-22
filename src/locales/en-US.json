@@ -554,6 +554,10 @@
     },
     "breakMarks": "Line Breaks",
     "break": "Page Break",
+    "status": "Page {current} / {total}",
+    "statusAria": "Page {current} of {total}",
+    "goTo": "Go to page",
+    "goToAction": "Go",
     "lineNumber": "Line Numbers",
     "margin": "Margins",
     "orientation": {

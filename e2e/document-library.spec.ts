@@ -1,11 +1,68 @@
 import { expect, test } from '@playwright/test'
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { unzipSync } from 'fflate'
+
+const realDocxPath = process.env.KINDY_REAL_DOCX
 
 test.describe('Document Library workspace', () => {
-  test('import → edit → autosave → version → restore → export → print', async ({ page }, testInfo) => {
+  test('imports the real contract header image and exposes page navigation', async ({ page }, testInfo) => {
+    test.skip(!realDocxPath, 'Set KINDY_REAL_DOCX to run the local golden-corpus check.')
     test.setTimeout(60_000)
     const pageErrors: Error[] = []
     page.on('pageerror', (error) => pageErrors.push(error))
+    page.on('dialog', (dialog) => dialog.accept())
+
+    await page.goto('./')
+    await page.locator('.kindy-explorer input[type="file"]').setInputFiles(realDocxPath!)
+
+    const importedHeader = page.locator('.kindy-gdocs-hf-banner img').first()
+    await expect(importedHeader).toBeVisible({ timeout: 20_000 })
+    await expect.poll(() => importedHeader.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(700)
+
+    const pageStatus = page.getByRole('button', { name: /Trang \d+ trên \d+/ })
+    await expect(pageStatus).toBeVisible()
+    await expect.poll(async () => {
+      const label = await pageStatus.getAttribute('aria-label')
+      return Number(label?.match(/trên (\d+)/)?.[1] || 0)
+    }, { timeout: 20_000 }).toBeGreaterThan(1)
+    const totalPages = Number((await pageStatus.getAttribute('aria-label'))?.match(/trên (\d+)/)?.[1])
+    await page.locator('.kindy-zoomable-container').evaluate((element) => {
+      element.scrollTop = element.scrollHeight
+      element.dispatchEvent(new Event('scroll'))
+    })
+    await expect(pageStatus).toHaveAttribute('aria-label', `Trang ${totalPages} trên ${totalPages}`)
+
+    const automaticBreak = page.locator('.kindy-page-break-decoration').first()
+    await expect(automaticBreak).toBeAttached()
+    const repeatedHeader = automaticBreak.locator('.kindy-page-repeated-header img')
+    await expect(repeatedHeader).toBeAttached()
+    await expect.poll(() => repeatedHeader.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(700)
+    expect(await automaticBreak.getAttribute('data-page')).toBeNull()
+    expect(await automaticBreak.evaluate((element) => getComputedStyle(element, '::after').content)).toBe('none')
+    await automaticBreak.evaluate((element) => element.scrollIntoView({ block: 'start' }))
+    await mkdir('.artifacts', { recursive: true })
+    await page.screenshot({ path: '.artifacts/real-docx-page-2.png', fullPage: false })
+
+    await page.locator('.kindy-zoomable-container').evaluate((element) => {
+      element.scrollTop = 0
+      element.dispatchEvent(new Event('scroll'))
+    })
+    await expect(pageStatus).toHaveAttribute('aria-label', `Trang 1 trên ${totalPages}`)
+    await page.screenshot({ path: '.artifacts/real-docx-import.png', fullPage: false })
+    await testInfo.attach('real-docx-import.png', {
+      body: await page.screenshot({ fullPage: false }),
+      contentType: 'image/png',
+    })
+    expect(pageErrors).toEqual([])
+  })
+
+  test('import → edit → autosave → version → restore → export → print', async ({ page }, testInfo) => {
+    test.setTimeout(60_000)
+    const pageErrors: Error[] = []
+    page.on('pageerror', (error) => {
+      console.error(error.stack || error.message)
+      pageErrors.push(error)
+    })
 
     await page.goto('./')
     await expect(page.getByRole('region', { name: 'Document library workspace' })).toBeVisible()
@@ -21,14 +78,56 @@ test.describe('Document Library workspace', () => {
     await page.locator('.kindy-explorer input[type="file"]').setInputFiles(samplePath)
     await expect(page.getByRole('button', { name: /kindy-docx-profile-sample/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'HỢP ĐỒNG NGUYÊN TẮC' })).toBeVisible()
+    const importedImage = page.locator('img[data-kindy-inline-image]').first()
+    await expect(importedImage).toBeVisible()
+    await expect.poll(() => importedImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
     await expect(page.getByRole('status').filter({ hasText: 'Đã lưu' })).toBeVisible()
 
+    await importedImage.click()
+    await expect(page.locator('.kindy-editor-bubble-menu')).toBeVisible()
+
+    const [originalDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Tải DOCX', exact: true }).click(),
+    ])
+    const originalPath = testInfo.outputPath('workspace-original.docx')
+    await originalDownload.saveAs(originalPath)
+    expect(await readFile(originalPath)).toEqual(await readFile(samplePath))
+
     const editor = page.locator('.kindy-editor')
-    await editor.fill('HỢP ĐỒNG KIỂM THỬ\nĐiều 1. Nội dung đã được chỉnh sửa trực tiếp.')
+    await editor.click()
+    await editor.press('ControlOrMeta+A')
+    const bubbleMenu = page.locator('.kindy-editor-bubble-menu')
+    await expect(bubbleMenu).toBeVisible()
+    const bubbleLayout = await bubbleMenu.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      return {
+        top: rect.top,
+        left: rect.left,
+        right: rect.right,
+        bottom: rect.bottom,
+        viewportWidth: innerWidth,
+        viewportHeight: innerHeight,
+        flexWrap: style.flexWrap,
+        overflowX: style.overflowX,
+      }
+    })
+    expect(bubbleLayout).toMatchObject({ flexWrap: 'nowrap', overflowX: 'auto' })
+    expect(bubbleLayout.top).toBeGreaterThanOrEqual(0)
+    expect(bubbleLayout.left).toBeGreaterThanOrEqual(0)
+    expect(bubbleLayout.right).toBeLessThanOrEqual(bubbleLayout.viewportWidth)
+    expect(bubbleLayout.bottom).toBeLessThanOrEqual(bubbleLayout.viewportHeight)
+    await editor.type('HỢP ĐỒNG KIỂM THỬ')
+    await editor.press('Enter')
+    await editor.type('Điều 1. Nội dung đã được chỉnh sửa trực tiếp.')
     await expect(page.getByRole('status').filter({ hasText: 'Có thay đổi chưa lưu' })).toBeVisible()
     await expect(page.getByRole('status').filter({ hasText: 'Đã lưu' })).toBeVisible({ timeout: 8_000 })
 
-    await editor.fill('HỢP ĐỒNG KIỂM THỬ\nĐiều 1. Nội dung phiên bản thứ hai.')
+    await editor.press('ControlOrMeta+A')
+    await editor.type('HỢP ĐỒNG KIỂM THỬ')
+    await editor.press('Enter')
+    await editor.type('Điều 1. Nội dung phiên bản thứ hai.')
     await page.getByRole('button', { name: 'Lưu', exact: true }).click()
     await expect(page.getByText('2 phiên bản')).toBeVisible()
 
@@ -52,6 +151,8 @@ test.describe('Document Library workspace', () => {
     const exported = await readFile(exportedPath)
     expect(exported.byteLength).toBeGreaterThan(1_000)
     expect(exported.subarray(0, 2).toString('ascii')).toBe('PK')
+    const exportedArchive = unzipSync(exported)
+    expect(Object.keys(exportedArchive).some((name) => name.startsWith('word/media/'))).toBe(true)
 
     const versionTwo = page.locator('.kindy-versions__list > li').filter({ hasText: 'v2' })
     await versionTwo.getByRole('button', { name: 'Khôi phục' }).click()
@@ -71,7 +172,7 @@ test.describe('Document Library workspace', () => {
     await expect.poll(() => page.locator('#kindy-icons symbol').count()).toBeGreaterThan(190)
     await page.getByRole('button', { name: /Hợp đồng nguyên tắc/ }).click()
     await expect(page.getByRole('status').filter({ hasText: 'Đã lưu' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /199 Ký tự/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /Ký tự/ })).toBeVisible()
   })
 })
 

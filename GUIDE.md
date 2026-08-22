@@ -37,6 +37,8 @@ Không để Explorer, toolbar tùy biến hoặc application component ghi th�
 
 Khi preview một version cũ, workspace chỉ load snapshot read-only và giữ live snapshot riêng. Chỉ `restoreVersion` mới thay state hiện hành ở backend. Chi tiết UI, slots và theme nằm tại [`docs/ui-engine.md`](./docs/ui-engine.md).
 
+Workspace mặc định dùng preset `Contract`: page-only, toolbar compact và loại toàn bộ công cụ web/diagram/chuyển đổi tiếng Trung. Không cần truyền cấu hình để có giao diện này. Chỉ dùng `editorOptions` khi ứng dụng chủ chủ động mở rộng UI; xem [`docs/ui-engine.md`](./docs/ui-engine.md#preset-contract-mặc-định).
+
 ## 2. Dữ liệu lưu trên server
 
 Một triển khai tối thiểu thường có:
@@ -61,7 +63,18 @@ folders
   id, parent_id, name
 ```
 
-`state_json` là `KindyDocumentState`. Không dùng HTML làm state lâu dài. Artifact `original-docx` phải giữ nguyên bytes người dùng upload; artifact `docx` là output của serializer.
+`state_json` là `KindyDocumentState`. Không dùng HTML làm state lâu dài. Artifact `original-docx` phải giữ nguyên bytes người dùng upload; artifact `docx` là output của serializer. Record import phải liên kết artifact gốc với revision đầu tiên:
+
+```json
+{
+  "originalSource": {
+    "artifactId": "artifact-original-1",
+    "revisionId": "rev-import-1",
+    "format": "original-docx",
+    "fileName": "hop-dong.docx"
+  }
+}
+```
 
 ## 3. Save và conflict
 
@@ -97,6 +110,8 @@ File input
   → POST /documents/import (original file + JSON + report)
 ```
 
+Response của `/documents/import` phải có `originalSource`. Nếu người dùng tải xuống khi current revision vẫn bằng `originalSource.revisionId`, workspace dùng artifact gốc nên kết quả byte-for-byte giống file upload. Sau khi state đã được save thành revision mới, workspace dùng serializer và áp dụng compatibility profile; không được quảng bá đây là Word-fidelity 100%.
+
 Các guard server vẫn bắt buộc dù client đã validate:
 
 - Extension, MIME, magic bytes và OOXML content types.
@@ -114,6 +129,8 @@ cho sections/header/footer và `kindy-docx-v2.2` cho comments/Track Changes.
 Workspace nhận prop `docxProfile` tương ứng; không tự nâng profile âm thầm.
 
 DOCX output là ZIP/OOXML từ package `docx`; test phải kiểm tra `word/document.xml` và mở qua LibreOffice/Word mà không repair.
+
+Ảnh import hỗ trợ DrawingML, VML và `mc:AlternateContent` có fallback render được. Browser có thể hiển thị PNG/JPEG/GIF/SVG/WebP/BMP, nhưng serializer DOCX strict chỉ ghi trực tiếp PNG/JPEG/GIF/BMP. SVG/WebP, EMF/WMF/TIFF và nguồn ảnh không xác định phải sinh compatibility warning hoặc được hệ thống chủ chuyển đổi trước khi export.
 
 PDF v2.0:
 

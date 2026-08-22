@@ -29,6 +29,11 @@ function paginate<T>(items: T[], query: DocumentQuery = {}): Page<T> {
   return { items: items.slice((page - 1) * pageSize, page * pageSize), total: items.length, page, pageSize }
 }
 
+function cloneArtifact(value: DocumentArtifact) {
+  const { blob, ...metadata } = value
+  return { ...cloneDocumentState(metadata), blob }
+}
+
 export class MemoryDocumentAdapter implements DocumentApiAdapter {
   private documents = new Map<string, DocumentRecord>()
   private states = new Map<string, DocumentSnapshot>()
@@ -116,8 +121,16 @@ export class MemoryDocumentAdapter implements DocumentApiAdapter {
       versionId: document.currentVersionId,
       compatibilityReport: input.compatibilityReport,
     }
-    await this.storeArtifact(document.id, original, signal)
-    return document
+    const artifact = await this.storeArtifact(document.id, original, signal)
+    return this.updateDocument(document.id, {
+      originalSource: {
+        artifactId: artifact.id,
+        revisionId: document.currentRevisionId!,
+        format: 'original-docx',
+        fileName: artifact.fileName,
+        compatibilityReport: input.compatibilityReport,
+      },
+    }, signal)
   }
 
   async updateDocument(documentId: string, patch: Partial<DocumentRecord>, signal?: AbortSignal) {
@@ -127,6 +140,9 @@ export class MemoryDocumentAdapter implements DocumentApiAdapter {
     this.documents.set(documentId, updated)
     const snapshot = this.states.get(documentId)
     if (snapshot) snapshot.document = cloneDocumentState(updated)
+    for (const versionSnapshot of this.versionStates.values()) {
+      if (versionSnapshot.document.id === documentId) versionSnapshot.document = cloneDocumentState(updated)
+    }
     return cloneDocumentState(updated)
   }
 
@@ -201,7 +217,7 @@ export class MemoryDocumentAdapter implements DocumentApiAdapter {
       size: input.blob.size, blob: input.blob, createdAt: now(),
     }
     this.artifacts.set(artifact.id, artifact)
-    return cloneDocumentState(artifact)
+    return cloneArtifact(artifact)
   }
 
   async getArtifact(documentId: string, artifactId: string, signal?: AbortSignal) {
@@ -211,7 +227,7 @@ export class MemoryDocumentAdapter implements DocumentApiAdapter {
     if (!artifact || artifact.documentId !== documentId) {
       throw new DocumentLibraryError('DOCUMENT_NOT_FOUND', `Artifact ${artifactId} was not found.`, { status: 404 })
     }
-    return cloneDocumentState(artifact)
+    return cloneArtifact(artifact)
   }
 
   private makeVersion(document: DocumentRecord, reason: DocumentVersion['reason']) {

@@ -16,7 +16,7 @@
         ref="explorer"
         :client="libraryClient"
         :selected-id="current?.document.id"
-        :locale="locale"
+        :locale="workspaceLocale"
         :messages="messages"
         :confirm-compatibility="confirmCompatibility"
         :docx-profile="docxProfile"
@@ -53,6 +53,7 @@
           </div>
 
           <div class="kindy-workspace-bar__actions">
+            <button class="kindy-workspace-bar__button" type="button" @click="openImportDialog">{{ copy.importDocx }}</button>
             <button v-if="previewVersionId" class="kindy-workspace-bar__button" type="button" @click="exitVersionPreview">{{ copy.backToCurrent }}</button>
             <button v-if="current && !previewVersionId" class="kindy-workspace-bar__button kindy-workspace-bar__button--primary" type="button" :disabled="!canEdit || workspaceStatus === 'saving'" @click="saveFromEditor">{{ copy.save }}</button>
             <button v-if="current && canDownload" class="kindy-workspace-bar__button" type="button" :disabled="exporting" @click="downloadCurrentDocx">{{ copy.downloadDocx }}</button>
@@ -89,15 +90,24 @@
           :key="editorKey"
           ref="editor"
           v-bind="resolvedEditorOptions"
-          :locale="locale"
+          :locale="workspaceLocale"
           :dicts="editorDicts"
           :document="editorDocument"
           :page="editorPage"
           :on-save="saveFromEditor"
           @created="onEditorReady"
           @changed="onEditorChanged"
+          @changed:locale="onEditorLocaleChanged"
           @print="emit('printed', current?.document)"
         >
+          <template #toolbar_export="slotProps">
+            <div class="kindy-contract-file-actions">
+              <button type="button" @click="openImportDialog"><span aria-hidden="true">⇧</span>{{ copy.importDocx }}</button>
+              <button v-if="current && canDownload" type="button" :disabled="exporting" @click="downloadCurrentDocx"><span aria-hidden="true">W</span>{{ copy.downloadDocx }}</button>
+              <button v-if="current" type="button" @click="print"><span aria-hidden="true">PDF</span>{{ copy.print }}</button>
+            </div>
+            <slot name="toolbar_export" v-bind="slotProps || {}" />
+          </template>
           <template v-for="name in editorSlotNames" #[name]="slotProps">
             <slot :name="name" v-bind="slotProps || {}" />
           </template>
@@ -113,7 +123,7 @@
         :current-version-id="liveSnapshot?.document.currentVersionId"
         :preview-version-id="previewVersionId"
         :can-restore="canRestore"
-        :locale="locale"
+        :locale="workspaceLocale"
         :messages="messages"
         :closable="!wideViewport"
         @close="versionsOpen = false"
@@ -128,7 +138,7 @@
 <script setup lang="ts">
 import saveAs from 'file-saver'
 import { useMediaQuery } from '@vueuse/core'
-import { computed, nextTick, onBeforeUnmount, onErrorCaptured, ref, shallowRef, useSlots } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onErrorCaptured, ref, shallowRef, useSlots, watch } from 'vue'
 import { exportDocx } from '../../codecs'
 import { DocumentLibraryClient, createDocumentLibrary } from '../../core/client'
 import { DocumentLibraryError } from '../../core/errors'
@@ -136,6 +146,7 @@ import { createEmptyDocumentState } from '../../core/state'
 import type { CollaborationAdapter, CollaborationSession, CompatibilityReport, DocumentApiAdapter, DocumentSnapshot, DocumentSummary, DocumentVersion, KindyDocumentState } from '../../core/types'
 import { defaultOptions } from '../../options'
 import { createLibraryTheme, resolveLibraryMessages, resolveLibraryUi, type KindyLibraryMessages, type KindyLibraryUiOptions } from '../../ui'
+import { CONTRACT_EDITOR_OPTIONS, createContractEditorOptions } from '../../ui/contract'
 import KindyEditor from '../index.vue'
 import KindyDocumentExplorer from './DocumentExplorer.vue'
 import DocumentLibraryShell from './DocumentLibraryShell.vue'
@@ -164,21 +175,24 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits([
   'ready', 'opened', 'changed', 'save-started', 'saved', 'save-failed', 'created', 'imported',
-  'compatibility-warning', 'version-restored', 'printed', 'error',
+  'compatibility-warning', 'version-restored', 'printed', 'locale-changed', 'error',
 ])
 
 if (!props.client && !props.adapter) throw new Error('[kindy-editor] KindyDocumentLibrary requires a client or adapter.')
 const ownsClient = !props.client
 const libraryClient = props.client || createDocumentLibrary({ adapter: props.adapter!, autosave: props.autosave })
 const slots = useSlots()
-const reservedSlots = new Set(['explorer-actions', 'document', 'empty', 'topbar'])
+const reservedSlots = new Set(['explorer-actions', 'document', 'empty', 'topbar', 'toolbar_export'])
 const editorSlotNames = computed(() => Object.keys(slots).filter((name) => !reservedSlots.has(name)))
-const copy = computed(() => resolveLibraryMessages(props.locale, props.messages))
+const workspaceLocale = ref(props.locale)
+watch(() => props.locale, (value) => { workspaceLocale.value = value })
+const copy = computed(() => resolveLibraryMessages(workspaceLocale.value, props.messages))
 const uiConfig = computed(() => resolveLibraryUi({ ...props.ui, showVersions: props.ui.showVersions ?? props.showVersions }))
 const themeConfig = computed(() => createLibraryTheme(props.theme))
 const wideViewport = useMediaQuery('(min-width: 1025px)')
+const spaciousViewport = useMediaQuery('(min-width: 1440px)')
 const explorerOpen = ref(wideViewport.value && uiConfig.value.showExplorer)
-const versionsOpen = ref(wideViewport.value && uiConfig.value.showVersions && props.showVersions)
+const versionsOpen = ref(spaciousViewport.value && uiConfig.value.showVersions && props.showVersions)
 const current = shallowRef<DocumentSnapshot | null>(null)
 const liveSnapshot = shallowRef<DocumentSnapshot | null>(null)
 const editor = ref<InstanceType<typeof KindyEditor> | null>(null)
@@ -208,12 +222,29 @@ const statusLabel = computed(() => ({
   saved: copy.value.saved, readonly: copy.value.readOnly, preview: copy.value.previewingVersion,
   conflict: 'Version conflict', error: workspaceError.value || copy.value.loadFailed,
 }[workspaceStatus.value]))
-const resolvedEditorOptions = computed(() => ({
-  ...props.editorOptions,
-  user: props.user
-    ? { ...props.user, label: props.user.name || props.user.id || 'Anonymous' }
-    : props.editorOptions.user,
-}))
+const resolvedEditorOptions = computed(() => {
+  const configured = createContractEditorOptions(props.editorOptions)
+  return {
+    ...configured,
+    // Workspace IO must pass through DocumentLibraryClient/adapter. The
+    // toolbar slot below exposes the safe import/export actions instead.
+    disableExtensions: Array.from(new Set([
+      ...configured.disableExtensions,
+      'import-word',
+      'export-word',
+      'export-pdf',
+    ])),
+    user: props.user
+      ? { ...props.user, label: props.user.name || props.user.id || 'Anonymous' }
+      : props.editorOptions.user,
+  }
+})
+
+const onEditorLocaleChanged = ({ locale }: { locale: string }) => {
+  if (!locale || locale === workspaceLocale.value) return
+  workspaceLocale.value = locale
+  emit('locale-changed', locale)
+}
 
 const clientOffs = [
   libraryClient.on('changed', (payload) => { workspaceStatus.value = 'dirty'; emit('changed', payload) }),
@@ -245,6 +276,7 @@ const editorDocument = computed(() => ({
 
 const editorPage = computed(() => ({
   ...defaultOptions.page,
+  ...CONTRACT_EDITOR_OPTIONS.page,
   ...((props.editorOptions.page as Record<string, unknown> | undefined) || {}),
   ...(current.value ? {
     defaultMargin: current.value.state.page.margin,
@@ -275,13 +307,21 @@ const editorDicts = computed(() => {
 })
 
 function toLegacyHeaderFooter(value: KindyDocumentState['page']['header']) {
-  const image = findImageSource(value?.content)
+  const image = findImage(value?.content)
+  const imageWidth = Number(image?.width) || 0
+  const imageHeight = Number(image?.height) || 0
+  const isBanner = Boolean(image?.src) && (
+    imageWidth >= 320
+    || (imageWidth > 0 && imageHeight > 0 && imageWidth / imageHeight >= 4)
+  )
   return {
     enable: value?.enabled || false,
-    text: value?.text || textFromContent(value?.content),
-    layout: image ? 'split' : 'single',
+    text: (value?.text || textFromContent(value?.content)).trim(),
+    layout: isBanner ? 'banner' : image ? 'split' : 'single',
     align: 'center',
-    logo: image,
+    logo: image?.src || '',
+    ...(imageWidth > 0 ? { logoWidth: imageWidth } : {}),
+    ...(imageHeight > 0 ? { logoHeight: imageHeight } : {}),
     variants: {
       first: { text: value?.firstText || textFromContent(value?.firstContent), content: value?.firstContent },
       even: { text: value?.evenText || textFromContent(value?.evenContent), content: value?.evenContent },
@@ -307,16 +347,22 @@ function textFromContent(content?: { text?: string; content?: unknown[] }): stri
     : ''
 }
 
-function findImageSource(content?: { attrs?: Record<string, unknown>; content?: unknown[] }): string {
-  if (!content) return ''
+function findImage(content?: { attrs?: Record<string, unknown>; content?: unknown[] }): { src: string; width?: number; height?: number } | undefined {
+  if (!content) return undefined
   const source = content.attrs?.src
-  if (typeof source === 'string') return source
-  if (!Array.isArray(content.content)) return ''
+  if (typeof source === 'string') {
+    return {
+      src: source,
+      width: typeof content.attrs?.width === 'number' ? content.attrs.width : Number(content.attrs?.width) || undefined,
+      height: typeof content.attrs?.height === 'number' ? content.attrs.height : Number(content.attrs?.height) || undefined,
+    }
+  }
+  if (!Array.isArray(content.content)) return undefined
   for (const child of content.content) {
-    const nested = findImageSource(child as { attrs?: Record<string, unknown>; content?: unknown[] })
+    const nested = findImage(child as { attrs?: Record<string, unknown>; content?: unknown[] })
     if (nested) return nested
   }
-  return ''
+  return undefined
 }
 
 async function openDocument(document: DocumentSummary) {
@@ -348,6 +394,11 @@ async function openDocument(document: DocumentSummary) {
   }
 }
 
+function openImportDialog() {
+  explorerOpen.value = true
+  void nextTick(() => explorer.value?.openImportDialog())
+}
+
 async function applySnapshot(snapshot: DocumentSnapshot) {
   cancelStateSync()
   current.value = snapshot
@@ -370,7 +421,10 @@ function onEditorReady() {
   emit('ready', { document: current.value?.document, editor: editor.value })
   void connectCollaboration()
   clearTimeout(snapshotGuardTimer)
-  snapshotGuardTimer = setTimeout(() => { applyingSnapshot = false }, 50)
+  // `created` fires after the editor has completed its initial schema
+  // normalization. Release the guard immediately so a fast first keystroke is
+  // never mistaken for another mount transaction.
+  applyingSnapshot = false
 }
 
 async function connectCollaboration() {
@@ -501,17 +555,63 @@ async function restoreVersion(version: DocumentVersion) {
   } catch (error) { onError(error) }
 }
 
-async function exportCurrentDocx(options: { mode?: 'strict' | 'best-effort'; store?: boolean; fileName?: string } = {}) {
+async function resolveOriginalDocxArtifact() {
+  const snapshot = current.value
+  const source = snapshot?.document.originalSource
+  if (
+    !snapshot
+    || !source
+    || snapshot.revisionId !== source.revisionId
+    || stateSyncPending
+    || libraryClient.hasUnsavedChanges
+    || workspaceStatus.value === 'dirty'
+    || workspaceStatus.value === 'saving'
+  ) return null
+  const artifact = await libraryClient.adapter.getArtifact(snapshot.document.id, source.artifactId)
+  return artifact.format === 'original-docx' ? artifact : null
+}
+
+async function exportCurrentDocx(options: { mode?: 'strict' | 'best-effort'; store?: boolean; fileName?: string; preferOriginal?: boolean } = {}) {
   if (!current.value) throw new Error('No document is open.')
+  if (options.preferOriginal !== false) {
+    const artifact = await resolveOriginalDocxArtifact()
+    if (artifact?.blob) {
+      const original = {
+        blob: artifact.blob,
+        report: current.value.document.originalSource?.compatibilityReport || {
+          profile: props.docxProfile,
+          supported: true,
+          issues: [],
+        },
+        source: 'original' as const,
+        artifact,
+      }
+      if (options.store) {
+        await libraryClient.storeArtifact({
+          format: 'docx',
+          blob: original.blob,
+          fileName: options.fileName || current.value.document.fileName,
+          versionId: current.value.document.currentVersionId,
+          compatibilityReport: original.report,
+        })
+      }
+      return original
+    }
+  }
   const state = stateFromEditor()
   const exported = await exportDocx(state, { mode: options.mode, profile: props.docxProfile })
   if (options.store) await libraryClient.storeArtifact({ format: 'docx', blob: exported.blob, fileName: options.fileName || current.value.document.fileName, versionId: current.value.document.currentVersionId, compatibilityReport: exported.report })
-  return exported
+  return { ...exported, source: 'serialized' as const }
 }
 
 async function downloadCurrentDocx() {
   exporting.value = true
   try {
+    const original = await resolveOriginalDocxArtifact()
+    if (original?.blob || original?.url) {
+      saveAs(original.blob || original.url!, current.value?.document.originalSource?.fileName || current.value?.document.fileName || 'document.docx')
+      return
+    }
     let result
     try { result = await exportCurrentDocx({ mode: 'strict' }) }
     catch (error) {
@@ -571,6 +671,7 @@ defineExpose({
   getEditor: () => editor.value,
   getCollaborationUsers: () => collaborationSession?.getUsers?.() || [],
   refresh: () => explorer.value?.refresh(),
+  importDocument: openImportDialog,
   toggleExplorer: (open?: boolean) => { explorerOpen.value = open ?? !explorerOpen.value },
   toggleVersions: (open?: boolean) => { versionsOpen.value = open ?? !versionsOpen.value },
 })
@@ -579,6 +680,20 @@ defineExpose({
 <style scoped>
 /* Workspace status/action styles complement the layout shell. */
 .kindy-document-workspace { position: relative; width: 100%; height: 100%; min-width: 0; overflow: hidden; background: var(--kindy-library-bg); }
+.kindy-document-workspace :deep(.kindy-editor-container) { background: #f1f3f4; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar) { z-index: 6; border-bottom: 1px solid #dfe3e8; background: #fff; padding: 6px 10px; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container) { min-height: 42px; overflow: hidden; border-radius: 21px; background: #edf2fa; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-scrollable-container) { min-width: 0; padding: 5px 10px; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-classic-menu) { min-height: 32px; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-classic-menu .kindy-virtual-group::before) { margin: 0 7px; background: #d7dce2; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-footer) { z-index: 6; border-top: 1px solid #dfe3e8; background: #fff; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-status-bar) { min-height: 34px; box-sizing: border-box; border-top: 0; padding: 4px 10px; color: #3c4043; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-page-container) { background: #f1f3f4; }
+.kindy-contract-file-actions { display: flex; align-items: center; gap: 4px; }
+.kindy-contract-file-actions button { display: inline-flex; min-height: 28px; align-items: center; gap: 5px; cursor: pointer; border: 0; border-radius: 6px; background: transparent; padding: 4px 8px; color: #3c4043; font: inherit; font-size: 12px; white-space: nowrap; }
+.kindy-contract-file-actions button:hover:not(:disabled) { background: #dce6f5; color: #0b57d0; }
+.kindy-contract-file-actions button:disabled { cursor: not-allowed; opacity: .5; }
+.kindy-contract-file-actions button span { display: inline-grid; min-width: 18px; height: 18px; place-items: center; color: #0b57d0; font-size: 10px; font-weight: 800; }
 .kindy-document-workspace__state { display: flex; box-sizing: border-box; width: 100%; height: 100%; min-height: 320px; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 32px; color: var(--kindy-library-muted); text-align: center; }
 .kindy-document-workspace__state strong { color: var(--kindy-library-text); font-size: 17px; }
 .kindy-document-workspace__state > span:not(.kindy-document-workspace__spinner) { max-width: 430px; line-height: 1.55; }

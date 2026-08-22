@@ -157,6 +157,10 @@ function clearSearch() {
   void refresh()
 }
 
+function openImportDialog() {
+  if (!busy.value) fileInput.value?.click()
+}
+
 async function createBlank() {
   busyAction.value = 'create'
   try {
@@ -218,7 +222,7 @@ onBeforeUnmount(() => {
   clearTimeout(searchTimer)
   refreshController?.abort()
 })
-defineExpose({ refresh, clearSearch })
+defineExpose({ refresh, clearSearch, openImportDialog })
 </script>
 
 <style scoped>

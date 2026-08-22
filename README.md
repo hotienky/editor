@@ -7,7 +7,7 @@ Kindy Editor **không** cung cấp backend, database, authentication, object sto
 ## Phạm vi v2.0
 
 - Import DOCX trong Web Worker, kiểm tra ZIP/OOXML và trả `CompatibilityReport`.
-- Chỉnh sửa nội dung bằng Tiptap/ProseMirror với toolbar Kindy hiện có.
+- Chỉnh sửa nội dung bằng Tiptap/ProseMirror với preset `Contract`: toolbar compact, page-only và chỉ giữ công cụ cần cho hợp đồng.
 - Explorer theo thư mục, tìm kiếm, tạo tài liệu trống và tạo từ template.
 - Autosave có debounce, cancellation và optimistic concurrency.
 - Lưu thủ công tạo version, xem read-only và khôi phục version.
@@ -16,6 +16,8 @@ Kindy Editor **không** cung cấp backend, database, authentication, object sto
 - UI engine có shell responsive, theme tokens, locale messages, slots và typed hooks.
 
 Khả năng round-trip DOCX chỉ được cam kết trong [Kindy DOCX Compatibility Profile](./CAPABILITIES.md). Kindy không phải Microsoft Word layout engine và không cam kết giữ nguyên mọi tính năng OOXML.
+
+Ngoại lệ duy nhất có thể bảo đảm byte-for-byte là tài liệu vừa import và **chưa có revision chỉnh sửa**: workspace tải lại artifact `original-docx` thay vì serialize JSON. Sau lần chỉnh sửa/save đầu tiên, DOCX mới được dựng từ `KindyDocumentState` và chỉ có cam kết theo compatibility profile.
 
 ## Kiến trúc
 
@@ -94,6 +96,30 @@ function onError(error: unknown) {
 ```
 
 Server phải triển khai contract trong [`openapi/document-api.yaml`](./openapi/document-api.yaml). OpenAPI không bắt buộc cơ chế auth; cookie, bearer token hoặc API gateway do ứng dụng chủ quyết định.
+
+### UI hợp đồng mặc định
+
+`KindyDocumentLibrary` tự dùng `CONTRACT_EDITOR_OPTIONS`: toolbar một hàng theo hướng Google Docs, chỉ có Định dạng/Chèn/Bảng/Trang/Xuất, không có Web view, Mermaid, biểu đồ, media web hoặc chuyển đổi số tiếng Trung. Nhóm Xuất chỉ gọi pipeline an toàn của Document Library cho Import DOCX, Export DOCX và In/PDF. Thanh trạng thái chỉ còn `Trang X / Y`, số ký tự, zoom và ngôn ngữ.
+
+Ứng dụng chủ vẫn có thể override rõ ràng qua `editorOptions`:
+
+```vue
+<KindyDocumentLibrary
+  :adapter="adapter"
+  :editor-options="{
+    toolbar: { menus: ['base', 'insert', 'table', 'page', 'export'] },
+    statusbar: { showLocale: false },
+  }"
+/>
+```
+
+Để dùng preset với `KindyEditor` độc lập:
+
+```ts
+import { createContractEditorOptions } from 'kindy-editor'
+
+const editorOptions = createContractEditorOptions({ locale: 'vi-VN' })
+```
 
 ## Chạy demo không cần backend
 
@@ -201,6 +227,8 @@ const output = await exportDocx(imported.state) // strict mặc định
 UI workspace tự xử lý luồng xác nhận best-effort khi import hoặc download. API programmatic mặc định strict và ném `DOCX_UNSUPPORTED` nếu state có feature ngoài profile.
 Mặc định là v2.0. Chọn `kindy-docx-v2.1` cho sections/header/footer hoặc
 `kindy-docx-v2.2` cho comments/Track Changes sau khi integration đã chạy corpus tương ứng.
+
+`POST /documents/import` phải lưu blob gốc và trả `DocumentRecord.originalSource` gồm `artifactId`, `revisionId`, `format: 'original-docx'` và `fileName`. Nhờ đó `KindyDocumentLibrary.downloadDocx()` trả đúng file gốc khi revision chưa đổi. URL artifact của REST backend phải là URL tải được (thường là signed URL); Memory adapter trả trực tiếp `Blob`.
 
 ## Public components
 

@@ -88,9 +88,18 @@ export interface DocumentSummary {
   capabilities?: DocumentCapabilities
 }
 
+export interface OriginalDocxSource {
+  artifactId: string
+  revisionId: string
+  format: 'original-docx'
+  fileName: string
+  compatibilityReport?: CompatibilityReport
+}
+
 export interface DocumentRecord extends DocumentSummary {
   description?: string
   metadata?: Record<string, unknown>
+  originalSource?: OriginalDocxSource
 }
 
 export interface DocumentVersion {

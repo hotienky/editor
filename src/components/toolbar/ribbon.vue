@@ -96,7 +96,9 @@
             <menus-toolbar-insert-code-block
               v-if="!disableMenu('code-block')"
             />
-            <menus-toolbar-insert-building-blocks />
+            <menus-toolbar-insert-building-blocks
+              v-if="!disableMenu('building-blocks')"
+            />
             <menus-toolbar-insert-symbol v-if="!disableMenu('symbol')" />
             <menus-toolbar-insert-chinese-date
               v-if="!disableMenu('chinese-date')"

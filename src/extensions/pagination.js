@@ -28,8 +28,16 @@ const sectionGeometry = (section, convert, fallback) => {
   const landscape = section.orientation === 'landscape'
   const pageWidthCm = landscape ? section.size.height : section.size.width
   const pageHeightCm = landscape ? section.size.width : section.size.height
-  const marginTop = convert(section.margin.top)
-  const marginBottom = convert(section.margin.bottom)
+  const configuredTopCm = Number(section.margin.top) || 0
+  const configuredBottomCm = Number(section.margin.bottom) || 0
+  const effectiveTopCm = section.header?.enable
+    ? Math.max(configuredTopCm, section.header.layout === 'banner' ? 1.8 : 1.5)
+    : configuredTopCm
+  const effectiveBottomCm = section.footer?.enable
+    ? Math.max(configuredBottomCm, 1.5)
+    : configuredBottomCm
+  const marginTop = convert(effectiveTopCm)
+  const marginBottom = convert(effectiveBottomCm)
   const pageHeight = convert(pageHeightCm)
   return {
     pageWidth: convert(pageWidthCm),
@@ -41,8 +49,8 @@ const sectionGeometry = (section, convert, fallback) => {
     marginBottom,
     marginLeft: convert(section.margin.left),
     marginRight: convert(section.margin.right),
-    marginTopCm: section.margin.top,
-    marginBottomCm: section.margin.bottom,
+    marginTopCm: effectiveTopCm,
+    marginBottomCm: effectiveBottomCm,
     marginLeftCm: section.margin.left,
     marginRightCm: section.margin.right,
     orientation: section.orientation || 'portrait',
@@ -82,6 +90,35 @@ const buildSectionLayout = (editor, editorDom) => {
     initialSection,
     transitions,
   }
+}
+
+const appendRepeatedHeaderFooter = (container, config, type, pageNumber) => {
+  if (!config?.enable) return
+  const element = document.createElement('div')
+  element.className = `kindy-page-repeated-${type}`
+  element.setAttribute('data-layout', config.layout || 'single')
+  element.setAttribute('aria-hidden', 'true')
+
+  if (config.logo && typeof config.logo === 'string') {
+    const image = document.createElement('img')
+    image.src = config.logo
+    image.alt = ''
+    image.draggable = false
+    const width = Number(config.logoWidth)
+    const height = Number(config.logoHeight)
+    if (Number.isFinite(width) && width > 0) image.style.setProperty('--kindy-imported-image-width', `${width}px`)
+    if (Number.isFinite(height) && height > 0) image.style.setProperty('--kindy-imported-image-height', `${height}px`)
+    element.append(image)
+  }
+
+  const rawText = String(config.text || config.leftText || config.rightText || '').trim()
+  if (rawText) {
+    const text = document.createElement('span')
+    text.textContent = rawText.replace(/\{\{\s*page(Number)?\s*\}\}/gi, String(pageNumber))
+    element.append(text)
+  }
+
+  if (element.childNodes.length) container.append(element)
 }
 
 export const Pagination = Extension.create({
@@ -193,6 +230,8 @@ export const Pagination = Extension.create({
                   sectionIndex: current.sectionIndex,
                   sectionId: current.sectionId,
                   geometry: current.geometry,
+                  header: current.section?.config?.header || {},
+                  footer: previous.section?.config?.footer || {},
                 })
               }
             }
@@ -207,6 +246,8 @@ export const Pagination = Extension.create({
                 sectionIndex: page.nextSection?.index ?? page.sectionIndex,
                 sectionId: page.nextSection?.id || page.sectionId,
                 geometry: page.nextPageGeometry || page.geometry,
+                header: page.nextSection?.config?.header || page.section?.config?.header || {},
+                footer: page.section?.config?.footer || {},
               }))
 
             const layoutTree = {
@@ -534,7 +575,8 @@ export const Pagination = Extension.create({
                     () => {
                       const div = document.createElement('div')
                       div.className = 'kindy-page-break-decoration'
-                      div.setAttribute('data-page', `Trang ${visualBreak.pageNumber}`)
+                      div.setAttribute('data-page-number', String(visualBreak.pageNumber))
+                      div.setAttribute('aria-label', `Trang ${visualBreak.pageNumber}`)
                       div.setAttribute('data-section', visualBreak.sectionId || '')
                       div.setAttribute('data-decoration', 'true')
                       div.setAttribute('contenteditable', 'false')
@@ -543,6 +585,8 @@ export const Pagination = Extension.create({
                       div.style.setProperty('--kindy-page-gap', `${visualBreak.pageGap}px`)
                       if (visualBreak.geometry?.pageWidthCm) div.style.setProperty('--kindy-next-page-width', `${visualBreak.geometry.pageWidthCm}cm`)
                       if (visualBreak.geometry?.pageHeightCm) div.style.setProperty('--kindy-next-page-height', `${visualBreak.geometry.pageHeightCm}cm`)
+                      appendRepeatedHeaderFooter(div, visualBreak.footer, 'footer', visualBreak.pageNumber - 1)
+                      appendRepeatedHeaderFooter(div, visualBreak.header, 'header', visualBreak.pageNumber)
                       return div
                     },
                     { side: -1, key: `page-sep-${visualBreak.pageNumber}-${blockIndex}`, ignoreSelection: true },
@@ -552,7 +596,8 @@ export const Pagination = Extension.create({
               const manualBreak = manualAtBlock.get(blockIndex)
               if (manualBreak && (node.type.name === 'pageBreak' || node.type.name === 'sectionBreak')) {
                 decos.push(Decoration.node(offset, offset + node.nodeSize, {
-                  'data-page': `Trang ${manualBreak.pageNumber}`,
+                  'data-page-number': String(manualBreak.pageNumber),
+                  'aria-label': `Trang ${manualBreak.pageNumber}`,
                   'data-section': manualBreak.sectionId || '',
                   style: [
                     `--kindy-page-spacer-height:${manualBreak.spacerHeight}px`,

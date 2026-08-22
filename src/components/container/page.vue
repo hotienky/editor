@@ -27,12 +27,12 @@
               '--page-width': (pageSize?.width || 21) + 'cm',
               '--page-height': (pageSize?.height || 29.7) + 'cm',
               '--page-zoom': (pageOptions?.zoomLevel || 100) / 100,
-              '--margin-top': (pageOptions?.margin?.top ?? 2.54) + 'cm',
-              '--margin-bottom': (pageOptions?.margin?.bottom ?? 2.54) + 'cm',
+              '--margin-top': contentMarginTop + 'cm',
+              '--margin-bottom': contentMarginBottom + 'cm',
               '--margin-left': (pageOptions?.margin?.left ?? 2.54) + 'cm',
               '--margin-right': (pageOptions?.margin?.right ?? 2.54) + 'cm',
-              '--kindy-page-margin-top': (pageOptions?.margin?.top ?? 2.54) + 'cm',
-              '--kindy-page-margin-bottom': (pageOptions?.margin?.bottom ?? 2.54) + 'cm',
+              '--kindy-page-margin-top': contentMarginTop + 'cm',
+              '--kindy-page-margin-bottom': contentMarginBottom + 'cm',
               '--kindy-page-margin-left': (pageOptions?.margin?.left ?? 2.54) + 'cm',
               '--kindy-page-margin-right': (pageOptions?.margin?.right ?? 2.54) + 'cm',
               '--kindy-page-width': (pageSize?.width || 21) + 'cm',
@@ -62,7 +62,19 @@
                 </t-dropdown>
               </div>
 
-              <div v-if="pageOptions.header?.layout === 'split'" class="kindy-gdocs-hf-split">
+              <div v-if="pageOptions.header?.layout === 'banner'" class="kindy-gdocs-hf-banner">
+                <img
+                  v-if="pageOptions.header?.logo"
+                  :src="pageOptions.header.logo"
+                  :style="{
+                    '--kindy-imported-image-width': (pageOptions.header.logoWidth || 720) + 'px',
+                    '--kindy-imported-image-height': (pageOptions.header.logoHeight || 48) + 'px'
+                  }"
+                  alt="Document header"
+                  draggable="false"
+                />
+              </div>
+              <div v-else-if="pageOptions.header?.layout === 'split'" class="kindy-gdocs-hf-split">
                 <div class="kindy-gdocs-hf-left">
                   <img
                     v-if="pageOptions.header?.logo"
@@ -303,6 +315,12 @@ const currentPageNum = $computed(() => {
   return currentPageFromScroll.value || 1
 })
 
+const publishPaginationStatus = () => {
+  const total = Math.max(1, Number(editor.value?.storage?.pagination?.totalPages) || 1)
+  const current = Math.max(1, Math.min(Number(currentPageFromScroll.value) || 1, total))
+  pageOptions.value.paginationStatus = { currentPage: current, totalPages: total }
+}
+
 const layoutTree = $computed(() => {
   return editor.value?.storage?.pagination?.layoutTree || null
 })
@@ -313,6 +331,20 @@ const pageSize = $computed(() => {
     width: pageOptions.value.orientation === 'landscape' ? height : width,
     height: pageOptions.value.orientation === 'landscape' ? width : height,
   }
+})
+
+// Imported Word headers can be positioned independently from w:pgMar. Keep a
+// usable header/footer band in the browser preview so anchored logos never get
+// collapsed when the DOCX body margin is unusually small.
+const contentMarginTop = $computed(() => {
+  const configured = Number(pageOptions.value?.margin?.top ?? 2.54)
+  if (pageOptions.value?.header?.enable === false) return configured
+  return Math.max(configured, pageOptions.value?.header?.layout === 'banner' ? 1.8 : 1.5)
+})
+
+const contentMarginBottom = $computed(() => {
+  const configured = Number(pageOptions.value?.margin?.bottom ?? 2.54)
+  return pageOptions.value?.footer?.enable ? Math.max(configured, 1.5) : configured
 })
 
 const pagesList = $computed(() => {
@@ -358,25 +390,34 @@ const shouldShowFooter = (pageInfo) => {
 
 const onScroll = () => {
   if (!scrollContainer.value) return
-  const { scrollTop } = scrollContainer.value
-  const zoomLevel = pageOptions.value.zoomLevel || 100
-
-  if (layoutTree?.pages && layoutTree.pages.length > 0) {
-    const zoom = zoomLevel / 100
-    for (let i = layoutTree.pages.length - 1; i >= 0; i--) {
-      const page = layoutTree.pages[i]
-      if (scrollTop >= (page.contentStartY || 0) * zoom - 100) {
-        currentPageFromScroll.value = page.pageNumber
-        return
-      }
-    }
-    currentPageFromScroll.value = 1
-  } else {
-    const pageHeightPx = (pageSize.height * 96 / 2.54) * (zoomLevel / 100)
-    const page = Math.floor(scrollTop / pageHeightPx) + 1
-    currentPageFromScroll.value = Math.max(1, Math.min(page, totalPageNum))
+  const isAtDocumentEnd = scrollContainer.value.scrollTop + scrollContainer.value.clientHeight
+    >= scrollContainer.value.scrollHeight - 2
+  const containerRect = scrollContainer.value.getBoundingClientRect()
+  const breaks = scrollContainer.value.querySelectorAll('[data-page-number]')
+  let current = 1
+  for (const pageBreak of breaks) {
+    const pageNumber = Number(pageBreak.getAttribute('data-page-number'))
+    if (!Number.isFinite(pageNumber)) continue
+    const rect = pageBreak.getBoundingClientRect()
+    if (rect.bottom <= containerRect.top + 160) current = Math.max(current, pageNumber)
   }
+  currentPageFromScroll.value = isAtDocumentEnd
+    ? totalPageNum
+    : Math.max(1, Math.min(current, totalPageNum))
+  publishPaginationStatus()
 }
+
+watch(
+  () => editor.value,
+  (nextEditor, previousEditor) => {
+    if (previousEditor) previousEditor.off('transaction', publishPaginationStatus)
+    if (nextEditor) {
+      nextEditor.on('transaction', publishPaginationStatus)
+      requestAnimationFrame(publishPaginationStatus)
+    }
+  },
+  { immediate: true },
+)
 
 const activateHeaderMode = (e) => {
   if (e) e.stopPropagation()
@@ -674,10 +715,10 @@ const currentImageIndex = $computed({
 
 .kindy-gdocs-header-zone {
   position: absolute;
-  top: 0.4cm;
+  top: 0.2cm;
   left: calc(var(--margin-left, 2.54cm) * var(--page-zoom, 1));
   right: calc(var(--margin-right, 2.54cm) * var(--page-zoom, 1));
-  height: calc((var(--margin-top, 2.54cm) - 0.6cm) * var(--page-zoom, 1));
+  height: calc((var(--margin-top, 2.54cm) - 0.35cm) * var(--page-zoom, 1));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -774,6 +815,23 @@ const currentImageIndex = $computed({
   width: 100%;
 }
 
+.kindy-gdocs-hf-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--page-width, 21cm) * var(--page-zoom, 1) - 24px);
+  max-width: calc(var(--page-width, 21cm) * var(--page-zoom, 1) - 24px);
+  margin-left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1) + 12px);
+
+  img {
+    display: block;
+    width: min(var(--kindy-imported-image-width, 720px), 100%);
+    height: auto;
+    max-height: calc((var(--margin-top, 2.54cm) - 0.3cm) * var(--page-zoom, 1));
+    object-fit: contain;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* PAGE BREAK DECORATION — visual separator between pages (via ProseMirror)   */
@@ -805,23 +863,40 @@ const currentImageIndex = $computed({
     border-bottom: 1px solid #cbd5e1;
   }
 
-  &::after {
-    content: attr(data-page);
-    position: absolute;
-    right: 24px;
-    top: calc(var(--kindy-page-separator-offset, 24px) + var(--kindy-page-gap, 24px) / 2);
-    transform: translateY(-50%);
-    font-size: 11px;
-    font-weight: 600;
-    color: #64748b;
-    background: #ffffff;
-    padding: 2px 10px;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    border: 1px solid #cbd5e1;
-    white-space: nowrap;
-    letter-spacing: 0.3px;
+}
+
+.kindy-page-repeated-header,
+.kindy-page-repeated-footer {
+  position: absolute;
+  left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1) + 12px);
+  width: calc(var(--page-width, 21cm) * var(--page-zoom, 1) - 24px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.kindy-page-repeated-header {
+  top: calc(var(--kindy-page-separator-offset, 24px) + var(--kindy-page-gap, 24px) + 12px);
+  height: calc(var(--margin-top, 2.54cm) * var(--page-zoom, 1) - 18px);
+
+  img {
+    display: block;
+    width: min(var(--kindy-imported-image-width, 720px), 100%);
+    height: auto;
+    max-height: 100%;
+    object-fit: contain;
   }
+}
+
+.kindy-page-repeated-footer {
+  top: calc(var(--kindy-page-separator-offset, 24px) - var(--margin-bottom, 2.54cm) * var(--page-zoom, 1) + 12px);
+  height: calc(var(--margin-bottom, 2.54cm) * var(--page-zoom, 1) - 18px);
+  text-align: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */

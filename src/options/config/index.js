@@ -12,7 +12,22 @@ export default {
   toolbar: {
     showSaveLabel: true,
     defaultMode: 'ribbon',
+    allowModeSwitch: true,
     menus: ['base', 'insert', 'table', 'tools', 'page', 'view', 'export'],
+  },
+  statusbar: {
+    showOutline: true,
+    showSpellcheck: true,
+    showShortcuts: true,
+    showReset: true,
+    showLayout: true,
+    showPageStatus: true,
+    showWordCount: true,
+    showBranding: true,
+    showFullscreen: true,
+    showPreview: true,
+    showZoom: true,
+    showLocale: true,
   },
     page: {
       layouts: ['page', 'web'],

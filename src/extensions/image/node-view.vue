@@ -1,7 +1,7 @@
 <template>
   <node-view-wrapper
     ref="containerRef"
-    as="figure"
+    :as="attrs.inline ? 'span' : 'figure'"
     class="kindy-node-view"
     :class="wrapperClass"
     :style="nodeStyle"
@@ -73,7 +73,7 @@
                 :src="attrs.src"
                 :alt="attrs.alt || attrs.title || attrs.name || 'image'"
                 draggable="false"
-                crossorigin="anonymous"
+                :crossorigin="imageCrossOrigin"
               />
             </div>
           </template>
@@ -91,7 +91,7 @@
             }"
             :data-id="attrs.id"
             :data-preview="attrs.previewType"
-            crossorigin="anonymous"
+            :crossorigin="imageCrossOrigin"
             loading="lazy"
             @load="onLoad"
             @error="onError"
@@ -105,6 +105,7 @@
         </drager>
       </div>
       <node-view-content
+        v-if="!attrs.inline"
         v-show="showAlt"
         as="figcaption"
         class="kindy-node-image-alt kindy-node-image-alt-content"
@@ -177,6 +178,10 @@ let imageLayoutCommitFrameId = 0
 let dragPreviewFrameId = 0
 
 const isDataImageSrc = (src) => String(src || '').startsWith('data:image')
+const imageCrossOrigin = $computed(() => {
+  const source = String(attrs.src || '')
+  return source.startsWith('data:') || source.startsWith('blob:') ? undefined : 'anonymous'
+})
 const isNodeSelected = $computed(() => !!props.selected)
 
 const hasRichAltContent = $computed(() => props.node.content.size > 0)

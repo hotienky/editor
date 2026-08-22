@@ -14,6 +14,33 @@ KindyDocumentLibrary                  orchestration
 
 `KindyDocumentLibrary` chịu trách nhiệm mở snapshot, đồng bộ editor state với `DocumentLibraryClient`, autosave, preview/restore và export. `KindyDocumentLibraryShell` chỉ chịu trách nhiệm layout, responsive và slots; shell không gọi API.
 
+## Preset Contract mặc định
+
+Workspace dùng `CONTRACT_EDITOR_OPTIONS` để giữ UI đúng phạm vi soạn hợp đồng:
+
+- Toolbar `classic` compact, khóa một hàng và không hiển thị nút đổi sang ribbon.
+- Chỉ có các nhóm `base`, `insert`, `table`, `page`, `export`.
+- Import DOCX, tải DOCX và In/PDF luôn có ở topbar; nhóm `export` lặp lại ba action này để người dùng tìm thấy ngay trong toolbar.
+- Với workspace, các action file gọi `DocumentLibraryClient`/adapter; không dùng IO trực tiếp của editor để tránh bỏ qua revision, artifact và compatibility report.
+- Chỉ có Page view; Web view bị loại khỏi `page.layouts`.
+- Không load menu Mermaid, diagram, chart, web page, media web, Chinese date hoặc Chinese case.
+- Status bar chỉ giữ bộ đếm `Trang X / Y`, số ký tự, zoom và locale.
+
+Preset là public API và dùng được cho editor độc lập:
+
+```ts
+import {
+  CONTRACT_EDITOR_OPTIONS,
+  createContractEditorOptions,
+} from 'kindy-editor'
+
+const editorOptions = createContractEditorOptions({
+  statusbar: { showLocale: false },
+})
+```
+
+Override được merge theo từng nhóm `toolbar`, `statusbar`, `page`. Nếu truyền `disableExtensions`, mảng của ứng dụng chủ thay thế mảng preset; nhờ đó việc mở rộng UI luôn là quyết định tường minh của host.
+
 ## Cấu hình layout
 
 ```vue
@@ -41,7 +68,7 @@ interface KindyLibraryUiOptions {
 }
 ```
 
-Desktop dùng layout ba vùng. Từ breakpoint `1024px` trở xuống, Explorer và Versions trở thành drawer có scrim; workspace handle hoặc các nút topbar có thể mở/đóng panel.
+Từ `1440px`, workspace mặc định mở đủ ba vùng. Trong khoảng `1025–1439px`, Explorer vẫn mở nhưng Versions mặc định thu gọn để editor/ribbon không bị ép chiều ngang; người dùng mở lại bằng nút lịch sử. Từ `1024px` trở xuống, Explorer và Versions trở thành drawer có scrim; workspace handle hoặc các nút topbar có thể mở/đóng panel.
 
 ## Theme tokens
 
@@ -82,17 +109,23 @@ Theme của Library shell độc lập với `theme`/`skin` nội bộ của `Ki
   :adapter="adapter"
   :editor-options="{
     theme: 'light',
-    skin: 'modern',
-    toolbar: { mode: 'ribbon' },
+    toolbar: { defaultMode: 'classic' },
+    statusbar: { showLocale: true },
   }"
 />
 ```
 
 Workspace luôn ghi đè `document.content`, `document.readOnly` và tắt autosave legacy của editor để tránh hai autosave pipeline chạy đồng thời.
 
+## Page canvas và điều hướng trang
+
+Ở layout `page`, editor dùng một ProseMirror surface liên tục và chèn page gap bằng decoration. Page gap không hiển thị nhãn nổi trong nội dung; số trang nằm ở status bar theo dạng `Trang hiện tại / tổng trang`. Người dùng có thể bấm bộ đếm, nhập số trang và nhảy tới block đầu của trang đó. Trang hiện tại được cập nhật theo viewport khi cuộn, kể cả khi trang cuối ngắn hơn chiều cao viewport.
+
+Ảnh DrawingML/VML nằm trong DOCX header được render từ canonical header state. Ảnh banner rộng giữ nguyên tỷ lệ và được lặp lại trong header band của các trang tự động tiếp theo. Pagination sử dụng cùng effective header/footer band với canvas để nội dung trang sau không chồng lên logo hoặc footer. Đây vẫn là browser preview; vị trí line-break tự động có thể khác Word do font metrics.
+
 ## Locale và message override
 
-UI ship message mặc định cho `vi-VN` và fallback English cho locale khác:
+Editor ship locale `vi-VN`, `en-US`, `zh-CN`, `it-IT` và `ru-RU`. `locale` truyền từ ứng dụng chủ được ưu tiên hơn giá trị localStorage cũ; đổi ngôn ngữ trong editor có hiệu lực ngay, không reload trang. Workspace đồng bộ Explorer/topbar/Versions trong cùng lần đổi và phát event `locale-changed`. Library shell dùng message tiếng Việt và fallback English:
 
 ```vue
 <KindyDocumentLibrary
@@ -169,8 +202,9 @@ interface KindyDocumentLibraryHandle {
   openDocument(document: DocumentSummary): Promise<void>
   closeDocument(): void
   save(): Promise<unknown>
-  exportDocx(options?): Promise<DocxExportResult>
+  exportDocx(options?: { mode?, store?, fileName?, preferOriginal? }): Promise<DocxExportResult & { source: 'original' | 'serialized' }>
   downloadDocx(): Promise<void>
+  importDocument(): void
   preparePrint(): Promise<unknown>
   print(): void
   getState(): KindyDocumentState

@@ -49,6 +49,7 @@ import { createEmptyDocumentState } from './core/state'
 import { createLongDocumentFixture } from './performance/long-document'
 
 const now = new Date().toISOString()
+const sampleLogoPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
 const contractState = createEmptyDocumentState({
   content: {
     type: 'doc',
@@ -61,6 +62,9 @@ const contractState = createEmptyDocumentState({
       { type: 'orderedList', attrs: { start: 1 }, content: [
         { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Cung cấp dịch vụ theo phụ lục.' }] }] },
         { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Bảo đảm chất lượng và tiến độ.' }] }] },
+      ] },
+      { type: 'paragraph', attrs: { textAlign: 'center' }, content: [
+        { type: 'inlineImage', attrs: { id: 'sample-contract-logo', src: sampleLogoPng, width: 96, height: 48, alt: 'Logo hợp đồng mẫu', title: 'Logo hợp đồng mẫu', inline: true, uploaded: true } },
       ] },
       { type: 'table', content: [
         { type: 'tableRow', content: [

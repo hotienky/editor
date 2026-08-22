@@ -6,6 +6,11 @@ import DocumentLibraryShell from '../../components/library/DocumentLibraryShell.
 import DocumentLibrary from '../../components/library/DocumentLibrary.vue'
 import { createMemoryDocumentAdapter } from '../../core/adapters/memory'
 import { createEmptyDocumentState } from '../../core/state'
+import { i18n } from '../../i18n'
+import {
+  CONTRACT_EDITOR_OPTIONS,
+  createContractEditorOptions,
+} from '../contract'
 import {
   DEFAULT_LIBRARY_THEME,
   createLibraryTheme,
@@ -14,6 +19,35 @@ import {
 } from '../library'
 
 describe('library UI contract', () => {
+  it('ships a page-only contract preset without web or Chinese-specific tools', () => {
+    expect(CONTRACT_EDITOR_OPTIONS.toolbar).toMatchObject({
+      defaultMode: 'classic',
+      allowModeSwitch: false,
+      menus: ['base', 'insert', 'table', 'page', 'export'],
+    })
+    expect(CONTRACT_EDITOR_OPTIONS.page.layouts).toEqual(['page'])
+    expect(CONTRACT_EDITOR_OPTIONS.disableExtensions).toEqual(expect.arrayContaining([
+      'web-page', 'layout-web', 'diagrams', 'mermaid', 'chinese-case', 'chinese-date',
+    ]))
+
+    const customized = createContractEditorOptions({ toolbar: { menus: ['base'] } })
+    expect(customized.toolbar).toMatchObject({ defaultMode: 'classic', menus: ['base'] })
+    expect(customized.statusbar.showPageStatus).toBe(true)
+  })
+
+  it('loads page labels for every supported locale without exposing raw i18n keys', () => {
+    const previous = i18n.global.locale.value
+    try {
+      for (const locale of ['vi-VN', 'en-US', 'zh-CN', 'it-IT', 'ru-RU'] as const) {
+        i18n.global.locale.value = locale
+        expect(i18n.global.t('page.status', { current: 2, total: 7 })).not.toBe('page.status')
+        expect(i18n.global.t('page.goTo')).not.toBe('page.goTo')
+      }
+    } finally {
+      i18n.global.locale.value = previous
+    }
+  })
+
   it('resolves stable defaults without mutating shared objects', () => {
     const first = resolveLibraryUi({ explorerWidth: '360px' })
     const second = resolveLibraryUi()
