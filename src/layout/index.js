@@ -119,6 +119,30 @@ export {
   computeLayout,
 }
 
+// ─── Incremental Layout ─────────────────────────────────────────────────────
+
+import {
+  IncrementalLayoutEngine,
+  DirtyTracker,
+  PageCache,
+} from './incremental-layout'
+
+export {
+  IncrementalLayoutEngine,
+  DirtyTracker,
+  PageCache,
+}
+
+// ─── Parallel Layout ────────────────────────────────────────────────────────
+
+import {
+  ParallelLayoutManager,
+} from './parallel-layout'
+
+export {
+  ParallelLayoutManager,
+}
+
 // ─── Convenience Functions ─────────────────────────────────────────────────
 
 /**
