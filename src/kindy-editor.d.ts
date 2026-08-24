@@ -9,8 +9,8 @@ export type DocumentErrorCode = 'DOCX_INVALID' | 'DOCX_UNSUPPORTED' | 'IMPORT_FA
 
 export interface KindyPageMargin { top: number; right: number; bottom: number; left: number }
 export interface KindyHeaderFooterState { enabled: boolean; content?: JSONContent; text?: string; firstContent?: JSONContent; firstText?: string; evenContent?: JSONContent; evenText?: string; differentFirstPage?: boolean; differentOddEven?: boolean }
-export interface KindySectionState { id: string; fromBlockId?: string; pageNumberStart?: number; size: { width: number; height: number }; orientation: 'portrait' | 'landscape'; margin: KindyPageMargin; header?: KindyHeaderFooterState; footer?: KindyHeaderFooterState }
-export interface KindyPageState { size: { width: number; height: number }; orientation: 'portrait' | 'landscape'; margin: KindyPageMargin; background?: string; watermark?: Record<string, unknown>; header?: KindyHeaderFooterState; footer?: KindyHeaderFooterState; sections?: KindySectionState[] }
+export interface KindySectionState { id: string; fromBlockId?: string; pageNumberStart?: number; size: { width: number; height: number }; orientation: 'portrait' | 'landscape'; margin: KindyPageMargin; headerDistance?: number; footerDistance?: number; header?: KindyHeaderFooterState; footer?: KindyHeaderFooterState }
+export interface KindyPageState { size: { width: number; height: number }; orientation: 'portrait' | 'landscape'; margin: KindyPageMargin; headerDistance?: number; footerDistance?: number; background?: string; watermark?: Record<string, unknown>; header?: KindyHeaderFooterState; footer?: KindyHeaderFooterState; sections?: KindySectionState[] }
 export interface AssetReference { id: string; kind: 'image' | 'video' | 'audio' | 'file' | 'other'; url?: string; mimeType?: string; fileName?: string; size?: number; metadata?: Record<string, unknown> }
 export interface KindyDocumentState { schemaVersion: '2.0'; content: JSONContent; page: KindyPageState; assets: AssetReference[] }
 
@@ -74,6 +74,7 @@ export const DEFAULT_PAGE_STATE: KindyPageState
 export function createEmptyDocumentState(overrides?: Partial<KindyDocumentState>): KindyDocumentState
 export function migrateDocumentState(input: unknown): KindyDocumentState
 export function createEditorDocumentState(input: { content: JSONContent; page?: Record<string, unknown>; assets?: AssetReference[] }): KindyDocumentState
+export function mergeEditorDocumentState(base: KindyDocumentState, editor: Partial<KindyDocumentState> & Pick<KindyDocumentState, 'content'>): KindyDocumentState
 
 export interface DocumentLibraryClientOptions { adapter: DocumentApiAdapter; autosave?: { enabled?: boolean; delay?: number }; codecs?: Record<string, unknown>; engine?: EditorEngineAdapter; locale?: string; theme?: Record<string, string> }
 export class DocumentLibraryClient {

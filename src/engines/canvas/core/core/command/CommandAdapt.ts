@@ -2976,7 +2976,7 @@ export class CommandAdapt {
       curIndex =
         position === LocationPosition.BEFORE
           ? 0
-          : this.draw.getOriginalMainElementList().length - 1
+          : this.draw.getOriginalElementList().length - 1
       this.range.setRange(curIndex, curIndex)
     }
     // 光标存在且闭合时定位

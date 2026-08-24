@@ -9,6 +9,8 @@ export const DEFAULT_PAGE_STATE: KindyPageState = Object.freeze({
   size: { width: 21, height: 29.7 },
   orientation: 'portrait',
   margin: { top: 2.54, right: 2.54, bottom: 2.54, left: 2.54 },
+  headerDistance: 1.27,
+  footerDistance: 1.27,
   background: '#ffffff',
   header: { enabled: false, text: '' },
   footer: { enabled: false, text: '' },

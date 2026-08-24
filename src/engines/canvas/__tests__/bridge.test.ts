@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { JSONContent } from '../../../core/types'
-import { canvasDataToProseMirror, proseMirrorToCanvasData } from '../bridge'
+import { canvasDataToProseMirror, canvasElementsToProseMirror, proseMirrorToCanvasData } from '../bridge'
 
 const contractFixture: JSONContent = {
   type: 'doc',
@@ -121,5 +121,39 @@ describe('CanvasEngine ProseMirror bridge', () => {
     expect(hardBreak).toMatchObject({ type: 'hardBreak' })
     expect(tab?.attrs).toMatchObject({ positionTwip: 3600, alignment: 'center', leader: 'dot' })
     expect(image?.attrs).toMatchObject({ id: 'logo-1', name: 'logo.png', size: 1234, uploaded: true })
+  })
+
+  it('keeps paragraph boundaries when Canvas compacts adjacent text elements', () => {
+    const projected = proseMirrorToCanvasData({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', attrs: { textAlign: 'justify' }, content: [{ type: 'text', text: 'Đoạn thứ nhất.' }] },
+        { type: 'paragraph', attrs: { textAlign: 'justify' }, content: [{ type: 'text', text: 'Đoạn thứ hai.' }] },
+      ],
+    })
+    const boundary = projected.main.find((element) => element.value === '\n')
+    expect(boundary?.extension).toMatchObject({ kindyBlockBoundary: true })
+
+    const restored = canvasElementsToProseMirror([{ value: 'Đoạn thứ nhất.\nĐoạn thứ hai.' }])
+    expect(restored.content).toHaveLength(2)
+    expect(restored.content?.map((node) => node.content?.[0]?.text)).toEqual([
+      'Đoạn thứ nhất.',
+      'Đoạn thứ hai.',
+    ])
+  })
+
+  it('maps Word justify and distributed alignment to different Canvas modes', () => {
+    const projected = proseMirrorToCanvasData({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', attrs: { textAlign: 'justify' }, content: [{ type: 'text', text: 'Căn đều theo từ.' }] },
+        { type: 'paragraph', attrs: { textAlign: 'distribute' }, content: [{ type: 'text', text: 'Căn phân tán.' }] },
+      ],
+    })
+    expect(projected.main.find((element) => element.value === 'C')?.rowFlex).toBe('justify')
+    const distributed = projected.main.find((element, index) => (
+      element.value === 'C' && index > 0 && element.rowFlex === 'alignment'
+    ))
+    expect(distributed?.rowFlex).toBe('alignment')
   })
 })

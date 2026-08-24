@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createEditorDocumentState } from '../editor-state'
+import { createEditorDocumentState, mergeEditorDocumentState } from '../editor-state'
+import { createEmptyDocumentState } from '../state'
 
 const paragraph = (text) => ({ type: 'paragraph', content: [{ type: 'text', text }] })
 
@@ -59,5 +60,39 @@ describe('editor canonical state', () => {
       orientation: 'landscape',
     })
     expect(state.page.sections[0].header.evenContent).toEqual(evenContent)
+  })
+
+  it('persists edited page zones without dropping host-managed state', () => {
+    const base = createEmptyDocumentState({
+      assets: [{ id: 'logo', kind: 'image', url: '/assets/logo.png' }],
+      page: {
+        ...createEmptyDocumentState().page,
+        headerDistance: 0.9,
+        footerDistance: 1.1,
+        sections: [{
+          id: 'section-1',
+          size: { width: 21, height: 29.7 },
+          orientation: 'portrait',
+          margin: { top: 2, right: 2, bottom: 2, left: 2 },
+        }],
+      },
+    })
+    const live = createEmptyDocumentState({
+      content: { type: 'doc', content: [paragraph('Body mới')] },
+      page: {
+        ...base.page,
+        header: { enabled: true, content: { type: 'doc', content: [paragraph('Header mới')] } },
+        footer: { enabled: true, content: { type: 'doc', content: [paragraph('Footer mới')] } },
+      },
+    })
+
+    const merged = mergeEditorDocumentState(base, { content: live.content, page: live.page })
+
+    expect(merged.content.content[0].content[0].text).toBe('Body mới')
+    expect(merged.page.header.content.content[0].content[0].text).toBe('Header mới')
+    expect(merged.page.footer.content.content[0].content[0].text).toBe('Footer mới')
+    expect(merged.page.headerDistance).toBe(0.9)
+    expect(merged.page.sections).toEqual(base.page.sections)
+    expect(merged.assets).toEqual(base.assets)
   })
 })

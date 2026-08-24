@@ -151,6 +151,10 @@ components:
         size: { type: object, required: [width, height], properties: { width: { type: number }, height: { type: number } } }
         orientation: { enum: [portrait, landscape] }
         margin: { type: object, required: [top, right, bottom, left], properties: { top: { type: number }, right: { type: number }, bottom: { type: number }, left: { type: number } } }
+        headerDistance: { type: number, minimum: 0, description: Header distance in centimeters }
+        footerDistance: { type: number, minimum: 0, description: Footer distance in centimeters }
+        header: { type: object, additionalProperties: true }
+        footer: { type: object, additionalProperties: true }
         background: { type: string }
         watermark: { type: object, additionalProperties: true }
         sections: { type: array, items: { type: object, additionalProperties: true } }

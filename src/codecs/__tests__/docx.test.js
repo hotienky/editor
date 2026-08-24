@@ -348,6 +348,8 @@ describe('DOCX codec', () => {
       size: { width: 21, height: 29.7 },
       orientation: 'portrait',
       margin: { top: 2, right: 2, bottom: 2, left: 2 },
+      headerDistance: 0.9,
+      footerDistance: 1.1,
       header: {
         enabled: true,
         content: headerContent('Header mặc định', true),
@@ -363,6 +365,8 @@ describe('DOCX codec', () => {
       size: { width: 21, height: 29.7 },
       orientation: 'landscape',
       margin: { top: 1.5, right: 1.2, bottom: 1.5, left: 1.2 },
+      headerDistance: 0.7,
+      footerDistance: 0.8,
       pageNumberStart: 5,
       header: { enabled: true, content: headerContent('Header ngang') },
       footer: { enabled: false, text: '' },
@@ -387,11 +391,15 @@ describe('DOCX codec', () => {
     expect(imported.report.issues.map((issue) => issue.code)).not.toEqual(expect.arrayContaining(['MULTIPLE_SECTIONS', 'HEADER_FOOTER_PROFILE']))
     expect(imported.state.page.sections).toHaveLength(2)
     expect(imported.state.page.sections[0]).toMatchObject({ orientation: 'portrait' })
+    expect(imported.state.page.sections[0].headerDistance).toBeCloseTo(0.9, 1)
+    expect(imported.state.page.sections[0].footerDistance).toBeCloseTo(1.1, 1)
     expect(imported.state.page.sections[0].header.text).toContain('Header mặc định')
     expect(imported.state.page.sections[0].header.firstText).toContain('Header trang đầu')
     expect(imported.state.page.sections[0].header.evenText).toContain('Header trang chẵn')
     expect(JSON.stringify(imported.state.page.sections[0].header.content)).toContain('data:image/png;base64,')
     expect(imported.state.page.sections[1]).toMatchObject({ orientation: 'landscape', pageNumberStart: 5 })
+    expect(imported.state.page.sections[1].headerDistance).toBeCloseTo(0.7, 1)
+    expect(imported.state.page.sections[1].footerDistance).toBeCloseTo(0.8, 1)
     expect(imported.state.content.content.some((node) => node.type === 'sectionBreak')).toBe(true)
   })
 

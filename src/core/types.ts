@@ -43,6 +43,8 @@ export interface KindySectionState {
   size: { width: number; height: number }
   orientation: 'portrait' | 'landscape'
   margin: KindyPageMargin
+  headerDistance?: number
+  footerDistance?: number
   header?: KindyHeaderFooterState
   footer?: KindyHeaderFooterState
 }
@@ -51,6 +53,8 @@ export interface KindyPageState {
   size: { width: number; height: number }
   orientation: 'portrait' | 'landscape'
   margin: KindyPageMargin
+  headerDistance?: number
+  footerDistance?: number
   background?: string
   watermark?: Record<string, unknown>
   header?: KindyHeaderFooterState

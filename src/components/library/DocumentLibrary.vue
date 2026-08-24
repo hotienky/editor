@@ -167,6 +167,7 @@ import { onClickOutside } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onErrorCaptured, ref, shallowRef, useSlots, watch } from 'vue'
 import { exportDocx } from '../../codecs'
 import { DocumentLibraryClient, createDocumentLibrary } from '../../core/client'
+import { mergeEditorDocumentState } from '../../core/editor-state'
 import { DocumentLibraryError } from '../../core/errors'
 import { createEmptyDocumentState } from '../../core/state'
 import type { CollaborationAdapter, CollaborationSession, CompatibilityReport, DocumentApiAdapter, DocumentSnapshot, DocumentSummary, DocumentVersion, KindyDocumentState } from '../../core/types'
@@ -522,17 +523,10 @@ function disconnectCollaboration() {
 
 function stateFromEditor(): KindyDocumentState {
   if (!current.value || !editor.value) return createEmptyDocumentState()
-  const editorPageValue = editor.value.getPage()
-  return createEmptyDocumentState({
+  const liveState = editor.value.getState?.()
+  return mergeEditorDocumentState(current.value.state, liveState || {
     content: editor.value.getJSON(),
-    assets: current.value.state.assets,
-    page: {
-      ...current.value.state.page,
-      size: editorPageValue.size ? { width: editorPageValue.size.width, height: editorPageValue.size.height } : current.value.state.page.size,
-      orientation: editorPageValue.orientation || current.value.state.page.orientation,
-      margin: editorPageValue.margin || current.value.state.page.margin,
-      background: editorPageValue.background || current.value.state.page.background,
-    },
+    page: editor.value.getPage(),
   })
 }
 

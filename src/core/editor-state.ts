@@ -26,6 +26,8 @@ type LegacyPage = {
   size?: { width?: number; height?: number }
   orientation?: 'portrait' | 'landscape'
   margin?: Partial<KindyPageMargin>
+  headerDistance?: number
+  footerDistance?: number
   background?: string
   watermark?: Record<string, unknown>
   header?: LegacyHeaderFooter
@@ -74,6 +76,12 @@ export function toCanonicalSection(section: LegacySection, page: LegacyPage): Ki
       ...(page.margin || {}),
       ...(section.margin || {}),
     },
+    ...(Number.isFinite(section.headerDistance ?? page.headerDistance)
+      ? { headerDistance: section.headerDistance ?? page.headerDistance }
+      : {}),
+    ...(Number.isFinite(section.footerDistance ?? page.footerDistance)
+      ? { footerDistance: section.footerDistance ?? page.footerDistance }
+      : {}),
     ...(section.header
       ? { header: toCanonicalHeaderFooter(section.header) }
       : {}),
@@ -98,6 +106,8 @@ export function createEditorDocumentState(input: {
         : undefined,
       orientation: page.orientation,
       margin: page.margin as KindyPageMargin | undefined,
+      headerDistance: page.headerDistance,
+      footerDistance: page.footerDistance,
       background: page.background,
       watermark: page.watermark,
       header: toCanonicalHeaderFooter(page.header),
@@ -106,5 +116,33 @@ export function createEditorDocumentState(input: {
         ? page.sections.map((section) => toCanonicalSection(section, page))
         : [],
     } as KindyDocumentState['page'],
+  })
+}
+
+/**
+ * Merge a live editor snapshot into the persisted canonical state.
+ * Canvas owns mutable page zones as well as the body, while the host owns
+ * assets and may add page metadata that the current engine does not edit.
+ */
+export function mergeEditorDocumentState(
+  base: KindyDocumentState,
+  editor: Partial<KindyDocumentState> & Pick<KindyDocumentState, 'content'>,
+): KindyDocumentState {
+  const editorPage = editor.page || base.page
+  return createEmptyDocumentState({
+    ...base,
+    ...editor,
+    content: editor.content,
+    assets: editor.assets || base.assets,
+    page: {
+      ...base.page,
+      ...editorPage,
+      size: editorPage.size || base.page.size,
+      orientation: editorPage.orientation || base.page.orientation,
+      margin: {
+        ...base.page.margin,
+        ...(editorPage.margin || {}),
+      },
+    },
   })
 }

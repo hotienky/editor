@@ -1198,6 +1198,10 @@ function parseSectionState(
   const landscape = (size?.getAttribute('w:orient') || size?.getAttribute('orient')) === 'landscape' || width > height
   const margin = xmlFirst(section, 'pgMar')
   const readMargin = (name: string) => twipsToCentimeters(margin?.getAttribute(`w:${name}`) || margin?.getAttribute(name)) || 2.54
+  const readHeaderFooterDistance = (name: 'header' | 'footer') => {
+    const raw = margin?.getAttribute(`w:${name}`) || margin?.getAttribute(name)
+    return raw ? twipsToCentimeters(raw) : 1.27
+  }
   const pageNumber = xmlFirst(section, 'pgNumType')
   const start = Number(pageNumber?.getAttribute('w:start') || pageNumber?.getAttribute('start'))
   return {
@@ -1205,6 +1209,8 @@ function parseSectionState(
     size: landscape && width > height ? { width: height, height: width } : { width, height },
     orientation: landscape ? 'landscape' : 'portrait',
     margin: { top: readMargin('top'), right: readMargin('right'), bottom: readMargin('bottom'), left: readMargin('left') },
+    headerDistance: readHeaderFooterDistance('header'),
+    footerDistance: readHeaderFooterDistance('footer'),
     pageNumberStart: Number.isFinite(start) && start > 0 ? start : undefined,
     header: parseHeaderFooterState(section, 'header', documentRelationships, parts, assets, styleContext),
     footer: parseHeaderFooterState(section, 'footer', documentRelationships, parts, assets, styleContext),
@@ -1303,6 +1309,8 @@ export function ooxmlToDocumentState(parts: DocxPackageParts): KindyDocumentStat
     size: firstSection.size,
     orientation: firstSection.orientation,
     margin: firstSection.margin,
+    headerDistance: firstSection.headerDistance,
+    footerDistance: firstSection.footerDistance,
     header: firstSection.header,
     footer: firstSection.footer,
     sections: sections.map(({ breakType: _breakType, ...section }) => section),
@@ -1835,6 +1843,7 @@ export async function exportDocx(state: KindyDocumentState, options: DocxCodecOp
     const split = splitDocumentSections(state.content.content || [])
     const configuredSections = page.sections?.length ? page.sections : [{
       id: 'section-1', size: page.size, orientation: page.orientation, margin: page.margin,
+      headerDistance: page.headerDistance, footerDistance: page.footerDistance,
       header: page.header, footer: page.footer,
     }]
     const sections = await Promise.all(split.chunks.map(async (children, index) => {
@@ -1850,6 +1859,8 @@ export async function exportDocx(state: KindyDocumentState, options: DocxCodecOp
             margin: {
               top: centimetersToTwip(configured.margin.top), right: centimetersToTwip(configured.margin.right),
               bottom: centimetersToTwip(configured.margin.bottom), left: centimetersToTwip(configured.margin.left),
+              header: centimetersToTwip(configured.headerDistance ?? 1.27),
+              footer: centimetersToTwip(configured.footerDistance ?? 1.27),
             },
             pageNumbers: configured.pageNumberStart ? { start: configured.pageNumberStart } : undefined,
           },

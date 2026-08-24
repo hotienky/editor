@@ -42,10 +42,12 @@ const pageStateToEditorOptions = (
     header: {
       disabled: !page.header?.enabled,
       editable: !options.readOnly,
+      top: pageDimensionToPixels(page.headerDistance ?? 1.27),
     },
     footer: {
       disabled: !page.footer?.enabled,
       editable: !options.readOnly,
+      bottom: pageDimensionToPixels(page.footerDistance ?? 1.27),
     },
     ...(options.editorOptions as IEditorOption || {}),
   }
