@@ -1,0 +1,33 @@
+name: cypress
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/*'
+      - 'cypress/**'
+      - 'src/**'
+      - 'index.html'
+      - 'package.json'
+      - 'vite.config.ts'
+
+jobs:
+  cypress:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - run: npm install -g pnpm@10 serve@14.0.1
+      - run: echo "/usr/local/bin:/usr/bin:/bin" >> $GITHUB_PATH
+      - run: pnpm install --ignore-scripts --no-frozen-lockfile
+      - run: pnpm exec cypress install
+      - run: pnpm run build
+      - run: /usr/bin/mv dist canvas-editor
+      - run: serve . -l 3000 &
+      - run: pnpm run cypress:run

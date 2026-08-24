@@ -1,0 +1,1141 @@
+# Execute Command
+
+## How to Use
+
+```javascript
+import Editor from "@hufe921/canvas-editor"
+
+const instance = new Editor(container, <IElement[]>data, options)
+instance.command.commandName()
+```
+
+::: tip
+The execution of certain commands may cause the cursor to move out of the document (e.g., clicking the "Bold" button on the custom toolbar). In such cases, you can assign an identifier (EDITOR_COMPONENT) to the editor, allowing it to recognize the component as internal. For example:
+
+```js
+import { EDITOR_COMPONENT, EditorComponent } from '@hufe921/canvas-editor'
+
+<div class="menu" :[EDITOR_COMPONENT]="EditorComponent.MENU">
+  <button class="bold"></button>
+</div>
+```
+
+:::
+
+## executeMode
+
+Feature: Switch editor mode (Edit, Clean, Read only, Form, Print, Design, Graffiti, Trace)
+
+Usage:
+
+```javascript
+instance.command.executeMode(editorMode: EditorMode)
+```
+
+## executeToggleTrace
+
+Feature: Toggle trace recording.
+
+Usage:
+
+```javascript
+instance.command.executeToggleTrace(payload?: boolean)
+```
+
+## executeCompare
+
+Feature: Compare two versions of document data and switch to trace mode to show content differences.
+
+Usage:
+
+```javascript
+instance.command.executeCompare(payload: IComparePayload)
+```
+
+## executeToggleRuler
+
+Feature: Toggle ruler visibility.
+
+Usage:
+
+```javascript
+instance.command.executeToggleRuler(payload?: boolean)
+```
+
+## executeCut
+
+Feature: Cut
+
+Usage:
+
+```javascript
+instance.command.executeCut()
+```
+
+## executeCopy
+
+Feature: Copy
+
+Usage:
+
+```javascript
+instance.command.executeCopy(payload?: ICopyOption)
+```
+
+## executePaste
+
+Feature: Paste
+
+Usage:
+
+```javascript
+instance.command.executePaste(payload?: IPasteOption)
+```
+
+## executeSelectAll
+
+Feature: Select all
+
+Usage:
+
+```javascript
+instance.command.executeSelectAll()
+```
+
+## executeBackspace
+
+Feature: Forward delete
+
+Usage:
+
+```javascript
+instance.command.executeBackspace()
+```
+
+## executeSetRange
+
+Feature: Set range
+
+Usage:
+
+```javascript
+instance.command.executeSetRange(
+  startIndex: number,
+  endIndex: number,
+  tableId?: string,
+  startTdIndex?: number,
+  endTdIndex?: number,
+  startTrIndex?: number,
+  endTrIndex?: number
+)
+```
+
+## executeReplaceRange
+
+Feature: Replace range
+
+Usage:
+
+```javascript
+instance.command.executeReplaceRange(range: IRange)
+```
+
+## executeSetPositionContext
+
+Feature: Set position context
+
+Usage:
+
+```javascript
+instance.command.executeSetPositionContext(range: IRange)
+```
+
+## executeForceUpdate
+
+Feature: force update editor
+
+Usage:
+
+```javascript
+instance.command.executeForceUpdate(options?: IForceUpdateOption)
+```
+
+## executeBlur
+
+Feature: Set editor blur
+
+Usage:
+
+```javascript
+instance.command.executeBlur()
+```
+
+## executeHideCursor
+
+Feature: Hide cursor (keep range)
+
+Usage:
+
+```javascript
+instance.command.executeHideCursor()
+```
+
+## executeUndo
+
+Feature: Undo
+
+Usage:
+
+```javascript
+instance.command.executeUndo()
+```
+
+## executeRedo
+
+Feature: Redo
+
+Usage:
+
+```javascript
+instance.command.executeRedo()
+```
+
+## executePainter
+
+Feature: Format Brush - Copy style
+
+Usage:
+
+```javascript
+instance.command.executePainter()
+```
+
+## executeApplyPainterStyle
+
+Feature: Format brush - Apply style
+
+Usage:
+
+```javascript
+instance.command.executeApplyPainterStyle()
+```
+
+## executeFormat
+
+Feature: Clear format
+
+Usage:
+
+```javascript
+instance.command.executeFormat(options?: IRichtextOption)
+```
+
+## executeFont
+
+Feature: Set font
+
+Usage:
+
+```javascript
+instance.command.executeFont(font: string, options?: IRichtextOption)
+```
+
+## executeSize
+
+Feature: Set font size
+
+Usage:
+
+```javascript
+instance.command.executeSize(size: number, options?: IRichtextOption)
+```
+
+## executeSizeAdd
+
+Feature: Increase the font size
+
+Usage:
+
+```javascript
+instance.command.executeSizeAdd(options?: IRichtextOption)
+```
+
+## executeSizeMinus
+
+Feature: Reduce the font size
+
+Usage:
+
+```javascript
+instance.command.executeSizeMinus(options?: IRichtextOption)
+```
+
+## executeBold
+
+Feature: Bold
+
+Usage:
+
+```javascript
+instance.command.executeBold(options?: IRichtextOption)
+```
+
+## executeItalic
+
+Feature: Italic
+
+Usage:
+
+```javascript
+instance.command.executeItalic(options?: IRichtextOption)
+```
+
+## executeUnderline
+
+Feature: Underline
+
+Usage:
+
+```javascript
+instance.command.executeUnderline(textDecoration?: ITextDecoration, options?: IRichtextOption)
+```
+
+## executeStrikeout
+
+Feature: Strikeout
+
+Usage:
+
+```javascript
+instance.command.executeStrikeout(options?: IRichtextOption)
+```
+
+## executeSuperscript
+
+Feature: Superscript
+
+Usage:
+
+```javascript
+instance.command.executeSuperscript(options?: IRichtextOption)
+```
+
+## executeSubscript
+
+Feature: Subscript
+
+Usage:
+
+```javascript
+instance.command.executeSubscript(options?: IRichtextOption)
+```
+
+## executeColor
+
+Feature: Font color
+
+Usage:
+
+```javascript
+instance.command.executeColor(color: string | null, options?: IRichtextOption)
+```
+
+## executeHighlight
+
+Feature: Highlight
+
+Usage:
+
+```javascript
+instance.command.executeHighlight(color: string | null, options?: IRichtextOption)
+```
+
+## executeTitle
+
+Feature: Set title
+
+Usage:
+
+```javascript
+instance.command.executeTitle(TitleLevel | null)
+```
+
+## executeList
+
+Feature: Set list
+
+Usage:
+
+```javascript
+instance.command.executeList(listType: ListType | null, listStyle?: ListStyle)
+```
+
+## executeRowFlex
+
+Feature: Paragraph alignment
+
+Usage:
+
+```javascript
+instance.command.executeRowFlex(rowFlex: RowFlex)
+```
+
+## executeRowMargin
+
+Feature: Paragraph line spacing
+
+Usage:
+
+```javascript
+instance.command.executeRowMargin(rowMargin: number)
+```
+
+## executeInsertTable
+
+Feature: Insert table
+
+Usage:
+
+```javascript
+instance.command.executeInsertTable(row: number, col: number)
+```
+
+## executeInsertTableTopRow
+
+Feature: Insert a row up
+
+Usage:
+
+```javascript
+instance.command.executeInsertTableTopRow()
+```
+
+## executeInsertTableBottomRow
+
+Feature: Insert a row down
+
+Usage:
+
+```javascript
+instance.command.executeInsertTableBottomRow()
+```
+
+## executeInsertTableLeftCol
+
+Feature: Insert a column to the left
+
+Usage:
+
+```javascript
+instance.command.executeInsertTableLeftCol()
+```
+
+## executeInsertTableRightCol
+
+Feature: Insert a column to the right
+
+Usage:
+
+```javascript
+instance.command.executeInsertTableRightCol()
+```
+
+## executeDeleteTableRow
+
+Feature: Deletes the current row
+
+Usage:
+
+```javascript
+instance.command.executeDeleteTableRow()
+```
+
+## executeDeleteTableCol
+
+Feature: Delete the current column
+
+Usage:
+
+```javascript
+instance.command.executeDeleteTableCol()
+```
+
+## executeDeleteTable
+
+Feature: Delete the table
+
+Usage:
+
+```javascript
+instance.command.executeDeleteTable()
+```
+
+## executeMergeTableCell
+
+Feature: Merge tables
+
+Usage:
+
+```javascript
+instance.command.executeMergeTableCell()
+```
+
+## executeCancelMergeTableCell
+
+Feature: Cancel the merge form
+
+Usage:
+
+```javascript
+instance.command.executeCancelMergeTableCell()
+```
+
+## executeSplitVerticalTableCell
+
+Feature: Split table cell (vertical)
+
+Usage:
+
+```javascript
+instance.command.executeSplitVerticalTableCell()
+```
+
+## executeSplitHorizontalTableCell
+
+Feature: Split table cell (horizontal)
+
+Usage:
+
+```javascript
+instance.command.executeSplitHorizontalTableCell()
+```
+
+## executeTableTdVerticalAlign
+
+Feature: Table cell vertical alignment
+
+Usage:
+
+```javascript
+instance.command.executeTableTdVerticalAlign(payload: VerticalAlign)
+```
+
+## executeTableBorderType
+
+Feature: Table border type
+
+Usage:
+
+```javascript
+instance.command.executeTableBorderType(payload: TableBorder)
+```
+
+## executeTableBorderColor
+
+Feature: Table border color
+
+Usage:
+
+```javascript
+instance.command.executeTableBorderColor(payload: string)
+```
+
+## executeTableTdBorderType
+
+Feature: Table td border type
+
+Usage:
+
+```javascript
+instance.command.executeTableTdBorderType(payload: TdBorder)
+```
+
+## executeTableTdSlashType
+
+Feature: Table td slash type
+
+Usage:
+
+```javascript
+instance.command.executeTableTdSlashType(payload: TdSlash)
+```
+
+## executeTableTdBackgroundColor
+
+Feature: Table cell background color
+
+Usage:
+
+```javascript
+instance.command.executeTableTdBackgroundColor(payload: string)
+```
+
+## executeTableSelectAll
+
+Feature: Select the entire table
+
+Usage:
+
+```javascript
+instance.command.executeTableSelectAll()
+```
+
+## executeTableAutoFitToContent
+
+Feature: AutoFit the table to its contents (each column width is adjusted to the measured maximum content width of its cells, not less than defaultColMinWidth; when overflow is false the result is proportionally shrunk to fit the page content area)
+
+Usage:
+
+```javascript
+instance.command.executeTableAutoFitToContent()
+```
+
+## executeTableAutoFitToPage
+
+Feature: AutoFit the table to the window (the total table width is proportionally scaled to the page content area width)
+
+Usage:
+
+```javascript
+instance.command.executeTableAutoFitToPage()
+```
+
+## executeImage
+
+Feature: Insert a picture
+
+Usage:
+
+```javascript
+instance.command.executeImage({
+  id?: string;
+  width: number;
+  height: number;
+  value: string;
+  imgDisplay?: ImageDisplay;
+})
+```
+
+## executeHyperlink
+
+Feature: Insert a link
+
+Usage:
+
+```javascript
+instance.command.executeHyperlink({
+  type: ElementType.HYPERLINK,
+  value: string,
+  url: string,
+  valueList: IElement[]
+})
+```
+
+## executeDeleteHyperlink
+
+Feature: Delete the link
+
+Usage:
+
+```javascript
+instance.command.executeDeleteHyperlink()
+```
+
+## executeCancelHyperlink
+
+Feature: Unlink
+
+Usage:
+
+```javascript
+instance.command.executeCancelHyperlink()
+```
+
+## executeEditHyperlink
+
+Feature: Edit the link
+
+Usage:
+
+```javascript
+instance.command.executeEditHyperlink(newUrl: string)
+```
+
+## executeSeparator
+
+Feature: Insert a dividing line
+
+Usage:
+
+```javascript
+instance.command.executeSeparator(dashArray: number[], option?: { lineWidth?: number; color?: string })
+```
+
+## executePageBreak
+
+Feature: Page breaks
+
+Usage:
+
+```javascript
+instance.command.executePageBreak()
+```
+
+## executeAddWatermark
+
+Feature: Add a watermark
+
+Usage:
+
+```javascript
+instance.command.executeAddWatermark({
+  data: string;
+  color?: string;
+  opacity?: number;
+  size?: number;
+  font?: string;
+  layer?: WatermarkLayer;
+})
+```
+
+## executeDeleteWatermark
+
+Feature: Remove the watermark
+
+Usage:
+
+```javascript
+instance.command.executeDeleteWatermark()
+```
+
+## executeSearch
+
+Feature: 搜索
+
+Usage:
+
+```javascript
+instance.command.executeSearch(keyword: string, options?: ISearchOption)
+```
+
+## executeSearchNavigatePre
+
+Feature: Search Navigation - Previous
+
+Usage:
+
+```javascript
+instance.command.executeSearchNavigatePre()
+```
+
+## executeSearchNavigateNext
+
+Feature: Search Navigation - Next
+
+Usage:
+
+```javascript
+instance.command.executeSearchNavigateNext()
+```
+
+## executeReplace
+
+Feature: Search for replacement
+
+Usage:
+
+```javascript
+instance.command.executeReplace(newWord: string, option?: IReplaceOption)
+```
+
+## executePrint
+
+Feature: Print
+
+Usage:
+
+```javascript
+instance.command.executePrint(option?: IPrintOption)
+```
+
+## executeReplaceImageElement
+
+Feature: Replace the picture
+
+Usage:
+
+```javascript
+instance.command.executeReplaceImageElement(newUrl: string)
+```
+
+## executeSaveAsImageElement
+
+Feature: Save as picture
+
+Usage:
+
+```javascript
+instance.command.executeSaveAsImageElement()
+```
+
+## executeChangeImageDisplay
+
+Feature: Change how image rows are displayed
+
+Usage:
+
+```javascript
+instance.command.executeChangeImageDisplay(element: IElement, display: ImageDisplay)
+```
+
+## executeSetImageCrop
+
+Feature: Set image crop information
+
+Usage:
+
+```javascript
+instance.command.executeSetImageCrop(crop: IImageCrop)
+```
+
+## executePageMode
+
+Feature: Page mode
+
+Usage:
+
+```javascript
+instance.command.executePageMode(pageMode: PageMode)
+```
+
+## executePageScale
+
+Feature: Set page scale
+
+Usage:
+
+```javascript
+instance.command.executePageScale(scale: number)
+```
+
+## executePageScaleRecovery
+
+Feature: Restore the original zoom factor of the page
+
+Usage:
+
+```javascript
+instance.command.executePageScaleRecovery()
+```
+
+## executePageScaleMinus
+
+Feature: Page zoom out
+
+Usage:
+
+```javascript
+instance.command.executePageScaleMinus()
+```
+
+## executePageScaleAdd
+
+Feature: Page zoom in
+
+Usage:
+
+```javascript
+instance.command.executePageScaleAdd()
+```
+
+## executePaperSize
+
+Feature: Set the paper size
+
+Usage:
+
+```javascript
+instance.command.executePaperSize(width: number, height: number)
+```
+
+## executePaperDirection
+
+Feature: Set the paper orientation
+
+Usage:
+
+```javascript
+instance.command.executePaperDirection(paperDirection: PaperDirection)
+```
+
+## executePageDirection
+
+Feature: Set the paper orientation of the current section. Page breaks delimit sections; the first section changes the global orientation, and `null` restores the global orientation.
+
+Usage:
+
+```javascript
+instance.command.executePageDirection(paperDirection: PaperDirection | null)
+```
+
+## executeSetPaperMargin
+
+Feature: Set the paper margins
+
+Usage:
+
+```javascript
+instance.command.executeSetPaperMargin([top: number, right: number, bottom: number, left: number])
+```
+
+## executeSetColumns
+
+Feature: Set the column configuration.
+
+Usage:
+
+```javascript
+instance.command.executeSetColumns(config: IColumnOption | null)
+```
+
+## executeSetMainBadge
+
+Feature: Set main badge
+
+Usage:
+
+```javascript
+instance.command.executeSetMainBadge(payload: IBadge | null)
+```
+
+## executeSetAreaBadge
+
+Feature: Set area badge
+
+Usage:
+
+```javascript
+instance.command.executeSetAreaBadge(payload: IAreaBadge[])
+```
+
+## executeInsertElementList
+
+Feature: Insert an element
+
+Usage:
+
+```javascript
+instance.command.executeInsertElementList(elementList: IElement[], options?: IInsertElementListOption)
+```
+
+## executeAppendElementList
+
+Feature: Append elements
+
+Usage:
+
+```javascript
+instance.command.executeAppendElementList(elementList: IElement[], options?: IAppendElementListOption)
+```
+
+## executeUpdateElementById
+
+Feature: Update element by id
+
+Usage:
+
+```javascript
+instance.command.executeUpdateElementById(payload: IUpdateElementByIdOption)
+```
+
+## executeDeleteElementById
+
+Feature: Delete element by id
+
+Usage:
+
+```javascript
+instance.command.executeDeleteElementById(payload: IDeleteElementByIdOption)
+```
+
+## executeSetValue
+
+Feature: Set the editor data
+
+Usage:
+
+```javascript
+instance.command.executeSetValue(payload: Partial<IEditorData>, options?: ISetValueOption)
+```
+
+## executeSetLocale
+
+Feature: Set local language
+
+Usage:
+
+```javascript
+instance.command.executeSetLocale(locale: string)
+```
+
+## executeLocationCatalog
+
+Feature: Locate directory location
+
+Usage:
+
+```javascript
+instance.command.executeLocationCatalog(titleId: string)
+```
+
+## executeWordTool
+
+Feature: Word Tool (Delete blank lines and leading Spaces)
+
+Usage:
+
+```javascript
+instance.command.executeWordTool()
+```
+
+## executeSetHTML
+
+Feature: Set the editor HTML data
+
+Usage:
+
+```javascript
+instance.command.executeSetHTML(payload: Partial<IEditorHTML)
+```
+
+## executeSetGroup
+
+Feature: Set group
+
+Usage:
+
+```javascript
+instance.command.executeSetGroup()
+```
+
+## executeDeleteGroup
+
+Feature: Delete group
+
+Usage:
+
+```javascript
+instance.command.executeDeleteGroup(groupId: string)
+```
+
+## executeLocationGroup
+
+Feature: Positioning group position
+
+Usage:
+
+```javascript
+instance.command.executeLocationGroup(groupId: string)
+```
+
+## executeSetZone
+
+Feature: Set active zone (header, main, footer)
+
+Usage:
+
+```javascript
+instance.command.executeSetZone(zone: EditorZone)
+```
+
+Control-related commands have moved to [Control-Commands](./control/command.md); validation commands to [Control-Validation](./control/validate.md).
+
+## executeUpdateOptions
+
+Feature: Update options
+
+Usage:
+
+```javascript
+instance.command.executeUpdateOptions(payload: IUpdateOption)
+```
+
+## executeInsertTitle
+
+Feature: Insert title
+
+Usage:
+
+```javascript
+instance.command.executeInsertTitle(payload: IElement)
+```
+
+## executeFocus
+
+Feature: focus
+
+Usage:
+
+```javascript
+instance.command.executeFocus(payload?: IFocusOption)
+```
+
+## executeInsertArea
+
+Feature: insert area element
+
+Usage:
+
+```javascript
+const areaId = instance.command.executeInsertArea(payload: IInsertAreaOption)
+```
+
+## executeSetAreaProperties
+
+Feature: set area properties
+
+Usage:
+
+```javascript
+instance.command.executeSetAreaProperties(payload: ISetAreaPropertiesOption)
+```
+
+## executeSetAreaValue
+
+Feature: set area value
+
+Usage:
+
+```javascript
+instance.command.executeSetAreaValue(payload: ISetAreaValueOption)
+```
+
+## executeDeleteArea
+
+Feature: delete area
+
+Usage:
+
+```javascript
+instance.command.executeDeleteArea(payload?: IDeleteAreaOption)
+```
+
+## executeLocationArea
+
+Feature: positioning area position
+
+Usage:
+
+```javascript
+instance.command.executeLocationArea(areaId: string, options?: ILocationAreaOption)
+```
+
+## executeClearGraffiti
+
+Feature: clear graffiti data
+
+Usage:
+
+```javascript
+instance.command.executeClearGraffiti()
+```

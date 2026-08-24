@@ -1,0 +1,6 @@
+export * from './CanvasEditor'
+export * from './Catalog'
+export * from './Footer'
+export * from './Ribbon'
+export * from './ribbon'
+export { default } from './CanvasEditor'

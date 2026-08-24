@@ -1,48 +1,68 @@
 {
-  "editor.codeActionsOnSave": {
-    "source.fixAll.oxc": "always"
-  },
+  "cSpell.words": [
+    "atrule",
+    "Chainable",
+    "colspan",
+    "compositionend",
+    "compositionstart",
+    "contenteditable",
+    "contextmenu",
+    "CRDT",
+    "deletable",
+    "dppx",
+    "esbenp",
+    "eventbus",
+    "inputarea",
+    "keyof",
+    "linebreak",
+    "mousedown",
+    "mouseup",
+    "mousemove",
+    "mouseleave",
+    "noopener",
+    "Parens",
+    "prismjs",
+    "resizer",
+    "richtext",
+    "rowmargin",
+    "rowspan",
+    "srcdoc",
+    "TEXTLIKE",
+    "trlist",
+    "updown",
+    "vite",
+    "vitepress",
+    "Yahei"
+  ],
+  "cSpell.ignorePaths": [
+    ".github",
+    "dist",
+    "node_modules",
+    "pnpm-lock.yaml",
+    "src/editor/core/draw/particle/latex/utils"
+  ],
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
   "editor.formatOnSave": true,
-  "[javascript]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
-  },
-  "[vue]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[json]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[jsonc]": {
-    "editor.defaultFormatter": "oxc.oxc-vscode",
-    "editor.formatOnSave": true
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": false
   },
   "[css]": {
-    "editor.defaultFormatter": "vscode.css-language-features",
-    "editor.formatOnSave": true
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "[less]": {
-    "editor.defaultFormatter": "vscode.css-language-features",
-    "editor.formatOnSave": true
-  },
-  "[postcss]": {
-    "editor.defaultFormatter": "vscode.css-language-features",
-    "editor.formatOnSave": true
-  },
-  "i18n-ally.localesPaths": ["src/locales"],
-  "i18n-ally.keystyle": "nested"
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }

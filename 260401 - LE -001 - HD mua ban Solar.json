@@ -1,0 +1,3148 @@
+{
+  "version": "1.0.0",
+  "data": {
+    "header": [
+      {
+        "value": "data:image/png;base64,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",
+        "type": "image",
+        "width": 655.1983347985182,
+        "height": 32.20132237224413
+      }
+    ],
+    "main": [
+      {
+        "value": "HỢP ĐỒNG MUA BÁN",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "center",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Số: HDMB/DAT-................/yymmdd",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "center",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Căn cứ Bộ Luật Dân Sự số 91/2015/QH13 ban hành năm 2015 có hiệu lực áp dụng từ 01/01/2017 của Nước Cộng Hòa Xã Hội Chủ Nghĩa Việt Nam;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": true,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Căn cứ Luật Thương Mại số 36/2005/QH11 ngày 14/06/2005 của Quốc Hội Nước Cộng Hoà Xã Hội Chủ Nghĩa Việt Nam;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": true,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Căn cứ vào nhu cầu và khả năng của hai bên.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": true,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Hôm nay, ngày 14 tháng 04 năm 2026 tại CÔNG TY CỔ PHẦN TẬP ĐOÀN DAT, chúng tôi gồm có:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "BÊN A (BÊN MUA)\t: ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Đại diện\t:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\tÔng                                    \t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Chức vụ: ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": " Giám Đốc",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Địa chỉ\t:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": " \t\t\t\t\t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "highlight": "rgb(255, 255, 255)",
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "highlight": "rgb(255, 255, 255)",
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "highlight": "rgb(255, 255, 255)",
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "highlight": "rgb(255, 255, 255)",
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "highlight": "rgb(255, 255, 255)",
+        "rowMargin": 1
+      },
+      {
+        "value": "Địện thoại\t: ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Mã số thuế\t: ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Số tài khoản  :\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "highlight": "rgb(255, 255, 255)",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "BÊN BÁN (BÊN B)\t: CÔNG TY CỔ PHẦN TẬP ĐOÀN DAT",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Đại diện\t: ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Ông LÊ QUỐC ANH",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Chức vụ: Phó Tổng Giám Đốc",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "(Theo Giấy Ủy quyền số 01/2026/UQ-DAT của Tổng Giám Đốc ngày 29/12/2025)",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": true,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Địa chỉ \t: 12 Đông Hưng Thuận 10, P. Đông Hưng Thuận, TP. Hồ Chí Minh",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Điện thoại \t: (028) 3715 7567\t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Fax: (028) 3891 6586",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Mã số thuế\t: .................",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Số tài khoản\t: ................... tại Ngân hàng ......................",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Sau khi bàn bạc và thảo luận, hai bên đi đến thống nhất ký kết Hợp đồng Mua bán (sau đây gọi chung là ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 1
+      },
+      {
+        "value": "“Hợp đồng”",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 1
+      },
+      {
+        "value": ") với những nội dung và điều khoản sau:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 1. Đối tượng Hợp đồng",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\nBên A đồng ý mua và Bên B đồng ý bán các loại hàng hóa dưới đây:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "type": "table",
+        "font": "Segoe UI",
+        "rowMargin": 1,
+        "trList": [
+          {
+            "height": 45,
+            "minHeight": 42,
+            "tdList": [
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "STT",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "Tên sản phẩm",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "Đơn vị",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "Số lượng",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "Đơn giá (VNĐ)",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "Thành tiền \n(VNĐ)",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              }
+            ]
+          },
+          {
+            "height": 42,
+            "minHeight": 42,
+            "tdList": [
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "1",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "Cái",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle",
+                "backgroundColor": "rgb(255, 255, 255)"
+              }
+            ]
+          },
+          {
+            "height": 42,
+            "minHeight": 42,
+            "tdList": [
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "2",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "Bộ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              }
+            ]
+          },
+          {
+            "height": 42,
+            "minHeight": 42,
+            "tdList": [
+              {
+                "colspan": 5,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "GIÁ TRỊ HỢP ĐỒNG TRƯỚC THUẾ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "right",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              }
+            ]
+          },
+          {
+            "height": 42,
+            "minHeight": 42,
+            "tdList": [
+              {
+                "colspan": 5,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "THUẾ GTGT 8% ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "right",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "center",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              }
+            ]
+          },
+          {
+            "height": 42,
+            "minHeight": 42,
+            "tdList": [
+              {
+                "colspan": 5,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": "TỔNG GIÁ TRỊ HỢP ĐỒNG SAU THUẾ ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "right",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              },
+              {
+                "colspan": 1,
+                "rowspan": 1,
+                "value": [
+                  {
+                    "value": " ",
+                    "size": 11,
+                    "bold": true,
+                    "color": "rgb(0, 0, 0)",
+                    "italic": false,
+                    "rowFlex": "right",
+                    "rowMargin": 0
+                  }
+                ],
+                "verticalAlign": "middle"
+              }
+            ]
+          }
+        ],
+        "translateX": 0,
+        "width": 652.3333333333333,
+        "height": 255,
+        "colgroup": [
+          {
+            "width": 56.499999999999986
+          },
+          {
+            "width": 189.83333333333334
+          },
+          {
+            "width": 71.77777777777776
+          },
+          {
+            "width": 51.222222222222214
+          },
+          {
+            "width": 92.33333333333333
+          },
+          {
+            "width": 190.66666666666669
+          }
+        ]
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "(Bằng chữ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": ": …………….. đồng/.)",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Tổng Giá trị Hợp đồng đã bao gồm thuế GTGT và chưa bao gồm chi phí vận chuyển.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Chất lượng hàng hóa:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": " Hàng mới 100%, đạt tiêu chuẩn kỹ thuật, đảm bảo chất lượng theo công bố của nhà sản xuất.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 2. Điều khoản thanh toán",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "2.1.\tHình thức thanh toán: ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Chuyển khoản bằng Việt Nam Đồng.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "2.2. \tThời hạn tạm ứng và thanh toán:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Tạm ứng:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": " Bên A tạm ứng cho Bên B 30% giá trị Hợp đồng trong thời hạn 03 ngày kể từ ngày ký Hợp đồng và Bên A nhận được đề nghị tạm ứng của Bên B tương ứng số tiền là .................. đồng. Số tiền tạm ứng này sẽ được cấn trừ vào lần thanh toán của đợt giao hàng sau cùng.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1,
+        "groupIds": ["6cd90f18-22b7-b8e3-eef8-279144eadf31"]
+      },
+      {
+        "value": "Thanh toán:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1,
+        "groupIds": ["6cd90f18-22b7-b8e3-eef8-279144eadf31"]
+      },
+      {
+        "value": " Sau khi nhận được thông báo giao hàng và đề nghị thanh toán của Bên B, Bên A tiến hành thanh toán đến 100% giá trị quyết toán Hợp đồng (hoặc thanh toán đến 100% giá trị của tổng các đợt giao hàng) cho Bên B. Thời hạn thanh toán trong vòng 02 ngày trước ngày Bên B giao hàng cho Bên A",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1,
+        "groupIds": ["6cd90f18-22b7-b8e3-eef8-279144eadf31"]
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 3. Thời gian và địa điểm giao hàng",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "3.1\tThời gian giao hàng",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Bên B tiến hành giao hàng theo quy định tại Điều 1 của Hợp đồng.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Ngày giao hàng dự kiến: ngày ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "………….",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Bên A có trách nhiệm đến nhận hàng đúng thời gian nêu trên.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Ngày nhận hàng không làm thay đổi nghĩa vụ thanh toán đúng hạn của Bên A theo quy định tại Điều 2.2 của Hợp đồng này.”",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "3.2. \tĐịa điểm giao hàng: ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "…………………..",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "3.3.\t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Sau khi kiểm tra hiện trạng hàng hóa, đúng các tiêu chuẩn kỹ thuật theo các thông số kỹ thuật, Bên A phải ký các chứng từ giao nhận để xác nhận đã nhận đủ số lượng hàng hóa và đúng tiêu chuẩn kỹ thuật.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "3.4. \t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Trong mọi trường hợp, kể cả trường hợp văn bản giao nhận hàng hóa chỉ đơn giản với nội dung ngụ ý là bên bán đã giao hàng và bên mua (hoặc người đại diện đã được bên mua chỉ định nhận hàng) đã nhận hàng, có đầy đủ chữ ký của hai bên thì được xem đã nhận đủ toàn bộ hàng hóa được mô tả tại Điều 1 của Hợp đồng, trong tình trạng là hàng mới 100% và nguyên đai nguyên kiện.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "3.5.\tChậm giao hàng",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Trong trường hợp chậm giao hàng, Bên B sẽ thông báo đến Bên A (bằng email/văn bản/bằng điện thoại) để cả hai cùng thương lượng, giải quyết trên tinh thần cùng hợp tác.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Trừ các trường hợp bất khả kháng hoặc các bên có thỏa thuận khác hoặc nguyên nhân chậm giao hàng do lỗi từ Bên A, nếu Bên B chậm giao hàng theo thỏa thuận quá 05 ngày làm việc kể từ ngày đến thời hạn giao hàng thì Bên B sẽ chịu phạt 0,05%/ngày chậm giao trên tổng giá trị hàng hóa chậm giao nhưng thời gian chậm giao hàng không được vượt quá 30 (ba mươi) ngày kể từ ngày đến hạn giao hàng.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "3.6.\tChậm nhận hàng",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Trừ các trường hợp bất khả kháng hoặc các bên có thỏa thuận khác, đến ngày nhận hàng, Bên B đã chuẩn bị đầy đủ hàng mà Bên A không bố trí và sắp xếp nhận hàng dẫn đến hàng hóa phải lưu container thì Bên A chịu mọi chi phí lưu cont (nếu có) là: 2.000.000 đồng/cont/ngày chậm nhận hàng nhưng tổng thời gian chậm nhận hàng không được vượt quá 05 (năm) ngày kể từ ngày đến hạn nhận hàng.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Sau thời hạn 05 ngày chậm nhận hàng theo quy định, nếu Bên A vẫn tiếp tục không nhận hàng, Bên B có quyền bán hàng hóa cho bên thứ ba, đồng thời toàn bộ chi phí phát sinh và thiệt hại (nếu có) do Bên A chịu, ngoại trừ trường hợp các bên có thỏa thuận khác.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 4. Quyền và nghĩa vụ các Bên",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "4.1. \tQuyền và nghĩa vụ của Bên A",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "a. Thanh toán đúng thời hạn cho Bên B theo điều khoản quy định trong Hợp đồng. Nếu trễ hạn thanh toán hoặc không thanh toán trên 05ngày kể từ ngày đến hạn thanh toán theo quy định Hợp đồng thì Bên B có quyền tạm ngưng giao hàng và Bên A sẽ chịu phạt vi phạm tương ứng 0,05%/ngày/giá trị chậm thanh toán; Nếu chậm trễ thanh toán trên 30 ngày thì ngoài khoản phạt vi phạm nêu trên, Bên A phải bồi thường thiệt hại cho Bên B, Bên B có quyền đơn phương chấm dứt Hợp đồng bằng văn bản thông báo cho Bên A trước 05 ngày kể từ ngày dự định chấm dứt. ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "b. Bố trí người và phương tiện để thực hiện giao nhận hàng tại địa điểm giao hàng trong Hợp đồng;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "c. Tạo điều kiện thuận lợi để Bên bán hoàn thành công việc;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "d. Được quyền yêu cầu đổi trả, bổ sung hàng hóa nếu Bên bán giao hàng không đúng yêu cầu đã thỏa thuận trong Hợp đồng (Bên A phải cung cấp chứng cứ hợp lệ về việc hàng không đúng yêu cầu do lỗi Bên B hoặc do lỗi của nhà sản xuất).",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "e. Chịu trách nhiệm nhận hàng đúng theo thỏa thuận giữa các Bên, cử nhân sự phụ trách tiếp nhận hàng do Bên B giao. Nếu Bên A chậm trễ hoặc không cử nhân sự hoặc không chuẩn bị kho để chứa hàng hóa thì các thiệt hại hoặc các chi phí phát sinh liên quan vấn đề này Bên A phải chịu trách nhiệm thanh toán ngay khi nhận được thông báo của Bên B. ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "f. Cam kết cài đặt, lắp đặt và sử dụng thiết bị đúng theo hướng dẫn của bên B và phối hợp với bên B trong việc cài đặt, lắp đặt thiết bị.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "4.2. \tQuyền và nghĩa vụ của Bên B",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "a. Bên B bàn giao cho Bên A đầy đủ hồ sơ, chứng từ của hàng hóa theo Điều 1 của Hợp đồng này gồm:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- CO CQ của sản phẩm (bản sao);",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Tài liệu kỹ thuật của hàng hóa như thông số kỹ thuật, hướng dẫn vận hành do nhà sản xuất cung cấp ngôn ngữ bằng Tiếng Anh hoặc Tiếng Việt;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Biên bản giao nhận hàng hóa;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Hóa đơn VAT.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "g. Bên B có trách nhiệm thông báo cho Bên A thời gian nhận hàng chính xác trước 03 (ba) ngày trước ngày giao hàng, nếu có bất cứ thay đổi nào trong kế hoạch giao hàng thì thông báo bằng email hoặc văn bản.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "h. Giao hàng đúng mã hàng, thông số kỹ thuật, số lượng của hàng hóa cho Bên A như đã nêu tại Điều 1 của hợp đồng này.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "i. Hàng hóa đảm bảo mới 100% chưa qua sử dụng, đồng bộ theo tiêu chuẩn Nhà sản xuất. ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "j. Bảo hành sản phẩm theo chính sách bảo hành của Bên B và theo quy định Điều 5 trong Hợp đồng này; ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "k. Trong trường hợp Bên A không thanh toán đúng thời hạn cho Bên B theo Điều 2 quy định trong Hợp đồng này, Bên B có quyền thay đổi kế hoạch, có quyền tạm ngưng giao hàng mà không vi phạm điều khoản chậm giao hàng quy định tại Điều 3 Hợp đồng này cho đến khi Bên A hoàn tất nghĩa vụ thanh toán.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 5. Bảo hành",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "5.1.\tBảo hành hàng hóa",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "a. Bên B bảo hành hàng hóa tại Điều 1 theo quy định chính sách bảo hành của Bên B và nhà sản xuất kể từ ngày giao hàng. Chi tiết bảo hành được ghi trên Phiếu bảo hành sản phẩm.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "d. Bên B bảo hành cho các sự cố xảy ra đối với các hàng hóa, trừ các trường hợp sau:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Bên A không tuân thủ theo hướng dẫn kỹ thuật trong việc vận hành và bảo quản.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Bên A tự ý tháo ráp hoặc thay đổi cấu trúc bên trong của hàng hóa.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Bên A để hóa chất tràn vào thiết bị.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Hoặc sự cố hỏa hoạn, thiên tai, bão, lũ lụt, sét đánh,… xảy ra.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Sản phẩm còn hạn bảo hành nhưng có bằng chứng sử dụng không đúng theo tài liệu hướng dẫn kỹ thuật của nhà sản xuất gây ra hư hỏng hoặc tự ý sửa chữa, thay đổi cấu trúc bên trong.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Sản phẩm bị chỉnh sửa hoặc mất số series chính và số series các board mạch bên trong.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Các sản phẩm, phụ kiện còn thời hạn bảo hành nhưng bị hỏng do tác động của lực cơ học hoặc rơi vỡ làm cho biến dạng. Sản phẩm bị hỏng do ẩm ướt, hóa chất ăn mòn, hoen rỉ, chất lỏng, hoặc bị động vật, côn trùng xâm nhập vào. ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "- Thiết bị, sản phẩm bị hỏng do thiên tai, hoả hoạn, cháy nổ chập điện bên ngoài gây hỏng sản phẩm sản phẩm",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "5.2.\tĐịa điểm bảo hành",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Tại trung tâm bảo hành của Bên B số 716/6 Nguyễn Văn Quá, phường Đông Hưng Thuận, Thành phố Hồ Chí Minh hoặc địa điểm bảo hành khác của Bên B (nếu có).",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "highlight": "#ffffff",
+        "rowMargin": 1
+      },
+      {
+        "value": "Chi phí vận chuyển bảo hành Bên A chịu chi phí chuyển đến, Bên B chịu chi phí gửi trả thiết bị bảo hành.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "highlight": "#ffffff",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 6 . Sự kiện bất khả kháng",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "6.1. \t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Sự kiện bất khả kháng là sự kiện xảy ra một cách khách quan mà các bên không thể lường trước được và không thể khắc phục được mặc dù các bên đã áp dụng mọi biện pháp cần thiết và khả năng cho phép bao gồm và không giới hạn đối với các sự kiện: chiến tranh, bạo loạn, đình công, hỏa hoạn, bão, lũ lụt, sóng thần, động đất hoặc những thiên tai tương tự, quy định pháp luật,…",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "6.2. \t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Bên bị ảnh hưởng bởi sự kiện bất khả kháng sử dụng mọi biện pháp hợp lý để vượt qua hoặc tránh sự kiện bất khả kháng đó.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "6.3. \t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Bên bị ảnh hưởng bởi sự kiến bất khả kháng phải thông báo cho Bên kia chậm nhất 03 (ba) ngày (trừ những ngày nghỉ theo quy định) bằng email/văn bản sau khi sự kiện xảy ra, nếu sau thời hạn trên mà không có thông báo thì Bên bị ảnh hưởng sự kiện bất khả kháng không được quyền áp dụng điều khoản bất khả kháng để miễn trừ trách nhiệm vi phạm Hợp đồng của mình.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "6.4. \t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Nếu sự kiện bất khả kháng ảnh hưởng đến khả năng giao hàng, thời gian giao hàng sẽ được kéo dài mà không có bất kỳ khoản phạt nào đối với Bên B.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 7. Chấm dứt Hợp đồng",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "7.1.\tChấm dứt hợp đồng",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Hợp đồng chấm dứt trong các trường hợp sau:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "a. Khi các bên đã hoàn thành nghĩa vụ của mình theo Hợp đồng này, bao gồm cả nghĩa vụ bảo hành sản phẩm;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "l. Theo thỏa thuận của các bên bằng văn bản;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "m. Khi một bên có quyền đơn phương chấm dứt Hợp đồng do Bên còn lại có hành vi vi phạm Hợp đồng mà không khắc phục sau hai lần nhận thông báo.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "n. Các trường hợp khác theo quy định của pháp luật.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 8. Giải quyết tranh chấp Hợp đồng",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Trong quá trình thực hiện Hợp Đồng nếu có các bất đồng phát sinh thì hai bên sẽ nỗ lực giải quyết thông qua thương lượng nhằm tìm ra giải pháp hợp lý. Trường hợp không thể giải quyết được thì mọi tranh chấp phát sinh từ hoặc liên quan đến Hợp đồng này sẽ do Tòa Án theo quy định của pháp luật giải quyết. Phán quyết có hiệu lực của Tòa Án có giá trị bắt buộc các Bên phải thi hành. Mọi chi phí phát sinh trong quá trình giải quyết tranh chấp do Bên thua kiện chịu.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 9. Thời hiệu có hiệu lực ",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "9.1.\t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Hợp đồng này có hiệu lực vào thời điểm được ký, đóng dấu hợp lệ bởi Đại diện của hai bên.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "9.2.\t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "Hợp đồng chấm dứt hiệu lực theo một trong các trường hợp sau:",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "a. Khi Bên B giao hàng xong và các Bên hoàn thành nghĩa vụ tại Hợp đồng;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "o. Hai bên thanh lý Hợp đồng và Bên A hoàn tất nghĩa vụ thanh toán;",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "p. Các trường hợp khác theo quy định của pháp luật.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "title",
+        "valueList": [
+          {
+            "value": "Điều 10. Điều khoản chung",
+            "font": "Segoe UI",
+            "size": 11,
+            "bold": true,
+            "color": "rgb(0, 0, 0)",
+            "italic": false,
+            "rowMargin": 1
+          }
+        ],
+        "level": "second"
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "10.1.\tToàn bộ nội dung Hợp đồng",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Các Bên cam kết tuân thủ và thực hiện đúng các điều khoản đã thoả thuận tại Hợp Đồng này. Bất kỳ việc sửa đổi, bổ sung nào đối với Hợp Đồng phải được sự đồng ý của các Bên và được lập thành văn bản do đại diện có thẩm quyền của các Bên xác nhận.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "10.2.\tTính riêng biệt của các điều khoản trong Hợp đồng",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Trong trường hợp có bất kỳ điều khoản nào trong Hợp đồng này bị xem là vô hiệu, bất hợp pháp hoặc không thể thực hiện được, thì những điều khoản khác của Hợp đồng vẫn có hiệu lực thi hành đối với các bên.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "10.3.\tSố lượng và ngôn ngữ bản gốc",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "Hợp Đồng này được lập thành hai (02) bản tiếng Việt có nội dung như nhau; mỗi bên giữ một (01) bản để thực hiện.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "VỚI SỰ CHỨNG KIẾN DƯỚI ĐÂY",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 1
+      },
+      {
+        "value": ", Hợp đồng này đã được ký kết bởi người đại diện hợp pháp của các Bên vào ngày được đề cập ở phần đầu của Hợp đồng.",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": false,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "\tĐẠI DIỆN BÊN A \t",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "    ",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "ĐẠI DIỆN BÊN B",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowFlex": "right",
+        "rowMargin": 1
+      },
+      {
+        "value": " ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowFlex": "right",
+        "rowMargin": 1
+      },
+      {
+        "value": "           ",
+        "font": "Segoe UI",
+        "rowFlex": "right",
+        "rowMargin": 1
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 11,
+        "rowMargin": 1
+      },
+      {
+        "value": "\t     ………….\t ",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 14,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      },
+      {
+        "value": "                LÊ QUỐC ANH",
+        "font": "Segoe UI",
+        "size": 11,
+        "bold": true,
+        "color": "rgb(0, 0, 0)",
+        "italic": false,
+        "rowMargin": 1
+      }
+    ],
+    "footer": [
+      {
+        "value": "12 Đông Hưng Thuận 10, P. Đông Hưng Thuận, TP Hồ Chí Minh\t\t\t",
+        "font": "Segoe UI",
+        "size": 8,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowMargin": 0
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 10,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowMargin": 0
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 10,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowMargin": 0
+      },
+      {
+        "value": "    Web: www.datgroup.com.vn",
+        "font": "Segoe UI",
+        "size": 8,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowMargin": 0
+      },
+      {
+        "value": "\n",
+        "font": "Segoe UI",
+        "size": 8,
+        "color": "#9a9996",
+        "rowMargin": 0
+      },
+      {
+        "value": "Tel: (028) 37 157 567 – Fax: (028) 38 916 586\t\t\t",
+        "font": "Segoe UI",
+        "size": 8,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 0
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 10,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 0
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 10,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 0
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 10,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 0
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 10,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 0
+      },
+      {
+        "value": "",
+        "type": "tab",
+        "font": "Segoe UI",
+        "size": 10,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 0
+      },
+      {
+        "value": "Email: info@datgroup.com.vn",
+        "font": "Segoe UI",
+        "size": 8,
+        "bold": false,
+        "color": "#9a9996",
+        "italic": false,
+        "rowFlex": "alignment",
+        "rowMargin": 0
+      }
+    ],
+    "graffiti": []
+  },
+  "options": {
+    "mode": "edit",
+    "locale": "vi",
+    "defaultType": "TEXT",
+    "defaultColor": "#000000",
+    "defaultFont": "Nunito Sans",
+    "defaultSize": 16,
+    "sizeUnit": "pt",
+    "minSize": 5,
+    "maxSize": 72,
+    "defaultRowMargin": 1,
+    "defaultBasicRowMarginHeight": 8,
+    "defaultTabWidth": 32,
+    "width": 794,
+    "height": 1123,
+    "scale": 1.2,
+    "pageGap": 20,
+    "underlineColor": "#000000",
+    "strikeoutColor": "#FF0000",
+    "rangeAlpha": 0.6,
+    "rangeColor": "#AECBFA",
+    "rangeMinWidth": 5,
+    "searchMatchAlpha": 0.6,
+    "searchMatchColor": "#FFFF00",
+    "searchNavigateMatchColor": "#AAD280",
+    "highlightAlpha": 0.6,
+    "highlightMarginHeight": 8,
+    "resizerColor": "#4182D9",
+    "resizerSize": 5,
+    "marginIndicatorSize": 35,
+    "marginIndicatorColor": "#BABABA",
+    "margins": [58, 58, 58, 77],
+    "gutter": 19,
+    "gutterPosition": "left",
+    "pageMode": "paging",
+    "renderMode": "speed",
+    "defaultHyperlinkColor": "#0000FF",
+    "paperDirection": "vertical",
+    "inactiveAlpha": 0.6,
+    "historyMaxRecordCount": 100,
+    "wordBreak": "break-word",
+    "printPixelRatio": 3,
+    "maskMargin": [99, 0, 32, 0],
+    "letterClass": [
+      "A-Za-z",
+      "A-Za-zàáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ\\u00C0-\\u024F\\u1EA0-\\u1EF9"
+    ],
+    "contextMenuDisableKeys": [],
+    "shortcutDisableKeys": [],
+    "scrollContainerSelector": "",
+    "pageOuterSelectionDisable": false,
+    "trace": {
+      "disabled": true,
+      "insertColor": "#2B5CE6",
+      "deleteColor": "#E03F3F",
+      "author": "Khách 1",
+      "lineWidth": 2
+    },
+    "pageNumber": {
+      "bottom": 60,
+      "size": 12,
+      "font": "Microsoft YaHei",
+      "color": "#000000",
+      "rowFlex": "center",
+      "format": "Trang {pageNo}/{pageCount}",
+      "numberType": "arabic",
+      "disabled": false,
+      "startPageNo": 1,
+      "fromPageNo": 0,
+      "maxPageNo": null
+    },
+    "placeholder": {
+      "data": "Nhập nội dung văn bản...",
+      "color": "#DCDFE6",
+      "opacity": 1,
+      "size": 16,
+      "font": "Microsoft YaHei"
+    },
+    "zone": {
+      "tipDisabled": false
+    },
+    "table": {
+      "tdPadding": [0, 5, 5, 5],
+      "defaultTrMinHeight": 42,
+      "defaultColMinWidth": 40,
+      "defaultBorderColor": "#000000",
+      "overflow": false
+    },
+    "header": {
+      "top": 24,
+      "inactiveAlpha": 1,
+      "maxHeightRadio": "half",
+      "disabled": false,
+      "editable": true,
+      "disabledPages": []
+    },
+    "footer": {
+      "bottom": 29,
+      "inactiveAlpha": 1,
+      "maxHeightRadio": "half",
+      "disabled": false,
+      "editable": true,
+      "disabledPages": []
+    },
+    "watermark": {
+      "data": "",
+      "type": "text",
+      "width": 0,
+      "height": 0,
+      "color": "#AEB5C0",
+      "opacity": 0.3,
+      "size": 200,
+      "font": "Microsoft YaHei",
+      "repeat": false,
+      "gap": [10, 10],
+      "numberType": "arabic",
+      "layer": "bottom"
+    },
+    "control": {
+      "placeholderColor": "#9c9b9b",
+      "bracketColor": "#000000",
+      "prefix": "{",
+      "postfix": "}",
+      "borderWidth": 1,
+      "borderColor": "#000000",
+      "activeBackgroundColor": "",
+      "disabledBackgroundColor": "",
+      "existValueBackgroundColor": "",
+      "noValueBackgroundColor": "",
+      "errorBackgroundColor": "#FFECE8"
+    },
+    "checkbox": {
+      "width": 14,
+      "height": 14,
+      "gap": 5,
+      "lineWidth": 1,
+      "fillStyle": "#ffffff",
+      "strokeStyle": "#000000",
+      "checkFillStyle": "#5175f4",
+      "checkStrokeStyle": "#5175f4",
+      "checkMarkColor": "#ffffff",
+      "verticalAlign": "bottom"
+    },
+    "radio": {
+      "width": 14,
+      "height": 14,
+      "gap": 5,
+      "lineWidth": 1,
+      "fillStyle": "#5175f4",
+      "strokeStyle": "#000000",
+      "verticalAlign": "bottom"
+    },
+    "cursor": {
+      "width": 1,
+      "color": "#000000",
+      "dragWidth": 2,
+      "dragColor": "#0000FF",
+      "dragFloatImageDisabled": false
+    },
+    "title": {
+      "defaultFirstSize": 26,
+      "defaultSecondSize": 24,
+      "defaultThirdSize": 22,
+      "defaultFourthSize": 20,
+      "defaultFifthSize": 18,
+      "defaultSixthSize": 16
+    },
+    "group": {
+      "opacity": 0.1,
+      "backgroundColor": "#E99D00",
+      "activeOpacity": 0.5,
+      "activeBackgroundColor": "#E99D00",
+      "disabled": false,
+      "deletable": true
+    },
+    "pageBreak": {
+      "font": "Microsoft YaHei",
+      "fontSize": 12,
+      "lineDash": [3, 1]
+    },
+    "background": {
+      "color": "#FFFFFF",
+      "image": "",
+      "size": "cover",
+      "repeat": "no-repeat",
+      "applyPageNumbers": []
+    },
+    "lineBreak": {
+      "disabled": true,
+      "color": "#CCCCCC",
+      "lineWidth": 1.5
+    },
+    "whiteSpace": {
+      "disabled": true,
+      "color": "#CCCCCC",
+      "radius": 1
+    },
+    "separator": {
+      "lineWidth": 1,
+      "strokeStyle": "#000000"
+    },
+    "lineNumber": {
+      "size": 12,
+      "font": "Microsoft YaHei",
+      "color": "#000000",
+      "disabled": true,
+      "right": 20,
+      "type": "continuity"
+    },
+    "pageBorder": {
+      "color": "#000000",
+      "lineWidth": 1,
+      "padding": [0, 5, 0, 5],
+      "disabled": true
+    },
+    "badge": {
+      "top": 0,
+      "left": 5
+    },
+    "modeRule": {
+      "print": {
+        "imagePreviewerDisabled": false,
+        "backgroundDisabled": false,
+        "filterEmptyControl": true,
+        "areaHideDisabled": false
+      },
+      "readonly": {
+        "imagePreviewerDisabled": false
+      },
+      "form": {
+        "controlDeletableDisabled": false
+      }
+    },
+    "graffiti": {
+      "defaultLineColor": "#000000",
+      "defaultLineWidth": 2
+    },
+    "label": {
+      "defaultColor": "#1976d2",
+      "defaultBackgroundColor": "#e3f2fd",
+      "defaultBorderRadius": 4,
+      "defaultPadding": [4, 4, 4, 4]
+    },
+    "imgCaption": {
+      "color": "#666666",
+      "font": "Microsoft YaHei",
+      "size": 12,
+      "top": 5
+    },
+    "list": {
+      "inheritStyle": false
+    },
+    "magnifier": {
+      "disabled": true,
+      "size": 120,
+      "zoom": 2,
+      "borderColor": "#efefef"
+    },
+    "accessibility": {
+      "disabled": true
+    },
+    "column": {
+      "count": 1,
+      "gap": 20,
+      "separator": false,
+      "separatorColor": "#000000",
+      "separatorWidth": 1
+    },
+    "ruler": {
+      "disabled": true,
+      "height": 26
+    },
+    "hint": {
+      "disabled": true,
+      "backgroundColor": "#fff",
+      "color": "#000000",
+      "fontSize": 12,
+      "maxWidth": 280
+    }
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "contextmenu": {
+    "global": {
+      "cut": "Cắt",
+      "copy": "Sao chép",
+      "paste": "Dán",
+      "selectAll": "Chọn tất cả",
+      "print": "In"
+    },
+    "control": {
+      "delete": "Xóa điều khiển"
+    },
+    "hyperlink": {
+      "delete": "Xóa liên kết",
+      "cancel": "Hủy liên kết",
+      "edit": "Sửa liên kết"
+    },
+    "image": {
+      "change": "Thay đổi hình ảnh",
+      "saveAs": "Lưu thành hình ảnh",
+      "textWrap": "Ngắt dòng văn bản",
+      "textWrapType": {
+        "embed": "Nội dòng",
+        "upDown": "Trên dưới",
+        "surround": "Bao quanh",
+        "floatTop": "Nổi trên văn bản",
+        "floatBottom": "Nổi dưới văn bản"
+      }
+    },
+    "table": {
+      "insertRowCol": "Chèn hàng/cột",
+      "insertTopRow": "Chèn 1 hàng phía trên",
+      "insertBottomRow": "Chèn 1 hàng phía dưới",
+      "insertLeftCol": "Chèn 1 cột bên trái",
+      "insertRightCol": "Chèn 1 cột bên phải",
+      "deleteRowCol": "Xóa hàng/cột",
+      "deleteRow": "Xóa 1 hàng",
+      "deleteCol": "Xóa 1 cột",
+      "deleteTable": "Xóa bảng",
+      "mergeCell": "Gộp ô",
+      "mergeCancelCell": "Hủy gộp ô",
+      "autoFitToContent": "Tự động khớp theo nội dung",
+      "autoFitToPage": "Tự động khớp theo cửa sổ",
+      "verticalAlign": "Căn chỉnh chiều dọc",
+      "verticalAlignTop": "Căn trên",
+      "verticalAlignMiddle": "Căn giữa",
+      "verticalAlignBottom": "Căn dưới",
+      "border": "Viền bảng",
+      "borderAll": "Tất cả",
+      "borderEmpty": "Không viền",
+      "borderDash": "Nét đứt",
+      "borderExternal": "Viền ngoài",
+      "borderInternal": "Viền trong",
+      "borderTd": "Viền ô bảng",
+      "borderTdTop": "Viền trên",
+      "borderTdRight": "Viền phải",
+      "borderTdBottom": "Viền dưới",
+      "borderTdLeft": "Viền trái",
+      "borderTdForward": "Đường chéo xuôi",
+      "borderTdBack": "Đường chéo ngược"
+    }
+  },
+  "datePicker": {
+    "now": "Bây giờ",
+    "confirm": "Xác nhận",
+    "return": "Quay lại",
+    "timeSelect": "Chọn giờ",
+    "weeks": {
+      "sun": "CN",
+      "mon": "T2",
+      "tue": "T3",
+      "wed": "T4",
+      "thu": "T5",
+      "fri": "T6",
+      "sat": "T7"
+    },
+    "year": " ",
+    "month": " ",
+    "months": {
+      "jan": "Thg 1",
+      "feb": "Thg 2",
+      "mar": "Thg 3",
+      "apr": "Thg 4",
+      "may": "Thg 5",
+      "jun": "Thg 6",
+      "jul": "Thg 7",
+      "aug": "Thg 8",
+      "sep": "Thg 9",
+      "oct": "Thg 10",
+      "nov": "Thg 11",
+      "dec": "Thg 12"
+    },
+    "hour": "Giờ",
+    "minute": "Phút",
+    "second": "Giây"
+  },
+  "frame": {
+    "header": "Đầu trang",
+    "footer": "Chân trang"
+  },
+  "pageBreak": {
+    "displayName": "Ngắt trang"
+  },
+  "zone": {
+    "headerTip": "Nhấp chuột đôi để chỉnh sửa đầu trang",
+    "footerTip": "Nhấp chuột đôi để chỉnh sửa chân trang"
+  },
+  "accessibility": {
+    "selected": "Đã chọn: ",
+    "input": "Đã nhập: "
+  },
+  "trace": {
+    "insert": "Đã thêm",
+    "delete": "Đã xóa",
+    "author": "Tác giả",
+    "time": "Thời gian",
+    "unknownAuthor": "Không xác định"
+  },
+  "validate": {
+    "required": "Trường này là bắt buộc",
+    "minLength": "Độ dài tối thiểu là {min}",
+    "maxLength": "Độ dài tối đa là {max}",
+    "pattern": "Định dạng không hợp lệ",
+    "invalidNumber": "Vui lòng nhập một số hợp lệ",
+    "min": "Giá trị tối thiểu là {min}",
+    "max": "Giá trị tối đa là {max}",
+    "integer": "Phải là số nguyên",
+    "precision": "Tối đa {precision} chữ số thập phân",
+    "minDate": "Ngày không được sớm hơn {date}",
+    "maxDate": "Ngày không được muộn hơn {date}",
+    "minChecked": "Chọn ít nhất {count} mục",
+    "maxChecked": "Chọn tối đa {count} mục"
+  }
+}

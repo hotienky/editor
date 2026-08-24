@@ -1,163 +1,96 @@
 {
-  "name": "kindy-editor",
-  "version": "1.0.1",
-  "description": "A powerful document editor based on Vue3 and Tiptap3. Forked from Umo Editor and customized for personal use.",
-  "keywords": [
-    "docs editor",
-    "document editor",
-    "editor",
-    "office editor",
-    "online office",
-    "richtext editor",
-    "tiptap",
-    "tiptap3",
-    "vue editor",
-    "vue3 editor",
-    "web editor",
-    "web office",
-    "word editor",
-    "wysiwyg editor"
-  ],
-  "homepage": "https://github.com/hotienky/editor",
-  "bugs": {
-    "url": "https://github.com/hotienky/editor/issues",
-    "email": "kyit1506@gmail.com"
-  },
+  "name": "@hufe921/canvas-editor",
+  "author": "Hufe",
   "license": "MIT",
-  "author": {
-    "name": "Kindy",
-    "email": "kyit1506@gmail.com",
-    "url": "https://github.com/hotienky"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/hotienky/editor.git"
+  "version": "1.0.0",
+  "description": "A Canvas/SVG-based rich text editor",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "package.json"
   ],
-  "main": "./dist/kindy-editor.cjs",
-  "module": "./dist/kindy-editor.js",
-  "types": "./dist/kindy-editor.d.ts",
-  "sideEffects": [
-    "*.css"
+  "typings": "./dist/src/editor/index.d.ts",
+  "main": "./dist/canvas-editor.umd.cjs",
+  "module": "./dist/canvas-editor.js",
+  "homepage": "https://github.com/Hufe921/canvas-editor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hufe921/canvas-editor.git"
+  },
+  "keywords": [
+    "canvas-editor",
+    "editor",
+    "wysiwyg",
+    "emr"
   ],
+  "engines": {
+    "node": ">=24.13.1"
+  },
   "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/kindy-editor.d.ts",
-      "import": "./dist/kindy-editor.js",
-      "require": "./dist/kindy-editor.cjs"
-    },
-    "./style": {
-      "default": "./dist/kindy-editor.css"
-    }
-  },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite --port 9000 --open --force",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "dev": "vite",
+    "lib": "eslint . && tsc && vitest run && vite build --mode lib",
+    "build": "eslint . && tsc && vitest run && vite build --mode app",
+    "serve": "vite preview",
+    "lint": "eslint . && tsc --noEmit && vitest run",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "format": "oxfmt --write .",
-    "lint": "oxlint --fix src",
-    "analyzer": "vite-bundle-visualizer",
-    "prepare": "husky",
-    "prepublishOnly": "npm run build"
-  },
-  "dependencies": {
-    "@eslint/object-schema": "3.0.2",
-    "@floating-ui/dom": "1.7.5",
-    "@tiptap/core": "3.20.0",
-    "@tiptap/extension-bold": "3.20.0",
-    "@tiptap/extension-code-block": "3.20.0",
-    "@tiptap/extension-code-block-lowlight": "3.20.0",
-    "@tiptap/extension-collaboration": "3.20.0",
-    "@tiptap/extension-details": "3.20.0",
-    "@tiptap/extension-document": "3.20.0",
-    "@tiptap/extension-drag-handle": "3.16.0",
-    "@tiptap/extension-drag-handle-vue-3": "3.16.0",
-    "@tiptap/extension-horizontal-rule": "3.20.0",
-    "@tiptap/extension-image": "3.20.0",
-    "@tiptap/extension-invisible-characters": "3.20.0",
-    "@tiptap/extension-link": "3.20.0",
-    "@tiptap/extension-list": "3.20.0",
-    "@tiptap/extension-mathematics": "3.20.0",
-    "@tiptap/extension-mention": "3.20.0",
-    "@tiptap/extension-node-range": "3.20.0",
-    "@tiptap/extension-subscript": "3.20.0",
-    "@tiptap/extension-superscript": "3.20.0",
-    "@tiptap/extension-table": "3.20.0",
-    "@tiptap/extension-table-of-contents": "3.20.0",
-    "@tiptap/extension-text-align": "3.20.0",
-    "@tiptap/extension-text-style": "3.20.0",
-    "@tiptap/extension-typography": "3.20.0",
-    "@tiptap/extension-unique-id": "3.20.0",
-    "@tiptap/extensions": "3.20.0",
-    "@tiptap/pm": "3.20.0",
-    "@tiptap/starter-kit": "3.20.0",
-    "@tiptap/suggestion": "3.20.0",
-    "@tiptap/vue-3": "3.20.0",
-    "@tiptap/y-tiptap": "3.0.2",
-    "@tool-belt/type-predicates": "1.4.1",
-    "@umoteam/editor-external": "10.1.0",
-    "@vueuse/core": "14.2.1",
-    "cropperjs": "^2.1.1",
-    "docx-preview": "^0.4.0",
-    "dom-to-image-more": "3.7.2",
-    "es-drager": "1.2.11",
-    "fast-glob": "3.3.3",
-    "file-saver": "2.0.5",
-    "hotkeys-js": "4.0.2",
-    "html-to-docx": "^1.8.0",
-    "jsbarcode": "3.12.3",
-    "katex": "0.16.33",
-    "lowlight": "3.3.0",
-    "mammoth": "^1.12.0",
-    "nzh": "1.0.14",
-    "pretty-bytes": "7.1.0",
-    "pure-svg-code": "1.0.6",
-    "smooth-signature": "1.0.15",
-    "vue-i18n": "11.2.8",
-    "y-prosemirror": "1.2.15",
-    "y-protocols": "1.0.6",
-    "yjs": "13.6.29"
+    "type:check": "tsc --noEmit",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "postinstall": "simple-git-hooks",
+    "pre-release": "node scripts/pre-release.js"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.4",
-    "@vue-macros/reactivity-transform": "^3.1.2",
-    "@vue/test-utils": "^2.4.11",
-    "esbuild": "^0.28.1",
-    "happy-dom": "^20.11.2",
-    "husky": "^9.1.7",
-    "less": "^4.5.1",
-    "less-loader": "^12.3.1",
-    "lint-staged": "^16.2.7",
-    "oxfmt": "^0.35.0",
-    "oxlint": "^1.50.0",
-    "postcss": "^8.5.6",
-    "postcss-html": "^1.8.1",
-    "tdesign-vue-next": "1.18.2",
-    "unplugin-auto-import": "^21.0.0",
-    "unplugin-vue": "^7.1.1",
-    "unplugin-vue-components": "^31.0.0",
-    "unplugin-vue-macros": "^2.14.5",
-    "vite": "^7.3.1",
-    "vite-bundle-visualizer": "^1.2.1",
-    "vite-plugin-svg-icons": "^2.0.1",
-    "vitest": "^4.1.10",
-    "vue": "^3.5.29"
+    "@eslint/js": "^10.0.1",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@types/jsdom": "^28.0.3",
+    "@types/node": "^24.12.4",
+    "@types/prismjs": "^1.26.6",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@typescript-eslint/eslint-plugin": "^8.66.0",
+    "@typescript-eslint/parser": "^8.66.0",
+    "@vitejs/plugin-react": "^6.0.5",
+    "@vitest/coverage-v8": "^4.1.6",
+    "cypress": "^15.20.0",
+    "cypress-file-upload": "^5.0.8",
+    "eslint": "^10.4.0",
+    "globals": "^17.9.0",
+    "jsdom": "^29.1.1",
+    "simple-git-hooks": "^2.13.1",
+    "tslib": "^2.8.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0",
+    "vite": "^8.2.0",
+    "vite-plugin-css-injected-by-js": "^5.0.1",
+    "vitepress": "^1.6.4",
+    "vitest": "^4.1.6",
+    "vitest-canvas-mock": "^1.1.4",
+    "vue": "^3.5.34"
   },
-  "overrides": {
-    "rolldown": "^1.1.3"
+  "dependencies": {
+    "@ant-design/icons": "^6.3.2",
+    "@types/jszip": "^3.4.1",
+    "antd": "^6.6.1",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.1",
+    "prismjs": "^1.27.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
-  "lint-staged": {
-    "*.{js,vue,less}": [
-      "oxfmt --write src",
-      "oxlint --fix src"
-    ]
-  },
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+  "simple-git-hooks": {
+    "pre-commit": "npm run lint && npm run type:check",
+    "commit-msg": "node scripts/verifyCommit.js"
   }
 }
