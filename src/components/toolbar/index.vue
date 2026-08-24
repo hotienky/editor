@@ -1,5 +1,25 @@
 <template>
-  <div v-if="$toolbar.show" class="kindy-toolbar-container">
+  <div
+    v-if="$toolbar.show"
+    class="kindy-toolbar-container"
+    :class="{ 'kindy-toolbar-container-contract': isContractEditor }"
+  >
+    <nav
+      v-if="isContractEditor && toolbarMenus.length > 1"
+      class="kindy-contract-menu-bar"
+      :aria-label="t('toolbar.toggle')"
+    >
+      <button
+        v-for="item in toolbarMenus"
+        :key="item.value"
+        type="button"
+        :class="{ active: toolbarActive === item.value }"
+        :aria-pressed="toolbarActive === item.value"
+        @click="menuChange(item.value)"
+      >
+        {{ item.label }}
+      </button>
+    </nav>
     <toolbar-ribbon
       v-if="$toolbar.mode === 'ribbon'"
       :menus="toolbarMenus"
@@ -14,12 +34,13 @@
         <slot :name="`toolbar_${item}`" v-bind="props" />
       </template>
     </toolbar-ribbon>
-          <toolbar-classic
-            v-if="$toolbar.mode === 'classic'"
-            :menus="toolbarMenus"
-            :current-menu="toolbarActive"
-            @menu-change="menuChange"
-          >
+    <toolbar-classic
+      v-if="$toolbar.mode === 'classic'"
+      :menus="toolbarMenus"
+      :current-menu="toolbarActive"
+      :hide-menu-select="isContractEditor"
+      @menu-change="menuChange"
+    >
             <template
               v-for="item in options.toolbar?.menus"
               :key="item"
@@ -27,7 +48,7 @@
             >
               <slot :name="`toolbar_${item}`" v-bind="slotProps" />
             </template>
-          </toolbar-classic>
+    </toolbar-classic>
     <div
       v-if="showToolbarActions"
       class="kindy-toolbar-actions"
@@ -154,6 +175,9 @@ const showSaveStatus = computed(
 const showToolbarActions = computed(
   () => showSaveStatus.value || options.value.toolbar.allowModeSwitch !== false,
 )
+const isContractEditor = computed(
+  () => options.value.editorKey === 'kindy-document-library-contract',
+)
 
 // 工具栏菜单
 const toolbarMenus = computed(() => {
@@ -251,6 +275,45 @@ const setContentFromCache = () => {
   justify-content: space-between;
   user-select: none;
   position: relative;
+}
+.kindy-toolbar-container-contract {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  border-radius: 0;
+
+  .kindy-contract-menu-bar {
+    display: flex;
+    grid-column: 1 / -1;
+    align-items: center;
+    gap: 2px;
+    min-height: 28px;
+    padding: 0 8px;
+    background: var(--kindy-color-white);
+
+    button {
+      min-height: 26px;
+      cursor: pointer;
+      border: 0;
+      border-radius: 4px;
+      padding: 3px 9px;
+      background: transparent;
+      color: var(--kindy-text-color);
+      font: inherit;
+      font-size: 12px;
+
+      &:hover,
+      &:focus-visible,
+      &.active {
+        background: #e8f0fe;
+        color: #174ea6;
+        outline: none;
+      }
+    }
+  }
+
+  :deep(.kindy-scrollable-container) {
+    min-width: 0;
+  }
 }
 .kindy-toolbar-actions {
   padding: 6px 10px;

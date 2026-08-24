@@ -38,7 +38,7 @@ const CONTRACT_EDITOR_OPTIONS_VALUE: KindyContractEditorOptions = {
     showSaveLabel: false,
     defaultMode: 'classic',
     allowModeSwitch: false,
-    menus: ['base', 'insert', 'table', 'page', 'export'],
+    menus: ['base', 'insert', 'table', 'page'],
   },
   statusbar: {
     showOutline: false,

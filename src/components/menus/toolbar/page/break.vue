@@ -2,7 +2,7 @@
   <menus-button
     ico="page-break"
     :text="t('page.break')"
-    shortcut="Ctrl+Enter"
+    shortcut="Ctrl/Cmd+Enter"
     huge
     @menu-click="setPageBreak"
   />

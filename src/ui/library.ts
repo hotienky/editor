@@ -32,6 +32,7 @@ export interface KindyLibraryMessages {
   close: string
   openDocuments: string
   openVersions: string
+  moreActions: string
   selectDocument: string
   selectDocumentDescription: string
   saving: string
@@ -80,6 +81,7 @@ export const VI_LIBRARY_MESSAGES: KindyLibraryMessages = Object.freeze({
   close: 'Đóng',
   openDocuments: 'Mở danh sách tài liệu',
   openVersions: 'Mở lịch sử phiên bản',
+  moreActions: 'Thao tác tài liệu',
   selectDocument: 'Chọn một tài liệu để bắt đầu',
   selectDocumentDescription: 'Bạn có thể tạo tài liệu trống, dùng mẫu hoặc import DOCX từ máy tính.',
   saving: 'Đang lưu…',
@@ -119,6 +121,7 @@ export const EN_LIBRARY_MESSAGES: KindyLibraryMessages = Object.freeze({
   close: 'Close',
   openDocuments: 'Open documents',
   openVersions: 'Open version history',
+  moreActions: 'Document actions',
   selectDocument: 'Select a document to get started',
   selectDocumentDescription: 'Create a blank document, use a template, or import a DOCX file.',
   saving: 'Saving…',

@@ -10,17 +10,11 @@
 
 import { cmToPx } from './text-measurer'
 import { estimateBlockHeight } from './text-measurer'
+import { PageSizes } from '../../packages/layout/src/page-sizes'
 
 // ─── Page Size Presets ─────────────────────────────────────────────────────
 
-export const PageSizes = {
-  A4: { width: 21, height: 29.7 },
-  A3: { width: 29.7, height: 42 },
-  A5: { width: 14.8, height: 21 },
-  B5: { width: 17.6, height: 25 },
-  LETTER: { width: 21.5, height: 27.9 },
-  LEGAL: { width: 21.5, height: 33.5 },
-}
+export { PageSizes }
 
 // ─── Page Config ───────────────────────────────────────────────────────────
 

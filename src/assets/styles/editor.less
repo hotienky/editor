@@ -504,36 +504,21 @@
     position: relative !important;
     box-sizing: border-box !important;
     width: 100% !important;
-    height: var(--kindy-page-spacer-height, 72px) !important;
+    height: 0 !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     background: transparent !important;
     border: 0 !important;
+    overflow: hidden !important;
     user-select: none;
-    z-index: 10;
+    pointer-events: none;
+    z-index: 0;
     break-before: page;
     page-break-before: always;
 
-    /* Prevent weird double breaks stacking */
-    & + .kindy-page-break,
-    & + .kindy-section-break {
-      display: none !important;
-    }
-
-    &::before {
-      content: '';
-      position: absolute;
-      top: var(--kindy-page-separator-offset, 24px);
-      left: calc(-1 * var(--margin-left, 2.54cm) * var(--page-zoom, 1));
-      width: calc(100% + calc(var(--margin-left, 2.54cm) + var(--margin-right, 2.54cm)) * var(--page-zoom, 1));
-      height: var(--kindy-page-gap, 24px);
-      box-sizing: border-box;
-      background: var(--kindy-container-background, #e8eaed);
-      border-top: 1px solid #cbd5e1;
-      border-bottom: 1px solid #cbd5e1;
-    }
-
-    &::after { display: none; }
+    &::before,
+    &::after { display: none !important; }
 
     @media print {
       display: block !important;

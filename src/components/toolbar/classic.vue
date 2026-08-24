@@ -1,7 +1,7 @@
 <template>
   <toolbar-scrollable ref="scrollableRef" class="kindy-scrollable-container">
     <div class="kindy-classic-menu">
-      <div v-if="menus.length > 1" class="kindy-virtual-group">
+      <div v-if="menus.length > 1 && !hideMenuSelect" class="kindy-virtual-group">
         <t-select
           v-if="selectVisible"
           v-model="localCurrentMenu"
@@ -256,6 +256,10 @@ const props = defineProps({
   currentMenu: {
     type: String,
     default: '',
+  },
+  hideMenuSelect: {
+    type: Boolean,
+    default: false,
   },
 })
 

@@ -3,6 +3,12 @@ import { defaultOptions } from '@/options'
 import { getOptions } from '../options'
 
 describe('editor options', () => {
+  it('offers the complete ISO A-series used by contract page settings', () => {
+    const paperSizes = Object.fromEntries(defaultOptions.dicts.pageSizes.map((size) => [size.label, size]))
+    expect(Object.keys(paperSizes)).toEqual(expect.arrayContaining(['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6']))
+    expect(paperSizes.A4).toMatchObject({ width: 21, height: 29.7, default: true })
+  })
+
   it('keeps v2 section metadata in page options', () => {
     const sections = [{
       id: 'section-1',

@@ -19,12 +19,13 @@ import {
 } from '../library'
 
 describe('library UI contract', () => {
-  it('ships a page-only contract preset without web or Chinese-specific tools', () => {
+  it('ships a page-only editing preset without duplicated file or Chinese-specific tools', () => {
     expect(CONTRACT_EDITOR_OPTIONS.toolbar).toMatchObject({
       defaultMode: 'classic',
       allowModeSwitch: false,
-      menus: ['base', 'insert', 'table', 'page', 'export'],
+      menus: ['base', 'insert', 'table', 'page'],
     })
+    expect(CONTRACT_EDITOR_OPTIONS.toolbar.menus).not.toContain('export')
     expect(CONTRACT_EDITOR_OPTIONS.page.layouts).toEqual(['page'])
     expect(CONTRACT_EDITOR_OPTIONS.disableExtensions).toEqual(expect.arrayContaining([
       'web-page', 'layout-web', 'diagrams', 'mermaid', 'chinese-case', 'chinese-date',
@@ -131,6 +132,8 @@ describe('library UI contract', () => {
         },
       },
     })
+
+    expect(wrapper.findComponent(DocumentLibraryShell).props('versionsOpen')).toBe(false)
 
     await wrapper.vm.openDocument(document)
     await nextTick()

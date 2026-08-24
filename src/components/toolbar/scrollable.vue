@@ -1,12 +1,14 @@
 <template>
   <div ref="wraperRef" class="kindy-scrollable-container">
-    <div
+    <button
       v-if="!hidePrev"
       class="kindy-scrollable-control scrollable-left"
+      type="button"
+      aria-label="Previous toolbar controls"
       @click="scrollLeft"
     >
       <icon name="arrow-down" />
-    </div>
+    </button>
     <div
       ref="contentRef"
       class="kindy-scrollable-content"
@@ -15,54 +17,64 @@
     >
       <slot />
     </div>
-    <div
+    <button
       v-if="!hideNext"
       class="kindy-scrollable-control scrollable-right"
+      type="button"
+      aria-label="Next toolbar controls"
       @click="scrollRight"
     >
       <icon name="arrow-down" />
-    </div>
+    </button>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, inject, shallowRef } from 'vue'
+import { nextTick, ref } from 'vue'
 const wraperRef = ref(null)
 const contentRef = ref(null)
-let hidePrev = ref(true)
-let hideNext = ref(true)
+const hidePrev = ref(true)
+const hideNext = ref(true)
 
 const checkScrollPosition = () => {
-  const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = contentRef || {}
-  hidePrev = scrollLeft === 0
-  hideNext = scrollLeft + clientWidth + 20 >= scrollWidth
+  const content = contentRef.value
+  if (!content) return
+  const { scrollLeft = 0, scrollWidth = 0, clientWidth = 0 } = content
+  hidePrev.value = scrollLeft <= 1
+  hideNext.value = scrollLeft + clientWidth >= scrollWidth - 1
 }
 
 const scrollLeft = () => {
-  contentRef.scrollLeft -= contentRef.offsetWidth - 10 || 100
+  const content = contentRef.value
+  if (!content) return
+  content.scrollBy({ left: -(content.clientWidth - 48 || 100), behavior: 'smooth' })
 }
 
 const scrollRight = () => {
-  contentRef.scrollLeft += contentRef.offsetWidth - 10 || 100
+  const content = contentRef.value
+  if (!content) return
+  content.scrollBy({ left: content.clientWidth - 48 || 100, behavior: 'smooth' })
 }
 
 // 监听父元素大小变化
-useResizeObserver(wraperRef, () => {
+useResizeObserver(wraperRef, async () => {
+  await nextTick()
   checkScrollPosition()
 })
 
 // 支持鼠标滚轮滚动
 const wheelScroll = (e) => {
-  e.deltaY < 0 ? scrollLeft() : scrollRight()
+  const content = contentRef.value
+  if (!content || content.scrollWidth <= content.clientWidth) return
+  content.scrollLeft += e.deltaX || e.deltaY
 }
 
 // 更新
 const update = () => {
-  if (contentRef) {
-    contentRef.scrollLeft = 0
+  if (contentRef.value) {
+    contentRef.value.scrollLeft = 0
   }
-  hideNext = true
-  checkScrollPosition()
+  void nextTick(checkScrollPosition)
 }
 
 defineExpose({
@@ -91,14 +103,17 @@ defineExpose({
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    height: calc(100% - 20px);
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    box-shadow: 0 1px 5px rgb(15 23 42 / 16%);
     &:hover {
       border-color: var(--kindy-primary-color);
       background-color: var(--kindy-primary-color);
       color: var(--kindy-color-white);
     }
     &.scrollable-left {
-      left: 10px;
+      left: 6px;
       :deep(.kindy-icon) {
         transform: rotate(90deg);
       }
@@ -111,7 +126,7 @@ defineExpose({
           var(--kindy-color-white)
         );
         position: absolute;
-        left: 21px;
+        left: 27px;
         top: 0;
         bottom: 0;
         width: 30px;
@@ -119,7 +134,7 @@ defineExpose({
       }
     }
     &.scrollable-right {
-      right: 10px;
+      right: 6px;
       :deep(.kindy-icon) {
         transform: rotate(-90deg);
       }
@@ -132,7 +147,7 @@ defineExpose({
           var(--kindy-color-white)
         );
         position: absolute;
-        right: 21px;
+        right: 27px;
         top: 0;
         bottom: 0;
         width: 30px;
@@ -141,8 +156,10 @@ defineExpose({
     }
   }
   .kindy-scrollable-content {
+    min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
+    overscroll-behavior-x: contain;
     scroll-behavior: smooth;
     flex: 1;
     &::-webkit-scrollbar {

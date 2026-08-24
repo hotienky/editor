@@ -138,7 +138,8 @@ defineExpose({ refresh })
 .kindy-versions__list > li.kindy-versions__feedback::before { display: none; }
 .kindy-versions__timeline { z-index: 1; width: 9px; height: 9px; margin-top: 11px; border: 2px solid var(--kindy-library-sidebar-bg); border-radius: 50%; background: var(--kindy-library-border); box-shadow: 0 0 0 1px var(--kindy-library-border); }
 .is-current .kindy-versions__timeline, .is-preview .kindy-versions__timeline { background: var(--kindy-library-primary); box-shadow: 0 0 0 1px var(--kindy-library-primary); }
-.kindy-versions__card { display: grid; gap: 5px; border: 1px solid transparent; border-radius: var(--kindy-library-radius); padding: 10px; }
+.kindy-versions__card { display: grid; gap: 6px; border: 1px solid transparent; border-radius: var(--kindy-library-radius); padding: 10px; transition: border-color 120ms ease, background 120ms ease; }
+.kindy-versions__card:hover { border-color: var(--kindy-library-border); background: color-mix(in srgb, var(--kindy-library-bg) 58%, transparent); }
 .is-preview .kindy-versions__card { border-color: color-mix(in srgb, var(--kindy-library-primary) 24%, transparent); background: var(--kindy-library-selection); }
 .kindy-versions__meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 .kindy-versions__badge { border-radius: 999px; padding: 2px 6px; background: color-mix(in srgb, var(--kindy-library-primary) 12%, transparent); color: var(--kindy-library-primary); font-size: 9px; font-weight: 750; }
@@ -148,6 +149,7 @@ defineExpose({ refresh })
 .kindy-versions__actions button { cursor: pointer; border: 1px solid var(--kindy-library-border); border-radius: 6px; background: var(--kindy-library-surface); padding: 5px 8px; color: var(--kindy-library-text); font: inherit; font-size: 11px; }
 .kindy-versions__actions button:hover:not(:disabled) { border-color: var(--kindy-library-primary); color: var(--kindy-library-primary); }
 .kindy-versions__actions button:disabled { cursor: not-allowed; opacity: .48; }
+.kindy-versions__header-actions button:focus-visible, .kindy-versions__actions button:focus-visible { outline: 2px solid var(--kindy-library-primary); outline-offset: 2px; }
 .kindy-versions__feedback { display: grid; place-items: center; gap: 8px; padding: 28px 16px; color: var(--kindy-library-muted); text-align: center; }
 .kindy-versions__feedback--error { color: var(--kindy-library-danger); }
 .kindy-versions__feedback button { cursor: pointer; border: 0; background: transparent; color: var(--kindy-library-primary); font-weight: 700; }

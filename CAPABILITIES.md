@@ -7,14 +7,15 @@ Chỉ đánh dấu “Supported” khi có automated fixture/test tương ứng.
 | Unicode/tiếng Việt | Supported | OOXML text round-trip test |
 | Bold/italic/underline/strike | Supported | Semantic marks |
 | Font, size, color | Supported | Basic `textStyle` mapping |
-| Paragraph alignment, line spacing, indent | Supported | Profile cơ bản |
+| Paragraph alignment, line spacing, indent | Supported | Ruler/transaction dùng twip; `w:ind` round-trip test gồm left/right/first-line/hanging |
 | Heading 1–6 | Supported | Word heading styles |
 | Bullet/number list | Supported | Numbering profile cơ bản |
 | Table, colspan, rowspan | Supported | `gridSpan` và vertical merge `vMerge` có round-trip test |
 | Inline/block image | Supported | DrawingML, VML và `mc:AlternateContent`; ưu tiên fallback browser-safe; ảnh import có `AssetReference` |
 | Hyperlink | Supported | External hyperlink |
 | Global page size/orientation/margins | Supported | Đơn vị canonical là cm |
-| Manual page break | Supported | Import tách thành semantic block `pageBreak`; editor chừa đúng phần trắng còn lại của trang |
+| Soft line break | Supported | `Shift+Enter` ↔ `hardBreak` ↔ `w:br` round-trip test |
+| Manual page break | Supported | `Ctrl/Cmd+Enter`; import tách thành semantic block `pageBreak`; editor chừa đúng phần trắng còn lại của trang |
 | Automatic page preview | Preview | Chừa phần còn lại của trang và page gap giữa các top-level block; status bar hiển thị/điều hướng `Trang hiện tại / tổng trang` |
 | OOXML validation/report | Supported | ZIP/content types/feature detection |
 | Browser print | Supported | Chromium visual regression cần chạy trong CI ứng dụng |

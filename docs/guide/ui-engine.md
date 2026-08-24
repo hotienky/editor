@@ -4,25 +4,30 @@ Kindy Editor sở hữu kiến trúc UI Engine tách biệt hoàn toàn giữa *
 
 ---
 
-## 1. Kiến trúc trang A4 và zoom
+## 1. Kiến trúc trang giấy và zoom
 
 Kindy Editor dùng **ProseMirror DOM + HTML/CSS**, không vẽ nội dung bằng `canvas`.
 Lựa chọn này giữ được con trỏ native, selection, IME tiếng Việt, accessibility,
 comment, Track Changes và khả năng chỉnh sửa trực tiếp từng node.
 
-Mỗi trang dọc A4 có hệ tọa độ logic cố định:
+Mỗi trang có hệ tọa độ logic cố định theo khổ giấy đã chọn. SDK có sẵn ISO
+`A0`–`A6` (bao gồm A1, A2, A3, A4 và A5), B5, Letter, Legal và khổ tùy chỉnh.
+Orientation chỉ hoán đổi chiều rộng/chiều cao, không thay đổi dữ liệu nội dung.
 
-- Kích thước: `210 × 297 mm` (`21 × 29.7 cm`).
-- Ở 96 CSS DPI: xấp xỉ `793.7 × 1122.5 px`.
+- Ví dụ A4: `210 × 297 mm` (`21 × 29.7 cm`), tương đương khoảng
+  `793.7 × 1122.5 px` ở 96 CSS DPI.
 - Lề, font, tab, bảng và ảnh luôn được layout trong hệ tọa độ 100% này.
 - Zoom chỉ dùng `transform: scale(...)` trên toàn bộ bề mặt trang.
-- `kindy-page-scale-shell` giữ chỗ theo kích thước sau zoom để thanh cuộn hoạt động đúng.
+- `kindy-page-scale-shell` giữ chỗ theo tổng chiều cao vật lý của tất cả các
+  tờ giấy sau zoom để thanh cuộn hoạt động đúng.
 - Pagination đo `offsetHeight` logic trước transform nên số trang không thay đổi khi zoom.
+- Mỗi page luôn đóng góp đủ một chiều cao tờ giấy; trang cuối không co theo content.
+- Tổng surface là `sum(pageHeight) + sum(pageGap)`, kể cả tài liệu có section khác khổ.
 
 ```text
 Scroll viewport
-  └─ Page scale shell (kích thước hiển thị = A4 × zoom)
-       └─ A4 logical surface (210 × 297 mm, luôn layout ở 100%)
+  └─ Page scale shell (kích thước hiển thị = paper geometry × zoom)
+       └─ Logical paper surface (luôn layout ở 100%)
             ├─ Header overlay
             ├─ ProseMirror editable DOM
             ├─ Page-break decorations
@@ -32,6 +37,19 @@ Scroll viewport
 Không được nhân zoom riêng vào chiều rộng trang, lề hoặc padding vì cách đó làm
 văn bản reflow và thay đổi số dòng. Canvas chỉ phù hợp cho preview tĩnh; không
 được dùng làm bề mặt chỉnh sửa canonical của SDK.
+
+### Chuẩn tài liệu và đơn vị hình học
+
+ISO/IEC 29500 Office Open XML/WordprocessingML là chuẩn trao đổi và nghiệm thu
+DOCX. ProseMirror JSON là projection có thể chỉnh sửa trong browser, không phải
+chuẩn thay thế WordprocessingML. Mỗi thuộc tính thuộc compatibility profile phải
+có mapping hai chiều rõ ràng với OOXML.
+
+Các giá trị paragraph do ruler thay đổi (`left`, `right`, `firstLine`, `hanging`)
+được lưu chuẩn bằng twip trong `docxLayout` (`leftTwip`, `rightTwip`,
+`firstLineTwip`, `hangingTwip`). Centimet chỉ dùng để hiển thị trên UI; trạng thái
+legacy dùng centimet vẫn được đọc để migration. Cách này tránh sai số tích lũy
+trong chu trình import → sửa → export.
 
 ---
 
@@ -56,9 +74,25 @@ Giao diện Workspace được chia làm 3 phân vùng độc lập:
 
 Để tối ưu cho nghiệp vụ văn bản pháp lý, hành chính và hợp đồng, `KindyDocumentLibrary` mặc định kích hoạt cấu hình `CONTRACT_EDITOR_OPTIONS`:
 
-- **Toolbar compact 1 hàng**: Chỉ bao gồm các nhóm công cụ thiết yếu: *Định dạng văn bản*, *Chèn ảnh/ngắt trang*, *Bảng biểu*, *Căn lề & Ruler*, *Xuất file*.
+- **Menu + toolbar compact**: Một hàng menu `Định dạng / Chèn / Bảng / Trang`
+  điều khiển thanh công cụ một hàng bên dưới; các action file nằm ở topbar của
+  Document Library để không bỏ qua adapter/versioning.
 - **Loại bỏ công cụ thừa**: Không hiển thị Web mode, Mermaid diagram, nhúng video web, hoặc chuyển đổi số tiếng Trung.
 - **Thanh trạng thái tinh gọn**: Chỉ hiển thị `Trang X / Y`, số lượng từ/ký tự, tỉ lệ Zoom và bộ chọn ngôn ngữ.
+
+### Quy tắc nhập liệu tương thích Word
+
+| Phím | Transaction |
+|---|---|
+| `Enter` | Tách/tạo paragraph mới |
+| `Shift + Enter` | Chèn `hardBreak` (`w:br`) trong cùng paragraph |
+| `Ctrl + Enter` / `Cmd + Enter` | Chèn semantic `pageBreak` (`w:br w:type="page"`) |
+
+Ruler đọc thuộc tính của paragraph tại con trỏ. Khi kéo, UI chỉ preview marker;
+đến `mouseup` SDK tạo một ProseMirror transaction duy nhất trên toàn bộ paragraph
+đang chọn. Vì vậy paragraph indent có undo/redo và đi qua DOCX serializer, thay
+vì chỉ thay CSS. Lề trang được ghi vào `KindyPageState.margin` và kích hoạt
+pagination lại; đây là document-state change, không phải khoảng trắng giả.
 
 ### Tùy biến Preset:
 

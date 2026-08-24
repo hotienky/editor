@@ -1,3 +1,5 @@
+import { PageSizes } from '@umo/layout'
+
 const fonts = [
   {
     label: { en_US: 'Default Font', zh_CN: '默认字体', vi_VN: 'Mặc định' },
@@ -236,9 +238,11 @@ const emojis = [
 ]
 
 const pageSizes = [
-  { label: 'A4', width: 21.0, height: 29.7, default: true },
-  { label: 'A3', width: 29.7, height: 42.0 },
-  { label: 'A5', width: 14.8, height: 21.0 },
+  ...['A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6'].map((label) => ({
+    label,
+    ...PageSizes[label],
+    ...(label === 'A4' ? { default: true } : {}),
+  })),
   { label: 'B5', width: 17.6, height: 25.0 },
   {
     label: {
@@ -282,8 +286,7 @@ const pageSizes = [
       zh_CN: '法律用纸',
       vi_VN: 'Khổ giấy Pháp lý (Legal)',
     },
-    width: 21.5,
-    height: 33.5,
+    ...PageSizes.LEGAL,
   },
   {
     label: {
@@ -291,8 +294,7 @@ const pageSizes = [
       zh_CN: '信纸',
       vi_VN: 'Khổ giấy Thư (Letter)',
     },
-    width: 21.5,
-    height: 27.9,
+    ...PageSizes.LETTER,
   },
 ]
 

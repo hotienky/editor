@@ -222,7 +222,7 @@ onBeforeUnmount(() => {
   clearTimeout(searchTimer)
   refreshController?.abort()
 })
-defineExpose({ refresh, clearSearch, openImportDialog })
+defineExpose({ refresh, clearSearch, openImportDialog, createBlank })
 </script>
 
 <style scoped>
@@ -231,13 +231,14 @@ defineExpose({ refresh, clearSearch, openImportDialog })
 .kindy-explorer__header { display: grid; gap: 12px; padding: 16px; border-bottom: 1px solid var(--kindy-library-border); }
 .kindy-explorer__title-row { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 8px; }
 .kindy-explorer__title-row h2 { margin: 0; font-size: 18px; letter-spacing: -0.02em; }
-.kindy-explorer__primary-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.kindy-explorer__primary-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .kindy-button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid var(--kindy-library-border); border-radius: 8px; padding: 7px 11px; background: var(--kindy-library-surface); color: var(--kindy-library-text); font: inherit; font-size: 13px; font-weight: 650; }
 .kindy-button:hover:not(:disabled) { border-color: var(--kindy-library-primary); }
 .kindy-button--primary { border-color: var(--kindy-library-primary); background: var(--kindy-library-primary); color: #fff; }
 .kindy-button--primary:hover:not(:disabled) { background: var(--kindy-library-primary-hover); }
 .kindy-button:disabled, .kindy-button.is-disabled { cursor: not-allowed; opacity: .52; }
 .kindy-button input { display: none; }
+.kindy-button:focus-visible, .kindy-icon-button:focus-visible, .kindy-explorer__documents li > button:focus-visible { outline: 2px solid var(--kindy-library-primary); outline-offset: 2px; }
 .kindy-icon-button { display: grid; width: 32px; height: 32px; place-items: center; cursor: pointer; border: 0; border-radius: 7px; background: transparent; color: var(--kindy-library-muted); font-size: 20px; }
 .kindy-icon-button:hover { background: var(--kindy-library-bg); color: var(--kindy-library-text); }
 .kindy-explorer__template { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
@@ -251,7 +252,7 @@ defineExpose({ refresh, clearSearch, openImportDialog })
 .kindy-explorer__documents li { position: relative; }
 .kindy-explorer__documents li > button { display: grid; width: 100%; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; border: 1px solid transparent; border-radius: var(--kindy-library-radius); background: transparent; padding: 11px; color: inherit; text-align: left; cursor: pointer; }
 .kindy-explorer__documents li > button:hover { background: color-mix(in srgb, var(--kindy-library-selection) 55%, transparent); }
-.kindy-explorer__documents li > button.active { border-color: color-mix(in srgb, var(--kindy-library-primary) 22%, transparent); background: var(--kindy-library-selection); color: var(--kindy-library-selection-text); }
+.kindy-explorer__documents li > button.active { border-color: color-mix(in srgb, var(--kindy-library-primary) 22%, transparent); background: var(--kindy-library-selection); color: var(--kindy-library-selection-text); box-shadow: inset 3px 0 0 var(--kindy-library-primary); }
 .kindy-explorer__document-icon { display: grid; width: 32px; height: 36px; place-items: center; border-radius: 5px; background: #1677ff; color: #fff; font-size: 12px; font-weight: 800; }
 .kindy-explorer__document-copy { display: grid; min-width: 0; gap: 3px; }
 .kindy-explorer__document-copy strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }

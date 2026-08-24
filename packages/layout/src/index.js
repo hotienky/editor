@@ -50,8 +50,22 @@ import {
   getBlocksOnPage,
 } from './page-calculator'
 
+import {
+  ISOAPageSizes,
+  getOrientedPageSize,
+} from './page-sizes'
+
+import {
+  DEFAULT_PAGE_GAP,
+  getDocumentSurfaceHeight,
+} from './page-surface'
+
 export {
   PageSizes,
+  ISOAPageSizes,
+  getOrientedPageSize,
+  DEFAULT_PAGE_GAP,
+  getDocumentSurfaceHeight,
   createPageConfig,
   createSectionConfig,
   getContentArea,
@@ -173,6 +187,10 @@ export default {
 
   // Page calculator
   PageSizes,
+  ISOAPageSizes,
+  getOrientedPageSize,
+  DEFAULT_PAGE_GAP,
+  getDocumentSurfaceHeight,
   createPageConfig,
   createSectionConfig,
   getContentArea,

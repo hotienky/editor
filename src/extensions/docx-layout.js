@@ -1,5 +1,6 @@
 import { Extension, Node, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
+import { getDocxLayoutCentimeters } from '@/utils/ooxml-units'
 
 const CM_TO_PX = 96 / 2.54
 const layoutPluginKey = new PluginKey('docxParagraphLayout')
@@ -18,10 +19,14 @@ const parseLayout = (element) => {
 const layoutStyle = (layout) => {
   if (!layout || typeof layout !== 'object') return ''
   const styles = []
-  if (Number(layout.left)) styles.push(`margin-left: ${Number(layout.left)}cm`)
-  if (Number(layout.right)) styles.push(`margin-right: ${Number(layout.right)}cm`)
-  if (Number(layout.firstLine)) styles.push(`text-indent: ${Number(layout.firstLine)}cm`)
-  if (Number(layout.hanging)) styles.push(`text-indent: -${Number(layout.hanging)}cm`)
+  const left = getDocxLayoutCentimeters(layout, 'left')
+  const right = getDocxLayoutCentimeters(layout, 'right')
+  const firstLine = getDocxLayoutCentimeters(layout, 'firstLine')
+  const hanging = getDocxLayoutCentimeters(layout, 'hanging')
+  if (left) styles.push(`margin-left: ${left}cm`)
+  if (right) styles.push(`margin-right: ${right}cm`)
+  if (firstLine) styles.push(`text-indent: ${firstLine}cm`)
+  if (hanging) styles.push(`text-indent: -${hanging}cm`)
   if (layout.keepNext) styles.push('break-after: avoid-page')
   if (layout.keepLines) styles.push('break-inside: avoid')
   if (layout.pageBreakBefore) styles.push('break-before: page')
@@ -111,7 +116,17 @@ export const DocxTab = Node.create({
   addAttributes() {
     return {
       alignment: { default: 'left' },
-      position: { default: 1.27 },
+      position: {
+        default: 1.27,
+        parseHTML: (element) => Number(element.getAttribute('data-position')) || 1.27,
+      },
+      positionTwip: {
+        default: null,
+        parseHTML: (element) => {
+          const value = Number(element.getAttribute('data-position-twip'))
+          return Number.isFinite(value) ? value : null
+        },
+      },
       leader: { default: 'none' },
       index: { default: 0 },
     }
@@ -120,12 +135,16 @@ export const DocxTab = Node.create({
     return [{ tag: 'span[data-docx-tab]' }]
   },
   renderHTML({ HTMLAttributes }) {
+    const position = Number.isFinite(Number(HTMLAttributes.positionTwip))
+      ? Number(HTMLAttributes.positionTwip) / (1440 / 2.54)
+      : HTMLAttributes.position
     return ['span', mergeAttributes(HTMLAttributes, {
       'aria-hidden': 'true',
       'class': 'kindy-docx-tab',
       'data-docx-tab': '',
       'data-alignment': HTMLAttributes.alignment,
-      'data-position': HTMLAttributes.position,
+      'data-position': position,
+      'data-position-twip': HTMLAttributes.positionTwip,
       'data-leader': HTMLAttributes.leader,
     })]
   },
@@ -133,6 +152,61 @@ export const DocxTab = Node.create({
 
 export const DocxParagraphLayout = Extension.create({
   name: 'docxParagraphLayout',
+  addCommands() {
+    return {
+      setDocxParagraphLayout:
+        (patch = {}) =>
+        ({ state, dispatch }) => {
+          if (!patch || typeof patch !== 'object') return false
+
+          const positions = new Set()
+          const addTextBlock = (node, pos) => {
+            if (node.type.name === 'paragraph' || node.type.name === 'heading') {
+              positions.add(pos)
+              return false
+            }
+            return true
+          }
+
+          const { from, to, empty, $from } = state.selection
+          if (empty) {
+            const { depth: selectionDepth } = $from
+            for (let depth = selectionDepth; depth > 0; depth -= 1) {
+              const node = $from.node(depth)
+              if (node.type.name !== 'paragraph' && node.type.name !== 'heading') continue
+              positions.add($from.before(depth))
+              break
+            }
+          } else {
+            state.doc.nodesBetween(from, to, addTextBlock)
+          }
+
+          if (!positions.size) return false
+          const { tr } = state
+          for (const pos of positions) {
+            const node = tr.doc.nodeAt(pos)
+            if (!node) continue
+            const layout = node.attrs.docxLayout && typeof node.attrs.docxLayout === 'object'
+              ? { ...node.attrs.docxLayout }
+              : {}
+            for (const [name, value] of Object.entries(patch)) {
+              if (value === null || value === undefined || value === '') delete layout[name]
+              else layout[name] = value
+            }
+            const left = getDocxLayoutCentimeters(layout, 'left')
+            tr.setNodeMarkup(pos, node.type, {
+              ...node.attrs,
+              docxLayout: Object.keys(layout).length ? layout : null,
+              indent: left || null,
+              indentUnit: left ? 'cm' : null,
+            }, node.marks)
+          }
+          if (!tr.docChanged) return false
+          if (dispatch) dispatch(tr.scrollIntoView())
+          return true
+        },
+    }
+  },
   addGlobalAttributes() {
     return [{
       types: ['paragraph', 'heading'],

@@ -18,9 +18,10 @@ KindyDocumentLibrary                  orchestration
 
 Workspace dùng `CONTRACT_EDITOR_OPTIONS` để giữ UI đúng phạm vi soạn hợp đồng:
 
-- Toolbar `classic` compact, khóa một hàng và không hiển thị nút đổi sang ribbon.
-- Chỉ có các nhóm `base`, `insert`, `table`, `page`, `export`.
-- Import DOCX, tải DOCX và In/PDF luôn có ở topbar; nhóm `export` lặp lại ba action này để người dùng tìm thấy ngay trong toolbar.
+- Thanh menu contract `Định dạng / Chèn / Bảng / Trang` nằm trên toolbar
+  `classic` compact; toolbar khóa một hàng và không hiển thị nút đổi sang ribbon.
+- Chỉ có các nhóm chỉnh sửa `base`, `insert`, `table`, `page`.
+- Import DOCX, tải DOCX và In/PDF có một vị trí chuẩn ở topbar, không lặp lại trong toolbar chỉnh sửa.
 - Với workspace, các action file gọi `DocumentLibraryClient`/adapter; không dùng IO trực tiếp của editor để tránh bỏ qua revision, artifact và compatibility report.
 - Chỉ có Page view; Web view bị loại khỏi `page.layouts`.
 - Không load menu Mermaid, diagram, chart, web page, media web, Chinese date hoặc Chinese case.
@@ -68,7 +69,21 @@ interface KindyLibraryUiOptions {
 }
 ```
 
-Từ `1440px`, workspace mặc định mở đủ ba vùng. Trong khoảng `1025–1439px`, Explorer vẫn mở nhưng Versions mặc định thu gọn để editor/ribbon không bị ép chiều ngang; người dùng mở lại bằng nút lịch sử. Từ `1024px` trở xuống, Explorer và Versions trở thành drawer có scrim; workspace handle hoặc các nút topbar có thể mở/đóng panel.
+Explorer mặc định mở trên desktop. Panel Versions luôn đóng khi khởi tạo, kể cả trên màn hình lớn, và chỉ mở sau khi người dùng bấm nút lịch sử. Từ `1024px` trở xuống, Explorer và Versions trở thành drawer có scrim; đổi từ desktop xuống mobile sẽ tự đóng drawer để không che editor.
+
+Khi vùng editor hẹp, topbar luôn giữ action chính `Lưu` (hoặc `Import DOCX` ở empty state) và gom Import/Tải/In/Phiên bản vào menu **Thao tác tài liệu**. Không action nào chỉ bị ẩn bằng CSS mà không có đường truy cập thay thế. Toolbar chỉnh sửa cuộn ngang độc lập, có nút Previous/Next ở hai mép và hỗ trợ wheel/trackpad; status bar cuộn ngang ở mobile để giữ bộ đếm trang và zoom.
+
+## Keyboard và ruler
+
+Preset contract giữ hành vi Word/Google Docs: `Enter` tạo paragraph,
+`Shift + Enter` tạo soft line break và `Ctrl/Cmd + Enter` tạo page break.
+Page break là node semantic top-level; không được mô phỏng bằng dòng trống.
+
+Ruler đồng bộ theo selection và chỉ commit một transaction khi kết thúc kéo.
+Paragraph geometry dùng các trường twip `leftTwip`, `rightTwip`,
+`firstLineTwip`, `hangingTwip`; serializer ánh xạ trực tiếp sang `w:ind`.
+Tab stop import giữ cả vị trí twip và giá trị centimet dẫn xuất để viewport có
+thể render mà không làm mất độ chính xác OOXML.
 
 ## Theme tokens
 

@@ -50,7 +50,7 @@ const shortcuts = ref([
       { label: t('base.selectAll'), keys: ['Ctrl', 'A'] },
       { label: t('search.text'), keys: ['Ctrl', 'F'] },
       { label: t('shortcut.paragraph'), keys: ['Enter'] },
-      { label: t('shortcut.hardBreak'), keys: ['Shift', 'Enter'] },
+      { label: t('insert.hardBreak'), keys: ['Shift', 'Enter'] },
       { label: t('save.text'), keys: ['Ctrl', 'S'] },
       { label: t('print.text'), keys: ['Ctrl', 'P'] },
     ],

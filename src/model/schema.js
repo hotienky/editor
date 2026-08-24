@@ -86,6 +86,7 @@ export const NodeTypes = {
     attributes: {
       alignment: { default: 'left' },
       position: { default: 1.27, type: 'number' },
+      positionTwip: { default: null, type: 'number' },
       leader: { default: 'none' },
       index: { default: 0, type: 'number' },
     },

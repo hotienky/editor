@@ -94,10 +94,10 @@ const shellStyle = computed(() => ({
 .kindy-library-shell__workspace,
 .kindy-library-shell__content { min-width: 0; min-height: 0; }
 .kindy-library-shell__explorer,
-.kindy-library-shell__versions { position: relative; z-index: 3; overflow: hidden; background: var(--kindy-library-sidebar-bg); }
-.kindy-library-shell__workspace { display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
-.kindy-library-shell__topbar { z-index: 2; min-height: 58px; border-bottom: 1px solid var(--kindy-library-border); background: var(--kindy-library-surface); }
-.kindy-library-shell__content { overflow: hidden; }
+.kindy-library-shell__versions { position: relative; z-index: 30; overflow: hidden; background: var(--kindy-library-sidebar-bg); }
+.kindy-library-shell__workspace { container-type: inline-size; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.kindy-library-shell__topbar { position: relative; z-index: 10; min-height: 58px; border-bottom: 1px solid var(--kindy-library-border); background: var(--kindy-library-surface); }
+.kindy-library-shell__content { position: relative; z-index: 1; overflow: hidden; }
 .kindy-library-shell__scrim { display: none; }
 
 .kindy-library-shell--compact .kindy-library-shell__topbar { min-height: 48px; }
@@ -122,7 +122,7 @@ const shellStyle = computed(() => ({
   .kindy-library-shell__versions.is-open { transform: translateX(0); }
   .kindy-library-shell__scrim {
     position: absolute;
-    z-index: 2;
+    z-index: 20;
     inset: 0;
     display: block;
     border: 0;

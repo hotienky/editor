@@ -127,8 +127,8 @@ const handleEditorKeyDown = (view, event) => {
   }
   if (
     event.key === 'Enter' &&
-    (event.ctrlKey || event.metaKey) &&
     !event.shiftKey &&
+    (event.ctrlKey || event.metaKey) &&
     !event.altKey &&
     !event.isComposing &&
     editorInstance.commands.setPageBreak()

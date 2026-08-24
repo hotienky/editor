@@ -217,6 +217,7 @@
 
 <script setup>
 import { ref, computed, watch, inject, shallowRef, nextTick, onBeforeUnmount } from 'vue'
+import { getDocumentSurfaceHeight } from '@umo/layout'
 import Editor from '@/components/editor/index.vue'
 import DialogHeaderFooter from '@/components/dialog/header-footer.vue'
 import DialogPreferences from '@/components/dialog/preferences.vue'
@@ -236,15 +237,33 @@ const scrollContainer = ref(null)
 const pageSurface = ref(null)
 const pageSurfaceLogicalHeight = ref(0)
 let pageSurfaceObserver = null
+let pageSurfaceSyncFrame = null
 
 const syncPageSurfaceHeight = () => {
   const surface = pageSurface.value
   if (!surface) return
   const zoom = Math.max(0.01, Number(pageOptions.value?.zoomLevel || 100) / 100)
   const transformedHeight = surface.getBoundingClientRect().height
-  pageSurfaceLogicalHeight.value = transformedHeight > 0
+  const measuredHeight = transformedHeight > 0
     ? transformedHeight / zoom
     : surface.offsetHeight
+  const layoutPages = editor.value?.storage?.pagination?.layoutTree?.pages
+  const geometryHeight = getDocumentSurfaceHeight(layoutPages, pageSize)
+  const nextHeight = Array.isArray(layoutPages) && layoutPages.length > 0
+    ? geometryHeight
+    : Math.max(measuredHeight, geometryHeight)
+
+  if (Math.abs(pageSurfaceLogicalHeight.value - nextHeight) > 0.5) {
+    pageSurfaceLogicalHeight.value = nextHeight
+  }
+}
+
+const schedulePageSurfaceSync = () => {
+  if (pageSurfaceSyncFrame) cancelAnimationFrame(pageSurfaceSyncFrame)
+  pageSurfaceSyncFrame = requestAnimationFrame(() => {
+    pageSurfaceSyncFrame = null
+    syncPageSurfaceHeight()
+  })
 }
 
 watch(
@@ -265,6 +284,8 @@ watch(
 onBeforeUnmount(() => {
   pageSurfaceObserver?.disconnect()
   pageSurfaceObserver = null
+  if (pageSurfaceSyncFrame) cancelAnimationFrame(pageSurfaceSyncFrame)
+  pageSurfaceSyncFrame = null
 })
 
 let hfDialogVisible = ref(false)
@@ -456,13 +477,27 @@ const onScroll = () => {
 watch(
   () => editor.value,
   (nextEditor, previousEditor) => {
-    if (previousEditor) previousEditor.off('transaction', publishPaginationStatus)
+    if (previousEditor) previousEditor.off('transaction', syncPaginationUi)
     if (nextEditor) {
-      nextEditor.on('transaction', publishPaginationStatus)
-      requestAnimationFrame(publishPaginationStatus)
+      nextEditor.on('transaction', syncPaginationUi)
+      requestAnimationFrame(syncPaginationUi)
     }
   },
   { immediate: true },
+)
+
+function syncPaginationUi() {
+  publishPaginationStatus()
+  schedulePageSurfaceSync()
+}
+
+watch(
+  () => [
+    pageOptions.value?.size?.width,
+    pageOptions.value?.size?.height,
+    pageOptions.value?.orientation,
+  ],
+  () => nextTick(schedulePageSurfaceSync),
 )
 
 const activateHeaderMode = (e) => {
@@ -732,7 +767,7 @@ const currentImageIndex = $computed({
   box-sizing: border-box;
   width: var(--page-width, 21cm);
   height: max-content;
-  min-height: var(--page-height, 29.7cm);
+  min-height: var(--kindy-page-surface-height, var(--page-height, 29.7cm));
   padding-top: var(--margin-top, 2.54cm);
   padding-bottom: var(--margin-bottom, 2.54cm);
   padding-left: var(--margin-left, 2.54cm);

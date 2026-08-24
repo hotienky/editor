@@ -595,18 +595,31 @@ export const Pagination = Extension.create({
               }
               const manualBreak = manualAtBlock.get(blockIndex)
               if (manualBreak && (node.type.name === 'pageBreak' || node.type.name === 'sectionBreak')) {
-                decos.push(Decoration.node(offset, offset + node.nodeSize, {
-                  'data-page-number': String(manualBreak.pageNumber),
-                  'aria-label': `Trang ${manualBreak.pageNumber}`,
-                  'data-section': manualBreak.sectionId || '',
-                  style: [
-                    `--kindy-page-spacer-height:${manualBreak.spacerHeight}px`,
-                    `--kindy-page-separator-offset:${manualBreak.separatorOffset}px`,
-                    `--kindy-page-gap:${manualBreak.pageGap}px`,
-                    ...(manualBreak.geometry?.pageWidthCm ? [`--kindy-next-page-width:${manualBreak.geometry.pageWidthCm}cm`] : []),
-                    ...(manualBreak.geometry?.pageHeightCm ? [`--kindy-next-page-height:${manualBreak.geometry.pageHeightCm}cm`] : []),
-                  ].join(';'),
-                }))
+                // Keep the canonical pageBreak node as a zero-height document
+                // boundary and render the physical sheet transition as a widget.
+                // This avoids exposing the page break as a grey editable block
+                // while still reserving the exact remaining paper height.
+                decos.push(Decoration.widget(
+                  offset,
+                  () => {
+                    const div = document.createElement('div')
+                    div.className = 'kindy-page-break-decoration kindy-manual-page-break-decoration'
+                    div.setAttribute('data-page-number', String(manualBreak.pageNumber))
+                    div.setAttribute('aria-label', `Trang ${manualBreak.pageNumber}`)
+                    div.setAttribute('data-section', manualBreak.sectionId || '')
+                    div.setAttribute('data-decoration', 'true')
+                    div.setAttribute('contenteditable', 'false')
+                    div.style.setProperty('--kindy-page-spacer-height', `${manualBreak.spacerHeight}px`)
+                    div.style.setProperty('--kindy-page-separator-offset', `${manualBreak.separatorOffset}px`)
+                    div.style.setProperty('--kindy-page-gap', `${manualBreak.pageGap}px`)
+                    if (manualBreak.geometry?.pageWidthCm) div.style.setProperty('--kindy-next-page-width', `${manualBreak.geometry.pageWidthCm}cm`)
+                    if (manualBreak.geometry?.pageHeightCm) div.style.setProperty('--kindy-next-page-height', `${manualBreak.geometry.pageHeightCm}cm`)
+                    appendRepeatedHeaderFooter(div, manualBreak.footer, 'footer', manualBreak.pageNumber - 1)
+                    appendRepeatedHeaderFooter(div, manualBreak.header, 'header', manualBreak.pageNumber)
+                    return div
+                  },
+                  { side: -1, key: `manual-page-sep-${manualBreak.pageNumber}-${blockIndex}`, ignoreSelection: true },
+                ))
               }
               blockIndex++
             })

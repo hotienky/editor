@@ -122,7 +122,14 @@ export function getBlockHeightsFromDOM(editorDom, measurementCache) {
 
   // The page surface always lays out at 100%. View zoom is a parent transform,
   // so offsetHeight is already the canonical logical measurement.
-  const layoutKey = 'logical-a4'
+  const editorStyle = getComputedStyle(editorDom)
+  const layoutKey = [
+    'logical-page',
+    editorDom.clientWidth,
+    editorStyle.fontFamily,
+    editorStyle.fontSize,
+    editorStyle.lineHeight,
+  ].join(':')
   const children = getTopLevelBlockElements(editorDom)
   const result = []
 

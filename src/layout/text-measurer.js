@@ -57,7 +57,7 @@ export function getCmToPx() {
   test.style.left = '-9999px'
   test.style.visibility = 'hidden'
   document.body.appendChild(test)
-  _cmToPx = test.offsetWidth || CM_TO_PX
+  _cmToPx = test.getBoundingClientRect().width || CM_TO_PX
   document.body.removeChild(test)
   return _cmToPx
 }

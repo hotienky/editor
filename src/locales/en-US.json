@@ -6,7 +6,7 @@
     "toggle": "Toolbar",
     "show": "Show Toolbar",
     "hide": "Hide Toolbar",
-    "base": "Home",
+    "base": "Format",
     "insert": "Insert",
     "table": "Table",
     "tools": "Tools",
@@ -996,6 +996,7 @@
     }
   },
   "ruler": {
+    "title": "Horizontal ruler",
     "marginLeftTooltip": "Drag to adjust left page margin",
     "marginRightTooltip": "Drag to adjust right page margin",
     "firstLineIndentTooltip": "First Line Indent",

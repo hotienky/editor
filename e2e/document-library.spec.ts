@@ -5,6 +5,40 @@ import { unzipSync } from 'fflate'
 const realDocxPath = process.env.KINDY_REAL_DOCX
 
 test.describe('Document Library workspace', () => {
+  test('keeps document actions and overflow tools reachable on desktop and mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.goto('./')
+    await page.getByRole('button', { name: /Hợp đồng nguyên tắc/i }).click()
+
+    await expect(page.getByRole('button', { name: 'Import DOCX', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Lưu', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Tải DOCX', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'In / PDF', exact: true })).toBeVisible()
+
+    const toolbarNext = page.getByRole('button', { name: 'Next toolbar controls' })
+    await expect(toolbarNext).toBeVisible()
+    const toolbar = page.locator('.kindy-scrollable-content')
+    await toolbarNext.click()
+    await expect.poll(() => toolbar.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByRole('button', { name: 'Lưu', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Tải DOCX', exact: true })).toBeHidden()
+    await expect(page.locator('.kindy-library-shell__explorer')).not.toHaveClass(/is-open/)
+
+    const actionMenuTrigger = page.locator('summary[aria-label="Thao tác tài liệu"]')
+    await expect(actionMenuTrigger).toBeVisible()
+    await actionMenuTrigger.click()
+    const actionMenu = page.getByRole('menu', { name: 'Thao tác tài liệu' })
+    await expect(actionMenu.getByRole('menuitem', { name: 'Import DOCX' })).toBeVisible()
+    await expect(actionMenu.getByRole('menuitem', { name: 'Tải DOCX' })).toBeVisible()
+    await expect(actionMenu.getByRole('menuitem', { name: 'In / PDF' })).toBeVisible()
+    await expect(actionMenu.getByRole('menuitem', { name: 'Mở lịch sử phiên bản' })).toBeVisible()
+
+    const rootOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(rootOverflow).toBe(0)
+  })
+
   test('keeps a fixed A4 layout coordinate system while zooming', async ({ page }) => {
     await page.goto('./')
     await page.getByRole('button', { name: /Hợp đồng nguyên tắc/i }).click()
@@ -258,6 +292,8 @@ test.describe('Document Library workspace', () => {
     await editor.type('Điều 1. Nội dung phiên bản thứ hai.')
     await page.getByRole('button', { name: 'Lưu', exact: true }).click()
     await expect(page.getByText('2 phiên bản')).toBeVisible()
+    await page.getByRole('button', { name: 'Mở lịch sử phiên bản' }).click()
+    await expect(page.getByRole('complementary', { name: 'Document versions' })).toBeVisible()
 
     const versionOne = page.locator('.kindy-versions__list > li').filter({ hasText: 'v1' })
     await versionOne.getByRole('button', { name: 'Xem' }).click()
@@ -357,6 +393,43 @@ test.describe('Document Library workspace', () => {
     await expect(editor.locator('.kindy-page-break')).toHaveCount(1)
     await expect(editor).toContainText(formattedText)
 
+    const canonicalBreak = editor.locator('.kindy-page-break').first()
+    const manualPageSeparator = editor.locator('.kindy-manual-page-break-decoration').first()
+    await expect(manualPageSeparator).toBeAttached({ timeout: 5_000 })
+    expect(await canonicalBreak.evaluate((element) => (element as HTMLElement).offsetHeight)).toBe(0)
+    const pageBoundary = await manualPageSeparator.evaluate((element) => {
+      const style = getComputedStyle(element as HTMLElement)
+      const separator = getComputedStyle(element as HTMLElement, '::before')
+      return {
+        height: (element as HTMLElement).offsetHeight,
+        spacerHeight: Number.parseFloat(style.getPropertyValue('--kindy-page-spacer-height')),
+        separatorOffset: Number.parseFloat(style.getPropertyValue('--kindy-page-separator-offset')),
+        pageGap: Number.parseFloat(style.getPropertyValue('--kindy-page-gap')),
+        gapBackground: separator.backgroundColor,
+      }
+    })
+    expect(pageBoundary.height).toBeCloseTo(pageBoundary.spacerHeight, 0)
+    expect(pageBoundary.separatorOffset).toBeGreaterThan(200)
+    expect(pageBoundary.pageGap).toBeGreaterThanOrEqual(20)
+    expect(pageBoundary.gapBackground).not.toBe('rgba(0, 0, 0, 0)')
+    await expect(page.getByRole('button', { name: /Trang \d+ trên [2-9]\d*/ })).toBeVisible()
+
+    const paperSurface = page.locator('.kindy-page-editor-wrap')
+    await expect.poll(() => paperSurface.evaluate((element) => (element as HTMLElement).offsetHeight)).toBeGreaterThan(2_000)
+    const fixedPaperMetrics = await paperSurface.evaluate((element) => {
+      const style = getComputedStyle(element as HTMLElement)
+      const totalPages = Number(document.querySelector('.kindy-page-status-button')?.getAttribute('aria-label')?.match(/trên (\d+)/)?.[1] || 1)
+      const pageHeightCm = Number.parseFloat(style.getPropertyValue('--kindy-page-height'))
+      const pageGap = Number.parseFloat(getComputedStyle(document.querySelector<HTMLElement>('.kindy-page-break-decoration')!).getPropertyValue('--kindy-page-gap'))
+      return {
+        actualHeight: (element as HTMLElement).offsetHeight,
+        expectedHeight: totalPages * pageHeightCm * (96 / 2.54) + (totalPages - 1) * pageGap,
+        totalPages,
+      }
+    })
+    expect(fixedPaperMetrics.totalPages).toBe(2)
+    expect(Math.abs(fixedPaperMetrics.actualHeight - fixedPaperMetrics.expectedHeight)).toBeLessThan(1)
+
     // ProseMirror groups adjacent typing transactions for 500ms. Separate the
     // next edit so undo/redo represents one visible user action.
     await page.waitForTimeout(650)
@@ -381,7 +454,8 @@ test.describe('Document Library workspace', () => {
     await importedDocument.click()
     await expect(editor).toContainText(formattedText)
     await expect(editor).toContainText('PHỤ LỤC')
-    await expect(editor.locator('ol')).toHaveCount(1)
+    await expect(editor.locator('ol')).toHaveCount(2)
+    await expect(editor.locator('ol').nth(1)).toHaveAttribute('data-start', '2')
     await expect(editor.locator('.kindy-page-break')).toHaveCount(1)
 
     const [exportDownload] = await Promise.all([

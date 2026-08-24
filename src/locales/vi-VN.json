@@ -6,7 +6,7 @@
     "toggle": "Thanh công cụ",
     "show": "Hiện thanh công cụ",
     "hide": "Ẩn thanh công cụ",
-    "base": "Trang chủ",
+    "base": "Định dạng",
     "insert": "Chèn",
     "table": "Bảng",
     "tools": "Công cụ",
@@ -996,8 +996,9 @@
     }
   },
   "ruler": {
-    "marginLeftTooltip": "Kéo viền lề trái trang A4",
-    "marginRightTooltip": "Kéo viền lề phải trang A4",
+    "title": "Thước ngang",
+    "marginLeftTooltip": "Kéo để điều chỉnh lề trái trang",
+    "marginRightTooltip": "Kéo để điều chỉnh lề phải trang",
     "firstLineIndentTooltip": "Thụt lề dòng đầu tiên (First Line Indent)",
     "leftIndentTooltip": "Thụt lề trái đoạn văn (Left Indent)",
     "rightIndentTooltip": "Thụt lề phải đoạn văn (Right Indent)",

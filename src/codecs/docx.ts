@@ -352,6 +352,7 @@ const twipsToCentimeters = (value: string | null | undefined) => Number(value ||
 type DocxTabStop = {
   alignment: string
   position: number
+  positionTwip: number
   leader?: string
 }
 
@@ -428,6 +429,7 @@ function readParagraphFormat(properties?: Element): DocxParagraphFormat {
         return {
           alignment: wordAttribute(tab, 'val') || 'left',
           position: twipsToCentimeters(String(rawPosition)),
+          positionTwip: Math.round(rawPosition),
           leader: wordAttribute(tab, 'leader') || undefined,
         }
       })
@@ -895,10 +897,10 @@ function ooxmlParagraph(
     }
   }
   const layout = definedEntries({
-    left: format.left ? twipsToCentimeters(String(format.left)) : undefined,
-    right: format.right ? twipsToCentimeters(String(format.right)) : undefined,
-    firstLine: format.firstLine ? twipsToCentimeters(String(format.firstLine)) : undefined,
-    hanging: format.hanging ? twipsToCentimeters(String(format.hanging)) : undefined,
+    leftTwip: format.left ? Math.round(format.left) : undefined,
+    rightTwip: format.right ? Math.round(format.right) : undefined,
+    firstLineTwip: format.firstLine ? Math.round(format.firstLine) : undefined,
+    hangingTwip: format.hanging ? Math.round(format.hanging) : undefined,
     keepNext: format.keepNext,
     keepLines: format.keepLines,
     pageBreakBefore: format.pageBreakBefore,
@@ -955,6 +957,7 @@ function ooxmlParagraph(
     child.attrs = {
       alignment: stop?.alignment || 'left',
       position: stop?.position || previousPosition + (1.27 * fallbackOffset),
+      positionTwip: stop?.positionTwip,
       leader: stop?.leader || 'none',
       index: tabIndex,
     }
@@ -1537,16 +1540,24 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
     const absoluteLineHeight = typeof lineHeight === 'string' && /px$/i.test(lineHeight)
       ? Math.round(Number.parseFloat(lineHeight) * 15)
       : undefined
+    const layoutTwip = (name: string) => {
+      const canonical = Number(docxLayout[`${name}Twip`])
+      if (Number.isFinite(canonical)) return Math.round(canonical)
+      const legacyCentimeters = Number(docxLayout[name])
+      return Number.isFinite(legacyCentimeters)
+        ? centimetersToTwip(legacyCentimeters)
+        : undefined
+    }
     return [new Paragraph({
       children: await inlineRuns(node.content),
       heading: node.type === 'heading' ? HeadingLevel[`HEADING_${level}` as keyof typeof HeadingLevel] : undefined,
       alignment: alignment(String(node.attrs?.textAlign || node.attrs?.align || '')),
       indent: Object.keys(docxLayout).length
         ? {
-            left: docxLayout.left ? centimetersToTwip(Number(docxLayout.left)) : undefined,
-            right: docxLayout.right ? centimetersToTwip(Number(docxLayout.right)) : undefined,
-            firstLine: docxLayout.firstLine ? centimetersToTwip(Number(docxLayout.firstLine)) : undefined,
-            hanging: docxLayout.hanging ? centimetersToTwip(Number(docxLayout.hanging)) : undefined,
+            left: layoutTwip('left') || undefined,
+            right: layoutTwip('right') || undefined,
+            firstLine: layoutTwip('firstLine') || undefined,
+            hanging: layoutTwip('hanging') || undefined,
           }
         : node.attrs?.indent
           ? { left: centimetersToTwip(Number(node.attrs.indent)) }
@@ -1565,7 +1576,9 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
       tabStops: Array.isArray(docxLayout.tabStops)
         ? docxLayout.tabStops.map((stop: Record<string, any>) => ({
             type: tabStopType(String(stop.alignment || 'left')),
-            position: centimetersToTwip(Number(stop.position) || 0),
+            position: Number.isFinite(Number(stop.positionTwip))
+              ? Math.round(Number(stop.positionTwip))
+              : centimetersToTwip(Number(stop.position) || 0),
             leader: leaderType(String(stop.leader || 'none')),
           }))
         : undefined,

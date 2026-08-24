@@ -87,4 +87,27 @@ describe('DOM page calculator', () => {
 
     expect(getBlockHeightsFromDOM(editor)[0].height).toBe(40)
   })
+
+  it('does not reuse block measurements after the logical paper width changes', () => {
+    const editor = document.createElement('div')
+    const paragraph = document.createElement('p')
+    let editorWidth = 600
+    let paragraphHeight = 40
+    let reads = 0
+    Object.defineProperty(editor, 'clientWidth', { configurable: true, get: () => editorWidth })
+    Object.defineProperty(paragraph, 'offsetHeight', {
+      configurable: true,
+      get() { reads += 1; return paragraphHeight },
+    })
+    editor.append(paragraph)
+    const cache = createBlockMeasurementCache()
+
+    expect(getBlockHeightsFromDOM(editor, cache)[0].height).toBe(40)
+    paragraphHeight = 80
+    expect(getBlockHeightsFromDOM(editor, cache)[0].height).toBe(40)
+
+    editorWidth = 900
+    expect(getBlockHeightsFromDOM(editor, cache)[0].height).toBe(80)
+    expect(reads).toBe(2)
+  })
 })

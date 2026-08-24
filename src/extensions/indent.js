@@ -1,5 +1,9 @@
 import { Extension } from '@tiptap/core'
 import { AllSelection, TextSelection } from '@tiptap/pm/state'
+import {
+  centimetersToTwips,
+  getDocxLayoutCentimeters,
+} from '@/utils/ooxml-units'
 
 const DEFAULT_INDENT_UNIT = 'em'
 const DEFAULT_DOCX_INDENT_STEP_CM = 1.27
@@ -82,7 +86,11 @@ export default Extension.create({
           indent: {
             default: null,
             renderHTML: (attributes) => {
-              if (attributes.docxLayout?.left || attributes.docxLayout?.firstLine || attributes.docxLayout?.hanging) {
+              if (
+                getDocxLayoutCentimeters(attributes.docxLayout, 'left') ||
+                getDocxLayoutCentimeters(attributes.docxLayout, 'firstLine') ||
+                getDocxLayoutCentimeters(attributes.docxLayout, 'hanging')
+              ) {
                 return {}
               }
               const { indent, indentUnit } = attributes
@@ -141,14 +149,15 @@ export default Extension.create({
       if (!node) return tr
       const { docxLayout } = node.attrs
       if (docxLayout && typeof docxLayout === 'object') {
-        const currentLeft = Number(docxLayout.left) || 0
+        const currentLeft = getDocxLayoutCentimeters(docxLayout, 'left')
         const step = Number(this.options.docxIndentStepCm) || DEFAULT_DOCX_INDENT_STEP_CM
         const maxLeft = Math.max(0, Number(this.options.maxLevel) || 0) * step
         const nextLeft = Math.min(maxLeft, Math.max(0, currentLeft + (delta * step)))
         if (Math.abs(nextLeft - currentLeft) < 0.0001) return tr
         const nextLayout = { ...docxLayout }
-        if (nextLeft > 0) nextLayout.left = Number(nextLeft.toFixed(4))
-        else delete nextLayout.left
+        delete nextLayout.left
+        if (nextLeft > 0) nextLayout.leftTwip = centimetersToTwips(nextLeft)
+        else delete nextLayout.leftTwip
         return tr.setNodeMarkup(pos, node.type, {
           ...node.attrs,
           docxLayout: nextLayout,

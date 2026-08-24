@@ -720,6 +720,7 @@ watch(
   justify-content: space-between;
   font-size: var(--kindy-font-size-small);
   border-top: solid 1px var(--kindy-border-color);
+  gap: 8px;
 
   @media screen and (max-width: 640px) {
     overflow-x: auto;
@@ -785,11 +786,13 @@ watch(
   }
   &-left {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
   }
 
   &-right {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     .kindy-zoom-level-bar {
       width: 240px;

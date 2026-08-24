@@ -37,28 +37,53 @@
       <slot name="topbar" :document="current?.document" :status="workspaceStatus" :save="saveFromEditor">
         <div class="kindy-workspace-bar">
           <div class="kindy-workspace-bar__identity">
-            <button v-if="uiConfig.showExplorer" class="kindy-workspace-bar__icon" type="button" :aria-label="copy.openDocuments" :title="copy.openDocuments" @click="explorerOpen = !explorerOpen">☰</button>
+            <button
+              v-if="uiConfig.showExplorer"
+              class="kindy-workspace-bar__icon kindy-workspace-bar__explorer-toggle"
+              :class="{ 'is-panel-open': explorerOpen }"
+              type="button"
+              :aria-label="copy.openDocuments"
+              :title="copy.openDocuments"
+              @click="explorerOpen = !explorerOpen"
+            >☰</button>
             <div v-if="current" class="kindy-workspace-bar__document">
               <strong>{{ current.document.title }}</strong>
-              <span>{{ current.document.fileName }}</span>
+              <div class="kindy-workspace-bar__meta">
+                <span class="kindy-workspace-bar__file-name">{{ current.document.fileName }}</span>
+                <div class="kindy-workspace-bar__status" :class="`is-${workspaceStatus}`" role="status">
+                  <span aria-hidden="true" />{{ statusLabel }}
+                </div>
+              </div>
             </div>
             <div v-else class="kindy-workspace-bar__document">
               <strong>Kindy Document Library</strong>
-              <span>DOCX workspace</span>
+              <span class="kindy-workspace-bar__file-name">DOCX workspace</span>
             </div>
           </div>
 
-          <div v-if="current" class="kindy-workspace-bar__status" :class="`is-${workspaceStatus}`" role="status">
-            <span aria-hidden="true" />{{ statusLabel }}
-          </div>
-
           <div class="kindy-workspace-bar__actions">
-            <button class="kindy-workspace-bar__button" type="button" @click="openImportDialog">{{ copy.importDocx }}</button>
-            <button v-if="previewVersionId" class="kindy-workspace-bar__button" type="button" @click="exitVersionPreview">{{ copy.backToCurrent }}</button>
+            <button class="kindy-workspace-bar__button kindy-workspace-bar__desktop-action" :class="{ 'kindy-workspace-bar__button--primary': !current }" type="button" :aria-label="copy.importDocx" @click="openImportDialog">
+              <span aria-hidden="true">⇧</span><span>{{ copy.importDocx }}</span>
+            </button>
+            <button v-if="previewVersionId" class="kindy-workspace-bar__button kindy-workspace-bar__button--primary" type="button" @click="exitVersionPreview">{{ copy.backToCurrent }}</button>
             <button v-if="current && !previewVersionId" class="kindy-workspace-bar__button kindy-workspace-bar__button--primary" type="button" :disabled="!canEdit || workspaceStatus === 'saving'" @click="saveFromEditor">{{ copy.save }}</button>
-            <button v-if="current && canDownload" class="kindy-workspace-bar__button" type="button" :disabled="exporting" @click="downloadCurrentDocx">{{ copy.downloadDocx }}</button>
-            <button v-if="current" class="kindy-workspace-bar__button" type="button" @click="print">{{ copy.print }}</button>
-            <button v-if="showVersions && uiConfig.showVersions" class="kindy-workspace-bar__icon" type="button" :aria-label="copy.openVersions" :title="copy.openVersions" @click="versionsOpen = !versionsOpen">◷</button>
+            <button v-if="current && canDownload" class="kindy-workspace-bar__button kindy-workspace-bar__desktop-action" type="button" :disabled="exporting" :aria-label="copy.downloadDocx" @click="downloadCurrentDocx">
+              <span aria-hidden="true">W</span><span>{{ copy.downloadDocx }}</span>
+            </button>
+            <button v-if="current" class="kindy-workspace-bar__button kindy-workspace-bar__desktop-action" type="button" :aria-label="copy.print" @click="print">
+              <span aria-hidden="true">PDF</span><span>{{ copy.print }}</span>
+            </button>
+            <button v-if="showVersions && uiConfig.showVersions" class="kindy-workspace-bar__icon kindy-workspace-bar__history" type="button" :aria-label="copy.openVersions" :title="copy.openVersions" @click="versionsOpen = !versionsOpen">◷</button>
+
+            <details ref="actionMenu" class="kindy-workspace-actions-menu">
+              <summary role="button" aria-haspopup="menu" :aria-label="copy.moreActions" :title="copy.moreActions"><span aria-hidden="true">⋮</span></summary>
+              <div class="kindy-workspace-actions-menu__popover" role="menu" :aria-label="copy.moreActions">
+                <button type="button" role="menuitem" @click="runWorkspaceAction(openImportDialog)"><span aria-hidden="true">⇧</span>{{ copy.importDocx }}</button>
+                <button v-if="current && canDownload" type="button" role="menuitem" :disabled="exporting" @click="runWorkspaceAction(downloadCurrentDocx)"><span aria-hidden="true">W</span>{{ copy.downloadDocx }}</button>
+                <button v-if="current" type="button" role="menuitem" @click="runWorkspaceAction(print)"><span aria-hidden="true">PDF</span>{{ copy.print }}</button>
+                <button v-if="showVersions && uiConfig.showVersions" type="button" role="menuitem" @click="runWorkspaceAction(toggleVersions)"><span aria-hidden="true">◷</span>{{ copy.openVersions }}</button>
+              </div>
+            </details>
           </div>
         </div>
       </slot>
@@ -78,7 +103,11 @@
           <span class="kindy-document-workspace__empty-icon" aria-hidden="true">DOCX</span>
           <strong>{{ copy.selectDocument }}</strong>
           <span>{{ copy.selectDocumentDescription }}</span>
-          <button v-if="uiConfig.showExplorer && !explorerOpen" type="button" @click="explorerOpen = true">{{ copy.openDocuments }}</button>
+          <div v-if="uiConfig.showExplorer" class="kindy-document-workspace__empty-actions">
+            <button class="is-primary" type="button" @click="createBlankDocument">{{ copy.newDocument }}</button>
+            <button type="button" @click="openImportDialog">{{ copy.importDocx }}</button>
+            <button v-if="!explorerOpen" type="button" @click="explorerOpen = true">{{ copy.openDocuments }}</button>
+          </div>
         </slot>
       </div>
       <template v-else>
@@ -101,11 +130,6 @@
           @print="emit('printed', current?.document)"
         >
           <template #toolbar_export="slotProps">
-            <div class="kindy-contract-file-actions">
-              <button type="button" @click="openImportDialog"><span aria-hidden="true">⇧</span>{{ copy.importDocx }}</button>
-              <button v-if="current && canDownload" type="button" :disabled="exporting" @click="downloadCurrentDocx"><span aria-hidden="true">W</span>{{ copy.downloadDocx }}</button>
-              <button v-if="current" type="button" @click="print"><span aria-hidden="true">PDF</span>{{ copy.print }}</button>
-            </div>
             <slot name="toolbar_export" v-bind="slotProps || {}" />
           </template>
           <template v-for="name in editorSlotNames" #[name]="slotProps">
@@ -137,7 +161,7 @@
 
 <script setup lang="ts">
 import saveAs from 'file-saver'
-import { useMediaQuery } from '@vueuse/core'
+import { onClickOutside, useMediaQuery } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onErrorCaptured, ref, shallowRef, useSlots, watch } from 'vue'
 import { exportDocx } from '../../codecs'
 import { DocumentLibraryClient, createDocumentLibrary } from '../../core/client'
@@ -190,14 +214,14 @@ const copy = computed(() => resolveLibraryMessages(workspaceLocale.value, props.
 const uiConfig = computed(() => resolveLibraryUi({ ...props.ui, showVersions: props.ui.showVersions ?? props.showVersions }))
 const themeConfig = computed(() => createLibraryTheme(props.theme))
 const wideViewport = useMediaQuery('(min-width: 1025px)')
-const spaciousViewport = useMediaQuery('(min-width: 1440px)')
 const explorerOpen = ref(wideViewport.value && uiConfig.value.showExplorer)
-const versionsOpen = ref(spaciousViewport.value && uiConfig.value.showVersions && props.showVersions)
+const versionsOpen = ref(false)
 const current = shallowRef<DocumentSnapshot | null>(null)
 const liveSnapshot = shallowRef<DocumentSnapshot | null>(null)
 const editor = ref<InstanceType<typeof KindyEditor> | null>(null)
 const explorer = ref<InstanceType<typeof KindyDocumentExplorer> | null>(null)
 const versions = ref<InstanceType<typeof KindyVersionPanel> | null>(null)
+const actionMenu = ref<HTMLDetailsElement | null>(null)
 const editorKey = ref(0)
 const opening = ref(false)
 const exporting = ref(false)
@@ -213,6 +237,19 @@ let stateSyncPending = false
 let collaborationSession: CollaborationSession | null = null
 let collaborationDocumentId = ''
 
+onClickOutside(actionMenu, () => {
+  if (actionMenu.value) actionMenu.value.open = false
+})
+
+watch(wideViewport, (isWide) => {
+  if (isWide) {
+    explorerOpen.value = uiConfig.value.showExplorer
+    return
+  }
+  explorerOpen.value = false
+  versionsOpen.value = false
+})
+
 const activeDocumentId = computed(() => liveSnapshot.value?.document.id || current.value?.document.id || '')
 const canEdit = computed(() => Boolean(current.value) && !previewVersionId.value && current.value?.document.capabilities?.edit !== false)
 const canDownload = computed(() => current.value?.document.capabilities?.download !== false)
@@ -226,8 +263,8 @@ const resolvedEditorOptions = computed(() => {
   const configured = createContractEditorOptions(props.editorOptions)
   return {
     ...configured,
-    // Workspace IO must pass through DocumentLibraryClient/adapter. The
-    // toolbar slot below exposes the safe import/export actions instead.
+    // Workspace IO must pass through DocumentLibraryClient/adapter. File
+    // actions live in the workspace bar; the editor keeps only editing tools.
     disableExtensions: Array.from(new Set([
       ...configured.disableExtensions,
       'import-word',
@@ -408,6 +445,20 @@ async function openDocument(document: DocumentSummary) {
 function openImportDialog() {
   explorerOpen.value = true
   void nextTick(() => explorer.value?.openImportDialog())
+}
+
+function createBlankDocument() {
+  explorerOpen.value = true
+  void nextTick(() => explorer.value?.createBlank())
+}
+
+function toggleVersions() {
+  versionsOpen.value = !versionsOpen.value
+}
+
+function runWorkspaceAction(action: () => unknown) {
+  if (actionMenu.value) actionMenu.value.open = false
+  void action()
 }
 
 async function applySnapshot(snapshot: DocumentSnapshot) {
@@ -693,34 +744,36 @@ defineExpose({
 .kindy-document-workspace { position: relative; width: 100%; height: 100%; min-width: 0; overflow: hidden; background: var(--kindy-library-bg); }
 .kindy-document-workspace :deep(.kindy-editor-container) { background: #f1f3f4; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar) { z-index: 6; border-bottom: 1px solid #dfe3e8; background: #fff; padding: 6px 10px; }
-.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container) { min-height: 42px; overflow: hidden; border-radius: 21px; background: #edf2fa; }
-.kindy-document-workspace :deep(.kindy-editor-container .kindy-scrollable-container) { min-width: 0; padding: 5px 10px; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container) { min-height: 42px; overflow: hidden; border-radius: 0; background: #fff; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container-contract .kindy-scrollable-container) { min-width: 0; margin: 0 8px 4px; border-radius: 19px; padding: 4px 8px !important; background: #edf2fa; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container-contract .kindy-scrollable-content) { background: transparent; box-shadow: none; padding: 0; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-classic-menu) { min-height: 32px; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-classic-menu .kindy-virtual-group::before) { margin: 0 7px; background: #d7dce2; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-footer) { z-index: 6; border-top: 1px solid #dfe3e8; background: #fff; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-status-bar) { min-height: 34px; box-sizing: border-box; border-top: 0; padding: 4px 10px; color: #3c4043; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-page-container) { background: #f1f3f4; }
-.kindy-contract-file-actions { display: flex; align-items: center; gap: 4px; }
-.kindy-contract-file-actions button { display: inline-flex; min-height: 28px; align-items: center; gap: 5px; cursor: pointer; border: 0; border-radius: 6px; background: transparent; padding: 4px 8px; color: #3c4043; font: inherit; font-size: 12px; white-space: nowrap; }
-.kindy-contract-file-actions button:hover:not(:disabled) { background: #dce6f5; color: #0b57d0; }
-.kindy-contract-file-actions button:disabled { cursor: not-allowed; opacity: .5; }
-.kindy-contract-file-actions button span { display: inline-grid; min-width: 18px; height: 18px; place-items: center; color: #0b57d0; font-size: 10px; font-weight: 800; }
 .kindy-document-workspace__state { display: flex; box-sizing: border-box; width: 100%; height: 100%; min-height: 320px; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 32px; color: var(--kindy-library-muted); text-align: center; }
 .kindy-document-workspace__state strong { color: var(--kindy-library-text); font-size: 17px; }
 .kindy-document-workspace__state > span:not(.kindy-document-workspace__spinner) { max-width: 430px; line-height: 1.55; }
 .kindy-document-workspace__state button, .kindy-document-workspace__preview button { cursor: pointer; border: 0; background: transparent; color: var(--kindy-library-primary); font: inherit; font-weight: 700; }
+.kindy-document-workspace__empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 6px; }
+.kindy-document-workspace__empty-actions button { min-height: 36px; border: 1px solid var(--kindy-library-border); border-radius: 8px; padding: 7px 12px; background: var(--kindy-library-surface); }
+.kindy-document-workspace__empty-actions button:hover { border-color: var(--kindy-library-primary); background: var(--kindy-library-selection); }
+.kindy-document-workspace__empty-actions button.is-primary { border-color: var(--kindy-library-primary); background: var(--kindy-library-primary); color: #fff; }
+.kindy-document-workspace__empty-actions button.is-primary:hover { background: var(--kindy-library-primary-hover); }
 .kindy-document-workspace__state--error, .kindy-document-workspace__state--error strong { color: var(--kindy-library-danger); }
 .kindy-document-workspace__empty-icon { display: grid; width: 68px; height: 82px; place-items: center; border: 1px solid var(--kindy-library-border); border-radius: 12px; background: var(--kindy-library-surface); color: var(--kindy-library-primary); box-shadow: 0 8px 30px rgb(15 23 42 / 7%); font-size: 12px; font-weight: 800; }
 .kindy-document-workspace__spinner { width: 24px; height: 24px; animation: kindy-workspace-spin .8s linear infinite; border: 3px solid var(--kindy-library-border); border-top-color: var(--kindy-library-primary); border-radius: 50%; }
 .kindy-document-workspace__preview { position: absolute; z-index: 8; top: 10px; left: 50%; display: flex; align-items: center; gap: 12px; transform: translateX(-50%); border: 1px solid #fedf89; border-radius: 999px; padding: 7px 12px; background: #fffaeb; color: #93370d; box-shadow: 0 4px 16px rgb(15 23 42 / 10%); font-size: 12px; }
-.kindy-workspace-bar { display: grid; min-height: 58px; grid-template-columns: minmax(180px, 1fr) auto minmax(260px, 1fr); align-items: center; gap: 12px; padding: 0 12px; }
+.kindy-workspace-bar { display: flex; min-height: 58px; align-items: center; gap: 12px; padding: 0 12px; }
 .kindy-workspace-bar__identity, .kindy-workspace-bar__actions { display: flex; min-width: 0; align-items: center; gap: 8px; }
-.kindy-workspace-bar__actions { justify-content: flex-end; }
-.kindy-workspace-bar__identity + .kindy-workspace-bar__actions { grid-column: 3; }
-.kindy-workspace-bar__document { display: grid; min-width: 0; }
-.kindy-workspace-bar__document strong, .kindy-workspace-bar__document span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kindy-workspace-bar__identity { flex: 1 1 auto; }
+.kindy-workspace-bar__actions { flex: 0 0 auto; justify-content: flex-end; }
+.kindy-workspace-bar__document { display: grid; min-width: 0; gap: 2px; }
+.kindy-workspace-bar__document strong, .kindy-workspace-bar__file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kindy-workspace-bar__document strong { font-size: 13px; }
-.kindy-workspace-bar__document span { color: var(--kindy-library-muted); font-size: 10px; }
+.kindy-workspace-bar__file-name { min-width: 0; color: var(--kindy-library-muted); font-size: 10px; }
+.kindy-workspace-bar__meta { display: flex; min-width: 0; align-items: center; gap: 8px; }
 .kindy-workspace-bar__status { display: flex; align-items: center; gap: 6px; color: var(--kindy-library-muted); font-size: 11px; white-space: nowrap; }
 .kindy-workspace-bar__status > span { width: 7px; height: 7px; border-radius: 50%; background: #98a2b3; }
 .kindy-workspace-bar__status.is-dirty > span { background: #f79009; }
@@ -728,18 +781,43 @@ defineExpose({
 .kindy-workspace-bar__status.is-ready > span, .kindy-workspace-bar__status.is-saved > span { background: #12b76a; }
 .kindy-workspace-bar__status.is-error > span, .kindy-workspace-bar__status.is-conflict > span { background: var(--kindy-library-danger); }
 .kindy-workspace-bar__status.is-preview > span, .kindy-workspace-bar__status.is-readonly > span { background: #7f56d9; }
-.kindy-workspace-bar__button, .kindy-workspace-bar__icon { display: inline-grid; min-height: 34px; place-items: center; cursor: pointer; border: 1px solid var(--kindy-library-border); border-radius: 7px; background: var(--kindy-library-surface); padding: 6px 9px; color: var(--kindy-library-text); font: inherit; font-size: 11px; font-weight: 650; white-space: nowrap; }
+.kindy-workspace-bar__button, .kindy-workspace-bar__icon { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 5px; cursor: pointer; border: 1px solid var(--kindy-library-border); border-radius: 7px; background: var(--kindy-library-surface); padding: 6px 9px; color: var(--kindy-library-text); font: inherit; font-size: 11px; font-weight: 650; white-space: nowrap; }
 .kindy-workspace-bar__icon { width: 34px; padding: 0; font-size: 16px; }
+.kindy-workspace-bar__button > span[aria-hidden] { display: inline-grid; min-width: 17px; height: 17px; place-items: center; color: var(--kindy-library-primary); font-size: 9px; font-weight: 850; }
 .kindy-workspace-bar__button:hover:not(:disabled), .kindy-workspace-bar__icon:hover { border-color: var(--kindy-library-primary); color: var(--kindy-library-primary); }
 .kindy-workspace-bar__button--primary { border-color: var(--kindy-library-primary); background: var(--kindy-library-primary); color: #fff; }
+.kindy-workspace-bar__button--primary > span[aria-hidden] { color: #fff; }
 .kindy-workspace-bar__button--primary:hover:not(:disabled) { background: var(--kindy-library-primary-hover); color: #fff; }
 .kindy-workspace-bar__button:disabled { cursor: not-allowed; opacity: .5; }
+.kindy-workspace-actions-menu { position: relative; display: none; }
+.kindy-workspace-actions-menu summary { display: grid; width: 34px; height: 34px; box-sizing: border-box; place-items: center; cursor: pointer; border: 1px solid var(--kindy-library-border); border-radius: 7px; background: var(--kindy-library-surface); color: var(--kindy-library-text); font-size: 20px; list-style: none; }
+.kindy-workspace-actions-menu summary::-webkit-details-marker { display: none; }
+.kindy-workspace-actions-menu summary:hover, .kindy-workspace-actions-menu[open] summary { border-color: var(--kindy-library-primary); background: var(--kindy-library-selection); color: var(--kindy-library-primary); }
+.kindy-workspace-actions-menu__popover { position: absolute; z-index: 40; top: calc(100% + 7px); right: 0; display: grid; width: max-content; min-width: 190px; overflow: hidden; border: 1px solid var(--kindy-library-border); border-radius: 10px; background: var(--kindy-library-surface); box-shadow: 0 12px 30px rgb(15 23 42 / 16%); padding: 6px; }
+.kindy-workspace-actions-menu__popover button { display: grid; min-height: 38px; grid-template-columns: 28px minmax(0, 1fr); align-items: center; cursor: pointer; border: 0; border-radius: 6px; background: transparent; padding: 7px 10px; color: var(--kindy-library-text); font: inherit; font-size: 12px; font-weight: 600; text-align: left; }
+.kindy-workspace-actions-menu__popover button:hover:not(:disabled) { background: var(--kindy-library-selection); color: var(--kindy-library-primary); }
+.kindy-workspace-actions-menu__popover button:disabled { cursor: not-allowed; opacity: .5; }
+.kindy-workspace-actions-menu__popover button > span { color: var(--kindy-library-primary); font-size: 10px; font-weight: 850; }
 @keyframes kindy-workspace-spin { to { transform: rotate(360deg); } }
 @keyframes kindy-pulse { 50% { opacity: .35; } }
+@media (min-width: 1025px) {
+  .kindy-workspace-bar__explorer-toggle.is-panel-open { display: none; }
+}
+@container (max-width: 760px) {
+  .kindy-workspace-bar { gap: 8px; padding-inline: 8px; }
+  .kindy-workspace-bar__desktop-action:not(.kindy-workspace-bar__button--primary),
+  .kindy-workspace-bar__history { display: none; }
+  .kindy-workspace-actions-menu { display: block; }
+}
 @media (max-width: 720px) {
-  .kindy-workspace-bar { grid-template-columns: minmax(0, 1fr) auto; }
-  .kindy-workspace-bar__status { display: none; }
-  .kindy-workspace-bar__button:not(.kindy-workspace-bar__button--primary) { display: none; }
+  .kindy-workspace-bar { gap: 7px; padding-inline: 8px; }
+  .kindy-workspace-bar__meta { gap: 6px; }
+  .kindy-workspace-bar__status { font-size: 0; }
+  .kindy-workspace-bar__status > span { width: 8px; height: 8px; }
+  .kindy-workspace-bar__desktop-action:not(.kindy-workspace-bar__button--primary),
+  .kindy-workspace-bar__history { display: none; }
+  .kindy-workspace-actions-menu { display: block; }
+  .kindy-document-workspace__state { padding: 24px 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .kindy-document-workspace__spinner, .kindy-workspace-bar__status.is-saving > span { animation: none; } }
 </style>

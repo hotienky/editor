@@ -186,6 +186,45 @@ describe('DOCX codec', () => {
     expect(JSON.stringify(list)).toContain('Khoản 1.1')
   })
 
+  it('round-trips ruler geometry and soft line breaks through WordprocessingML', async () => {
+    const state = createEmptyDocumentState({
+      content: { type: 'doc', content: [{
+        type: 'paragraph',
+        attrs: {
+          docxLayout: {
+            left: 1.27,
+            right: 0.63,
+            firstLine: 0.8,
+            tabStops: [{ position: 3.17, alignment: 'center', leader: 'dot' }],
+          },
+        },
+        content: [
+          { type: 'text', text: 'Dòng thứ nhất' },
+          { type: 'hardBreak' },
+          { type: 'text', text: 'Dòng thứ hai' },
+        ],
+      }] },
+    })
+
+    const exported = await exportDocx(state)
+    const archive = unzipSync(new Uint8Array(await exported.blob.arrayBuffer()))
+    const documentXml = strFromU8(archive['word/document.xml'])
+    expect(documentXml).toContain('<w:ind')
+    expect(documentXml).toContain('<w:tabs>')
+    expect(documentXml).toContain('<w:br')
+
+    const imported = await importDocx(exported.blob, { mode: 'strict' })
+    const [paragraph] = imported.state.content.content
+    expect(paragraph.attrs.docxLayout.leftTwip).toBe(720)
+    expect(paragraph.attrs.docxLayout.rightTwip).toBeCloseTo(357, 0)
+    expect(paragraph.attrs.docxLayout.firstLineTwip).toBeCloseTo(453, 0)
+    expect(paragraph.attrs.docxLayout.tabStops[0]).toMatchObject({
+      alignment: 'center',
+      leader: 'dot',
+    })
+    expect(paragraph.content.map((node) => node.type)).toEqual(['text', 'hardBreak', 'text'])
+  })
+
   it('resolves inherited Word paragraph styles and preserves centered signature tab stops', async () => {
     const state = ooxmlToDocumentState({
       contentTypes: 'wordprocessingml.document',

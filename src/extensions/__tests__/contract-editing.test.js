@@ -11,6 +11,7 @@ import PageBreak from '../page-break'
 import SearchReplace from '../search-replace'
 import { Table, TableCell, TableHeader, TableRow } from '../table'
 import TextAlign from '../text-align'
+import { getDocxLayoutCentimeters } from '@/utils/ooxml-units'
 
 const textNodes = (editor) => {
   const output = []
@@ -29,6 +30,105 @@ const nodesByType = (editor, type) => {
 }
 
 describe('Contract editing transactions', () => {
+  it('keeps Shift+Enter as a soft line break inside the current paragraph', () => {
+    const editor = new Editor({
+      extensions: [StarterKit, PageBreak, TextAlign],
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          attrs: { textAlign: 'right' },
+          content: [{ type: 'text', text: 'Trước Sau', marks: [{ type: 'bold' }] }],
+        }],
+      },
+    })
+
+    editor.commands.setTextSelection(6)
+    const event = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    editor.view.dom.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(editor.getJSON().content).toMatchObject([{
+      type: 'paragraph',
+      attrs: { textAlign: 'right' },
+      content: [
+        { text: 'Trước' },
+        { type: 'hardBreak' },
+        { text: ' Sau' },
+      ],
+    }])
+    expect(editor.state.selection.$from.parent.type.name).toBe('paragraph')
+    expect(editor.state.selection.$from.parent.textContent).toBe('Trước Sau')
+    expect(editor.state.storedMarks?.map((mark) => mark.type.name)).toContain('bold')
+
+    editor.commands.undo()
+    expect(editor.getText()).toBe('Trước Sau')
+    editor.commands.redo()
+    expect(nodesByType(editor, 'hardBreak')).toHaveLength(1)
+    expect(nodesByType(editor, 'pageBreak')).toHaveLength(0)
+    editor.destroy()
+  })
+
+  it('splits a list at the page boundary without nesting the break or restarting numbering', () => {
+    const editor = new Editor({
+      extensions: [StarterKit, PageBreak],
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'orderedList',
+          attrs: { start: 4 },
+          content: [
+            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Mục bốn' }] }] },
+            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Mục năm' }] }] },
+          ],
+        }],
+      },
+    })
+
+    const [firstParagraph] = nodesByType(editor, 'paragraph')
+    editor.commands.setTextSelection(firstParagraph.pos + firstParagraph.node.nodeSize - 1)
+    expect(editor.commands.setPageBreak()).toBe(true)
+
+    const [leftList, pageBreak, rightList] = editor.getJSON().content
+    expect(leftList.type).toBe('orderedList')
+    expect(leftList.content).toHaveLength(1)
+    expect(pageBreak.type).toBe('pageBreak')
+    expect(rightList).toMatchObject({
+      type: 'orderedList',
+      attrs: { start: 5 },
+      content: [{ type: 'listItem', content: [{ content: [{ text: 'Mục năm' }] }] }],
+    })
+    expect(nodesByType(editor, 'pageBreak')).toHaveLength(1)
+    expect(editor.state.selection.$from.parent.textContent).toBe('Mục năm')
+    editor.destroy()
+  })
+
+  it('keeps Ctrl/Cmd+Enter as the standard page-break shortcut', () => {
+    const editor = new Editor({
+      extensions: [StarterKit, PageBreak],
+      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Trang một' }] }] },
+    })
+    editor.commands.setTextSelection('end')
+    const event = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    editor.view.dom.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(editor.getJSON().content.map((node) => node.type)).toEqual([
+      'paragraph',
+      'pageBreak',
+      'paragraph',
+    ])
+    editor.destroy()
+  })
+
   it('replaces Vietnamese text, applies character formatting and supports undo/redo', () => {
     const editor = new Editor({
       extensions: [StarterKit, TextStyleKit],
@@ -84,15 +184,60 @@ describe('Contract editing transactions', () => {
     editor.chain().setTextSelection(2).setTextAlign('right').setLineHeight(1.5).setIndent().run()
     let [paragraph] = editor.getJSON().content
     expect(paragraph.attrs).toMatchObject({ textAlign: 'right', lineHeight: 1.5, indentUnit: 'cm' })
-    expect(paragraph.attrs.docxLayout).toMatchObject({
-      left: 2.47,
-      tabStops: [{ position: 3.17, alignment: 'center' }],
-    })
+    expect(getDocxLayoutCentimeters(paragraph.attrs.docxLayout, 'left')).toBeCloseTo(2.47, 2)
+    expect(paragraph.attrs.docxLayout.tabStops).toEqual([{ position: 3.17, alignment: 'center' }])
 
     editor.commands.setOutdent()
     ;[paragraph] = editor.getJSON().content
-    expect(paragraph.attrs.docxLayout.left).toBeCloseTo(1.2, 4)
-    expect(paragraph.attrs.indent).toBeCloseTo(1.2, 4)
+    expect(getDocxLayoutCentimeters(paragraph.attrs.docxLayout, 'left')).toBeCloseTo(1.2, 2)
+    expect(paragraph.attrs.indent).toBeCloseTo(1.2, 2)
+    editor.destroy()
+  })
+
+  it('writes ruler indentation through one undoable document transaction', () => {
+    const editor = new Editor({
+      extensions: [StarterKit, DocxParagraphLayout, Indent],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            attrs: { docxLayout: { tabStops: [{ position: 3.17, alignment: 'center' }] } },
+            content: [{ type: 'text', text: 'Bên A' }],
+          },
+          { type: 'paragraph', content: [{ type: 'text', text: 'Bên B' }] },
+        ],
+      },
+    })
+
+    editor.commands.selectAll()
+    expect(editor.commands.setDocxParagraphLayout({
+      leftTwip: 720,
+      rightTwip: 357,
+      firstLineTwip: null,
+      hangingTwip: 284,
+    })).toBe(true)
+
+    const paragraphs = editor.getJSON().content
+    expect(paragraphs[0].attrs.docxLayout).toMatchObject({
+      leftTwip: 720,
+      rightTwip: 357,
+      hangingTwip: 284,
+      tabStops: [{ position: 3.17, alignment: 'center' }],
+    })
+    expect(paragraphs[1].attrs).toMatchObject({
+      indent: 1.27,
+      indentUnit: 'cm',
+      docxLayout: { leftTwip: 720, rightTwip: 357, hangingTwip: 284 },
+    })
+
+    editor.commands.undo()
+    expect(editor.getJSON().content[0].attrs.docxLayout).toEqual({
+      tabStops: [{ position: 3.17, alignment: 'center' }],
+    })
+    expect(editor.getJSON().content[1].attrs.docxLayout).toBeNull()
+    editor.commands.redo()
+    expect(editor.getJSON().content[1].attrs.docxLayout.leftTwip).toBe(720)
     editor.destroy()
   })
 
@@ -119,8 +264,9 @@ describe('Contract editing transactions', () => {
     expect(editor.commands.toggleOrderedList()).toBe(true)
     expect(nodesByType(editor, 'orderedList')).toHaveLength(1)
     editor.commands.setTextSelection('end')
-    expect(editor.commands.keyboardShortcut('Mod-Enter')).toBe(true)
+    expect(editor.commands.setPageBreak()).toBe(true)
     expect(nodesByType(editor, 'pageBreak')).toHaveLength(1)
+    expect(editor.getJSON().content.some((node) => node.type === 'pageBreak')).toBe(true)
     editor.commands.undo()
     expect(nodesByType(editor, 'pageBreak')).toHaveLength(0)
 
@@ -141,7 +287,7 @@ describe('Contract editing transactions', () => {
     expect(nodesByType(editor, 'image')[0].node.attrs).toMatchObject({ width: 120, height: 40 })
 
     editor.commands.setTextSelection('end')
-    expect(editor.commands.keyboardShortcut('Mod-Enter')).toBe(true)
+    expect(editor.commands.setPageBreak()).toBe(true)
     expect(nodesByType(editor, 'pageBreak')).toHaveLength(1)
     editor.commands.undo()
     expect(nodesByType(editor, 'pageBreak')).toHaveLength(0)
