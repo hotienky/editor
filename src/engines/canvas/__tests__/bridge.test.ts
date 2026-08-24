@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { JSONContent } from '@tiptap/core'
+import type { JSONContent } from '../../../core/types'
 import { canvasDataToProseMirror, proseMirrorToCanvasData } from '../bridge'
 
 const contractFixture: JSONContent = {

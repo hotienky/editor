@@ -1,7 +1,7 @@
-import type { JSONContent } from '@tiptap/core'
-import { history, redo, undo } from '@tiptap/pm/history'
-import { Node as ProseMirrorNode, Schema } from '@tiptap/pm/model'
-import { EditorState, type Transaction } from '@tiptap/pm/state'
+import type { JSONContent } from '../../core/types'
+import { history, redo, undo } from 'prosemirror-history'
+import { Node as ProseMirrorNode, Schema } from 'prosemirror-model'
+import { EditorState, type Transaction } from 'prosemirror-state'
 
 const paragraphAttrs = {
   textAlign: { default: null },

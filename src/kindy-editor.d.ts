@@ -1,5 +1,7 @@
-import type { JSONContent } from '@tiptap/core'
+import type { JSONContent } from './core/types'
 import type { App, Component, DefineComponent } from 'vue'
+
+export type { JSONContent }
 
 export type SaveReason = 'autosave' | 'manual'
 export type ArtifactFormat = 'docx' | 'pdf' | 'original-docx'

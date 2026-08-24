@@ -1,6 +1,6 @@
-import type { JSONContent } from '@tiptap/core'
 import {
   KINDY_DOCUMENT_SCHEMA_VERSION,
+  type JSONContent,
   type KindyDocumentState,
   type KindyPageState,
 } from './types'

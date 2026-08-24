@@ -620,14 +620,13 @@
 </template>
 
 <script setup lang="ts">
-import type { JSONContent } from '@tiptap/core'
 import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import WordIcon from './WordIcon.vue'
 import CanvasEditor, { EditorMode, EditorZone, PaperDirection, ElementType, TitleLevel } from '../../engines/canvas/core'
 import { createCanvasEngineAdapter, type CanvasEngineHandle } from '../../engines/canvas'
 import { importDocxInWorker, exportDocx } from '../../codecs/docx'
 import { createEmptyDocumentState } from '../../core/state'
-import type { CompatibilityIssue, CompatibilityReport, KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
+import type { CompatibilityIssue, CompatibilityReport, JSONContent, KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
 
 defineOptions({ name: 'KindyEditor' })
 

@@ -1,4 +1,4 @@
-import type { JSONContent } from '@tiptap/core'
+import type { JSONContent } from '../core/types'
 import {
   AlignmentType,
   CommentRangeEnd,

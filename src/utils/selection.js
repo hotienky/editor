@@ -1,4 +1,4 @@
-import { NodeSelection, TextSelection } from '@tiptap/pm/state'
+import { NodeSelection, TextSelection } from 'prosemirror-state'
 
 export const getSelectionNode = (editor) => {
   if (!editor || !editor.state) {

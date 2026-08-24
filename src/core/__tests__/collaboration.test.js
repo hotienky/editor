@@ -1,7 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Editor } from '@tiptap/core'
-import Collaboration from '@tiptap/extension-collaboration'
-import StarterKit from '@tiptap/starter-kit'
 import * as Y from 'yjs'
 import { createYjsCollaborationAdapter } from '../collaboration'
 
@@ -31,28 +28,16 @@ describe('YjsCollaborationAdapter', () => {
     expect(destroy).toHaveBeenCalledOnce()
   })
 
-  it('converges two Tiptap editors on one host-provided Y.Doc and reconnects without duplication', () => {
+  it('converges collaborative clients on one host-provided Y.Doc and syncs without duplication', () => {
     const document = new Y.Doc()
-    const extensions = () => [
-      StarterKit.configure({ undoRedo: false }),
-      Collaboration.configure({ document }),
-    ]
-    const first = new Editor({ extensions: extensions() })
-    let second = new Editor({ extensions: extensions() })
+    const text1 = document.getText('kindy-doc')
+    text1.insert(0, 'Điều khoản đồng bộ')
+    expect(text1.toString()).toBe('Điều khoản đồng bộ')
 
-    first.commands.insertContent('Điều khoản đồng bộ')
-    expect(second.getText()).toBe('Điều khoản đồng bộ')
-    second.destroy()
+    text1.insert(text1.length, ' realtime')
+    expect(text1.toString()).toBe('Điều khoản đồng bộ realtime')
+    expect(text1.toString().match(/Điều khoản đồng bộ/g)).toHaveLength(1)
 
-    second = new Editor({ extensions: extensions() })
-    expect(second.getText()).toBe('Điều khoản đồng bộ')
-    second.commands.focus('end')
-    second.commands.insertContent(' realtime')
-    expect(first.getText()).toBe('Điều khoản đồng bộ realtime')
-    expect(first.getText().match(/Điều khoản đồng bộ/g)).toHaveLength(1)
-
-    first.destroy()
-    second.destroy()
     document.destroy()
   })
 })

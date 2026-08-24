@@ -1,5 +1,36 @@
 import { isRecord } from '@tool-belt/type-predicates'
-import { resolveFileAccept } from '@/extensions/file'
+
+export const fileMimeTypes = {
+  image: [
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml',
+    'image/bmp',
+  ],
+  video: ['video/mp4', 'video/webm', 'video/ogg'],
+  audio: ['audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/flac'],
+}
+
+export const resolveFileAccept = (type, accept = []) => {
+  if (type === 'file' && (!accept || accept.length === 0)) {
+    return ''
+  }
+  if (!type || !['image', 'video', 'audio', 'inlineImage'].includes(type)) {
+    return accept ? accept.toString() : ''
+  }
+  let acceptArray = [...(accept || [])]
+  const targetType = type === 'inlineImage' ? 'image' : type
+  if (acceptArray.includes(`${type}/*`) || acceptArray.includes(`${targetType}/*`) || acceptArray.length === 0) {
+    acceptArray = fileMimeTypes[targetType] || []
+  } else if (acceptArray.filter((item) => item.startsWith(type) || item.startsWith(targetType)).length > 0) {
+    acceptArray = acceptArray.filter((item) => (fileMimeTypes[targetType] || []).includes(item))
+  } else {
+    acceptArray = ['notAllow']
+  }
+  return acceptArray.length === 0 ? '' : acceptArray.toString()
+}
 
 export const getImageAccept = (options = {}) =>
   resolveFileAccept(

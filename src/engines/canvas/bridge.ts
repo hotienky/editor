@@ -1,4 +1,4 @@
-import type { JSONContent } from '@tiptap/core'
+import type { JSONContent } from '../../core/types'
 import {
   ElementType,
   ImageDisplay,
@@ -39,7 +39,8 @@ const rowFlexFromAttrs = (attrs: JSONContent['attrs']): RowFlex | undefined => {
   const align = String(attrs?.textAlign || attrs?.align || '').toLowerCase()
   if (align === 'center') return RowFlex.CENTER
   if (align === 'right' || align === 'end') return RowFlex.RIGHT
-  if (align === 'justify' || align === 'both' || align === 'distribute' || align === 'alignment') return RowFlex.JUSTIFY
+  if (align === 'justify' || align === 'both') return RowFlex.JUSTIFY
+  if (align === 'distribute' || align === 'alignment') return RowFlex.ALIGNMENT
   if (align === 'left' || align === 'start') return RowFlex.LEFT
   return undefined
 }
@@ -194,7 +195,14 @@ const listItemElements = (node: JSONContent, level: number) => {
 const blockNodeToElements = (node: JSONContent): IElement[] => {
   if (node.type === 'paragraph') {
     const style = paragraphStyle(node)
-    return [...inlineNodesToElements(node.content, style), { value: '\n', ...style }]
+    return [
+      ...inlineNodesToElements(node.content, style),
+      {
+        value: '\n',
+        ...style,
+        extension: mergeExtension(style, { kindyBlockBoundary: true }),
+      },
+    ]
   }
   if (node.type === 'heading') {
     const level = Math.min(6, Math.max(1, Number(node.attrs?.level) || 1))
@@ -435,12 +443,24 @@ const paragraphsFromElements = (elements: IElement[] = []) => {
     })
     current = []
   }
-  for (const element of elements) {
+  const consume = (element: IElement) => {
     const extension = extensionRecord(element.extension)
-    if (element.value === '\n' && extension.kindyInlineNodeType === 'hardBreak') current.push(element)
-    else if (element.value === '\n') flush(element)
-    else current.push(element)
+    if (extension.kindyInlineNodeType === 'hardBreak') {
+      current.push(element)
+      return
+    }
+    const value = element.value || ''
+    if (!value.includes('\n')) {
+      current.push(element)
+      return
+    }
+    const fragments = value.split('\n')
+    fragments.forEach((fragment, index) => {
+      if (fragment) current.push({ ...element, value: fragment })
+      if (index < fragments.length - 1) flush(element)
+    })
   }
+  for (const element of elements) consume(element)
   if (current.length || !paragraphs.length) flush()
   return paragraphs
 }

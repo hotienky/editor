@@ -2285,7 +2285,8 @@ export class Draw {
         }
         // 换行原因：宽度不足
         curRow.isWidthNotEnough = isWidthNotEnough && !isForceBreak
-        // 两端对齐、分散对齐 (Chỉ căn đều khi dòng tràn do thiếu chiều rộng, dòng cuối đoạn văn không bị giãn)
+        // Word-style justification: JUSTIFY expands word spaces only; ALIGNMENT
+        // (distributed) may expand character gaps. Never stretch the final row.
         if (
           !curRow.isSurround &&
           curRow.isWidthNotEnough &&
@@ -2297,13 +2298,13 @@ export class Draw {
             curRow.elementList[0]?.value === ZERO
               ? curRow.elementList.slice(1)
               : curRow.elementList
-          if (rowElementList.length > 1) {
-            const gap =
-              (availableWidth - curRow.width) / (rowElementList.length - 1)
-            for (let e = 0; e < rowElementList.length - 1; e++) {
-              const el = rowElementList[e]
-              el.metrics.width += gap
-            }
+          const rowFlex = preElement?.rowFlex
+          const adjustableElements = rowFlex === RowFlex.JUSTIFY
+            ? rowElementList.filter(el => el.value !== ZERO && WHITE_SPACE_REG.test(el.value))
+            : rowElementList.slice(0, -1)
+          if (adjustableElements.length) {
+            const gap = (availableWidth - curRow.width) / adjustableElements.length
+            adjustableElements.forEach(el => { el.metrics.width += gap })
             curRow.width = availableWidth
           }
         }

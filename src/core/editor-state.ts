@@ -1,8 +1,7 @@
-import type { JSONContent } from '@tiptap/core'
-
 import { cloneDocumentState, createEmptyDocumentState } from './state'
 import type {
   AssetReference,
+  JSONContent,
   KindyDocumentState,
   KindyHeaderFooterState,
   KindyPageMargin,

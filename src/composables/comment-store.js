@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 import { useStorage } from '@vueuse/core'
 
-import { NodeSelection } from '@tiptap/pm/state'
+import { NodeSelection } from 'prosemirror-state'
 
 import { shortId } from '@/utils/short-id'
 
