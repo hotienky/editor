@@ -1,6 +1,18 @@
 # Hiệu năng và tài liệu dài
 
-## Trạng thái v2.0
+## Trạng thái CanvasEngine
+
+Public editing surface hiện dùng CanvasEngine. ProseMirror JSON vẫn là canonical
+state, nhưng DOM contenteditable cũ không còn nằm trên runtime path. Canvas page
+được virtualize backing bitmap theo viewport; layout metadata và page DOM vẫn
+được tính cho toàn tài liệu để giữ page number, hit-test và navigation ổn định.
+
+Benchmark Chromium ngày 24/08/2026 với 200 trang text đơn giản/manual break đo
+47,4–56,4ms cho một lần set/layout và chỉ 3/200 page giữ backing bitmap. Đây không
+phải SLA cho corpus mixed có bảng, ảnh, comment hoặc Track Changes. Xem
+[CanvasEngine migration](./canvas-engine-migration.md).
+
+## Trạng thái v2.0 trước CanvasEngine (lịch sử)
 
 Kindy v2.0 import DOCX trong Web Worker, nhưng editing surface vẫn là một ProseMirror instance liên tục. Toàn bộ node của document được gắn vào DOM. Automatic pagination chạy sau debounce, cache chiều cao theo DOM node và chỉ invalid block thuộc vùng transaction; `ResizeObserver` và font loading sẽ invalid cache khi layout thật sự đổi.
 

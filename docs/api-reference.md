@@ -217,7 +217,7 @@ editor.focus()
 editor.preparePrint()
 editor.print()
 editor.saveContent()
-editor.useEditor() // raw Tiptap Editor
+editor.useEditor() // CanvasDocumentController (canonical ProseMirror transactions)
 ```
 
 Khi editor nằm trong `KindyDocumentLibrary`, không bật `document.autoSave`; workspace dùng `DocumentLibraryClient` làm pipeline lưu duy nhất.
@@ -466,10 +466,10 @@ interface EditorEngineAdapter {
 }
 ```
 
-V2 ship `TiptapEngineAdapter`:
+V2 ship `CanvasEngineAdapter`:
 
 ```ts
-const engine = createTiptapEngineAdapter()
+const engine = createCanvasEngineAdapter()
 const handle = engine.mount(container, options)
 await handle.load(state)
 handle.onChange(nextState => {})

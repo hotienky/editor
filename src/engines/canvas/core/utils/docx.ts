@@ -49,6 +49,9 @@ function escapeHtml(text: string): string {
 export async function toArrayBuffer(
   input: ArrayBuffer | Blob | any
 ): Promise<ArrayBuffer> {
+  if (input && typeof input === 'object' && input.file) {
+    input = input.file
+  }
   if (input instanceof ArrayBuffer) {
     return input
   }
@@ -119,7 +122,13 @@ function extractTextFromDoc(arrayBuffer: ArrayBuffer): string {
 /**
  * Parse a Word header or footer XML string into canvas-editor IElement[]
  */
-export function parseHeaderFooterXml(xmlContent: string): IElement[] {
+/**
+ * Parse a Word header or footer XML string into canvas-editor IElement[]
+ */
+export function parseHeaderFooterXml(
+  xmlContent: string,
+  mediaMap?: Map<string, string>
+): IElement[] {
   const elements: IElement[] = []
   if (!xmlContent || !xmlContent.trim()) return elements
 
@@ -128,141 +137,29 @@ export function parseHeaderFooterXml(xmlContent: string): IElement[] {
     if (typeof DOMParser !== 'undefined') {
       doc = new DOMParser().parseFromString(xmlContent, 'text/xml')
     } else {
-      // Node / test environment fallback
       return parseHeaderFooterXmlRegex(xmlContent)
     }
 
-    const paragraphs = doc.getElementsByTagNameNS('*', 'p')
-    const pList =
-      paragraphs.length > 0
-        ? Array.from(paragraphs)
-        : Array.from(doc.getElementsByTagName('w:p'))
+    // Process top-level body children (paragraphs and tables)
+    const bodyNodes = doc.getElementsByTagNameNS('*', 'body')[0] || doc.documentElement
+    const children = Array.from(bodyNodes.childNodes)
 
-    for (let pIdx = 0; pIdx < pList.length; pIdx++) {
-      const p = pList[pIdx]
-      // Paragraph alignment
-      let rowFlex = RowFlex.LEFT
-      const jcNodes = p.getElementsByTagNameNS('*', 'jc')
-      const jcNode =
-        jcNodes.length > 0 ? jcNodes[0] : p.getElementsByTagName('w:jc')[0]
-      if (jcNode) {
-        const val =
-          jcNode.getAttribute('w:val') ||
-          jcNode.getAttribute('val') ||
-          jcNode.getAttribute('value')
-        if (val === 'center') rowFlex = RowFlex.CENTER
-        else if (val === 'right') rowFlex = RowFlex.RIGHT
-        else if (val === 'both' || val === 'distribute')
-          rowFlex = RowFlex.JUSTIFY
-      }
+    for (const child of children) {
+      if (child.nodeType !== 1) continue
+      const element = child as Element
+      const localName = element.localName || element.nodeName.replace(/^.*:/, '')
 
-      // Runs in paragraph
-      const runs = p.getElementsByTagNameNS('*', 'r')
-      const rList =
-        runs.length > 0
-          ? Array.from(runs)
-          : Array.from(p.getElementsByTagName('w:r'))
-
-      for (let rIdx = 0; rIdx < rList.length; rIdx++) {
-        const r = rList[rIdx]
-        const rPrNodes = r.getElementsByTagNameNS('*', 'rPr')
-        const rPr =
-          rPrNodes.length > 0 ? rPrNodes[0] : r.getElementsByTagName('w:rPr')[0]
-
-        let bold = false
-        let italic = false
-        let underline = false
-        let strikeout = false
-        let color: string | undefined
-        let size: number | undefined
-
-        if (rPr) {
-          const bNode =
-            rPr.getElementsByTagNameNS('*', 'b')[0] ||
-            rPr.getElementsByTagName('w:b')[0]
-          if (bNode) {
-            const bVal = bNode.getAttribute('w:val') || bNode.getAttribute('val')
-            bold = bVal !== '0' && bVal !== 'false'
-          }
-
-          const iNode =
-            rPr.getElementsByTagNameNS('*', 'i')[0] ||
-            rPr.getElementsByTagName('w:i')[0]
-          if (iNode) {
-            const iVal = iNode.getAttribute('w:val') || iNode.getAttribute('val')
-            italic = iVal !== '0' && iVal !== 'false'
-          }
-
-          const uNode =
-            rPr.getElementsByTagNameNS('*', 'u')[0] ||
-            rPr.getElementsByTagName('w:u')[0]
-          if (uNode) {
-            const uVal = uNode.getAttribute('w:val') || uNode.getAttribute('val')
-            underline = uVal !== 'none' && uVal !== '0'
-          }
-
-          const strikeNode =
-            rPr.getElementsByTagNameNS('*', 'strike')[0] ||
-            rPr.getElementsByTagName('w:strike')[0]
-          if (strikeNode) {
-            const strikeVal =
-              strikeNode.getAttribute('w:val') ||
-              strikeNode.getAttribute('val')
-            strikeout = strikeVal !== '0' && strikeVal !== 'false'
-          }
-
-          const colorNode =
-            rPr.getElementsByTagNameNS('*', 'color')[0] ||
-            rPr.getElementsByTagName('w:color')[0]
-          if (colorNode) {
-            const cVal =
-              colorNode.getAttribute('w:val') || colorNode.getAttribute('val')
-            if (cVal && cVal !== 'auto') {
-              color = cVal.startsWith('#') ? cVal : `#${cVal}`
-            }
-          }
-
-          const szNode =
-            rPr.getElementsByTagNameNS('*', 'sz')[0] ||
-            rPr.getElementsByTagName('w:sz')[0]
-          if (szNode) {
-            const szVal =
-              szNode.getAttribute('w:val') || szNode.getAttribute('val')
-            if (szVal) {
-              // Word half-points (24 = 12pt ~ 16px)
-              size = Math.round(Number(szVal) / 2)
-            }
-          }
+      if (localName === 'tbl') {
+        // Parse Table in header/footer
+        const tblElements = parseHeaderFooterTable(element, mediaMap)
+        if (tblElements) {
+          elements.push(tblElements)
+          elements.push({ value: '\n' })
         }
-
-        const tNodes = r.getElementsByTagNameNS('*', 't')
-        const tList =
-          tNodes.length > 0
-            ? Array.from(tNodes)
-            : Array.from(r.getElementsByTagName('w:t'))
-
-        for (const t of tList) {
-          const text = t.textContent
-          if (text) {
-            const el: IElement = {
-              value: text
-            }
-            if (bold) el.bold = true
-            if (italic) el.italic = true
-            if (underline) el.underline = true
-            if (strikeout) el.strikeout = true
-            if (color) el.color = color
-            if (size) el.size = size
-            if (rowFlex !== RowFlex.LEFT) el.rowFlex = rowFlex
-            elements.push(el)
-          }
-        }
-      }
-
-      if (pIdx < pList.length - 1 || elements.length > 0) {
-        const breakEl: IElement = { value: '\n' }
-        if (rowFlex !== RowFlex.LEFT) breakEl.rowFlex = rowFlex
-        elements.push(breakEl)
+      } else if (localName === 'p') {
+        // Parse Paragraph
+        const pElements = parseHeaderFooterParagraph(element, mediaMap)
+        elements.push(...pElements)
       }
     }
   } catch (err) {
@@ -271,6 +168,185 @@ export function parseHeaderFooterXml(xmlContent: string): IElement[] {
   }
 
   return elements
+}
+
+function parseHeaderFooterParagraph(p: Element, mediaMap?: Map<string, string>): IElement[] {
+  const elements: IElement[] = []
+  let rowFlex = RowFlex.LEFT
+
+  // Paragraph alignment
+  const jcNodes = p.getElementsByTagNameNS('*', 'jc')
+  const jcNode = jcNodes.length > 0 ? jcNodes[0] : p.getElementsByTagName('w:jc')[0]
+  if (jcNode) {
+    const val = jcNode.getAttribute('w:val') || jcNode.getAttribute('val') || jcNode.getAttribute('value')
+    if (val === 'center') rowFlex = RowFlex.CENTER
+    else if (val === 'right') rowFlex = RowFlex.RIGHT
+    else if (val === 'both' || val === 'distribute') rowFlex = RowFlex.JUSTIFY
+  }
+
+  // Check runs
+  const runs = Array.from(p.getElementsByTagNameNS('*', 'r'))
+  for (const r of runs) {
+    const rPrNodes = r.getElementsByTagNameNS('*', 'rPr')
+    const rPr = rPrNodes.length > 0 ? rPrNodes[0] : null
+
+    let bold = false
+    let italic = false
+    let underline = false
+    let strikeout = false
+    let color: string | undefined
+    let size: number | undefined
+    let font: string | undefined
+
+    if (rPr) {
+      const bNode = rPr.getElementsByTagNameNS('*', 'b')[0]
+      if (bNode) {
+        const bVal = bNode.getAttribute('w:val') || bNode.getAttribute('val')
+        bold = bVal !== '0' && bVal !== 'false'
+      }
+
+      const iNode = rPr.getElementsByTagNameNS('*', 'i')[0]
+      if (iNode) {
+        const iVal = iNode.getAttribute('w:val') || iNode.getAttribute('val')
+        italic = iVal !== '0' && iVal !== 'false'
+      }
+
+      const uNode = rPr.getElementsByTagNameNS('*', 'u')[0]
+      if (uNode) {
+        const uVal = uNode.getAttribute('w:val') || uNode.getAttribute('val')
+        underline = uVal !== 'none' && uVal !== '0'
+      }
+
+      const strikeNode = rPr.getElementsByTagNameNS('*', 'strike')[0]
+      if (strikeNode) {
+        const strikeVal = strikeNode.getAttribute('w:val') || strikeNode.getAttribute('val')
+        strikeout = strikeVal !== '0' && strikeVal !== 'false'
+      }
+
+      const colorNode = rPr.getElementsByTagNameNS('*', 'color')[0]
+      if (colorNode) {
+        const cVal = colorNode.getAttribute('w:val') || colorNode.getAttribute('val')
+        if (cVal && cVal !== 'auto') {
+          color = cVal.startsWith('#') ? cVal : `#${cVal}`
+        }
+      }
+
+      const szNode = rPr.getElementsByTagNameNS('*', 'sz')[0]
+      if (szNode) {
+        const szVal = szNode.getAttribute('w:val') || szNode.getAttribute('val')
+        if (szVal) {
+          size = Math.round(Number(szVal) / 2)
+        }
+      }
+
+      const fontNode = rPr.getElementsByTagNameNS('*', 'rFonts')[0]
+      if (fontNode) {
+        font = fontNode.getAttribute('w:ascii') || fontNode.getAttribute('w:hAnsi') || undefined
+      }
+    }
+
+    // Check images in run
+    if (mediaMap) {
+      const blipNodes = Array.from(r.getElementsByTagNameNS('*', 'blip'))
+      for (const blip of blipNodes) {
+        const rId = blip.getAttribute('r:embed') || blip.getAttribute('embed')
+        if (rId && mediaMap.has(rId)) {
+          elements.push({
+            type: ElementType.IMAGE,
+            value: mediaMap.get(rId)!,
+            width: 120,
+            height: 40,
+            rowFlex: rowFlex !== RowFlex.LEFT ? rowFlex : undefined
+          })
+        }
+      }
+    }
+
+    // Check page number field
+    const fldNodes = Array.from(r.getElementsByTagNameNS('*', 'fldSimple'))
+    const instrNodes = Array.from(r.getElementsByTagNameNS('*', 'instrText'))
+    const isPageNum = fldNodes.some(f => /PAGE/i.test(f.getAttribute('w:instr') || '')) ||
+      instrNodes.some(i => /PAGE/i.test(i.textContent || ''))
+
+    if (isPageNum) {
+      elements.push({
+        value: '1',
+        bold,
+        italic,
+        color,
+        size,
+        font,
+        rowFlex: rowFlex !== RowFlex.LEFT ? rowFlex : undefined
+      })
+    }
+
+    // Text in run
+    const tNodes = Array.from(r.getElementsByTagNameNS('*', 't'))
+    for (const t of tNodes) {
+      const text = t.textContent
+      if (text) {
+        const el: IElement = { value: text }
+        if (bold) el.bold = true
+        if (italic) el.italic = true
+        if (underline) el.underline = true
+        if (strikeout) el.strikeout = true
+        if (color) el.color = color
+        if (size) el.size = size
+        if (font) el.font = font
+        if (rowFlex !== RowFlex.LEFT) el.rowFlex = rowFlex
+        elements.push(el)
+      }
+    }
+  }
+
+  // End of paragraph break
+  const breakEl: IElement = { value: '\n' }
+  if (rowFlex !== RowFlex.LEFT) breakEl.rowFlex = rowFlex
+  elements.push(breakEl)
+
+  return elements
+}
+
+function parseHeaderFooterTable(tbl: Element, mediaMap?: Map<string, string>): IElement | null {
+  const trNodes = Array.from(tbl.getElementsByTagNameNS('*', 'tr'))
+  if (trNodes.length === 0) return null
+
+  const trList: any[] = []
+  let colCount = 0
+
+  for (const tr of trNodes) {
+    const tcNodes = Array.from(tr.getElementsByTagNameNS('*', 'tc'))
+    colCount = Math.max(colCount, tcNodes.length)
+    const tdList: any[] = []
+
+    for (const tc of tcNodes) {
+      const pNodes = Array.from(tc.getElementsByTagNameNS('*', 'p'))
+      const cellElements: IElement[] = []
+      for (const p of pNodes) {
+        cellElements.push(...parseHeaderFooterParagraph(p, mediaMap))
+      }
+      tdList.push({
+        colspan: 1,
+        rowspan: 1,
+        value: cellElements.length > 0 ? cellElements : [{ value: '' }]
+      })
+    }
+
+    trList.push({
+      minHeight: 24,
+      tdList
+    })
+  }
+
+  const colgroup = Array.from({ length: colCount }).map(() => ({ width: Math.floor(700 / Math.max(1, colCount)) }))
+
+  return {
+    type: ElementType.TABLE,
+    value: '',
+    colgroup,
+    trList,
+    borderType: TableBorder.EMPTY
+  }
 }
 
 /**
@@ -341,42 +417,112 @@ function parseHeaderFooterXmlRegex(xmlContent: string): IElement[] {
 }
 
 /**
- * Extract headers and footers from a DOCX zip archive
+ * Extract headers and footers from a DOCX zip archive with exact relationships and images
  */
 export async function extractDocxHeaderFooter(
   input: ArrayBuffer | Blob | any
-): Promise<{ header?: IElement[]; footer?: IElement[] }> {
+): Promise<{
+  header?: IElement[]
+  footer?: IElement[]
+  options?: {
+    width?: number
+    height?: number
+    paperDirection?: PaperDirection
+    margins?: [number, number, number, number]
+  }
+}> {
   try {
     const arrayBuffer = await toArrayBuffer(input)
     const zip = await JSZip.loadAsync(arrayBuffer)
 
     let headerElements: IElement[] = []
     let footerElements: IElement[] = []
+    let pageOptions: any = {}
 
-    // Look for word/header1.xml, header2.xml, etc.
-    const headerFiles = Object.keys(zip.files).filter(
-      name => /^word\/header\d+\.xml$/i.test(name)
-    )
-    if (headerFiles.length > 0) {
-      // Pick the primary header (e.g. header1.xml or header2.xml)
-      headerFiles.sort()
-      const headerXml = await zip.files[headerFiles[0]].async('string')
-      headerElements = parseHeaderFooterXml(headerXml)
+    // 1. Read document relationships to find active headers/footers
+    const relsFile = zip.file('word/_rels/document.xml.rels')
+    const relsMap = new Map<string, string>()
+    if (relsFile) {
+      const relsXml = await relsFile.async('string')
+      const relMatches = relsXml.matchAll(/<Relationship[^>]+Id="([^"]+)"[^>]+Target="([^"]+)"/g)
+      for (const m of relMatches) {
+        relsMap.set(m[1], m[2])
+      }
     }
 
-    // Look for word/footer1.xml, footer2.xml, etc.
-    const footerFiles = Object.keys(zip.files).filter(
-      name => /^word\/footer\d+\.xml$/i.test(name)
-    )
+    // 2. Read document section properties (Page Size & Margins)
+    const docFile = zip.file('word/document.xml')
+    if (docFile) {
+      const docXml = await docFile.async('string')
+      
+      // Page size
+      const pgSzMatch = /<w:pgSz[^>]+w:w="(\d+)"[^>]+w:h="(\d+)"(?:[^>]+w:orient="([^"]+)")?/i.exec(docXml)
+      if (pgSzMatch) {
+        const wTwips = Number(pgSzMatch[1])
+        const hTwips = Number(pgSzMatch[2])
+        const isLandscape = pgSzMatch[3] === 'landscape' || wTwips > hTwips
+        // 1 twip = 1/20 pt = 1/1440 in = 96/1440 px = 1/15 px
+        pageOptions.width = Math.round(wTwips / 15)
+        pageOptions.height = Math.round(hTwips / 15)
+        pageOptions.paperDirection = isLandscape ? PaperDirection.HORIZONTAL : PaperDirection.VERTICAL
+      }
+
+      // Margins
+      const pgMarMatch = /<w:pgMar[^>]+w:top="(\d+)"[^>]+w:right="(\d+)"[^>]+w:bottom="(\d+)"[^>]+w:left="(\d+)"/i.exec(docXml)
+      if (pgMarMatch) {
+        pageOptions.margins = [
+          Math.round(Number(pgMarMatch[1]) / 15),
+          Math.round(Number(pgMarMatch[2]) / 15),
+          Math.round(Number(pgMarMatch[3]) / 15),
+          Math.round(Number(pgMarMatch[4]) / 15)
+        ]
+      }
+    }
+
+    // 3. Helper to read media images for a header/footer part
+    const readPartMedia = async (partName: string): Promise<Map<string, string>> => {
+      const mediaMap = new Map<string, string>()
+      const partRelsFile = zip.file(`word/_rels/${partName}.rels`)
+      if (partRelsFile) {
+        const partRelsXml = await partRelsFile.async('string')
+        const relMatches = partRelsXml.matchAll(/<Relationship[^>]+Id="([^"]+)"[^>]+Target="([^"]+)"/g)
+        for (const m of relMatches) {
+          const rId = m[1]
+          let target = m[2]
+          if (!target.startsWith('media/')) target = `media/${target.replace(/^.*[\\/]/, '')}`
+          const imgFile = zip.file(`word/${target}`)
+          if (imgFile) {
+            const base64 = await imgFile.async('base64')
+            const ext = target.split('.').pop() || 'png'
+            mediaMap.set(rId, `data:image/${ext};base64,${base64}`)
+          }
+        }
+      }
+      return mediaMap
+    }
+
+    // 4. Look for header files
+    const headerFiles = Object.keys(zip.files).filter(name => /^word\/header\d+\.xml$/i.test(name)).sort()
+    if (headerFiles.length > 0) {
+      const headerFileName = headerFiles[0].replace('word/', '')
+      const mediaMap = await readPartMedia(headerFileName)
+      const headerXml = await zip.files[headerFiles[0]].async('string')
+      headerElements = parseHeaderFooterXml(headerXml, mediaMap)
+    }
+
+    // 5. Look for footer files
+    const footerFiles = Object.keys(zip.files).filter(name => /^word\/footer\d+\.xml$/i.test(name)).sort()
     if (footerFiles.length > 0) {
-      footerFiles.sort()
+      const footerFileName = footerFiles[0].replace('word/', '')
+      const mediaMap = await readPartMedia(footerFileName)
       const footerXml = await zip.files[footerFiles[0]].async('string')
-      footerElements = parseHeaderFooterXml(footerXml)
+      footerElements = parseHeaderFooterXml(footerXml, mediaMap)
     }
 
     return {
       header: headerElements.length > 0 ? headerElements : undefined,
-      footer: footerElements.length > 0 ? footerElements : undefined
+      footer: footerElements.length > 0 ? footerElements : undefined,
+      options: Object.keys(pageOptions).length > 0 ? pageOptions : undefined
     }
   } catch (err) {
     console.warn('Could not extract header/footer from docx archive', err)
@@ -416,7 +562,7 @@ export async function convertDocxToHTML(
 export async function convertDocxToEditorData(
   input: ArrayBuffer | Blob | any,
   options?: IConvertDocxOption
-): Promise<IEditorData> {
+): Promise<IEditorData & { options?: any }> {
   const arrayBuffer = await toArrayBuffer(input)
   const innerWidth = options?.innerWidth || 794
 
@@ -427,7 +573,7 @@ export async function convertDocxToEditorData(
 
   const mainElements = getElementListByHTML(html, { innerWidth })
 
-  const result: IEditorData = {
+  const result: IEditorData & { options?: any } = {
     main: mainElements
   }
 
@@ -436,6 +582,9 @@ export async function convertDocxToEditorData(
   }
   if (headerFooter.footer && headerFooter.footer.length > 0) {
     result.footer = headerFooter.footer
+  }
+  if (headerFooter.options) {
+    result.options = headerFooter.options
   }
 
   return result

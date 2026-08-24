@@ -1310,7 +1310,11 @@ export class CommandAdapt {
       {
         type: ElementType.PAGE_BREAK,
         value: WRAP
-      }
+      },
+      // Keep an editable paragraph after the break. Without this trailing
+      // anchor a break inserted at end-of-document has no row on the next
+      // page, so the user sees no new sheet and cannot place the caret there.
+      { value: WRAP }
     ])
   }
 
@@ -1644,6 +1648,17 @@ export class CommandAdapt {
   ): Promise<IEditorData> {
     const innerWidth = this.draw.getInnerWidth()
     const editorData = await convertDocxToEditorData(file, { innerWidth })
+    if (editorData.options) {
+      if (editorData.options.margins) {
+        this.setPaperMargin(editorData.options.margins)
+      }
+      if (editorData.options.paperDirection !== undefined) {
+        this.paperDirection(editorData.options.paperDirection)
+      }
+      if (editorData.options.width && editorData.options.height) {
+        this.paperSize(editorData.options.width, editorData.options.height)
+      }
+    }
     this.setValue(editorData, options)
     return editorData
   }

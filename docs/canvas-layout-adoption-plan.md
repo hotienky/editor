@@ -1,6 +1,6 @@
 # Kế hoạch học hỏi `canvas-editor` để cải thiện Kindy Editor
 
-> Trạng thái: Accepted — quyết định kiến trúc chính thức  
+> Trạng thái: Superseded ngày 24/08/2026 bởi [CanvasEngine migration](./canvas-engine-migration.md).  
 > Ngày lập kế hoạch: 24/08/2026  
 > Tài liệu nền: [Đánh giá kiến trúc canvas-editor](./canvas-editor-architecture-assessment.md)  
 > Risk register:
@@ -8,7 +8,13 @@
 > Phạm vi: layout, pagination, page preview, table, image, section,
 > header/footer và hiệu năng tài liệu dài.
 
-## 1. Kết luận triển khai
+## 1. Kết luận triển khai (lịch sử)
+
+Quyết định “canvas chỉ preview read-only” bên dưới đã được thay thế sau yêu cầu
+chuyển đổi có kiểm soát. Runtime hiện dùng CanvasEngine làm layout/render/input
+chính, còn ProseMirror JSON và transaction là canonical boundary trong giai
+đoạn chuyển đổi. Không dùng phần còn lại của tài liệu này làm trạng thái runtime
+hiện hành.
 
 Kindy Editor nên **học có chọn lọc lớp layout/render** của `canvas-editor`, nhưng
 không thay Tiptap/ProseMirror và không đưa mô hình ký tự `IElement[]` của

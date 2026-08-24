@@ -1,6 +1,7 @@
 # Đánh giá kiến trúc `canvas-editor` cho Kindy Editor
 
-> Trạng thái: Accepted — quyết định kiến trúc chính thức  
+> Trạng thái: Historical assessment — quyết định triển khai đã được cập nhật tại
+> [CanvasEngine migration](./canvas-engine-migration.md).  
 > Ngày đánh giá: 24/08/2026  
 > Nguồn được đọc: `/Users/kindy/datas/App/canvas-editor` tại commit
 > `03a481bbd012f2dcb4044cd34471477db921fe52`  

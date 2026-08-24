@@ -1,7 +1,7 @@
 import 'virtual:svg-icons-register'
 
 import { createApp } from 'vue'
-import KindyEditor from './index.vue'
+import KindyEditor from './editor/WordEditor.vue'
 import KindyMenuButton from './menus/button.vue'
 import KindyDialog from './modal.vue'
 import KindyTooltip from './tooltip.vue'

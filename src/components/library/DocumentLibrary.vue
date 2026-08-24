@@ -172,7 +172,7 @@ import type { CollaborationAdapter, CollaborationSession, CompatibilityReport, D
 import { defaultOptions } from '../../options'
 import { createLibraryTheme, resolveLibraryMessages, resolveLibraryUi, type KindyLibraryMessages, type KindyLibraryUiOptions } from '../../ui'
 import { CONTRACT_EDITOR_OPTIONS, createContractEditorOptions } from '../../ui/contract'
-import KindyEditor from '../index.vue'
+import KindyEditor from '../editor/WordEditor.vue'
 import KindyDocumentExplorer from './DocumentExplorer.vue'
 import DocumentLibraryShell from './DocumentLibraryShell.vue'
 import KindyVersionPanel from './VersionPanel.vue'

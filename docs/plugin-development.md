@@ -66,7 +66,7 @@ interface EditorEngineHandle {
 }
 ```
 
-V2 chỉ ship `TiptapEngineAdapter`. Adapter riêng phải trả đúng canonical `KindyDocumentState`, không trả HTML làm state dài hạn.
+V2 chỉ ship `CanvasEngineAdapter`. Adapter riêng phải trả đúng canonical `KindyDocumentState`, không trả Canvas `IEditorData` hoặc HTML làm state dài hạn.
 
 ## 4. Adapter nghiệp vụ riêng
 

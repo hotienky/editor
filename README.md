@@ -1,13 +1,13 @@
 # Kindy Editor v2
 
-Kindy Editor là SDK Document Library chuyên cho DOCX, xây dựng bằng Vue 3 và Tiptap/ProseMirror. Thư viện cung cấp giao diện quản lý tài liệu, editor trên web, lịch sử phiên bản, DOCX codec và hợp đồng API để ứng dụng chủ kết nối backend của mình.
+Kindy Editor là SDK Document Library chuyên cho DOCX, xây dựng bằng Vue 3 và CanvasEngine. Canvas sở hữu layout, pagination, paint và input; ProseMirror JSON vẫn là canonical document state trong giai đoạn chuyển đổi. Thư viện cung cấp giao diện quản lý tài liệu, editor trên web, lịch sử phiên bản, DOCX codec và hợp đồng API để ứng dụng chủ kết nối backend của mình.
 
 Kindy Editor **không** cung cấp backend, database, authentication, object storage hoặc nghiệp vụ hợp đồng. JSON `KindyDocumentState` là trạng thái chỉnh sửa chuẩn; DOCX gốc và DOCX export là artifact do server ứng dụng chủ lưu.
 
 ## Phạm vi v2.0
 
 - Import DOCX trong Web Worker, kiểm tra ZIP/OOXML và trả `CompatibilityReport`.
-- Chỉnh sửa nội dung bằng Tiptap/ProseMirror với preset `Contract`: toolbar compact, page-only và chỉ giữ công cụ cần cho hợp đồng.
+- Chỉnh sửa nội dung bằng CanvasEngine với page geometry cố định, ribbon hợp đồng, header/footer zone và backing-canvas virtualization.
 - Explorer theo thư mục, tìm kiếm, tạo tài liệu trống và tạo từ template.
 - Autosave có debounce, cancellation và optimistic concurrency.
 - Lưu thủ công tạo version, xem read-only và khôi phục version.
@@ -26,7 +26,7 @@ Ngoại lệ duy nhất có thể bảo đảm byte-for-byte là tài liệu v�
   ├─ KindyDocumentLibrary
   │    ├─ DocumentLibraryShell       layout/responsive/theme
   │    ├─ KindyDocumentExplorer      list/search/folder/import/template
-  │    ├─ KindyEditor                Tiptap/ProseMirror editor
+  │    ├─ KindyEditor                Canvas layout/render/input
   │    └─ KindyVersionPanel          preview/restore
   ├─ DocumentLibraryClient           autosave/conflict/events
   ├─ DOCX codecs / browser print
@@ -250,7 +250,7 @@ Mặc định là v2.0. Chọn `kindy-docx-v2.1` cho sections/header/footer ho�
 
 ## Hiệu năng tài liệu dài
 
-Import parsing đã chạy ngoài main thread. Editor vẫn dùng một ProseMirror instance liên tục; pagination cache phép đo block và workspace gom state sync. Trên production preview cục bộ (Chrome 151, Apple M2/24GB, 40 mẫu), corpus 100 trang text mở khoảng 0,49 giây với typing p95 21,5ms; mixed mở khoảng 0,85 giây với typing p95 36,5ms. Pagination cached của hai corpus lần lượt khoảng 2,8ms và 3,7ms. Đây là regression baseline, không phải SLA cho mọi thiết bị. Corpus mixed 200 trang vẫn chỉ được xem là stress limit. Xem [Performance guide](./docs/performance.md) để biết phương pháp đo và giới hạn.
+Import parsing chạy ngoài main thread. CanvasEngine chỉ cấp backing bitmap cho cửa sổ trang quanh viewport. Benchmark Chromium cục bộ cho corpus text đơn giản 200 trang/manual break đo 47,4–56,4ms cho một lần layout và chỉ 3/200 page giữ bitmap; đây chưa phải SLA cho tài liệu mixed có bảng, ảnh và review metadata. Xem [Performance guide](./docs/performance.md) và [CanvasEngine migration](./docs/canvas-engine-migration.md).
 
 ## Tài liệu
 

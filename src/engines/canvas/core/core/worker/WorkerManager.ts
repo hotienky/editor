@@ -1,9 +1,5 @@
 import { version } from '../../version'
 import { Draw } from '../draw/Draw'
-import WordCountWorker from './works/wordCount?worker&inline'
-import CatalogWorker from './works/catalog?worker&inline'
-import GroupWorker from './works/group?worker&inline'
-import ValueWorker from './works/value?worker&inline'
 import { ICatalog } from '../../interface/Catalog'
 import { IEditorResult } from '../../interface/Editor'
 import { IGetValueOption } from '../../interface/Draw'
@@ -11,21 +7,35 @@ import { deepClone } from '../../utils'
 
 export class WorkerManager {
   private draw: Draw
-  private wordCountWorker: Worker
-  private catalogWorker: Worker
-  private groupWorker: Worker
-  private valueWorker: Worker
+  private wordCountWorker: Worker | null = null
+  private catalogWorker: Worker | null = null
+  private groupWorker: Worker | null = null
+  private valueWorker: Worker | null = null
 
   constructor(draw: Draw) {
     this.draw = draw
-    this.wordCountWorker = new WordCountWorker()
-    this.catalogWorker = new CatalogWorker()
-    this.groupWorker = new GroupWorker()
-    this.valueWorker = new ValueWorker()
+    try {
+      if (typeof Worker !== 'undefined') {
+        this.wordCountWorker = new Worker(new URL('./works/wordCount.ts', import.meta.url), { type: 'module' })
+        this.catalogWorker = new Worker(new URL('./works/catalog.ts', import.meta.url), { type: 'module' })
+        this.groupWorker = new Worker(new URL('./works/group.ts', import.meta.url), { type: 'module' })
+        this.valueWorker = new Worker(new URL('./works/value.ts', import.meta.url), { type: 'module' })
+      }
+    } catch {
+      // Fallback in environments without Web Worker support
+    }
   }
 
   public getWordCount(): Promise<number> {
     return new Promise((resolve, reject) => {
+      if (!this.wordCountWorker) {
+        // Simple fallback
+        const elementList = this.draw.getOriginalMainElementList()
+        let count = 0
+        elementList.forEach(el => { count += (el.value || '').length })
+        return resolve(count)
+      }
+
       this.wordCountWorker.onmessage = evt => {
         resolve(evt.data)
       }
@@ -41,6 +51,10 @@ export class WorkerManager {
 
   public getCatalog(): Promise<ICatalog | null> {
     return new Promise((resolve, reject) => {
+      if (!this.catalogWorker) {
+        return resolve(null)
+      }
+
       this.catalogWorker.onmessage = evt => {
         resolve(evt.data)
       }
@@ -60,6 +74,10 @@ export class WorkerManager {
 
   public getGroupIds(): Promise<string[]> {
     return new Promise((resolve, reject) => {
+      if (!this.groupWorker) {
+        return resolve([])
+      }
+
       this.groupWorker.onmessage = evt => {
         resolve(evt.data)
       }
@@ -75,6 +93,14 @@ export class WorkerManager {
 
   public getValue(options?: IGetValueOption): Promise<IEditorResult> {
     return new Promise((resolve, reject) => {
+      if (!this.valueWorker) {
+        return resolve({
+          version,
+          data: this.draw.getOriginValue(options) as any,
+          options: deepClone(this.draw.getOptions())
+        })
+      }
+
       this.valueWorker.onmessage = evt => {
         resolve({
           version,
@@ -95,9 +121,9 @@ export class WorkerManager {
   }
 
   public destroy() {
-    this.wordCountWorker.terminate()
-    this.catalogWorker.terminate()
-    this.groupWorker.terminate()
-    this.valueWorker.terminate()
+    this.wordCountWorker?.terminate()
+    this.catalogWorker?.terminate()
+    this.groupWorker?.terminate()
+    this.valueWorker?.terminate()
   }
 }

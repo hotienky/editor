@@ -37,4 +37,4 @@ File vừa import, chưa chỉnh sửa có một đường tải riêng qua `Doc
 
 ## Giới hạn hiệu năng v2.0
 
-Import parser chạy trong Web Worker, nhưng editing surface vẫn render document trong một ProseMirror instance liên tục. Compatibility “Supported” không đồng nghĩa mọi file 100–200 trang đều đạt cùng typing latency. Hệ thống tích hợp phải benchmark corpus thật theo [`docs/performance.md`](./docs/performance.md) trước khi đặt SLA.
+Import parser chạy trong Web Worker; editing surface dùng CanvasEngine và virtualize backing bitmap theo viewport. Compatibility “Supported” không đồng nghĩa mọi file 100–200 trang đều đạt cùng typing latency. Hệ thống tích hợp phải benchmark corpus thật theo [`docs/performance.md`](./docs/performance.md) trước khi đặt SLA.

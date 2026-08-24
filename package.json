@@ -1,7 +1,7 @@
 {
   "name": "kindy-editor",
   "version": "2.0.0",
-  "description": "DOCX document library SDK and Vue 3 editor with a headless TypeScript core, powered by Tiptap/ProseMirror.",
+  "description": "DOCX document library SDK with a Canvas-based page layout engine and canonical ProseMirror document state.",
   "keywords": [
     "docs editor",
     "document editor",
@@ -46,6 +46,7 @@
     "CHANGELOG.md",
     "GUIDE.md",
     "CAPABILITIES.md",
+    "THIRD_PARTY_NOTICES.md",
     "MIGRATION.md"
   ],
   "main": "./dist/kindy-editor.cjs",

@@ -217,6 +217,8 @@ export class Draw {
   private visiblePageNoList: number[]
   private intersectionPageNo: number
   private lazyRenderIntersectionObserver: IntersectionObserver | null
+  private materializedPageIndexes: Set<number>
+  private intersectingPageIndexes: Set<number>
   private printModeData: Required<Omit<IEditorData, 'graffiti'>> | null
   private controlMinWidthPlaceholderElementListSet: WeakSet<IElement[]>
   private columnManager: ColumnManager
@@ -239,6 +241,8 @@ export class Draw {
     this.mode = options.mode
     this.options = options
     this.elementList = data.main
+    this.materializedPageIndexes = new Set()
+    this.intersectingPageIndexes = new Set()
     this.pageDirectionList = [options.paperDirection]
     this.listener = listener
     this.eventBus = eventBus
@@ -779,6 +783,7 @@ export class Draw {
   }
 
   public getCtx(): CanvasRenderingContext2D {
+    this._materializePage(this.pageNo)
     return this.ctxList[this.pageNo]
   }
 
@@ -1544,10 +1549,12 @@ export class Draw {
     canvas.style.marginBottom = `${this.getPageGap()}px`
     canvas.setAttribute('data-index', String(pageNo))
     this.pageContainer.append(canvas)
-    // 调整分辨率
-    const dpr = this.getPagePixelRatio()
-    canvas.width = width * dpr
-    canvas.height = height * dpr
+    // Keep a tiny backing store until this page enters the viewport. The CSS
+    // box remains paper-sized, so pagination and scrolling are unaffected.
+    // A 200-page document therefore keeps only a small render window in GPU/
+    // bitmap memory instead of allocating 200 full-resolution canvases.
+    canvas.width = 1
+    canvas.height = 1
     canvas.style.cursor = 'text'
     const ctx = canvas.getContext('2d')!
     // 初始化上下文配置
@@ -1555,6 +1562,33 @@ export class Draw {
     // 缓存上下文
     this.pageList.push(canvas)
     this.ctxList.push(ctx)
+  }
+
+  private _materializePage(pageNo: number) {
+    if (this.materializedPageIndexes.has(pageNo)) return
+    const canvas = this.pageList[pageNo]
+    const ctx = this.ctxList[pageNo]
+    if (!canvas || !ctx) return
+    const { width, height } = this.getPageSize(pageNo)
+    const cssHeight = this.getIsPagingMode()
+      ? height
+      : Number.parseFloat(canvas.style.height) || height
+    const dpr = this.getPagePixelRatio()
+    canvas.width = Math.max(1, Math.floor(width * dpr))
+    canvas.height = Math.max(1, Math.floor(cssHeight * dpr))
+    this._initPageContext(ctx)
+    this.materializedPageIndexes.add(pageNo)
+  }
+
+  private _releasePage(pageNo: number) {
+    if (!this.materializedPageIndexes.has(pageNo) || pageNo === this.pageNo) {
+      return
+    }
+    const canvas = this.pageList[pageNo]
+    if (!canvas) return
+    canvas.width = 1
+    canvas.height = 1
+    this.materializedPageIndexes.delete(pageNo)
   }
 
   // 按各页实际尺寸（方向/缩放/DPR）校正页面 canvas 与容器宽度
@@ -1573,8 +1607,9 @@ export class Draw {
       const canvasHeight = isPagingMode
         ? height
         : Number.parseFloat(p.style.height) || height
-      const pixelWidth = Math.floor(width * dpr)
-      const pixelHeight = Math.floor(canvasHeight * dpr)
+      const isMaterialized = this.materializedPageIndexes.has(i)
+      const pixelWidth = isMaterialized ? Math.floor(width * dpr) : 1
+      const pixelHeight = isMaterialized ? Math.floor(canvasHeight * dpr) : 1
       const isSizeChanged = p.width !== pixelWidth || p.height !== pixelHeight
       if (isSizeChanged) {
         p.width = pixelWidth
@@ -2968,6 +3003,7 @@ export class Draw {
 
   private _drawPage(payload: IDrawPagePayload) {
     const { elementList, positionList, rowList, pageNo } = payload
+    this._materializePage(pageNo)
     const {
       inactiveAlpha,
       pageMode,
@@ -3082,28 +3118,55 @@ export class Draw {
 
   private _disconnectLazyRender() {
     this.lazyRenderIntersectionObserver?.disconnect()
+    this.intersectingPageIndexes.clear()
   }
 
   private _lazyRender() {
     const positionList = this.position.getOriginalMainPositionList()
     const elementList = this.getOriginalMainElementList()
     this._disconnectLazyRender()
-    this.lazyRenderIntersectionObserver = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const index = Number((<HTMLCanvasElement>entry.target).dataset.index)
-          this._drawPage({
-            elementList,
-            positionList,
-            rowList: this.pageRowList[index],
-            pageNo: index
-          })
+    const drawPage = (index: number) => {
+      if (index < 0 || index >= this.pageRowList.length) return
+      this._drawPage({
+        elementList,
+        positionList,
+        rowList: this.pageRowList[index],
+        pageNo: index
+      })
+    }
+    const reconcileRenderWindow = () => {
+      const renderWindow = new Set<number>()
+      const visible = this.intersectingPageIndexes.size
+        ? this.intersectingPageIndexes
+        : new Set([this.pageNo])
+      visible.forEach(index => {
+        for (let offset = -2; offset <= 2; offset++) {
+          const candidate = index + offset
+          if (candidate >= 0 && candidate < this.pageRowList.length) {
+            renderWindow.add(candidate)
+          }
         }
       })
-    })
+      renderWindow.forEach(drawPage)
+      for (const index of [...this.materializedPageIndexes]) {
+        if (!renderWindow.has(index)) this._releasePage(index)
+      }
+    }
+    this.lazyRenderIntersectionObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        const index = Number((<HTMLCanvasElement>entry.target).dataset.index)
+        if (entry.isIntersecting) {
+          this.intersectingPageIndexes.add(index)
+        } else this.intersectingPageIndexes.delete(index)
+      })
+      reconcileRenderWindow()
+    }, { rootMargin: '200% 0px' })
     this.pageList.forEach(el => {
       this.lazyRenderIntersectionObserver!.observe(el)
     })
+    // IntersectionObserver is asynchronous. Paint the active page and its
+    // neighbours immediately to prevent an empty first frame.
+    reconcileRenderWindow()
   }
 
   private _immediateRender() {
@@ -3211,6 +3274,12 @@ export class Draw {
       this.pageList
         .splice(curPageCount, deleteCount)
         .forEach(page => page.remove())
+      for (const index of [...this.materializedPageIndexes]) {
+        if (index >= curPageCount) this.materializedPageIndexes.delete(index)
+      }
+      for (const index of [...this.intersectingPageIndexes]) {
+        if (index >= curPageCount) this.intersectingPageIndexes.delete(index)
+      }
     }
     const isPageDirectionChanged =
       oldPageDirectionList.length !== this.pageDirectionList.length ||

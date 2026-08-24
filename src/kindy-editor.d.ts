@@ -173,8 +173,26 @@ export const useKindyEditor: { install(app: App, options?: Partial<KindyEditorOp
 
 export interface EditorEngineHandle { load(state: KindyDocumentState): void | Promise<void>; getState(): KindyDocumentState; setReadOnly(readOnly: boolean): void; focus(): void; destroy(): void; onChange(listener: (state: KindyDocumentState) => void): () => void }
 export interface EditorEngineAdapter { readonly id: string; mount(container: HTMLElement, options?: Record<string, unknown>): EditorEngineHandle | Promise<EditorEngineHandle> }
-export class TiptapEngineAdapter implements EditorEngineAdapter { readonly id: 'tiptap'; mount(container: HTMLElement, options?: Record<string, unknown>): EditorEngineHandle }
-export function createTiptapEngineAdapter(): TiptapEngineAdapter
+export class CanvasDocumentController {
+  constructor(content: JSONContent)
+  getJSON(): JSONContent
+  getState(): unknown
+  isEditable(): boolean
+  setEditable(editable: boolean): void
+  replaceDocument(content: JSONContent, origin?: string): boolean
+  undo(): boolean
+  redo(): boolean
+  onTransaction(listener: (content: JSONContent, transaction: unknown) => void): () => void
+  destroy(): void
+}
+export interface CanvasEngineHandle extends EditorEngineHandle {
+  readonly editor: unknown
+  readonly documentController: CanvasDocumentController
+  getCanvasEditor(): unknown
+  getDocumentController(): CanvasDocumentController
+}
+export class CanvasEngineAdapter implements EditorEngineAdapter { readonly id: 'canvas'; mount(container: HTMLElement, options?: Record<string, unknown>): CanvasEngineHandle }
+export function createCanvasEngineAdapter(): CanvasEngineAdapter
 
 export function createMockDocumentTransport(options?: { adapter?: MemoryDocumentAdapter; baseUrl?: string; latency?: number }): { adapter: MemoryDocumentAdapter; transport: DocumentTransport; baseUrl: string }
 
