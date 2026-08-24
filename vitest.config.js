@@ -7,12 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      'y-websocket': resolve(__dirname, '__mocks__/y-websocket.js'),
       '@kindy/document': resolve(__dirname, 'packages/document/src'),
       '@kindy/layout': resolve(__dirname, 'packages/layout/src'),
       '@kindy/render': resolve(__dirname, 'packages/render/src'),
       '@kindy/editor': resolve(__dirname, 'packages/editor/src'),
-      '@kindy/collaboration': resolve(__dirname, 'packages/collaboration/src'),
       '@kindy/storage': resolve(__dirname, 'packages/storage/src'),
       '@kindy/io': resolve(__dirname, 'packages/io/src'),
       '@kindy/plugin': resolve(__dirname, 'packages/plugin/src'),

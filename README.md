@@ -259,6 +259,7 @@ Import parsing chạy ngoài main thread. CanvasEngine chỉ cấp backing bitma
 - [API reference](./docs/api-reference.md)
 - [Backend, security và adapter](./GUIDE.md)
 - [DOCX capability matrix](./CAPABILITIES.md)
+- [Audit cơ chế load DOCX và lưu trữ](./docs/docx-load-storage-audit.md)
 - [Performance và tài liệu 100 trang](./docs/performance.md)
 - [Migration v1 → v2](./MIGRATION.md)
 - [REST OpenAPI](./openapi/document-api.yaml)

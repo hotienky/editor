@@ -14,5 +14,6 @@ Tài liệu chính của SDK:
 10. [DocumentLayoutService](./document-layout-service.md)
 11. [Canvas layout adoption plan](./canvas-layout-adoption-plan.md)
 12. [Layout performance/stability risk register](./document-layout-risk-assessment.md)
+13. [Audit cơ chế load DOCX và lưu trữ](./docx-load-storage-audit.md)
 
 Các thư mục `architecture/`, `adr/`, `packages/`, `research/` và `epic-story-task/` ghi lại nghiên cứu/prototype cũ của codebase. Chúng không phải public contract của `kindy-editor@2`; khi có khác biệt, tài liệu trong danh sách trên và TypeScript declarations là nguồn chính xác.

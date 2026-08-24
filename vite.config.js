@@ -136,7 +136,6 @@ export default defineConfig({
       '@kindy/layout': `${process.cwd()}/packages/layout/src`,
       '@kindy/render': `${process.cwd()}/packages/render/src`,
       '@kindy/editor': `${process.cwd()}/packages/editor/src`,
-      '@kindy/collaboration': `${process.cwd()}/packages/collaboration/src`,
     },
   },
 })
