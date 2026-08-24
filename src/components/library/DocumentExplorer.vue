@@ -93,7 +93,7 @@ const props = withDefaults(defineProps<{
   closable?: boolean
   pageSize?: number
   docxProfile?: CompatibilityReport['profile']
-}>(), { locale: 'vi-VN', selectedId: '', messages: () => ({}), closable: false, pageSize: 100, docxProfile: 'kindy-docx-v2.0' })
+}>(), { locale: 'vi-VN', selectedId: '', messages: () => ({}), closable: false, pageSize: 100, docxProfile: 'kindy-docx-v2.2' })
 
 const emit = defineEmits<{
   open: [document: DocumentSummary]

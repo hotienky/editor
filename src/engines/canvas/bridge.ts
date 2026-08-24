@@ -51,11 +51,25 @@ const paragraphStyle = (node: JSONContent): Partial<IElement> => {
     rowFlex: rowFlexFromAttrs(attrs),
     rowMargin: lineHeight,
     extension: {
+      kindyBlockAttrs: attrs,
+      kindyBlockType: node.type,
       kindyNodeAttrs: attrs,
       kindyNodeType: node.type,
     },
   }
 }
+
+const extensionRecord = (value: unknown): Record<string, unknown> => (
+  value && typeof value === 'object' ? value as Record<string, unknown> : {}
+)
+
+const mergeExtension = (
+  inherited: Partial<IElement>,
+  value: Record<string, unknown>,
+) => ({
+  ...extensionRecord(inherited.extension),
+  ...value,
+})
 
 const inlineStyle = (node: JSONContent): Partial<IElement> => {
   const result: Partial<IElement> = {}
@@ -89,7 +103,14 @@ const inlineNodesToElements = (
   const output: IElement[] = []
   for (const node of nodes) {
     if (node.type === 'text') {
-      const style = { ...inherited, ...inlineStyle(node) }
+      const storedMarks = (node.marks || [])
+        .filter((mark) => mark.type === 'comment' || mark.type === 'trackChange')
+        .map((mark) => ({ type: mark.type, attrs: mark.attrs ? { ...mark.attrs } : undefined }))
+      const style = {
+        ...inherited,
+        ...inlineStyle(node),
+        extension: mergeExtension(inherited, storedMarks.length ? { kindyMarks: storedMarks } : {}),
+      }
       const valueList = graphemes(node.text || '').map((value) => ({ value, ...style }))
       const link = linkFromMarks(node)
       if (link?.attrs?.href) {
@@ -104,8 +125,27 @@ const inlineNodesToElements = (
       }
       continue
     }
-    if (node.type === 'hardBreak') output.push({ value: '\n', ...inherited })
-    if (node.type === 'docxTab') output.push({ type: ElementType.TAB, value: '\t', ...inherited })
+    if (node.type === 'hardBreak') {
+      output.push({
+        value: '\n',
+        ...inherited,
+        extension: mergeExtension(inherited, {
+          kindyInlineNodeType: node.type,
+          kindyInlineNodeAttrs: node.attrs || {},
+        }),
+      })
+    }
+    if (node.type === 'docxTab') {
+      output.push({
+        type: ElementType.TAB,
+        value: '\t',
+        ...inherited,
+        extension: mergeExtension(inherited, {
+          kindyInlineNodeType: node.type,
+          kindyInlineNodeAttrs: node.attrs || {},
+        }),
+      })
+    }
     if (node.type === 'pageBreak' || node.type === 'sectionBreak') {
       output.push({
         type: ElementType.PAGE_BREAK,
@@ -121,7 +161,7 @@ const inlineNodesToElements = (
         width: numericFontSize(attrs.width),
         height: numericFontSize(attrs.height),
         imgDisplay: node.type === 'inlineImage' ? ImageDisplay.INLINE : ImageDisplay.BLOCK,
-        extension: { kindyNodeAttrs: attrs, kindyNodeType: node.type },
+        extension: mergeExtension(inherited, { kindyNodeAttrs: attrs, kindyNodeType: node.type }),
       })
     }
   }
@@ -261,21 +301,27 @@ export function proseMirrorToCanvasData(
 
 const marksFromElement = (element: IElement): JSONContent['marks'] => {
   const marks: NonNullable<JSONContent['marks']> = []
+  const extension = extensionRecord(element.extension)
+  const storedMarks = Array.isArray(extension.kindyMarks)
+    ? extension.kindyMarks.filter((mark): mark is NonNullable<JSONContent['marks']>[number] => (
+        Boolean(mark) && typeof mark === 'object' && typeof (mark as { type?: unknown }).type === 'string'
+      ))
+    : []
   if (element.bold) marks.push({ type: 'bold' })
   if (element.italic) marks.push({ type: 'italic' })
   if (element.underline) marks.push({ type: 'underline' })
   if (element.strikeout) marks.push({ type: 'strike' })
   if (element.type === ElementType.SUBSCRIPT) marks.push({ type: 'subscript' })
   if (element.type === ElementType.SUPERSCRIPT) marks.push({ type: 'superscript' })
-  if (element.groupIds?.length) {
-    marks.push({
-      type: 'comment',
-      attrs: {
-        id: element.groupIds[0],
-        thread: element.groupIds[0],
-      },
-    })
+  for (const groupId of element.groupIds || []) {
+    const stored = storedMarks.find((mark) => mark.type === 'comment' && String(mark.attrs?.id || '') === groupId)
+    marks.push(stored
+      ? { type: 'comment', attrs: stored.attrs ? { ...stored.attrs } : { id: groupId } }
+      : { type: 'comment', attrs: { id: groupId, thread: groupId } })
   }
+  storedMarks
+    .filter((mark) => mark.type === 'trackChange')
+    .forEach((mark) => marks.push({ type: mark.type, attrs: mark.attrs ? { ...mark.attrs } : undefined }))
   const textStyle = {
     fontFamily: element.font,
     fontSize: element.size ? `${element.size}pt` : undefined,
@@ -322,7 +368,11 @@ const inlineElementsToNodes = (elements: IElement[] = []): JSONContent[] => {
       continue
     }
     if (element.type === ElementType.TAB) {
-      output.push({ type: 'docxTab' })
+      const extension = extensionRecord(element.extension)
+      output.push({
+        type: 'docxTab',
+        attrs: (extension.kindyInlineNodeAttrs || {}) as JSONContent['attrs'],
+      })
       continue
     }
     if (element.type === ElementType.PAGE_BREAK) {
@@ -347,20 +397,29 @@ const attrsFromExtension = (element: IElement) => {
 const paragraphsFromElements = (elements: IElement[] = []) => {
   const paragraphs: JSONContent[] = []
   let current: IElement[] = []
-  const flush = () => {
+  const flush = (boundary?: IElement) => {
     const style = current.find((element) => element.rowFlex || element.rowMargin)
-    const attrs: Record<string, unknown> = {}
+    const metadataSource = current.find((element) => {
+      const extension = extensionRecord(element.extension)
+      return Boolean(extension.kindyBlockAttrs || extension.kindyNodeAttrs)
+    }) || boundary
+    const metadata = extensionRecord(metadataSource?.extension)
+    const attrs: Record<string, unknown> = {
+      ...extensionRecord(metadata.kindyBlockAttrs || metadata.kindyNodeAttrs),
+    }
     if (style?.rowFlex) attrs.textAlign = style.rowFlex === RowFlex.ALIGNMENT ? 'justify' : style.rowFlex
-    if (style?.rowMargin) attrs.lineHeight = style.rowMargin
+    if (style?.rowMargin !== undefined) attrs.lineHeight = style.rowMargin
     paragraphs.push({
       type: 'paragraph',
       attrs: Object.keys(attrs).length ? attrs : undefined,
-      content: inlineElementsToNodes(current.filter((element) => element.value !== '\n')),
+      content: inlineElementsToNodes(current),
     })
     current = []
   }
   for (const element of elements) {
-    if (element.value === '\n') flush()
+    const extension = extensionRecord(element.extension)
+    if (element.value === '\n' && extension.kindyInlineNodeType === 'hardBreak') current.push(element)
+    else if (element.value === '\n') flush(element)
     else current.push(element)
   }
   if (current.length || !paragraphs.length) flush()

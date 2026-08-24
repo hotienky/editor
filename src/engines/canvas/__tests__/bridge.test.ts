@@ -12,11 +12,39 @@ const contractFixture: JSONContent = {
     },
     {
       type: 'paragraph',
-      attrs: { textAlign: 'justify', lineHeight: 1.5 },
+      attrs: {
+        textAlign: 'justify',
+        lineHeight: 1.5,
+        indent: 1.27,
+        margin: { top: '12', bottom: '6' },
+        docxLayout: {
+          leftTwip: 720,
+          firstLineTwip: 360,
+          keepNext: true,
+          tabStops: [{ alignment: 'center', position: 6.35, positionTwip: 3600, leader: 'dot' }],
+        },
+      },
       content: [
-        { type: 'text', text: 'Bên A ', marks: [{ type: 'bold' }] },
+        {
+          type: 'text',
+          text: 'Bên A ',
+          marks: [
+            { type: 'bold' },
+            {
+              type: 'comment',
+              attrs: {
+                id: 'comment-7',
+                user: 'Lê Pháp chế',
+                color: 'rgba(255, 213, 79, 0.4)',
+                thread: JSON.stringify({ id: 'comment-7', user: 'Lê Pháp chế', text: 'Kiểm tra điều khoản', replies: [], resolved: false, createdAt: 1_700_000_000_000 }),
+              },
+            },
+            { type: 'trackChange', attrs: { id: 'change-9', type: 'insert', author: 'Nguyễn A', timestamp: 1_700_000_100_000 } },
+          ],
+        },
         { type: 'text', text: 'đồng ý ký kết.', marks: [{ type: 'textStyle', attrs: { fontFamily: 'Times New Roman', fontSize: '12pt' } }] },
         { type: 'hardBreak' },
+        { type: 'docxTab', attrs: { alignment: 'center', position: 6.35, positionTwip: 3600, leader: 'dot', index: 0 } },
         { type: 'text', text: 'Dòng thứ hai.' },
       ],
     },
@@ -35,7 +63,17 @@ const contractFixture: JSONContent = {
       type: 'paragraph',
       content: [{
         type: 'inlineImage',
-        attrs: { src: 'data:image/png;base64,AA==', width: 120, height: 40, alt: 'logo' },
+        attrs: {
+          id: 'logo-1',
+          name: 'logo.png',
+          size: 1234,
+          src: 'data:image/png;base64,AA==',
+          width: 120,
+          height: 40,
+          alt: 'logo',
+          inline: true,
+          uploaded: true,
+        },
       }],
     },
   ],
@@ -61,5 +99,27 @@ describe('CanvasEngine ProseMirror bridge', () => {
     expect(restored.content?.some((node) => node.type === 'table')).toBe(true)
     expect(restored.content?.some((node) => node.type === 'pageBreak')).toBe(true)
     expect(serialized).toContain('data:image/png;base64,AA==')
+  })
+
+  it('does not drop DOCX paragraph, review, tab or image metadata after a Canvas edit cycle', () => {
+    const restored = canvasDataToProseMirror(proseMirrorToCanvasData(contractFixture))
+    const paragraph = restored.content?.[1]
+    const reviewedText = paragraph?.content?.[0]
+    const tab = paragraph?.content?.find((node) => node.type === 'docxTab')
+    const hardBreak = paragraph?.content?.find((node) => node.type === 'hardBreak')
+    const image = restored.content?.at(-1)?.content?.[0]
+
+    expect(paragraph?.attrs).toEqual(contractFixture.content?.[1].attrs)
+    expect(reviewedText?.marks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'comment', attrs: expect.objectContaining({ id: 'comment-7', user: 'Lê Pháp chế' }) }),
+      expect.objectContaining({ type: 'trackChange', attrs: expect.objectContaining({ id: 'change-9', author: 'Nguyễn A' }) }),
+    ]))
+    expect(JSON.parse(String(reviewedText?.marks?.find((mark) => mark.type === 'comment')?.attrs?.thread))).toMatchObject({
+      text: 'Kiểm tra điều khoản',
+      createdAt: 1_700_000_000_000,
+    })
+    expect(hardBreak).toMatchObject({ type: 'hardBreak' })
+    expect(tab?.attrs).toMatchObject({ positionTwip: 3600, alignment: 'center', leader: 'dot' })
+    expect(image?.attrs).toMatchObject({ id: 'logo-1', name: 'logo.png', size: 1234, uploaded: true })
   })
 })

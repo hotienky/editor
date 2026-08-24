@@ -233,15 +233,15 @@
 
       <!-- Font Size Dropdown -->
       <select v-model="currentSize" class="tb-select tb-size-select" @change="changeSize">
-        <option :value="12">9 pt</option>
-        <option :value="14">10.5 pt</option>
-        <option :value="16">12 pt</option>
-        <option :value="18">14 pt</option>
-        <option :value="20">15 pt</option>
-        <option :value="22">16 pt</option>
-        <option :value="24">18 pt</option>
-        <option :value="32">24 pt</option>
-        <option :value="48">36 pt</option>
+        <option :value="9">9 pt</option>
+        <option :value="10.5">10.5 pt</option>
+        <option :value="12">12 pt</option>
+        <option :value="14">14 pt</option>
+        <option :value="15">15 pt</option>
+        <option :value="16">16 pt</option>
+        <option :value="18">18 pt</option>
+        <option :value="24">24 pt</option>
+        <option :value="36">36 pt</option>
       </select>
 
       <span class="tb-divider"></span>
@@ -339,6 +339,11 @@
       <button class="tb-btn text-clear-btn" title="Xóa định dạng" @click="executeClearFormat">
         Aa⌫
       </button>
+    </div>
+
+    <div v-if="ioNotice" class="document-io-notice" :class="`is-${ioNotice.tone}`" role="status">
+      <span>{{ ioNotice.text }}</span>
+      <button type="button" aria-label="Đóng thông báo" @click="ioNotice = null">✕</button>
     </div>
 
     <!-- Hidden file inputs -->
@@ -564,18 +569,29 @@ import CanvasEditor, { EditorMode, EditorZone, PaperDirection, ElementType, Titl
 import { createCanvasEngineAdapter, type CanvasEngineHandle } from '../../engines/canvas'
 import { importDocx, exportDocx } from '../../codecs/docx'
 import { createEmptyDocumentState } from '../../core/state'
-import type { KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
+import type { CompatibilityReport, KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
 
 defineOptions({ name: 'KindyEditor' })
 
 export interface CommentItem {
   id: string
   author: string
+  userId?: string
+  color?: string
   avatar?: string
   content: string
   createdAt: string
+  createdAtValue?: number
   resolved: boolean
-  replies: Array<{ author: string; content: string; createdAt: string }>
+  resolvedAt?: number | null
+  replies: Array<{
+    id?: string
+    author: string
+    userId?: string
+    content: string
+    createdAt: string
+    createdAtValue?: number
+  }>
 }
 
 const props = withDefaults(defineProps<{
@@ -584,10 +600,12 @@ const props = withDefaults(defineProps<{
   page?: Record<string, any>
   dicts?: Record<string, any>
   locale?: string
+  docxProfile?: CompatibilityReport['profile']
   height?: string
   onSave?: () => unknown
 }>(), {
   locale: 'vi-VN',
+  docxProfile: 'kindy-docx-v2.2',
   height: '100%',
   document: () => ({}),
   page: () => ({}),
@@ -598,7 +616,7 @@ const emits = defineEmits([
   'beforeCreate', 'created', 'change', 'changed', 'save', 'saved',
   'changed:locale', 'changed:pageLayout', 'changed:pageSize',
   'changed:pageOrientation', 'changed:pageMargin', 'changed:pageZoom',
-  'print', 'focus', 'blur', 'destroy',
+  'print', 'focus', 'blur', 'destroy', 'imported', 'compatibility-warning', 'error',
 ])
 
 // UI States
@@ -628,21 +646,10 @@ const onStyleChange = (e: Event) => {
 const documentTitle = ref('Tài liệu hợp đồng kinh tế.docx')
 const isSaved = ref(true)
 const searchQuery = ref('')
+const ioNotice = ref<{ tone: 'success' | 'warning' | 'error'; text: string } | null>(null)
 
 // Comments States
-const comments = ref<CommentItem[]>([
-  {
-    id: 'sample-comment-1',
-    author: 'Nguyễn Văn A',
-    avatar: '👨‍💼',
-    content: 'Cần kiểm tra lại điều khoản thanh toán đợt 2 theo tiến độ nghiệm thu.',
-    createdAt: '10:30',
-    resolved: false,
-    replies: [
-      { author: 'Lê Quốc Anh', content: 'Đã thống nhất thanh toán 30% sau khi ký hợp đồng.', createdAt: '10:35' }
-    ]
-  }
-])
+const comments = ref<CommentItem[]>([])
 const activeCommentId = ref<string | null>(null)
 const draftComment = ref<CommentItem | null>(null)
 const draftInputRef = ref<HTMLTextAreaElement | null>(null)
@@ -659,7 +666,7 @@ const tabs = [
 
 // Formatting States
 const currentFont = ref('Times New Roman')
-const currentSize = ref(16)
+const currentSize = ref(12)
 const currentLineSpacing = ref(1.25)
 const isBold = ref(false)
 const isItalic = ref(false)
@@ -690,6 +697,112 @@ let engineHandle: CanvasEngineHandle | null = null
 let offEngineChange: (() => void) | null = null
 let currentState = createEmptyDocumentState()
 let contentSaved = true
+
+const displayTimestamp = (value: unknown) => {
+  const timestamp = Number(value)
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return ''
+  return new Date(timestamp).toLocaleString(props.locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const walkContent = (node: JSONContent, visitor: (value: JSONContent) => void) => {
+  visitor(node)
+  node.content?.forEach((child) => walkContent(child, visitor))
+}
+
+const syncCommentsFromState = (state: KindyDocumentState) => {
+  const imported = new Map<string, CommentItem>()
+  walkContent(state.content, (node) => {
+    for (const mark of node.marks || []) {
+      if (mark.type !== 'comment') continue
+      let thread: Record<string, any>
+      try {
+        thread = JSON.parse(String(mark.attrs?.thread || ''))
+      } catch {
+        continue
+      }
+      if (!thread || typeof thread !== 'object' || !thread.text) continue
+      const id = String(thread.id || mark.attrs?.id || '')
+      if (!id || imported.has(id)) continue
+      const createdAtValue = Number(thread.createdAt) || undefined
+      imported.set(id, {
+        id,
+        author: String(thread.user || mark.attrs?.user || 'Không rõ người gửi'),
+        userId: String(thread.userId || ''),
+        color: String(thread.color || mark.attrs?.color || 'rgba(255, 213, 79, 0.4)'),
+        avatar: '👤',
+        content: String(thread.text),
+        createdAt: displayTimestamp(createdAtValue),
+        createdAtValue,
+        resolved: Boolean(thread.resolved),
+        resolvedAt: Number(thread.resolvedAt) || null,
+        replies: (Array.isArray(thread.replies) ? thread.replies : []).map((reply: Record<string, any>) => {
+          const replyCreatedAt = Number(reply.createdAt) || undefined
+          return {
+            id: String(reply.id || ''),
+            author: String(reply.user || 'Không rõ người gửi'),
+            userId: String(reply.userId || ''),
+            content: String(reply.text || ''),
+            createdAt: displayTimestamp(replyCreatedAt),
+            createdAtValue: replyCreatedAt,
+          }
+        }),
+      })
+    }
+  })
+  comments.value = [...imported.values()]
+}
+
+const commentThread = (comment: CommentItem) => ({
+  id: comment.id,
+  user: comment.author,
+  userId: comment.userId || '',
+  color: comment.color || 'rgba(255, 213, 79, 0.4)',
+  text: comment.content,
+  replies: comment.replies.map((reply) => ({
+    id: reply.id || `reply-${comment.id}-${reply.createdAtValue || Date.now()}`,
+    user: reply.author,
+    userId: reply.userId || '',
+    text: reply.content,
+    createdAt: reply.createdAtValue || Date.now(),
+  })),
+  resolved: comment.resolved,
+  createdAt: comment.createdAtValue || Date.now(),
+  resolvedAt: comment.resolved ? (comment.resolvedAt || Date.now()) : null,
+})
+
+const persistCommentMetadata = (comment: CommentItem) => {
+  if (!engineHandle) return
+  const state = engineHandle.getState()
+  const thread = commentThread(comment)
+  const update = (node: JSONContent): JSONContent => ({
+    ...node,
+    marks: node.marks?.map((mark) => (
+      mark.type === 'comment' && String(mark.attrs?.id || '') === comment.id
+        ? {
+            type: 'comment',
+            attrs: {
+              id: comment.id,
+              user: comment.author,
+              color: thread.color,
+              thread: JSON.stringify(thread),
+            },
+          }
+        : mark
+    )),
+    content: node.content?.map(update),
+  })
+  currentState = createEmptyDocumentState({ ...state, content: update(state.content) })
+  engineHandle.load(currentState)
+  contentSaved = false
+  emits('change', currentState)
+  emits('changed', currentState)
+}
 
 const normalizeLocale = (locale: string) => locale.toLowerCase().startsWith('vi') ? 'vi' : 'en'
 
@@ -784,6 +897,7 @@ onMounted(() => {
   editor = engineHandle.getCanvasEditor()
   offEngineChange = engineHandle.onChange((state) => {
     currentState = state
+    syncCommentsFromState(state)
     contentSaved = false
     emits('change', state)
     emits('changed', state)
@@ -795,6 +909,7 @@ onMounted(() => {
   if (!props.document?.content) {
     editor.command.executeSetValue((props.initialData || defaultSampleData) as any, { isSetCursor: true })
   }
+  syncCommentsFromState(currentState)
 
   editor.listener.rangeStyleChange = (payload) => {
     if (payload.type === 'text') {
@@ -828,12 +943,21 @@ onMounted(() => {
   emits('created', { editor, engine: engineHandle })
 })
 
-const updateStats = async () => {
+let statsTimer: ReturnType<typeof setTimeout> | null = null
+const updateStats = () => {
   if (!editor) return
-  wordCount.value = Number(await Promise.resolve(editor.command.getWordCount())) || 0
+  if (statsTimer) clearTimeout(statsTimer)
+  statsTimer = setTimeout(async () => {
+    if (!editor) return
+    wordCount.value = Number(await Promise.resolve(editor.command.getWordCount())) || 0
+  }, 250)
 }
 
 const destroyEngine = () => {
+  if (statsTimer) {
+    clearTimeout(statsTimer)
+    statsTimer = null
+  }
   offEngineChange?.()
   offEngineChange = null
   engineHandle?.destroy()
@@ -876,16 +1000,18 @@ const triggerExportDocx = async () => {
   if (!engineHandle && !editor) return
   try {
     const state = engineHandle?.getState() || currentState
-    const { blob } = await exportDocx(state)
+    const { blob, report } = await exportDocx(state, { mode: 'strict', profile: props.docxProfile })
+    if (report.issues.length) emits('compatibility-warning', report)
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = 'Tai_Lieu_Word.docx'
     link.click()
     setTimeout(() => URL.revokeObjectURL(url), 2000)
+    ioNotice.value = { tone: 'success', text: 'Đã tạo DOCX từ trạng thái tài liệu hiện tại.' }
   } catch (err) {
-    console.warn('Codecs exportDocx failed, using canvas fallback:', err)
-    editor?.command.executeExportDocx({ fileName: 'Tai_Lieu_Word.docx' })
+    ioNotice.value = { tone: 'error', text: err instanceof Error ? err.message : 'Không thể export DOCX.' }
+    emits('error', err)
   }
   showMenuDropdown.value = false
 }
@@ -1087,9 +1213,12 @@ const handleAddComment = () => {
   draftComment.value = {
     id: groupId,
     author: 'Bạn (Người đánh giá)',
+    userId: '',
+    color: 'rgba(255, 213, 79, 0.4)',
     avatar: '✍️',
     content: '',
     createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    createdAtValue: Date.now(),
     resolved: false,
     replies: []
   }
@@ -1102,6 +1231,7 @@ const submitDraftComment = () => {
   if (!draftComment.value || !draftComment.value.content.trim()) return
   comments.value.unshift({ ...draftComment.value })
   activeCommentId.value = draftComment.value.id
+  persistCommentMetadata(draftComment.value)
   draftComment.value = null
 }
 
@@ -1121,6 +1251,8 @@ const focusComment = (comment: CommentItem) => {
 
 const toggleResolveComment = (comment: CommentItem) => {
   comment.resolved = !comment.resolved
+  comment.resolvedAt = comment.resolved ? Date.now() : null
+  persistCommentMetadata(comment)
 }
 
 const deleteComment = (comment: CommentItem) => {
@@ -1141,11 +1273,15 @@ const addReply = (comment: CommentItem) => {
   if (!text || !text.trim()) return
   if (!comment.replies) comment.replies = []
   comment.replies.push({
+    id: `reply-${comment.id}-${Date.now()}`,
     author: 'Bạn',
+    userId: '',
     content: text.trim(),
-    createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+    createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    createdAtValue: Date.now(),
   })
   commentReplyInputs.value[comment.id] = ''
+  persistCommentMetadata(comment)
 }
 
 // View & Statusbar Actions
@@ -1195,20 +1331,36 @@ const onFileSelected = async (e: Event) => {
       }
     }
     reader.readAsText(file)
-  } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+  } else if (file.name.toLowerCase().endsWith('.docx')) {
     try {
-      const result = await importDocx(file)
+      const result = await importDocx(file, { mode: 'best-effort', profile: props.docxProfile })
       if (result.state && engineHandle) {
+        currentState = result.state
         engineHandle.load(result.state)
+        syncCommentsFromState(result.state)
+        documentTitle.value = file.name
+        if (result.report.issues.length) {
+          emits('compatibility-warning', result.report)
+          ioNotice.value = {
+            tone: 'warning',
+            text: `Đã import DOCX với ${result.report.issues.length} cảnh báo tương thích.`,
+          }
+        } else {
+          ioNotice.value = { tone: 'success', text: 'Đã import DOCX và giữ metadata thuộc profile hỗ trợ.' }
+        }
+        emits('imported', { file, state: result.state, report: result.report })
         return
       }
     } catch (err) {
-      console.warn('Codecs importDocx failed, falling back to canvas native importer:', err)
+      ioNotice.value = { tone: 'error', text: err instanceof Error ? err.message : 'Không thể import DOCX.' }
+      emits('error', err)
     }
-    editor?.command.executeImportDocx(file)
   } else {
-    editor?.command.executeImportDocx(file)
+    const error = new Error('Chỉ hỗ trợ file .docx OOXML hoặc .json. File .doc/.docs không được hỗ trợ.')
+    ioNotice.value = { tone: 'error', text: error.message }
+    emits('error', error)
   }
+  ;(e.target as HTMLInputElement).value = ''
 }
 
 const onImageSelected = (e: Event) => {
@@ -1234,6 +1386,7 @@ const setReadOnly = (readOnly: boolean) => {
 const setContent = (content: JSONContent) => {
   currentState = createEmptyDocumentState({ ...getState(), content })
   engineHandle?.load(currentState)
+  syncCommentsFromState(currentState)
 }
 const setPage = (page: Partial<KindyPageState>) => {
   currentState = createEmptyDocumentState({
@@ -1546,6 +1699,51 @@ defineExpose({
   overflow-x: auto;
   scrollbar-width: none;
   flex: 0 0 auto;
+}
+
+.document-io-notice {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 16px;
+  border-bottom: 1px solid transparent;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.document-io-notice.is-success {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.document-io-notice.is-warning {
+  color: #854d0e;
+  background: #fefce8;
+  border-color: #fde68a;
+}
+
+.document-io-notice.is-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.document-io-notice button {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  color: currentColor;
+  background: transparent;
+  cursor: pointer;
+}
+
+.document-io-notice button:hover {
+  background: rgb(15 23 42 / 8%);
 }
 
 .tb-btn {

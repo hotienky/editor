@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { createEmptyDocumentState } from '../../core/state'
+import { canvasDataToProseMirror, proseMirrorToCanvasData } from '../../engines/canvas/bridge'
 import { exportDocx, importDocx, inspectDocx, ooxmlToDocumentState } from '../docx'
 
 const pixelPng = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
@@ -447,6 +448,85 @@ describe('DOCX codec', () => {
     expect(JSON.parse(comment.attrs.thread)).toMatchObject({
       user: 'Lê Pháp chế', text: 'Kiểm tra lại thời hạn thanh toán.', resolved: true,
       replies: [expect.objectContaining({ user: 'Nguyễn Kinh doanh', text: 'Đã cập nhật theo phụ lục.' })],
+    })
+  })
+
+  it('keeps DOCX comments and paragraph geometry through a Canvas edit projection', async () => {
+    const thread = {
+      id: 'comment-roundtrip-canvas',
+      user: 'Phòng pháp chế',
+      userId: 'legal-team',
+      color: 'rgba(255, 213, 79, 0.4)',
+      text: 'Giữ nguyên căn lề và nội dung bình luận.',
+      replies: [{
+        id: 'reply-roundtrip-canvas',
+        user: 'Kinh doanh',
+        userId: 'sales-team',
+        text: 'Đã kiểm tra.',
+        createdAt: 1_700_000_100_000,
+      }],
+      resolved: false,
+      createdAt: 1_700_000_000_000,
+      resolvedAt: null,
+    }
+    const original = createEmptyDocumentState({
+      content: { type: 'doc', content: [{
+        type: 'paragraph',
+        attrs: {
+          textAlign: 'justify',
+          lineHeight: 1.25,
+          indent: 1.27,
+          margin: { top: '12', bottom: '6' },
+          docxLayout: {
+            leftTwip: 720,
+            rightTwip: 360,
+            firstLineTwip: 360,
+            keepNext: true,
+            tabStops: [{ alignment: 'center', position: 6.35, positionTwip: 3600, leader: 'dot' }],
+          },
+        },
+        content: [
+          {
+            type: 'text',
+            text: 'Điều khoản thanh toán',
+            marks: [{
+              type: 'comment',
+              attrs: { id: thread.id, user: thread.user, color: thread.color, thread: JSON.stringify(thread) },
+            }],
+          },
+          { type: 'docxTab', attrs: { alignment: 'center', position: 6.35, positionTwip: 3600, leader: 'dot', index: 0 } },
+          { type: 'text', text: 'Bên A' },
+        ],
+      }] },
+    })
+
+    const firstDocx = await exportDocx(original, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const imported = await importDocx(firstDocx.blob, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const afterCanvas = createEmptyDocumentState({
+      ...imported.state,
+      content: canvasDataToProseMirror(proseMirrorToCanvasData(imported.state.content, imported.state.page)),
+    })
+    const finalDocx = await exportDocx(afterCanvas, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const archive = unzipSync(new Uint8Array(await finalDocx.blob.arrayBuffer()))
+    const documentXml = strFromU8(archive['word/document.xml'])
+    const commentsXml = strFromU8(archive['word/comments.xml'])
+
+    expect(documentXml).toContain('commentRangeStart')
+    expect(documentXml).toContain('<w:tabs>')
+    expect(documentXml).toContain('<w:ind')
+    expect(documentXml).toContain('w:jc w:val="both"')
+    expect(commentsXml).toContain('Giữ nguyên căn lề và nội dung bình luận.')
+    expect(commentsXml).toContain('Đã kiểm tra.')
+
+    const finalImport = await importDocx(finalDocx.blob, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const [paragraph] = finalImport.state.content.content
+    const comment = paragraph.content[0].marks.find((mark) => mark.type === 'comment')
+    expect(paragraph.attrs).toMatchObject({ textAlign: 'justify', lineHeight: 1.25 })
+    expect(paragraph.attrs.docxLayout).toMatchObject({ leftTwip: 720, rightTwip: 360, firstLineTwip: 360, keepNext: true })
+    expect(JSON.parse(comment.attrs.thread)).toMatchObject({
+      user: 'Phòng pháp chế',
+      text: 'Giữ nguyên căn lề và nội dung bình luận.',
+      replies: [expect.objectContaining({ user: 'Kinh doanh', text: 'Đã kiểm tra.' })],
     })
   })
 })

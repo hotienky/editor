@@ -35,6 +35,7 @@ export class Position {
   private tablePagingPositionList: IElementPosition[]
   // 片段位置按页索引（命中与片段查找只扫当前页，避免全表线性扫描）
   private tablePagingPositionMap: Map<number, IElementPosition[]>
+  private pagePositionRangeMap: Map<number, { start: number; end: number }>
   private floatPositionList: IFloatPosition[]
 
   private draw: Draw
@@ -45,6 +46,7 @@ export class Position {
     this.positionList = []
     this.tablePagingPositionList = []
     this.tablePagingPositionMap = new Map()
+    this.pagePositionRangeMap = new Map()
     this.floatPositionList = []
     this.cursorPosition = null
     this.positionContext = {
@@ -675,6 +677,7 @@ export class Position {
     this.positionList = []
     this.tablePagingPositionList = []
     this.tablePagingPositionMap.clear()
+    this.pagePositionRangeMap.clear()
     // 按每页行计算（混排横竖版时每页宽度/边距可能不同，按页取值）
     const pageRowList = this.draw.getPageRowList()
     // 起始位置受页眉影响
@@ -688,6 +691,7 @@ export class Position {
       const startX = margins[3]
       // 每页页眉禁用状态不同，startY 需按页计算
       const startY = margins[0] + header.getExtraHeight(i)
+      const pageStartIndex = this.positionList.length
       this.computePageRowPosition({
         positionList: this.positionList,
         rowList,
@@ -698,6 +702,8 @@ export class Position {
         startY,
         innerWidth
       })
+      const pageEndIndex = this.positionList.length
+      this.pagePositionRangeMap.set(i, { start: pageStartIndex, end: pageEndIndex })
       startRowIndex += rowList.length
     }
   }
@@ -874,8 +880,17 @@ export class Position {
       })
       if (floatTopPosition) return floatTopPosition
     }
+
+    const pageRange =
+      isMainActive && !isTable && positionList === this.positionList
+        ? this.pagePositionRangeMap.get(positionNo)
+        : undefined
+
+    const searchStart = pageRange ? pageRange.start : 0
+    const searchEnd = pageRange ? pageRange.end : positionList.length
+
     // 普通元素
-    for (let j = 0; j < positionList.length; j++) {
+    for (let j = searchStart; j < searchEnd; j++) {
       const {
         index,
         pageNo,
@@ -1062,9 +1077,13 @@ export class Position {
       }
     }
     // 判断所属行是否存在元素
-    const matchedLastLetterList = isMainActive
-      ? positionList.filter(p => p.isLastLetter && p.pageNo === positionNo)
-      : positionList.filter(p => p.isLastLetter)
+    const matchedLastLetterList: IElementPosition[] = []
+    for (let j = searchStart; j < searchEnd; j++) {
+      const p = positionList[j]
+      if (p.isLastLetter && (!isMainActive || p.pageNo === positionNo)) {
+        matchedLastLetterList.push(p)
+      }
+    }
     // 分栏场景下，只保留与点击栏一致的行，避免误命中同 y 的其他栏
     const clickColumnIndex = this._getColumnIndexByX(x)
     const lastLetterList =
@@ -1081,11 +1100,14 @@ export class Position {
         coordinate: { leftTop, leftBottom }
       } = lastLetterList[j]
       if (y > leftTop[1] && y <= leftBottom[1]) {
-        const headIndex = isMainActive
-          ? positionList.findIndex(
-              p => p.pageNo === positionNo && p.rowNo === rowNo
-            )
-          : positionList.findIndex(p => p.rowNo === rowNo)
+        let headIndex = -1
+        for (let k = searchStart; k < searchEnd; k++) {
+          const p = positionList[k]
+          if ((!isMainActive || p.pageNo === positionNo) && p.rowNo === rowNo) {
+            headIndex = k
+            break
+          }
+        }
         const headElement = elementList[headIndex]
         const headPosition = positionList[headIndex]
         // 是否在头部
@@ -1166,7 +1188,7 @@ export class Position {
       // 正文上-循环首行
       const margins = this.draw.getMargins()
       if (y <= margins[0]) {
-        for (let p = 0; p < positionList.length; p++) {
+        for (let p = searchStart; p < searchEnd; p++) {
           const position = positionList[p]
           if (position.pageNo !== positionNo || position.rowNo !== 0) continue
           const { leftTop, rightTop } = position.coordinate
@@ -1186,7 +1208,7 @@ export class Position {
         const lastLetter = lastLetterList[lastLetterList.length - 1]
         if (lastLetter) {
           const lastRowNo = lastLetter.rowNo
-          for (let p = 0; p < positionList.length; p++) {
+          for (let p = searchStart; p < searchEnd; p++) {
             const position = positionList[p]
             if (
               position.pageNo !== positionNo ||
@@ -1212,7 +1234,7 @@ export class Position {
       return {
         index:
           lastLetterList[lastLetterList.length - 1]?.index ||
-          positionList.length - 1
+          (searchEnd > 0 ? positionList[searchEnd - 1]?.index ?? 0 : positionList.length - 1)
       }
     }
     return {

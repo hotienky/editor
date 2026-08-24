@@ -87,8 +87,16 @@ export class CanvasEngineAdapter implements EditorEngineAdapter {
       if (!isApplyingState) notify()
     })
 
-    editor.listener.contentChange = () => {
-      if (isApplyingState) return
+    let syncTimer: ReturnType<typeof setTimeout> | null = null
+    let hasPendingSync = false
+
+    const flushSync = () => {
+      if (syncTimer) {
+        clearTimeout(syncTimer)
+        syncTimer = null
+      }
+      if (!hasPendingSync || isApplyingState) return
+      hasPendingSync = false
       const { data } = editor.command.getValue()
       const editorOptions = editor.command.getOptions()
       const headerEnabled = !editorOptions.header.disabled || Boolean(data.header?.length)
@@ -108,7 +116,21 @@ export class CanvasEngineAdapter implements EditorEngineAdapter {
       documentController.replaceDocument(canvasDataToProseMirror(data), 'canvas')
     }
 
+    editor.listener.contentChange = () => {
+      if (isApplyingState) return
+      hasPendingSync = true
+      if (syncTimer) clearTimeout(syncTimer)
+      syncTimer = setTimeout(() => {
+        flushSync()
+      }, 150)
+    }
+
     const applyState = (state: KindyDocumentState) => {
+      if (syncTimer) {
+        clearTimeout(syncTimer)
+        syncTimer = null
+      }
+      hasPendingSync = false
       isApplyingState = true
       try {
         current = createEmptyDocumentState(state)
@@ -137,6 +159,7 @@ export class CanvasEngineAdapter implements EditorEngineAdapter {
       getDocumentController: () => documentController,
       load: applyState,
       getState: () => {
+        flushSync()
         const editorOptions = editor.command.getOptions()
         const margins = editorOptions.margins
         const centimeters = (pixels: number) => Math.round((pixels / CSS_PIXELS_PER_CENTIMETER) * 1000) / 1000
@@ -161,11 +184,16 @@ export class CanvasEngineAdapter implements EditorEngineAdapter {
         return createEmptyDocumentState(current)
       },
       setReadOnly(readOnly: boolean) {
+        flushSync()
         documentController.setEditable(!readOnly)
         editor.command.executeMode(readOnly ? EditorMode.READONLY : EditorMode.EDIT)
       },
       focus: () => editor.command.executeFocus(),
       destroy() {
+        if (syncTimer) {
+          clearTimeout(syncTimer)
+          syncTimer = null
+        }
         listeners.clear()
         documentController.destroy()
         editor.destroy()

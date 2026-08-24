@@ -121,6 +121,7 @@
           ref="editor"
           v-bind="resolvedEditorOptions"
           :locale="workspaceLocale"
+          :docx-profile="docxProfile"
           :dicts="editorDicts"
           :document="editorDocument"
           :page="editorPage"
@@ -196,7 +197,7 @@ const props = withDefaults(defineProps<{
   user?: { id?: string; name?: string; color?: string }
   showVersions?: boolean
   confirmCompatibility?: (report: CompatibilityReport) => boolean | Promise<boolean>
-}>(), { locale: 'vi-VN', theme: () => ({}), messages: () => ({}), ui: () => ({}), editorOptions: () => ({}), autosave: () => ({}), stateSyncDelay: 300, docxProfile: 'kindy-docx-v2.0', showVersions: true })
+}>(), { locale: 'vi-VN', theme: () => ({}), messages: () => ({}), ui: () => ({}), editorOptions: () => ({}), autosave: () => ({}), stateSyncDelay: 300, docxProfile: 'kindy-docx-v2.2', showVersions: true })
 
 const emit = defineEmits([
   'ready', 'opened', 'changed', 'save-started', 'saved', 'save-failed', 'created', 'imported',
