@@ -10,6 +10,7 @@
     :versions-open="versionsOpen"
     :theme="themeConfig"
     @close-panels="closePanels"
+    @viewport-change="onViewportChange"
   >
     <template #explorer>
       <KindyDocumentExplorer
@@ -66,7 +67,7 @@
               <span aria-hidden="true">⇧</span><span>{{ copy.importDocx }}</span>
             </button>
             <button v-if="previewVersionId" class="kindy-workspace-bar__button kindy-workspace-bar__button--primary" type="button" @click="exitVersionPreview">{{ copy.backToCurrent }}</button>
-            <button v-if="current && !previewVersionId" class="kindy-workspace-bar__button kindy-workspace-bar__button--primary" type="button" :disabled="!canEdit || workspaceStatus === 'saving'" @click="saveFromEditor">{{ copy.save }}</button>
+            <button v-if="current && !previewVersionId" class="kindy-workspace-bar__button kindy-workspace-bar__button--primary kindy-workspace-bar__save" type="button" :disabled="!canEdit || workspaceStatus === 'saving'" @click="saveFromEditor">{{ copy.save }}</button>
             <button v-if="current && canDownload" class="kindy-workspace-bar__button kindy-workspace-bar__desktop-action" type="button" :disabled="exporting" :aria-label="copy.downloadDocx" @click="downloadCurrentDocx">
               <span aria-hidden="true">W</span><span>{{ copy.downloadDocx }}</span>
             </button>
@@ -161,7 +162,7 @@
 
 <script setup lang="ts">
 import saveAs from 'file-saver'
-import { onClickOutside, useMediaQuery } from '@vueuse/core'
+import { onClickOutside } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onErrorCaptured, ref, shallowRef, useSlots, watch } from 'vue'
 import { exportDocx } from '../../codecs'
 import { DocumentLibraryClient, createDocumentLibrary } from '../../core/client'
@@ -213,7 +214,7 @@ watch(() => props.locale, (value) => { workspaceLocale.value = value })
 const copy = computed(() => resolveLibraryMessages(workspaceLocale.value, props.messages))
 const uiConfig = computed(() => resolveLibraryUi({ ...props.ui, showVersions: props.ui.showVersions ?? props.showVersions }))
 const themeConfig = computed(() => createLibraryTheme(props.theme))
-const wideViewport = useMediaQuery('(min-width: 1025px)')
+const wideViewport = ref(typeof window === 'undefined' ? true : window.innerWidth >= 1025)
 const explorerOpen = ref(wideViewport.value && uiConfig.value.showExplorer)
 const versionsOpen = ref(false)
 const current = shallowRef<DocumentSnapshot | null>(null)
@@ -249,6 +250,10 @@ watch(wideViewport, (isWide) => {
   explorerOpen.value = false
   versionsOpen.value = false
 })
+
+function onViewportChange(isWide: boolean) {
+  wideViewport.value = isWide
+}
 
 const activeDocumentId = computed(() => liveSnapshot.value?.document.id || current.value?.document.id || '')
 const canEdit = computed(() => Boolean(current.value) && !previewVersionId.value && current.value?.document.capabilities?.edit !== false)
@@ -743,7 +748,7 @@ defineExpose({
 /* Workspace status/action styles complement the layout shell. */
 .kindy-document-workspace { position: relative; width: 100%; height: 100%; min-width: 0; overflow: hidden; background: var(--kindy-library-bg); }
 .kindy-document-workspace :deep(.kindy-editor-container) { background: #f1f3f4; }
-.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar) { z-index: 6; border-bottom: 1px solid #dfe3e8; background: #fff; padding: 6px 10px; }
+.kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar) { z-index: 6; min-width: 0; border-bottom: 1px solid #dfe3e8; background: #fff; padding: 6px 10px; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container) { min-height: 42px; overflow: hidden; border-radius: 0; background: #fff; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container-contract .kindy-scrollable-container) { min-width: 0; margin: 0 8px 4px; border-radius: 19px; padding: 4px 8px !important; background: #edf2fa; }
 .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container-contract .kindy-scrollable-content) { background: transparent; box-shadow: none; padding: 0; }
@@ -808,6 +813,8 @@ defineExpose({
   .kindy-workspace-bar__desktop-action:not(.kindy-workspace-bar__button--primary),
   .kindy-workspace-bar__history { display: none; }
   .kindy-workspace-actions-menu { display: block; }
+  .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar) { padding: 4px 2px; }
+  .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container-contract .kindy-scrollable-container) { width: calc(100% - 8px); margin: 0 4px 4px; padding-inline: 4px !important; }
 }
 @media (max-width: 720px) {
   .kindy-workspace-bar { gap: 7px; padding-inline: 8px; }
@@ -818,6 +825,25 @@ defineExpose({
   .kindy-workspace-bar__history { display: none; }
   .kindy-workspace-actions-menu { display: block; }
   .kindy-document-workspace__state { padding: 24px 18px; }
+  .kindy-workspace-actions-menu__popover { max-width: calc(100vw - 16px); }
+  .kindy-document-workspace__preview { top: 6px; max-width: calc(100% - 20px); gap: 8px; border-radius: 10px; text-align: center; }
+}
+@media (max-width: 480px) {
+  .kindy-workspace-bar { min-height: 52px; gap: 5px; padding-inline: 6px; }
+  .kindy-workspace-bar__identity,
+  .kindy-workspace-bar__actions { gap: 5px; }
+  .kindy-workspace-bar__document strong { font-size: 12px; }
+  .kindy-workspace-bar__file-name { display: none; }
+  .kindy-workspace-bar__meta { min-height: 8px; }
+  .kindy-workspace-bar__button,
+  .kindy-workspace-bar__icon,
+  .kindy-workspace-actions-menu summary { min-height: 40px; }
+  .kindy-workspace-bar__icon,
+  .kindy-workspace-actions-menu summary { width: 40px; height: 40px; }
+  .kindy-workspace-bar__save { min-width: 48px; padding-inline: 9px; }
+  .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar) { padding-inline: 0; }
+  .kindy-document-workspace :deep(.kindy-editor-container .kindy-toolbar-container-contract .kindy-scrollable-container) { width: calc(100% - 4px); margin-inline: 2px; }
+  .kindy-document-workspace :deep(.kindy-editor-container .kindy-status-bar) { padding-inline: 3px; }
 }
 @media (prefers-reduced-motion: reduce) { .kindy-document-workspace__spinner, .kindy-workspace-bar__status.is-saving > span { animation: none; } }
 </style>

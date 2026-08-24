@@ -267,5 +267,21 @@ defineExpose({ refresh, clearSearch, openImportDialog, createBlank })
 .kindy-spinner { width: 18px; height: 18px; animation: kindy-spin .8s linear infinite; border: 2px solid var(--kindy-library-border); border-top-color: var(--kindy-library-primary); border-radius: 50%; }
 .kindy-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 @keyframes kindy-spin { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+  .kindy-explorer__header { gap: 10px; padding: 12px; }
+  .kindy-explorer__title-row { min-height: 40px; }
+  .kindy-explorer__title-row h2 { font-size: 17px; }
+  .kindy-icon-button { width: 40px; height: 40px; }
+  .kindy-button { min-height: 42px; padding-inline: 9px; }
+  .kindy-explorer__template { grid-template-columns: minmax(0, 1fr); }
+  .kindy-explorer__template .kindy-button { width: 100%; }
+  .kindy-field select, .kindy-explorer__search input { min-height: 42px; }
+  .kindy-explorer__documents { padding: 8px; }
+  .kindy-explorer__documents li > button { min-height: 58px; padding: 10px; }
+}
+
+@media (max-width: 360px) {
+  .kindy-explorer__primary-actions { grid-template-columns: minmax(0, 1fr); }
+}
 @media (prefers-reduced-motion: reduce) { .kindy-spinner { animation: none; } }
 </style>

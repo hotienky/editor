@@ -41,13 +41,13 @@
       :hide-menu-select="isContractEditor"
       @menu-change="menuChange"
     >
-            <template
-              v-for="item in options.toolbar?.menus"
-              :key="item"
-              #[`toolbar_${item}`]="slotProps"
-            >
-              <slot :name="`toolbar_${item}`" v-bind="slotProps" />
-            </template>
+      <template
+        v-for="item in options.toolbar?.menus"
+        :key="item"
+        #[`toolbar_${item}`]="slotProps"
+      >
+        <slot :name="`toolbar_${item}`" v-bind="slotProps" />
+      </template>
     </toolbar-classic>
     <div
       v-if="showToolbarActions"
@@ -272,12 +272,18 @@ const setContentFromCache = () => {
 <style lang="less" scoped>
 .kindy-toolbar-container {
   display: flex;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  align-items: stretch;
   justify-content: space-between;
   user-select: none;
   position: relative;
 }
 .kindy-toolbar-container-contract {
   display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: minmax(0, 1fr) auto;
   border-radius: 0;
 
@@ -287,10 +293,20 @@ const setContentFromCache = () => {
     align-items: center;
     gap: 2px;
     min-height: 28px;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
     padding: 0 8px;
     background: var(--kindy-color-white);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
     button {
+      flex: 0 0 auto;
       min-height: 26px;
       cursor: pointer;
       border: 0;
@@ -312,10 +328,12 @@ const setContentFromCache = () => {
   }
 
   :deep(.kindy-scrollable-container) {
+    width: auto;
     min-width: 0;
   }
 }
 .kindy-toolbar-actions {
+  flex: 0 0 auto;
   padding: 6px 10px;
   display: flex;
   align-items: center;
@@ -346,6 +364,32 @@ const setContentFromCache = () => {
     }
     .kindy-button-text {
       display: none;
+    }
+  }
+}
+
+@media screen and (max-width: 720px) {
+  .kindy-toolbar-container-contract {
+    grid-template-columns: minmax(0, 1fr);
+
+    .kindy-contract-menu-bar {
+      min-height: 36px;
+      padding-inline: 4px;
+
+      button {
+        min-height: 32px;
+        padding-inline: 10px;
+        font-size: 13px;
+      }
+    }
+
+    :deep(.kindy-scrollable-container) {
+      grid-column: 1;
+    }
+
+    .kindy-toolbar-actions {
+      grid-column: 1;
+      padding: 4px;
     }
   }
 }

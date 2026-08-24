@@ -217,4 +217,10 @@ const handleTabAction = (tab, data) => {
     margin-top: 8px;
   }
 }
+
+@media screen and (max-width: 640px) {
+  .kindy-tabs-sidebar {
+    display: none;
+  }
+}
 </style>

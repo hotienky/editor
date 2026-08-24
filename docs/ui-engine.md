@@ -73,6 +73,37 @@ Explorer mặc định mở trên desktop. Panel Versions luôn đóng khi khở
 
 Khi vùng editor hẹp, topbar luôn giữ action chính `Lưu` (hoặc `Import DOCX` ở empty state) và gom Import/Tải/In/Phiên bản vào menu **Thao tác tài liệu**. Không action nào chỉ bị ẩn bằng CSS mà không có đường truy cập thay thế. Toolbar chỉnh sửa cuộn ngang độc lập, có nút Previous/Next ở hai mép và hỗ trợ wheel/trackpad; status bar cuộn ngang ở mobile để giữ bộ đếm trang và zoom.
 
+### Responsive và embed
+
+Responsive được tính theo **chiều rộng thực của workspace**, không chỉ theo
+`window.innerWidth`. Vì vậy Library vẫn chuyển đúng sang drawer khi được nhúng
+trong một cột hẹp của CRM/ERP trên màn hình desktop.
+
+| Vùng hiển thị | Hành vi |
+|---|---|
+| `> 1024px` | Explorer nằm cạnh editor; Versions chỉ xuất hiện khi người dùng mở. |
+| `641–1024px` | Hai panel là drawer; toolbar và menu contract cuộn ngang; trang giấy tự fit nếu chiều rộng vật lý lớn hơn viewport. |
+| `≤ 640px` | Drawer chiếm toàn bộ chiều rộng; document tabs ẩn; topbar chỉ giữ tên, trạng thái, Lưu và menu thao tác. |
+| `≤ 480px` | Touch target tối thiểu 40px, filename phụ được ẩn, status bar chỉ giữ trang và zoom thiết yếu. |
+
+Auto-fit chỉ thay đổi `page.zoomLevel`; kích thước logic của A4/A3/A5 và toàn bộ
+tọa độ ProseMirror không đổi. Khi viewport đổi kích thước trong chế độ auto-fit,
+zoom được tính lại và bị chặn trong `20–100%`. Nếu người dùng chọn zoom thủ công,
+`page.autoWidth` tắt và editor tôn trọng mức zoom đó. Trên mobile, viewport trang
+không tạo horizontal overflow ở document root; toolbar vẫn có vùng cuộn riêng.
+
+Ứng dụng chủ cần đặt `min-width: 0` cho mọi grid/flex ancestor và cung cấp chiều
+cao xác định:
+
+```css
+.crm-document-column {
+  min-width: 0;
+  height: 100dvh;
+}
+```
+
+Các breakpoint không thay đổi document state và không ảnh hưởng DOCX export.
+
 ## Keyboard và ruler
 
 Preset contract giữ hành vi Word/Google Docs: `Enter` tạo paragraph,

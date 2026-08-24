@@ -237,6 +237,7 @@ const scrollContainer = ref(null)
 const pageSurface = ref(null)
 const pageSurfaceLogicalHeight = ref(0)
 let pageSurfaceObserver = null
+let responsivePageObserver = null
 let pageSurfaceSyncFrame = null
 
 const syncPageSurfaceHeight = () => {
@@ -266,6 +267,34 @@ const schedulePageSurfaceSync = () => {
   })
 }
 
+const syncResponsivePageWidth = () => {
+  const scroller = scrollContainer.value
+  const surface = pageSurface.value
+  if (!scroller || !surface || pageOptions.value?.layout !== 'page') return
+
+  const viewportWidth = scroller.clientWidth
+  const logicalPageWidth = surface.offsetWidth
+  if (!viewportWidth || !logicalPageWidth) return
+
+  const padding = viewportWidth <= 480 ? 12 : viewportWidth <= 768 ? 20 : 50
+  const needsFit = viewportWidth < logicalPageWidth + padding * 2
+  const shouldMaintainFit = pageOptions.value.autoWidth === true
+  const shouldStartFit = needsFit && Number(pageOptions.value.zoomLevel || 100) === 100
+  if (!shouldMaintainFit && !shouldStartFit) return
+
+  const nextZoom = Math.max(
+    20,
+    Math.min(100, Math.floor(((viewportWidth - padding * 2) / logicalPageWidth) * 100)),
+  )
+  if (Number(pageOptions.value.zoomLevel) !== nextZoom) {
+    pageOptions.value.zoomLevel = nextZoom
+  }
+  pageOptions.value.autoWidth = true
+  void nextTick(() => {
+    if (scrollContainer.value) scrollContainer.value.scrollLeft = 0
+  })
+}
+
 watch(
   pageSurface,
   (surface) => {
@@ -273,10 +302,31 @@ watch(
     pageSurfaceObserver = null
     if (!surface) return
     if (typeof ResizeObserver !== 'undefined') {
-      pageSurfaceObserver = new ResizeObserver(syncPageSurfaceHeight)
+      pageSurfaceObserver = new ResizeObserver(() => {
+        syncPageSurfaceHeight()
+        syncResponsivePageWidth()
+      })
       pageSurfaceObserver.observe(surface)
     }
-    nextTick(syncPageSurfaceHeight)
+    nextTick(() => {
+      syncPageSurfaceHeight()
+      syncResponsivePageWidth()
+    })
+  },
+  { immediate: true },
+)
+
+watch(
+  scrollContainer,
+  (scroller) => {
+    responsivePageObserver?.disconnect()
+    responsivePageObserver = null
+    if (!scroller) return
+    if (typeof ResizeObserver !== 'undefined') {
+      responsivePageObserver = new ResizeObserver(syncResponsivePageWidth)
+      responsivePageObserver.observe(scroller)
+    }
+    nextTick(syncResponsivePageWidth)
   },
   { immediate: true },
 )
@@ -284,6 +334,8 @@ watch(
 onBeforeUnmount(() => {
   pageSurfaceObserver?.disconnect()
   pageSurfaceObserver = null
+  responsivePageObserver?.disconnect()
+  responsivePageObserver = null
   if (pageSurfaceSyncFrame) cancelAnimationFrame(pageSurfaceSyncFrame)
   pageSurfaceSyncFrame = null
 })
@@ -497,7 +549,10 @@ watch(
     pageOptions.value?.size?.height,
     pageOptions.value?.orientation,
   ],
-  () => nextTick(schedulePageSurfaceSync),
+  () => nextTick(() => {
+    schedulePageSurfaceSync()
+    syncResponsivePageWidth()
+  }),
 )
 
 const activateHeaderMode = (e) => {
@@ -614,7 +669,10 @@ const currentImageIndex = $computed({
 /* ═══════════════════════════════════════════════════════════════════════════ */
 .kindy-zoomable-container {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   position: relative;
   box-sizing: border-box;
   background-color: var(--kindy-container-background, #e8eaed);
@@ -788,25 +846,33 @@ const currentImageIndex = $computed({
 
 .kindy-gdocs-selection-add-comment-btn {
   position: absolute;
-  right: -42px;
-  width: 32px;
-  height: 32px;
+  right: -34px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #ffffff;
   color: #1a73e8;
-  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.15), 0 1px 2px rgba(60, 64, 67, 0.3);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 6px rgba(60, 64, 67, 0.15), 0 1px 2px rgba(60, 64, 67, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 13px;
   cursor: pointer;
   z-index: 50;
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s ease;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), background 0.15s ease, box-shadow 0.15s ease;
+
+  :deep(.kindy-icon),
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 
   &:hover {
-    transform: scale(1.1);
-    background: #f8fafc;
+    transform: scale(1.12);
+    background: #f0f6ff;
     color: #1557b0;
+    box-shadow: 0 3px 8px rgba(26, 115, 232, 0.25);
   }
 }
 
@@ -1074,6 +1140,35 @@ const currentImageIndex = $computed({
       background-color: var(--kindy-color-white) !important;
       border: solid 1px var(--kindy-primary-color);
     }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .kindy-zoomable-container {
+    padding: 18px 0 24px;
+  }
+
+  .kindy-page-editor-wrap {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 3px 8px rgba(0, 0, 0, 0.07);
+  }
+
+  .kindy-main-floating-actions {
+    right: 12px;
+    bottom: 44px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .kindy-zoomable-container {
+    padding: 10px 0 18px;
+  }
+
+  .kindy-main-floating-actions {
+    right: 8px;
+    bottom: 42px;
+    gap: 6px;
   }
 }
 

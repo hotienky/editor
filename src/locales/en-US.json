@@ -1006,7 +1006,10 @@
     "marginRightValue": "Right margin: {value} cm",
     "firstLineIndentValue": "First line indent: {value} cm",
     "leftIndentValue": "Left indent: {value} cm",
-    "rightIndentValue": "Right indent: {value} cm"
+    "rightIndentValue": "Right indent: {value} cm",
+    "addTabStopTooltip": "Click the ruler to add a tab stop",
+    "tabStopTooltip": "Tab stop {value} cm; drag to move, double-click to remove",
+    "tabStopValue": "Tab stop: {value} cm"
   },
   "tabs": {
     "title": "DOCUMENT TABS ({count})",

@@ -204,16 +204,31 @@ async function downloadSampleDocx() {
 </script>
 
 <style>
-html, body, #app { width: 100%; height: 100%; margin: 0; }
-body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-.demo-shell { display: grid; grid-template-rows: 54px minmax(0, 1fr); height: 100%; }
-.demo-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px; border-bottom: 1px solid #dbe3ec; background: #0f172a; color: #fff; }
+html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body { min-width: 280px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.demo-shell { display: grid; grid-template-rows: auto minmax(0, 1fr); width: 100%; height: 100%; min-width: 0; }
+.demo-header { display: flex; min-width: 0; min-height: 54px; box-sizing: border-box; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 16px; border-bottom: 1px solid #dbe3ec; background: #0f172a; color: #fff; }
 .demo-header > div:first-child { display: grid; gap: 2px; }
+.demo-header strong, .demo-header span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .demo-header span { font-size: 12px; color: #a5b4c7; }
-.demo-actions { display: flex; align-items: center; gap: 12px; }
+.demo-actions { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 12px; }
 .demo-actions button { cursor: pointer; border: 1px solid #38bdf8; border-radius: 6px; background: #0284c7; padding: 7px 11px; color: #fff; font-weight: 600; }
 #demo-status.status-success { color: #86efac; }
 #demo-status.status-pending { color: #fde68a; }
 #demo-status.status-warning { color: #fdba74; }
 #demo-status.status-error { color: #fca5a5; }
+@media (max-width: 820px) {
+  .demo-header { min-height: 48px; padding: 6px 10px; }
+  .demo-header > div:first-child span,
+  #benchmark-result,
+  #download-sample-docx { display: none; }
+  .demo-actions { flex: 0 1 auto; }
+  #demo-status { max-width: 32vw; }
+}
+@media (max-width: 480px) {
+  .demo-header { gap: 8px; padding-inline: 8px; }
+  .demo-header > div:first-child { min-width: 0; }
+  .demo-header strong { font-size: 13px; }
+  #demo-status { max-width: 34vw; font-size: 10px; }
+}
 </style>

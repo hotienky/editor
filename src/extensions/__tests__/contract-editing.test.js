@@ -241,6 +241,42 @@ describe('Contract editing transactions', () => {
     editor.destroy()
   })
 
+  it('uses paragraph tab stops before falling back to paragraph indentation', () => {
+    const editor = new Editor({
+      extensions: [StarterKit, DocxParagraphLayout, DocxTab, Indent],
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          attrs: {
+            docxLayout: {
+              tabStops: [
+                { alignment: 'left', positionTwip: 1800, position: 3.17 },
+                { alignment: 'center', positionTwip: 7560, position: 13.33 },
+              ],
+            },
+          },
+          content: [{ type: 'text', text: 'Chữ ký' }],
+        }],
+      },
+    })
+
+    editor.commands.setTextSelection(1)
+    const firstTab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+    editor.view.dom.dispatchEvent(firstTab)
+    const secondTab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })
+    editor.view.dom.dispatchEvent(secondTab)
+
+    expect(firstTab.defaultPrevented).toBe(true)
+    expect(secondTab.defaultPrevented).toBe(true)
+    expect(nodesByType(editor, 'docxTab').map(({ node }) => node.attrs)).toMatchObject([
+      { alignment: 'left', positionTwip: 1800, index: 0 },
+      { alignment: 'center', positionTwip: 7560, index: 1 },
+    ])
+    expect(editor.getJSON().content[0].attrs.indent).toBeNull()
+    editor.destroy()
+  })
+
   it('edits lists, tables, images, DOCX tabs and manual page breaks without replacing the document', () => {
     const editor = new Editor({
       extensions: [StarterKit, Table, TableRow, TableCell, TableHeader, Image, PageBreak, DocxParagraphLayout, DocxTab],

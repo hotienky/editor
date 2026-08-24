@@ -319,11 +319,21 @@ const changeMenu = async (menu) => {
 <style lang="less" scoped>
 .kindy-ribbon-menu {
   width: 100%;
+  min-width: 0;
 }
 .kindy-ribbon-tabs {
   padding: 10px 10px 0;
   display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+
+  &::-webkit-scrollbar { display: none; }
+
   &-item {
+    flex: 0 0 auto;
     font-size: var(--kindy-font-size-small);
     margin-right: 25px;
     cursor: pointer;
@@ -364,11 +374,14 @@ const changeMenu = async (menu) => {
 }
 .kindy-scrollable-container {
   width: 100%;
+  min-width: 0;
   padding: 10px;
   box-sizing: border-box;
 }
 .kindy-ribbon-container {
   display: flex;
+  width: max-content;
+  min-width: max-content;
   height: 56px;
   flex-shrink: 0;
   .kindy-virtual-group {
@@ -395,6 +408,20 @@ const changeMenu = async (menu) => {
         margin-bottom: 5px;
       }
     }
+  }
+}
+
+@media screen and (max-width: 720px) {
+  .kindy-ribbon-tabs {
+    padding: 6px 6px 0;
+  }
+
+  .kindy-scrollable-container {
+    padding: 6px;
+  }
+
+  .kindy-ribbon-container {
+    .kindy-virtual-group { padding-inline: 10px; }
   }
 }
 </style>

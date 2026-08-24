@@ -34,6 +34,22 @@ test.describe('Document Library workspace', () => {
     await expect(actionMenu.getByRole('menuitem', { name: 'Tải DOCX' })).toBeVisible()
     await expect(actionMenu.getByRole('menuitem', { name: 'In / PDF' })).toBeVisible()
     await expect(actionMenu.getByRole('menuitem', { name: 'Mở lịch sử phiên bản' })).toBeVisible()
+    await actionMenuTrigger.click()
+
+    const responsivePage = page.locator('.kindy-page-editor-wrap')
+    await expect.poll(() => responsivePage.evaluate((element) => {
+      const bounds = element.getBoundingClientRect()
+      return bounds.left >= 0 && bounds.right <= window.innerWidth
+    })).toBe(true)
+    await expect(page.locator('.kindy-tabs-sidebar')).toBeHidden()
+
+    await page.getByRole('button', { name: 'Mở danh sách tài liệu' }).click()
+    const explorerDrawer = page.locator('.kindy-library-shell__explorer')
+    await expect(explorerDrawer).toHaveClass(/is-open/)
+    await expect.poll(() => explorerDrawer.evaluate((element) => {
+      const bounds = element.getBoundingClientRect()
+      return Math.round(bounds.width)
+    })).toBe(390)
 
     const rootOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(rootOverflow).toBe(0)
@@ -107,6 +123,39 @@ test.describe('Document Library workspace', () => {
     expect(zoomedIn.shellHeight).toBeCloseTo(zoomedIn.visualHeight, 0)
     expect(zoomedIn.horizontalOverflow).toBeLessThanOrEqual(0)
     expect(zoomedIn.overlayOverflow).toBe(false)
+  })
+
+  test('shows the contract menu and ruler and keeps Word-compatible break shortcuts', async ({ page }) => {
+    await page.goto('./')
+    await page.getByRole('button', { name: /Hợp đồng nguyên tắc/i }).click()
+
+    const contractMenu = page.getByRole('navigation', { name: 'Thanh công cụ' })
+    await expect(contractMenu.getByRole('button', { name: 'Định dạng', exact: true })).toBeVisible()
+    await expect(contractMenu.getByRole('button', { name: 'Chèn', exact: true })).toBeVisible()
+    await expect(contractMenu.getByRole('button', { name: 'Bảng', exact: true })).toBeVisible()
+    await expect(contractMenu.getByRole('button', { name: 'Trang', exact: true })).toBeVisible()
+    const ruler = page.getByRole('toolbar', { name: 'Thước ngang' })
+    await expect(ruler).toBeVisible()
+    expect(await ruler.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(26)
+    expect(await ruler.locator('.kindy-ruler-ticks').evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(20)
+
+    await contractMenu.getByRole('button', { name: 'Trang', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Ngắt trang', exact: true })).toBeVisible()
+    await contractMenu.getByRole('button', { name: 'Định dạng', exact: true }).click()
+
+    const editor = page.locator('.kindy-editor')
+    await editor.click()
+    await editor.press('ControlOrMeta+A')
+    await editor.type('Dòng thứ nhất')
+    await editor.press('Shift+Enter')
+    await editor.type('Dòng thứ hai')
+    await expect(editor.locator('br:not(.ProseMirror-trailingBreak)')).toHaveCount(1)
+    await expect(editor.locator('.kindy-page-break')).toHaveCount(0)
+
+    await editor.press('ControlOrMeta+Enter')
+    await editor.type('Trang tiếp theo')
+    await expect(editor.locator('.kindy-page-break')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: /Trang \d+ trên [2-9]\d*/ })).toBeVisible()
   })
 
   test('imports the real contract header image and exposes page navigation', async ({ page }, testInfo) => {

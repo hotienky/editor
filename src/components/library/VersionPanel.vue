@@ -155,4 +155,12 @@ defineExpose({ refresh })
 .kindy-versions__feedback button { cursor: pointer; border: 0; background: transparent; color: var(--kindy-library-primary); font-weight: 700; }
 .kindy-versions__spinner { width: 18px; height: 18px; animation: kindy-versions-spin .8s linear infinite; border: 2px solid var(--kindy-library-border); border-top-color: var(--kindy-library-primary); border-radius: 50%; }
 @keyframes kindy-versions-spin { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+  .kindy-versions__header { padding: 12px; }
+  .kindy-versions__header h2 { font-size: 17px; }
+  .kindy-versions__header-actions button { width: 40px; height: 40px; }
+  .kindy-versions__list { padding: 12px 10px 20px 16px; }
+  .kindy-versions__card { padding: 11px; }
+  .kindy-versions__actions button { min-height: 38px; flex: 1 1 0; }
+}
 </style>

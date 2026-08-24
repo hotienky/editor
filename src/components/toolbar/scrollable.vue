@@ -12,8 +12,11 @@
     <div
       ref="contentRef"
       class="kindy-scrollable-content"
+      tabindex="0"
       @scroll.passive="checkScrollPosition"
       @wheel.passive="wheelScroll"
+      @keydown.left.prevent="scrollLeft"
+      @keydown.right.prevent="scrollRight"
     >
       <slot />
     </div>
@@ -30,7 +33,7 @@
 </template>
 
 <script setup>
-import { nextTick, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 const wraperRef = ref(null)
 const contentRef = ref(null)
 const hidePrev = ref(true)
@@ -57,10 +60,12 @@ const scrollRight = () => {
 }
 
 // 监听父元素大小变化
-useResizeObserver(wraperRef, async () => {
+useResizeObserver([wraperRef, contentRef], async () => {
   await nextTick()
   checkScrollPosition()
 })
+
+onMounted(() => void nextTick(checkScrollPosition))
 
 // 支持鼠标滚轮滚动
 const wheelScroll = (e) => {
@@ -85,6 +90,9 @@ defineExpose({
 <style lang="less" scoped>
 .kindy-scrollable-container {
   width: 100%;
+  min-width: 0;
+  flex: 1 1 auto;
+  box-sizing: border-box;
   overflow: hidden;
   position: relative;
   .kindy-scrollable-control {
@@ -156,14 +164,37 @@ defineExpose({
     }
   }
   .kindy-scrollable-content {
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
     overscroll-behavior-x: contain;
     scroll-behavior: smooth;
     flex: 1;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+
+    &:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--kindy-primary-color) 45%, transparent);
+      outline-offset: -2px;
+    }
+
     &::-webkit-scrollbar {
       display: none;
+    }
+  }
+}
+
+@media screen and (max-width: 720px) {
+  .kindy-scrollable-container {
+    .kindy-scrollable-control {
+      width: 32px;
+      height: 32px;
+
+      &.scrollable-left { left: 3px; }
+      &.scrollable-right { right: 3px; }
     }
   }
 }
@@ -209,6 +240,22 @@ defineExpose({
     }
     &.scrollable-right {
       right: 25px !important;
+    }
+  }
+}
+
+@media screen and (max-width: 720px) {
+  .kindy-skin-modern {
+    &.toolbar-ribbon,
+    &.toolbar-classic {
+      .kindy-scrollable-container {
+        padding-inline: 4px !important;
+      }
+    }
+
+    .kindy-scrollable-control {
+      &.scrollable-left { left: 8px !important; }
+      &.scrollable-right { right: 8px !important; }
     }
   }
 }

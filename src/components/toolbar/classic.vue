@@ -294,10 +294,15 @@ const toggoleMenu = async (menu) => {
 
 <style lang="less" scoped>
 .kindy-scrollable-container {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   padding: 6px 10px;
 }
 .kindy-classic-menu {
   display: inline-flex;
+  width: max-content;
+  min-width: max-content;
   align-items: center;
   &:last-child {
     margin-right: 10px;
@@ -330,6 +335,31 @@ const toggoleMenu = async (menu) => {
     &-row {
       display: flex;
     }
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .kindy-scrollable-container {
+    padding-inline: 6px;
+  }
+
+  .kindy-classic-menu {
+    .kindy-virtual-group {
+      &:not(:last-child),
+      &.is-slot {
+        &::before { margin-inline: 6px; }
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .kindy-scrollable-container {
+    padding: 4px;
+  }
+
+  .kindy-classic-menu {
+    &:last-child { margin-right: 4px; }
   }
 }
 </style>

@@ -1006,7 +1006,10 @@
     "marginRightValue": "Lề phải: {value} cm",
     "firstLineIndentValue": "Thụt lề dòng đầu: {value} cm",
     "leftIndentValue": "Thụt lề trái đoạn: {value} cm",
-    "rightIndentValue": "Thụt lề phải đoạn: {value} cm"
+    "rightIndentValue": "Thụt lề phải đoạn: {value} cm",
+    "addTabStopTooltip": "Bấm trên thước để thêm điểm tab",
+    "tabStopTooltip": "Điểm tab {value} cm; kéo để di chuyển, bấm đúp để xóa",
+    "tabStopValue": "Điểm tab: {value} cm"
   },
   "tabs": {
     "title": "TABS TÀI LIỆU ({count})",

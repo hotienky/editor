@@ -66,7 +66,7 @@
         trigger="click"
       >
         <t-button
-          class="kindy-status-bar-button auto-width"
+          class="kindy-status-bar-button auto-width kindy-layout-button"
           variant="text"
           size="small"
         >
@@ -183,7 +183,7 @@
       <!-- 请遵循开源协议，勿删除或隐藏版权信息！ -->
       <t-button
         v-if="statusbarOptions.showBranding"
-        class="kindy-status-bar-button auto-width"
+        class="kindy-status-bar-button auto-width kindy-branding-button"
         variant="text"
         size="small"
         @click="about = !about"
@@ -388,7 +388,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, inject, shallowRef } from 'vue'
+import { ref, computed, watch, inject, nextTick, shallowRef } from 'vue'
 import { getShortcut } from '@/utils/shortcut'
 
 const { locale } = useI18n()
@@ -635,7 +635,7 @@ const zoomReset = () => {
 }
 
 // 最佳宽度
-const autoWidth = (auto = true, padding = 50) => {
+const autoWidth = (auto = true, padding = 50, maximumZoom = 100) => {
   if (auto && page.value.autoWidth) {
     zoomReset()
     return
@@ -647,11 +647,16 @@ const autoWidth = (auto = true, padding = 50) => {
     const pageEl = editorEl?.querySelector('.kindy-page-editor-wrap')
     const editorWidth = editorEl?.clientWidth || 0
     const pageWidth = pageEl?.clientWidth || 0
-    page.value.zoomLevel = Math.floor(
-      Number((editorWidth - padding * 2) / pageWidth) * 100,
-    )
+    if (!editorWidth || !pageWidth) return
+    page.value.zoomLevel = Math.max(20, Math.min(
+      maximumZoom,
+      Math.floor(Number((editorWidth - padding * 2) / pageWidth) * 100),
+    ))
 
     page.value.autoWidth = true
+    void nextTick(() => {
+      if (editorEl) editorEl.scrollLeft = 0
+    })
   } catch (e) {
     page.value.autoWidth = false
     useMessage('error', {
@@ -665,7 +670,7 @@ watch(
   () => page.value.showToc,
   () => {
     if (page.value.autoWidth) {
-      autoWidth()
+      autoWidth(false)
     }
   },
 )
@@ -715,6 +720,8 @@ watch(
 
 <style lang="less" scoped>
 .kindy-status-bar {
+  min-width: 0;
+  box-sizing: border-box;
   padding: 6px;
   display: flex;
   justify-content: space-between;
@@ -722,8 +729,12 @@ watch(
   border-top: solid 1px var(--kindy-border-color);
   gap: 8px;
 
-  @media screen and (max-width: 640px) {
+  @media screen and (max-width: 760px) {
     overflow-x: auto;
+    justify-content: flex-start;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
     &::-webkit-scrollbar {
       display: none;
     }
@@ -788,12 +799,14 @@ watch(
     display: flex;
     flex: 0 0 auto;
     align-items: center;
+    min-width: max-content;
   }
 
   &-right {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
+    min-width: max-content;
     .kindy-zoom-level-bar {
       width: 240px;
       display: flex;
@@ -807,6 +820,21 @@ watch(
         display: none !important;
       }
     }
+  }
+
+  @media screen and (max-width: 560px) {
+    padding-inline: 3px;
+    gap: 2px;
+
+    .kindy-status-bar-split { margin-inline: 5px; }
+    .kindy-branding-button,
+    .word-count { display: none; }
+    .kindy-status-bar-button { margin-inline: 2px; }
+  }
+
+  @media screen and (max-width: 390px) {
+    .kindy-layout-button { display: none; }
+    .kindy-page-status-button { min-width: 68px; padding-inline: 4px; }
   }
 }
 .kindy-page-jump {

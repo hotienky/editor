@@ -1,6 +1,9 @@
 import { Extension, Node, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
-import { getDocxLayoutCentimeters } from '@/utils/ooxml-units'
+import {
+  getDocxLayoutCentimeters,
+  twipsToCentimeters,
+} from '@/utils/ooxml-units'
 
 const CM_TO_PX = 96 / 2.54
 const layoutPluginKey = new PluginKey('docxParagraphLayout')
@@ -152,6 +155,7 @@ export const DocxTab = Node.create({
 
 export const DocxParagraphLayout = Extension.create({
   name: 'docxParagraphLayout',
+  priority: 1100,
   addCommands() {
     return {
       setDocxParagraphLayout:
@@ -205,6 +209,35 @@ export const DocxParagraphLayout = Extension.create({
           if (dispatch) dispatch(tr.scrollIntoView())
           return true
         },
+      insertDocxTab:
+        () =>
+        ({ state, dispatch }) => {
+          const { selection, schema } = state
+          if (!selection.empty || !selection.$from.parent.isTextblock) return false
+          const layout = selection.$from.parent.attrs.docxLayout
+          const stops = Array.isArray(layout?.tabStops) ? layout.tabStops : []
+          if (!stops.length || !schema.nodes.docxTab) return false
+
+          let tabIndex = 0
+          selection.$from.parent.forEach((node, offset) => {
+            if (offset >= selection.$from.parentOffset) return
+            if (node.type.name === 'docxTab') tabIndex += 1
+          })
+          const stop = stops[Math.min(tabIndex, stops.length - 1)]
+          const positionTwip = Number(stop.positionTwip)
+          const position = Number.isFinite(positionTwip)
+            ? twipsToCentimeters(positionTwip)
+            : Number(stop.position) || 1.27
+          const tab = schema.nodes.docxTab.create({
+            alignment: stop.alignment || 'left',
+            position,
+            positionTwip: Number.isFinite(positionTwip) ? positionTwip : null,
+            leader: stop.leader || 'none',
+            index: tabIndex,
+          })
+          if (dispatch) dispatch(state.tr.replaceSelectionWith(tab).scrollIntoView())
+          return true
+        },
     }
   },
   addGlobalAttributes() {
@@ -228,5 +261,10 @@ export const DocxParagraphLayout = Extension.create({
   },
   addProseMirrorPlugins() {
     return [createLayoutPlugin()]
+  },
+  addKeyboardShortcuts() {
+    return {
+      Tab: () => this.editor.commands.insertDocxTab(),
+    }
   },
 })

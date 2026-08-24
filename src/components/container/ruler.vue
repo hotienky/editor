@@ -23,7 +23,12 @@
         <div class="margin-resize-handle"></div>
       </div>
 
-      <div class="kindy-ruler-ticks" :style="{ width: contentWidth + 'px' }">
+      <div
+        class="kindy-ruler-ticks"
+        :style="{ width: contentWidth + 'px' }"
+        :title="t('ruler.addTabStopTooltip')"
+        @click="addTabStop"
+      >
         <div
           v-for="cm in totalCms"
           :key="cm"
@@ -37,6 +42,19 @@
           <div class="tick-line tick-sub" :style="{ left: pxPerCm * 0.75 + 'px' }"></div>
         </div>
       </div>
+
+      <button
+        v-for="(stop, index) in tabStops"
+        :key="`${stop.positionTwip}-${index}`"
+        type="button"
+        class="kindy-ruler-tab-stop"
+        :style="{ left: leftMarginWidth + stop.position * pxPerCm + 'px' }"
+        :title="t('ruler.tabStopTooltip', { value: stop.position.toFixed(1) })"
+        @mousedown.stop.prevent="startTabStopDrag(index, $event)"
+        @dblclick.stop.prevent="removeTabStop(index)"
+      >
+        <span aria-hidden="true"></span>
+      </button>
 
       <div
         class="kindy-ruler-margin right-margin"
@@ -83,6 +101,7 @@ import { computed, inject, onUnmounted, ref, watch } from 'vue'
 import {
   centimetersToTwips,
   getDocxLayoutCentimeters,
+  twipsToCentimeters,
 } from '@/utils/ooxml-units'
 
 const pageOptions = inject('page')
@@ -115,6 +134,7 @@ const contentWidth = computed(() => availableContentCm.value * pxPerCm.value)
 const firstLineOffsetCm = ref(0)
 const leftIndentCm = ref(0)
 const rightIndentCm = ref(0)
+const tabStops = ref([])
 const firstLinePositionCm = computed(() => leftIndentCm.value + firstLineOffsetCm.value)
 const firstLinePositionPx = computed(() => firstLinePositionCm.value * pxPerCm.value)
 const leftIndentPx = computed(() => leftIndentCm.value * pxPerCm.value)
@@ -125,6 +145,7 @@ const activeGuideX = ref(0)
 const guideTooltipText = ref('')
 let startX = 0
 let startVal = 0
+let activeTabStopIndex = -1
 
 const roundCm = (value) => Math.round(value * 10) / 10
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
@@ -142,6 +163,18 @@ const syncParagraphLayout = () => {
   rightIndentCm.value = getDocxLayoutCentimeters(layout, 'right')
   firstLineOffsetCm.value = getDocxLayoutCentimeters(layout, 'firstLine')
     - getDocxLayoutCentimeters(layout, 'hanging')
+  tabStops.value = Array.isArray(layout.tabStops)
+    ? layout.tabStops.map((stop) => {
+        const positionTwip = Number.isFinite(Number(stop.positionTwip))
+          ? Math.round(Number(stop.positionTwip))
+          : centimetersToTwips(Number(stop.position) || 0)
+        return {
+          ...stop,
+          positionTwip,
+          position: twipsToCentimeters(positionTwip),
+        }
+      }).sort((a, b) => a.positionTwip - b.positionTwip)
+    : []
 }
 
 let connectedEditor = null
@@ -176,6 +209,16 @@ const startDrag = (type, event) => {
   window.addEventListener('mouseup', onMouseUp)
 }
 
+const startTabStopDrag = (index, event) => {
+  activeTabStopIndex = index
+  startVal = tabStops.value[index]?.position || 0
+  startX = event.clientX
+  activeDragType.value = 'tab-stop'
+  updateGuide()
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
+}
+
 const updateGuide = () => {
   const labelKeys = {
     'margin-left': 'ruler.marginLeftValue',
@@ -183,6 +226,7 @@ const updateGuide = () => {
     'first-line': 'ruler.firstLineIndentValue',
     'left-indent': 'ruler.leftIndentValue',
     'right-indent': 'ruler.rightIndentValue',
+    'tab-stop': 'ruler.tabStopValue',
   }
   const values = {
     'margin-left': leftMarginCm.value,
@@ -190,6 +234,7 @@ const updateGuide = () => {
     'first-line': firstLinePositionCm.value,
     'left-indent': leftIndentCm.value,
     'right-indent': rightIndentCm.value,
+    'tab-stop': tabStops.value[activeTabStopIndex]?.position || 0,
   }
   activeGuideX.value = activeDragType.value === 'margin-left'
     ? leftMarginWidth.value
@@ -197,6 +242,8 @@ const updateGuide = () => {
       ? rulerWidth.value - rightMarginWidth.value
       : activeDragType.value === 'right-indent'
         ? rulerWidth.value - rightMarginWidth.value - rightIndentPx.value
+        : activeDragType.value === 'tab-stop'
+          ? leftMarginWidth.value + (tabStops.value[activeTabStopIndex]?.position || 0) * pxPerCm.value
         : leftMarginWidth.value + (activeDragType.value === 'first-line' ? firstLinePositionPx.value : leftIndentPx.value)
   guideTooltipText.value = t(labelKeys[activeDragType.value], {
     value: Number(values[activeDragType.value]).toFixed(1),
@@ -218,6 +265,13 @@ const onMouseMove = (event) => {
     leftIndentCm.value = roundCm(clamp(startVal + deltaCm, 0, availableContentCm.value - rightIndentCm.value))
   } else if (activeDragType.value === 'right-indent') {
     rightIndentCm.value = roundCm(clamp(startVal - deltaCm, 0, availableContentCm.value - leftIndentCm.value))
+  } else if (activeDragType.value === 'tab-stop' && activeTabStopIndex >= 0) {
+    const position = roundCm(clamp(startVal + deltaCm, 0, availableContentCm.value))
+    tabStops.value[activeTabStopIndex] = {
+      ...tabStops.value[activeTabStopIndex],
+      position,
+      positionTwip: centimetersToTwips(position),
+    }
   }
   updateGuide()
 }
@@ -245,13 +299,32 @@ const commitParagraphLayout = () => {
     rightTwip: rightIndentCm.value ? centimetersToTwips(rightIndentCm.value) : null,
     firstLineTwip: offset > 0 ? centimetersToTwips(offset) : null,
     hangingTwip: offset < 0 ? centimetersToTwips(Math.abs(offset)) : null,
+    tabStops: tabStops.value.length ? tabStops.value : null,
   }).run()
+}
+const addTabStop = (event) => {
+  if (editor?.value && !editor.value.isEditable) return
+  const bounds = event.currentTarget.getBoundingClientRect()
+  const position = roundCm(clamp((event.clientX - bounds.left) / pxPerCm.value, 0, availableContentCm.value))
+  const positionTwip = centimetersToTwips(position)
+  if (tabStops.value.some((stop) => Math.abs(stop.positionTwip - positionTwip) < 30)) return
+  tabStops.value = [
+    ...tabStops.value,
+    { alignment: 'left', leader: 'none', position, positionTwip },
+  ].sort((a, b) => a.positionTwip - b.positionTwip)
+  commitParagraphLayout()
+}
+const removeTabStop = (index) => {
+  if (editor?.value && !editor.value.isEditable) return
+  tabStops.value = tabStops.value.filter((_, stopIndex) => stopIndex !== index)
+  commitParagraphLayout()
 }
 const onMouseUp = () => {
   const type = activeDragType.value
   if (type === 'margin-left' || type === 'margin-right') commitPageMargin()
   else if (type) commitParagraphLayout()
   activeDragType.value = null
+  activeTabStopIndex = -1
   draftLeftMarginCm.value = null
   draftRightMarginCm.value = null
   window.removeEventListener('mousemove', onMouseMove)
@@ -269,6 +342,7 @@ onUnmounted(() => {
 <style lang="less" scoped>
 .kindy-ruler-container {
   height: 26px;
+  flex: 0 0 26px;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: 2px;
@@ -308,5 +382,19 @@ onUnmounted(() => {
   position: absolute; z-index: 10; cursor: ew-resize; color: #1a73e8;
   &.handle-first-line { top: 1px; .handle-rectangle { width: 10px; height: 7px; background: currentColor; margin-left: -5px; border-radius: 1px; } }
   &.handle-left-indent, &.handle-right-indent { bottom: 1px; .handle-triangle-up { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 7px solid currentColor; margin-left: -5px; } }
+}
+.kindy-ruler-tab-stop {
+  position: absolute;
+  z-index: 11;
+  bottom: 1px;
+  width: 12px;
+  height: 12px;
+  cursor: ew-resize;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  transform: translateX(-6px);
+  span { display: block; width: 7px; height: 7px; border-bottom: 2px solid #1a73e8; border-left: 2px solid #1a73e8; }
+  &:focus-visible { outline: 2px solid #1a73e8; outline-offset: 2px; }
 }
 </style>
