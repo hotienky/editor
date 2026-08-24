@@ -9,6 +9,7 @@ import {
   ExternalHyperlink,
   Footer,
   Header,
+  HeightRule,
   HeadingLevel,
   ImageRun,
   InsertedTextRun,
@@ -979,6 +980,42 @@ function ooxmlTable(
   comments: Map<string, ParsedDocxComment> = new Map(),
   styleContext: DocxStyleContext = emptyStyleContext(),
 ): JSONContent {
+  const tableProperties = xmlFirst(element, 'tblPr')
+  const tableGrid = xmlFirst(element, 'tblGrid')
+  const gridWidthsTwip = tableGrid
+    ? xmlElements(tableGrid, 'gridCol', true)
+      .map((column) => Number(wordAttribute(column, 'w')))
+      .filter((width) => Number.isFinite(width) && width > 0)
+    : []
+  const tableWidth = tableProperties ? xmlFirst(tableProperties, 'tblW') : undefined
+  const tableIndent = tableProperties ? xmlFirst(tableProperties, 'tblInd') : undefined
+  const tableBorders = tableProperties ? xmlFirst(tableProperties, 'tblBorders') : undefined
+  const borderValues = tableBorders
+    ? [...tableBorders.children].map((border) => ({
+        value: wordAttribute(border, 'val') || '',
+        color: wordAttribute(border, 'color'),
+        size: Number(wordAttribute(border, 'sz')),
+      }))
+    : []
+  const visibleBorder = borderValues.find((border) => !['', 'nil', 'none'].includes(border.value))
+  const tableLayout = definedEntries({
+    gridWidthsTwip: gridWidthsTwip.length ? gridWidthsTwip : undefined,
+    widthTwip: Number.isFinite(Number(wordAttribute(tableWidth, 'w')))
+      ? Number(wordAttribute(tableWidth, 'w'))
+      : undefined,
+    widthType: wordAttribute(tableWidth, 'type'),
+    indentTwip: Number.isFinite(Number(wordAttribute(tableIndent, 'w')))
+      ? Number(wordAttribute(tableIndent, 'w'))
+      : undefined,
+    alignment: xmlValue(tableProperties ? xmlFirst(tableProperties, 'jc') : undefined),
+    hasVisibleBorders: tableBorders ? Boolean(visibleBorder) : undefined,
+    borderColor: visibleBorder?.color && visibleBorder.color !== 'auto'
+      ? `#${visibleBorder.color}`
+      : undefined,
+    borderWidthPx: Number.isFinite(visibleBorder?.size)
+      ? Number(visibleBorder?.size) / 6
+      : undefined,
+  })
   let activeMerges = new Map<number, JSONContent>()
   const rows: JSONContent[] = []
   for (const row of xmlElements(element, 'tr', true)) {
@@ -986,6 +1023,8 @@ function ooxmlTable(
     const continued = new Set<JSONContent>()
     const rowProperties = xmlFirst(row, 'trPr')
     const cellType = rowProperties && xmlFirst(rowProperties, 'tblHeader') ? 'tableHeader' : 'tableCell'
+    const rowHeight = rowProperties ? xmlFirst(rowProperties, 'trHeight') : undefined
+    const heightTwip = Number(wordAttribute(rowHeight, 'val'))
     const cells: JSONContent[] = []
     let column = 0
     for (const cell of xmlElements(row, 'tc', true)) {
@@ -1009,13 +1048,35 @@ function ooxmlTable(
 
       const verticalAlign = xmlValue(properties ? xmlFirst(properties, 'vAlign') : undefined)
       const fill = properties ? xmlFirst(properties, 'shd')?.getAttribute('w:fill') || xmlFirst(properties, 'shd')?.getAttribute('fill') : undefined
+      const cellWidth = properties ? xmlFirst(properties, 'tcW') : undefined
+      const cellMargins = properties ? xmlFirst(properties, 'tcMar') : undefined
+      const marginValue = (name: string) => {
+        const margin = cellMargins ? xmlFirst(cellMargins, name) : undefined
+        const value = Number(wordAttribute(margin, 'w'))
+        return Number.isFinite(value) ? value : undefined
+      }
+      const cellLayout = definedEntries({
+        widthTwip: Number.isFinite(Number(wordAttribute(cellWidth, 'w')))
+          ? Number(wordAttribute(cellWidth, 'w'))
+          : undefined,
+        widthType: wordAttribute(cellWidth, 'type'),
+        marginsTwip: cellMargins ? definedEntries({
+          top: marginValue('top'),
+          right: marginValue('right') ?? marginValue('end'),
+          bottom: marginValue('bottom'),
+          left: marginValue('left') ?? marginValue('start'),
+        }) : undefined,
+      })
+      const colwidth = gridWidthsTwip.slice(column, column + colspan).map((width) => width / 15)
       const node: JSONContent = {
         type: cellType,
         attrs: {
           colspan,
           rowspan: 1,
+          colwidth: colwidth.length ? colwidth : null,
           verticalAlign: verticalAlign || null,
           background: fill && fill !== 'auto' ? `#${fill}` : null,
+          docxLayout: Object.keys(cellLayout).length ? cellLayout : null,
         },
         content: [...cell.children]
           .filter((child) => child.localName === 'p')
@@ -1029,10 +1090,19 @@ function ooxmlTable(
       column += colspan
     }
     activeMerges = nextMerges
-    rows.push({ type: 'tableRow', content: cells })
+    rows.push({
+      type: 'tableRow',
+      attrs: {
+        height: Number.isFinite(heightTwip) && heightTwip > 0 ? heightTwip / 15 : null,
+        repeatHeader: Boolean(rowProperties && xmlFirst(rowProperties, 'tblHeader')),
+        cantSplit: Boolean(rowProperties && xmlFirst(rowProperties, 'cantSplit')),
+      },
+      content: cells,
+    })
   }
   return {
     type: 'table',
+    attrs: { docxLayout: Object.keys(tableLayout).length ? tableLayout : null },
     content: rows,
   }
 }
@@ -1608,23 +1678,68 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
       center: VerticalAlign.CENTER,
       bottom: VerticalAlign.BOTTOM,
     }[String(value || '').toLowerCase()] || VerticalAlign.CENTER)
+    const tableLayout = node.attrs?.docxLayout && typeof node.attrs.docxLayout === 'object'
+      ? node.attrs.docxLayout as Record<string, any>
+      : {}
+    const columnWidths = Array.isArray(tableLayout.gridWidthsTwip)
+      ? tableLayout.gridWidthsTwip.map(Number).filter((width: number) => Number.isFinite(width) && width > 0)
+      : undefined
     const rows: TableRow[] = []
     for (const row of node.content || []) {
       const cells: TableCell[] = []
       for (const cell of row.content || []) {
+        const cellLayout = cell.attrs?.docxLayout && typeof cell.attrs.docxLayout === 'object'
+          ? cell.attrs.docxLayout as Record<string, any>
+          : {}
+        const widthTwip = Number(cellLayout.widthTwip)
+        const marginsTwip = cellLayout.marginsTwip && typeof cellLayout.marginsTwip === 'object'
+          ? cellLayout.marginsTwip as Record<string, any>
+          : {}
         cells.push(new TableCell({
           children: await nodesToChildren(cell.content || [{ type: 'paragraph' }]),
           columnSpan: Number(cell.attrs?.colspan) || 1,
           rowSpan: Number(cell.attrs?.rowspan) || 1,
+          width: Number.isFinite(widthTwip) && widthTwip > 0
+            ? { size: Math.round(widthTwip), type: WidthType.DXA }
+            : undefined,
+          margins: Object.keys(marginsTwip).length
+            ? {
+                marginUnitType: WidthType.DXA,
+                top: Number(marginsTwip.top) || 0,
+                right: Number(marginsTwip.right) || 0,
+                bottom: Number(marginsTwip.bottom) || 0,
+                left: Number(marginsTwip.left) || 0,
+              }
+            : undefined,
           verticalAlign: tableVerticalAlign(cell.attrs?.verticalAlign),
           shading: normalizeColor(String(cell.attrs?.background || ''))
             ? { fill: normalizeColor(String(cell.attrs?.background || '')) }
             : undefined,
         }))
       }
-      rows.push(new TableRow({ children: cells }))
+      const rowHeight = Number(row.attrs?.height)
+      rows.push(new TableRow({
+        children: cells,
+        tableHeader: Boolean(row.attrs?.repeatHeader),
+        cantSplit: Boolean(row.attrs?.cantSplit),
+        height: Number.isFinite(rowHeight) && rowHeight > 0
+          ? { value: Math.round(rowHeight * 15), rule: HeightRule.ATLEAST }
+          : undefined,
+      }))
     }
-    return [new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } })]
+    const widthTwip = Number(tableLayout.widthTwip)
+    const indentTwip = Number(tableLayout.indentTwip)
+    return [new Table({
+      rows,
+      columnWidths,
+      width: String(tableLayout.widthType || '').toLowerCase() === 'dxa' && Number.isFinite(widthTwip) && widthTwip > 0
+        ? { size: Math.round(widthTwip), type: WidthType.DXA }
+        : { size: 100, type: WidthType.PERCENTAGE },
+      indent: Number.isFinite(indentTwip) && indentTwip > 0
+        ? { size: Math.round(indentTwip), type: WidthType.DXA }
+        : undefined,
+      alignment: alignment(String(tableLayout.alignment || '')),
+    })]
   }
   return nodesToChildren(node.content || [])
 }

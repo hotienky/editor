@@ -18,6 +18,7 @@ const cellAttrs = {
   colwidth: { default: null },
   verticalAlign: { default: null },
   background: { default: null },
+  docxLayout: { default: null },
 }
 
 export const canvasDocumentSchema = new Schema({
@@ -45,8 +46,21 @@ export const canvasDocumentSchema = new Schema({
       attrs: { start: { default: 1 }, tight: { default: false } },
     },
     listItem: { content: 'paragraph block*', defining: true },
-    table: { group: 'block', content: 'tableRow+', tableRole: 'table', attrs: { style: { default: null } } },
-    tableRow: { content: '(tableCell | tableHeader)+', tableRole: 'row', attrs: { height: { default: null } } },
+    table: {
+      group: 'block',
+      content: 'tableRow+',
+      tableRole: 'table',
+      attrs: { style: { default: null }, docxLayout: { default: null } },
+    },
+    tableRow: {
+      content: '(tableCell | tableHeader)+',
+      tableRole: 'row',
+      attrs: {
+        height: { default: null },
+        repeatHeader: { default: false },
+        cantSplit: { default: false },
+      },
+    },
     tableCell: { content: 'block+', tableRole: 'cell', isolating: true, attrs: cellAttrs },
     tableHeader: { content: 'block+', tableRole: 'header_cell', isolating: true, attrs: cellAttrs },
     text: { group: 'inline' },

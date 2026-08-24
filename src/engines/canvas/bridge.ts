@@ -218,28 +218,40 @@ const blockNodeToElements = (node: JSONContent): IElement[] => {
   }
   if (node.type === 'table') {
     const rows = node.content || []
+    const tableLayout = extensionRecord(node.attrs?.docxLayout)
     const columnCount = Math.max(1, ...rows.map((row) => (row.content || [])
       .reduce((sum, cell) => sum + (Number(cell.attrs?.colspan) || 1), 0)))
     const firstRow = rows[0]?.content || []
-    const explicitWidths = firstRow.flatMap((cell) => {
+    const importedGrid = Array.isArray(tableLayout.gridWidthsTwip)
+      ? tableLayout.gridWidthsTwip.map(Number).filter((width) => Number.isFinite(width) && width > 0)
+      : []
+    const cellWidths = firstRow.flatMap((cell) => {
       const colwidth = cell.attrs?.colwidth
       if (Array.isArray(colwidth) && colwidth.length) return colwidth.map(Number)
       return [0]
     })
+    const explicitWidths = importedGrid.length === columnCount
+      ? importedGrid.map((width) => width / 15)
+      : cellWidths
     const totalExplicit = explicitWidths.reduce((sum, w) => sum + (w || 0), 0)
     const colgroup = totalExplicit > 0 && explicitWidths.length === columnCount
       ? explicitWidths.map((width) => ({ width: width > 0 ? width : Math.floor(650 / columnCount) }))
       : Array.from({ length: columnCount }, () => ({ width: Math.floor(650 / columnCount) }))
+    const hasVisibleBorders = tableLayout.hasVisibleBorders !== false
     return [{
       type: ElementType.TABLE,
       value: '',
       colgroup,
-      borderType: TableBorder.ALL,
-      borderColor: '#94a3b8',
-      borderWidth: 1,
+      borderType: hasVisibleBorders ? TableBorder.ALL : TableBorder.EMPTY,
+      borderColor: String(tableLayout.borderColor || '#94a3b8'),
+      borderWidth: Number(tableLayout.borderWidthPx) || 1,
       trList: rows.map((row) => ({
         height: Number(row.attrs?.height) || 36,
-        pagingRepeat: Boolean(row.content?.some((cell) => cell.type === 'tableHeader')),
+        pagingRepeat: Boolean(row.attrs?.repeatHeader || row.content?.some((cell) => cell.type === 'tableHeader')),
+        extension: {
+          kindyNodeAttrs: row.attrs || {},
+          kindyNodeType: row.type,
+        },
         tdList: (row.content || []).map((cell) => ({
           colspan: Number(cell.attrs?.colspan) || 1,
           rowspan: Number(cell.attrs?.rowspan) || 1,
@@ -477,7 +489,11 @@ const blockElementsToNodes = (elements: IElement[] = []): JSONContent[] => {
         attrs: attrsFromExtension(element),
         content: (element.trList || []).map((row) => ({
           type: 'tableRow',
-          attrs: row.height ? { height: row.height } : undefined,
+          attrs: {
+            ...extensionRecord(extensionRecord(row.extension).kindyNodeAttrs),
+            height: row.height || null,
+            repeatHeader: Boolean(row.pagingRepeat),
+          },
           content: row.tdList.map((cell) => {
             const extension = cell.extension as Record<string, unknown> | undefined
             return {
