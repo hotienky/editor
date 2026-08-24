@@ -5,7 +5,7 @@
 > Version: 1.0
 > Date: 2026-08-07
 > Status: Draft
-> Author: UMO Team
+> Author: Kindy Team
 
 ---
 
@@ -80,18 +80,18 @@ The platform covers:
 Each component is a separate package with clear boundaries:
 
 ```
-@umo/core           - Document, Node, Tree, Schema
-@umo/document       - Section, Paragraph, Inline nodes
-@umo/editor         - Commands, Transactions, Selection
-@umo/layout         - Layout Engine
-@umo/render         - Render Engine
-@umo/storage        - Storage Engine
-@umo/collaboration  - Collaboration Engine
-@umo/io             - Import/Export
-@umo/plugin         - Plugin System
-@umo/ai             - AI Platform
-@umo/editor-client  - UMO Editor Client
-@umo/performance   - Performance Utilities
+@kindy/core           - Document, Node, Tree, Schema
+@kindy/document       - Section, Paragraph, Inline nodes
+@kindy/editor         - Commands, Transactions, Selection
+@kindy/layout         - Layout Engine
+@kindy/render         - Render Engine
+@kindy/storage        - Storage Engine
+@kindy/collaboration  - Collaboration Engine
+@kindy/io             - Import/Export
+@kindy/plugin         - Plugin System
+@kindy/ai             - AI Platform
+@kindy/editor-client  - Kindy Editor Client
+@kindy/performance   - Performance Utilities
 ```
 
 ### 2.2 Extensibility
@@ -137,11 +137,11 @@ expect(html).toContain('kindy-print-page')
 Core logic has no dependency on React/Vue/Angular:
 
 ```
-@umo/core           - No framework dependency
-@umo/layout         - No framework dependency
-@umo/render         - No framework dependency
-@umo/react          - React adapter
-@umo/vue            - Vue adapter
+@kindy/core           - No framework dependency
+@kindy/layout         - No framework dependency
+@kindy/render         - No framework dependency
+@kindy/react          - React adapter
+@kindy/vue            - Vue adapter
 ```
 
 ---
@@ -153,7 +153,7 @@ Core logic has no dependency on React/Vue/Angular:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Application Layer                        │
-│  (UMO Editor, CRM Contract, CMS Editor, Mobile Apps)       │
+│  (Kindy Editor, CRM Contract, CMS Editor, Mobile Apps)       │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
@@ -211,18 +211,18 @@ DOM Update (virtual scrolling)
 
 ```
 packages/
-├── @umo/document        # Document Model ✅
-├── @umo/layout          # Layout Engine ✅
-├── @umo/render          # Render Engine ✅
-├── @umo/editor          # Editing Engine ✅
-├── @umo/collaboration   # Collaboration Engine ✅
-├── @umo/storage         # Storage Engine ✅
-├── @umo/io              # Import/Export ✅
-├── @umo/plugin          # Plugin System ✅
-├── @umo/ai              # AI Platform ✅
-├── @umo/react           # React Adapter
-├── @umo/vue             # Vue Adapter
-└── @umo/editor-client   # UMO Editor Client (Google Docs-like)
+├── @kindy/document        # Document Model ✅
+├── @kindy/layout          # Layout Engine ✅
+├── @kindy/render          # Render Engine ✅
+├── @kindy/editor          # Editing Engine ✅
+├── @kindy/collaboration   # Collaboration Engine ✅
+├── @kindy/storage         # Storage Engine ✅
+├── @kindy/io              # Import/Export ✅
+├── @kindy/plugin          # Plugin System ✅
+├── @kindy/ai              # AI Platform ✅
+├── @kindy/react           # React Adapter
+├── @kindy/vue             # Vue Adapter
+└── @kindy/editor-client   # Kindy Editor Client (Google Docs-like)
 ```
 
 ---
@@ -393,7 +393,7 @@ Layout Tree
 
 **Input:**
 
-- Document AST (from @umo/document)
+- Document AST (from @kindy/document)
 - Page Options (size, margins, orientation)
 
 **Output:**
@@ -540,7 +540,7 @@ Client A ←→ Yjs Document ←→ Client B
 ### 8.3 Architecture
 
 ```
-@umo/collaboration
+@kindy/collaboration
 ├── YjsProvider      # Yjs document management
 ├── PresenceProvider  # User presence
 ├── SyncProvider     # Offline sync
@@ -712,25 +712,25 @@ interface EditorAPI {
 
 The current codebase has:
 
-- `src/model/` → Will become `@umo/document`
-- `src/layout/` → Will become `@umo/layout`
-- `src/render/` → Will become `@umo/render`
-- `src/editing/` → Will become `@umo/editor`
+- `src/model/` → Will become `@kindy/document`
+- `src/layout/` → Will become `@kindy/layout`
+- `src/render/` → Will become `@kindy/render`
+- `src/editing/` → Will become `@kindy/editor`
 
 ### 12.2 Backward Compatibility
 
-UMO Editor will continue to work during migration:
+Kindy Editor will continue to work during migration:
 
 1. Create new packages alongside existing code
 2. gradually migrate functionality
-3. Keep UMO Editor as the "client" of the packages
+3. Keep Kindy Editor as the "client" of the packages
 4. Remove old code after migration is complete
 
 ### 12.3 Migration Steps
 
 1. **Phase 0**: Create documentation ✅
-2. **Phase 1**: Create `@umo/*` packages ✅
-3. **Phase 2**: Migrate imports to `@umo/*` ✅
+2. **Phase 1**: Create `@kindy/*` packages ✅
+3. **Phase 2**: Migrate imports to `@kindy/*` ✅
 4. **Phase 3**: Layout Engine improvements ✅
 5. **Phase 4**: Render Engine improvements ✅
 6. **Phase 5**: Collaboration improvements ✅
@@ -739,7 +739,7 @@ UMO Editor will continue to work during migration:
 9. **Phase 8**: Plugin System ✅
 10. **Phase 9**: AI Platform ✅
 11. **Phase 10**: Framework Adapters (React/Vue) ✅
-12. **Phase 11**: UMO Editor Client ✅
+12. **Phase 11**: Kindy Editor Client ✅
 13. **Phase 12**: Testing & Quality Assurance ✅
 14. **Phase 13**: Performance Optimization ✅
 15. **Phase 14**: Documentation & Examples ✅

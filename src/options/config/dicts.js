@@ -1,4 +1,4 @@
-import { PageSizes } from '@umo/layout'
+import { PageSizes } from '@kindy/layout'
 
 const fonts = [
   {

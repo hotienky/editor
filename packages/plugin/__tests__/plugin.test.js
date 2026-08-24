@@ -1,5 +1,5 @@
 /**
- * @umo/plugin Tests
+ * @kindy/plugin Tests
  *
  * Architecture: Test Layer — Plugin Package
  */

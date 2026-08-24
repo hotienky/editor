@@ -74,7 +74,7 @@ Build the plugin platform for extending the editor.
 
 ## Deliverables
 
-- `@umo/plugin` package
+- `@kindy/plugin` package
 - Plugin API
 - Plugin SDK
 - Plugin examples

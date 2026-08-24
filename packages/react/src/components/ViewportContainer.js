@@ -16,7 +16,7 @@ export function ViewportContainer({ children, className = '', style = {} }) {
   return (
     <div
       ref={containerRef}
-      className={`umo-viewport ${className}`}
+      className={`kindy-viewport ${className}`}
       style={{
         flex: 1,
         overflow: 'auto',
@@ -25,7 +25,7 @@ export function ViewportContainer({ children, className = '', style = {} }) {
       }}
     >
       <div
-        className="umo-viewport-content"
+        className="kindy-viewport-content"
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -50,7 +50,7 @@ export function PageView({ page, pageOptions, className = '', style = {} }) {
 
   return (
     <div
-      className={`umo-page ${className}`}
+      className={`kindy-page ${className}`}
       data-page={pageNumber}
       style={{
         width: `${pageWidth}cm`,
@@ -63,7 +63,7 @@ export function PageView({ page, pageOptions, className = '', style = {} }) {
       }}
     >
       <div
-        className="umo-page-content"
+        className="kindy-page-content"
         style={{
           padding: `${pageOptions.margin?.top || 2.54}cm ${pageOptions.margin?.right || 2.54}cm ${pageOptions.margin?.bottom || 2.54}cm ${pageOptions.margin?.left || 2.54}cm`,
           minHeight: `${pageHeight - (pageOptions.margin?.top || 2.54) - (pageOptions.margin?.bottom || 2.54)}cm`,

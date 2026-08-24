@@ -1,5 +1,5 @@
 {
-  "name": "@umo/performance",
+  "name": "@kindy/performance",
   "version": "0.1.0",
   "description": "Performance utilities for Open Document Platform",
   "type": "module",

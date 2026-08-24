@@ -138,7 +138,7 @@ Build the editing engine with commands, transactions, selection, and history.
 
 ## Deliverables
 
-- `@umo/editor` package
+- `@kindy/editor` package
 - Selection and Cursor classes
 - Clipboard handling
 - Editing commands

@@ -1,5 +1,5 @@
 /**
- * UMO Editor Client Styles
+ * Kindy Editor Client Styles
  *
  * Architecture: Product Layer — Editor Client
  */
@@ -12,7 +12,7 @@
 
 /* ─── Editor Container ───────────────────────────────────────────────── */
 
-.umo-editor-client {
+.kindy-editor-client {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -24,7 +24,7 @@
 
 /* ─── Header ─────────────────────────────────────────────────────────── */
 
-.umo-editor-header {
+.kindy-editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -36,7 +36,7 @@
 
 /* ─── Toolbar ────────────────────────────────────────────────────────── */
 
-.umo-editor-toolbar {
+.kindy-editor-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -45,13 +45,13 @@
   border-bottom: 1px solid #e2e8f0;
 }
 
-.umo-toolbar-section {
+.kindy-toolbar-section {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.umo-toolbar-group {
+.kindy-toolbar-group {
   display: flex;
   align-items: center;
   gap: 2px;
@@ -59,11 +59,11 @@
   border-right: 1px solid #e2e8f0;
 }
 
-.umo-toolbar-group:last-child {
+.kindy-toolbar-group:last-child {
   border-right: none;
 }
 
-.umo-toolbar-button {
+.kindy-toolbar-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,23 +76,23 @@
   font-size: 14px;
 }
 
-.umo-toolbar-button:hover {
+.kindy-toolbar-button:hover {
   background-color: #e2e8f0;
 }
 
-.umo-toolbar-button.active {
+.kindy-toolbar-button.active {
   background-color: #dbeafe;
   color: #2563eb;
 }
 
-.umo-toolbar-button:disabled {
+.kindy-toolbar-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
 /* ─── Main Content ───────────────────────────────────────────────────── */
 
-.umo-editor-main {
+.kindy-editor-main {
   display: flex;
   flex: 1;
   overflow: hidden;
@@ -100,7 +100,7 @@
 
 /* ─── Document Tabs ──────────────────────────────────────────────────── */
 
-.umo-document-tabs {
+.kindy-document-tabs {
   display: flex;
   flex-direction: column;
   width: 200px;
@@ -108,12 +108,12 @@
   border-right: 1px solid #e2e8f0;
 }
 
-.umo-tabs-list {
+.kindy-tabs-list {
   flex: 1;
   overflow-y: auto;
 }
 
-.umo-tab {
+.kindy-tab {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -122,23 +122,23 @@
   border-bottom: 1px solid #e2e8f0;
 }
 
-.umo-tab:hover {
+.kindy-tab:hover {
   background-color: #f1f5f9;
 }
 
-.umo-tab.active {
+.kindy-tab.active {
   background-color: #e0e7ff;
   border-left: 3px solid #3b82f6;
 }
 
-.umo-tab-title {
+.kindy-tab-title {
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.umo-tab-close {
+.kindy-tab-close {
   padding: 0 4px;
   border: none;
   background: transparent;
@@ -147,11 +147,11 @@
   font-size: 16px;
 }
 
-.umo-tab-close:hover {
+.kindy-tab-close:hover {
   color: #ef4444;
 }
 
-.umo-tab-add {
+.kindy-tab-add {
   padding: 8px 12px;
   border: none;
   background: transparent;
@@ -160,23 +160,23 @@
   font-size: 18px;
 }
 
-.umo-tab-add:hover {
+.kindy-tab-add:hover {
   background-color: #f1f5f9;
 }
 
 /* ─── Editor Content ─────────────────────────────────────────────────── */
 
-.umo-editor-content {
+.kindy-editor-content {
   flex: 1;
   overflow: auto;
   background-color: #f1f5f9;
 }
 
-.umo-viewport {
+.kindy-viewport {
   min-height: 100%;
 }
 
-.umo-viewport-content {
+.kindy-viewport-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -186,20 +186,20 @@
 
 /* ─── Page ───────────────────────────────────────────────────────────── */
 
-.umo-page {
+.kindy-page {
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 2px;
   position: relative;
 }
 
-.umo-page-content {
+.kindy-page-content {
   min-height: 100%;
 }
 
 /* ─── Footer ─────────────────────────────────────────────────────────── */
 
-.umo-editor-footer {
+.kindy-editor-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -213,39 +213,39 @@
 
 /* ─── Status Bar ─────────────────────────────────────────────────────── */
 
-.umo-status-bar {
+.kindy-status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
 }
 
-.umo-status-left {
+.kindy-status-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.umo-status-item {
+.kindy-status-item {
   font-size: 12px;
 }
 
-.umo-status-divider {
+.kindy-status-divider {
   color: #cbd5e1;
 }
 
-.umo-status-right {
+.kindy-status-right {
   display: flex;
   align-items: center;
 }
 
-.umo-zoom-controls {
+.kindy-zoom-controls {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.umo-zoom-btn {
+.kindy-zoom-btn {
   width: 24px;
   height: 24px;
   border: 1px solid #e2e8f0;
@@ -255,11 +255,11 @@
   font-size: 14px;
 }
 
-.umo-zoom-btn:hover {
+.kindy-zoom-btn:hover {
   background-color: #f1f5f9;
 }
 
-.umo-zoom-value {
+.kindy-zoom-value {
   min-width: 40px;
   text-align: center;
   font-size: 12px;
@@ -267,7 +267,7 @@
 
 /* ─── Buttons ────────────────────────────────────────────────────────── */
 
-.umo-btn {
+.kindy-btn {
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
@@ -275,27 +275,27 @@
   cursor: pointer;
 }
 
-.umo-btn-primary {
+.kindy-btn-primary {
   background-color: #3b82f6;
   color: #fff;
 }
 
-.umo-btn-primary:hover {
+.kindy-btn-primary:hover {
   background-color: #2563eb;
 }
 
-.umo-btn-ghost {
+.kindy-btn-ghost {
   background-color: transparent;
   color: #64748b;
 }
 
-.umo-btn-ghost:hover {
+.kindy-btn-ghost:hover {
   background-color: #f1f5f9;
 }
 
 /* ─── Select ─────────────────────────────────────────────────────────── */
 
-.umo-select {
+.kindy-select {
   padding: 4px 8px;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
@@ -305,31 +305,31 @@
 
 /* ─── Dark Mode ──────────────────────────────────────────────────────── */
 
-.umo-editor-client.is-dark {
+.kindy-editor-client.is-dark {
   background-color: #1a1a2e;
   color: #e0e0e0;
 }
 
-.umo-editor-client.is-dark .umo-editor-header,
-.umo-editor-client.is-dark .umo-editor-toolbar,
-.umo-editor-client.is-dark .umo-editor-footer {
+.kindy-editor-client.is-dark .kindy-editor-header,
+.kindy-editor-client.is-dark .kindy-editor-toolbar,
+.kindy-editor-client.is-dark .kindy-editor-footer {
   background-color: #16213e;
   border-color: #0f3460;
 }
 
-.umo-editor-client.is-dark .umo-document-tabs {
+.kindy-editor-client.is-dark .kindy-document-tabs {
   background-color: #16213e;
   border-color: #0f3460;
 }
 
-.umo-editor-client.is-dark .umo-tab:hover {
+.kindy-editor-client.is-dark .kindy-tab:hover {
   background-color: #1a1a2e;
 }
 
-.umo-editor-client.is-dark .umo-tab.active {
+.kindy-editor-client.is-dark .kindy-tab.active {
   background-color: #0f3460;
 }
 
-.umo-editor-client.is-dark .umo-page {
+.kindy-editor-client.is-dark .kindy-page {
   background-color: #fff;
 }

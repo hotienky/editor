@@ -1,5 +1,5 @@
 {
-  "name": "@umo/render",
+  "name": "@kindy/render",
   "version": "0.1.0",
   "description": "Render Engine for Open Document Platform",
   "main": "src/index.js",
@@ -14,10 +14,10 @@
     "css",
     "editor"
   ],
-  "author": "UMO Team",
+  "author": "Kindy Team",
   "license": "MIT",
   "dependencies": {
-    "@umo/layout": "workspace:*"
+    "@kindy/layout": "workspace:*"
   },
   "devDependencies": {}
 }

@@ -1,17 +1,17 @@
-# @umo/render
+# @kindy/render
 
 Render engine package for Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/render
+npm install @kindy/render
 ```
 
 ## Quick Start
 
 ```javascript
-import { PageRenderer, ViewportManager } from '@umo/render'
+import { PageRenderer, ViewportManager } from '@kindy/render'
 
 // Create page renderer
 const renderer = new PageRenderer()
@@ -104,21 +104,21 @@ Calculates visible pages.
 The renderer adds these CSS classes:
 
 ```css
-.umo-page           /* Page container */
-.umo-page-content   /* Page content area */
-.umo-block          /* Block container */
-.umo-heading        /* Heading block */
-.umo-paragraph      /* Paragraph block */
-.umo-list           /* List block */
-.umo-code           /* Code block */
-.umo-table          /* Table block */
+.kindy-page           /* Page container */
+.kindy-page-content   /* Page content area */
+.kindy-block          /* Block container */
+.kindy-heading        /* Heading block */
+.kindy-paragraph      /* Paragraph block */
+.kindy-list           /* List block */
+.kindy-code           /* Code block */
+.kindy-table          /* Table block */
 ```
 
 ## Print Styles
 
 ```css
 @media print {
-  .umo-page {
+  .kindy-page {
     box-shadow: none;
     margin: 0;
     page-break-after: always;

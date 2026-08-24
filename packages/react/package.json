@@ -1,5 +1,5 @@
 {
-  "name": "@umo/react",
+  "name": "@kindy/react",
   "version": "0.1.0",
   "description": "React Adapter for Open Document Platform",
   "type": "module",
@@ -12,13 +12,13 @@
     "react-dom": ">=18.0.0"
   },
   "dependencies": {
-    "@umo/document": "*",
-    "@umo/layout": "*",
-    "@umo/render": "*",
-    "@umo/editor": "*",
-    "@umo/collaboration": "*",
-    "@umo/storage": "*",
-    "@umo/io": "*",
-    "@umo/plugin": "*"
+    "@kindy/document": "*",
+    "@kindy/layout": "*",
+    "@kindy/render": "*",
+    "@kindy/editor": "*",
+    "@kindy/collaboration": "*",
+    "@kindy/storage": "*",
+    "@kindy/io": "*",
+    "@kindy/plugin": "*"
   }
 }

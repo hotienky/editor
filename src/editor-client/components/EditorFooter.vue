@@ -1,5 +1,5 @@
 <template>
-  <footer class="umo-editor-footer">
+  <footer class="kindy-editor-footer">
     <slot />
   </footer>
 </template>
@@ -8,7 +8,7 @@
 </script>
 
 <style scoped>
-.umo-editor-footer {
+.kindy-editor-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;

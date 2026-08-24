@@ -1,5 +1,5 @@
 <template>
-  <div class="umo-editor-client" :class="{ 'is-dark': isDark }">
+  <div class="kindy-editor-client" :class="{ 'is-dark': isDark }">
     <!-- Header -->
     <EditorHeader
       :title="title"
@@ -16,7 +16,7 @@
     />
 
     <!-- Main Content Area -->
-    <div class="umo-editor-main">
+    <div class="kindy-editor-main">
       <!-- Document Tabs -->
       <DocumentTabs
         :tabs="tabs"
@@ -54,7 +54,7 @@
 
 <script setup>
 import { ref, computed, provide, onMounted, watch } from 'vue'
-import { useUmoEditor } from '../composables/useUmoEditor'
+import { useKindyEditor } from '../composables/useKindyEditor'
 import { useDocumentManager } from '../composables/useDocumentManager'
 import { useFileOperations } from '../composables/useFileOperations'
 
@@ -96,7 +96,7 @@ const {
   updateDocument,
   updateSelection,
   updatePageOptions,
-} = useUmoEditor(props.config)
+} = useKindyEditor(props.config)
 
 const {
   tabs,
@@ -189,7 +189,7 @@ provide('zoom', zoom)
 <style lang="less">
 @import '../styles/editor.css';
 
-.umo-editor-client {
+.kindy-editor-client {
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -198,14 +198,14 @@ provide('zoom', zoom)
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
-.umo-editor-main {
+.kindy-editor-main {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
 /* Dark mode */
-.umo-editor-client.is-dark {
+.kindy-editor-client.is-dark {
   background-color: #1a1a2e;
   color: #e0e0e0;
 }

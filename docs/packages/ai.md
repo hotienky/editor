@@ -1,11 +1,11 @@
-# @umo/ai
+# @kindy/ai
 
 AI platform for document intelligence.
 
 ## Installation
 
 ```bash
-npm install @umo/ai
+npm install @kindy/ai
 ```
 
 ## Quick Start
@@ -18,7 +18,7 @@ import {
   Summarization,
   Translation,
   ContentGeneration,
-} from '@umo/ai'
+} from '@kindy/ai'
 
 // Create AI provider
 const provider = new AIProvider({
@@ -157,7 +157,7 @@ Compresses text to shorter version.
 ## AI Models
 
 ```javascript
-import { AIModel } from '@umo/ai'
+import { AIModel } from '@kindy/ai'
 
 AIModel.GPT_3_5_TURBO  // gpt-3.5-turbo
 AIModel.GPT_4          // gpt-4

@@ -1,5 +1,5 @@
 {
-  "name": "@umo/collaboration",
+  "name": "@kindy/collaboration",
   "version": "0.1.0",
   "description": "Collaboration Engine for Open Document Platform",
   "main": "src/index.js",
@@ -14,7 +14,7 @@
     "realtime",
     "yjs"
   ],
-  "author": "UMO Team",
+  "author": "Kindy Team",
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {}

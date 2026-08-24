@@ -1,5 +1,5 @@
 {
-  "name": "@umo/vue",
+  "name": "@kindy/vue",
   "version": "0.1.0",
   "description": "Vue Adapter for Open Document Platform",
   "type": "module",
@@ -11,13 +11,13 @@
     "vue": ">=3.0.0"
   },
   "dependencies": {
-    "@umo/document": "*",
-    "@umo/layout": "*",
-    "@umo/render": "*",
-    "@umo/editor": "*",
-    "@umo/collaboration": "*",
-    "@umo/storage": "*",
-    "@umo/io": "*",
-    "@umo/plugin": "*"
+    "@kindy/document": "*",
+    "@kindy/layout": "*",
+    "@kindy/render": "*",
+    "@kindy/editor": "*",
+    "@kindy/collaboration": "*",
+    "@kindy/storage": "*",
+    "@kindy/io": "*",
+    "@kindy/plugin": "*"
   }
 }

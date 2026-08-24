@@ -17,7 +17,7 @@ export { usePlugin } from './composables/usePlugin'
 
 // ─── Components ────────────────────────────────────────────────────────────
 
-export { UMOEditor } from './components/UMOEditor.vue'
+export { KindyEditor } from './components/KindyEditor.vue'
 export { Toolbar } from './components/Toolbar.vue'
 export { PageView } from './components/PageView.vue'
 
@@ -25,7 +25,7 @@ export { PageView } from './components/PageView.vue'
 
 export function install(app) {
   // Register global components
-  app.component('UMOEditor', UMOEditor)
+  app.component('KindyEditor', KindyEditor)
   app.component('UMOToolbar', Toolbar)
   app.component('UMOPageView', PageView)
 
@@ -42,7 +42,7 @@ export default {
   usePlugin,
 
   // Components
-  UMOEditor,
+  KindyEditor,
   Toolbar,
   PageView,
 

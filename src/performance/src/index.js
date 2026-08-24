@@ -1,5 +1,5 @@
 /**
- * @umo/performance
+ * @kindy/performance
  *
  * Performance utilities for Open Document Platform.
  *

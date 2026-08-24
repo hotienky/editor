@@ -12,7 +12,7 @@ export { EditorProvider, useEditor } from './components/EditorProvider'
 
 // ─── Editor Component ──────────────────────────────────────────────────────
 
-export { UMOEditor } from './components/UMOEditor'
+export { KindyEditor } from './components/KindyEditor'
 
 // ─── Toolbar Components ────────────────────────────────────────────────────
 
@@ -44,7 +44,7 @@ export default {
   useEditor,
 
   // Editor
-  UMOEditor,
+  KindyEditor,
 
   // Toolbar
   Toolbar,

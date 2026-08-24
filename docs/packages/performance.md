@@ -1,17 +1,17 @@
-# @umo/performance
+# @kindy/performance
 
 Performance utilities for Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/performance
+npm install @kindy/performance
 ```
 
 ## Quick Start
 
 ```javascript
-import { createPerformanceToolkit } from '@umo/performance'
+import { createPerformanceToolkit } from '@kindy/performance'
 
 const toolkit = createPerformanceToolkit()
 
@@ -40,7 +40,7 @@ toolkit.destroy()
 Efficient rendering for large documents.
 
 ```javascript
-import { VirtualScroller } from '@umo/performance'
+import { VirtualScroller } from '@kindy/performance'
 
 const scroller = new VirtualScroller({
   bufferSize: 2, // Pages above/below viewport
@@ -65,7 +65,7 @@ scroller.destroy()
 Parallel task execution.
 
 ```javascript
-import { WorkerPool } from '@umo/performance'
+import { WorkerPool } from '@kindy/performance'
 
 const pool = new WorkerPool({
   maxWorkers: 4,
@@ -92,7 +92,7 @@ pool.terminate()
 Multi-level caching.
 
 ```javascript
-import { CacheManager } from '@umo/performance'
+import { CacheManager } from '@kindy/performance'
 
 const cache = new CacheManager({
   l1MaxSize: 50, // Memory cache size
@@ -119,7 +119,7 @@ const stats = cache.getStats()
 LRU memory cache.
 
 ```javascript
-import { MemoryCache } from '@umo/performance'
+import { MemoryCache } from '@kindy/performance'
 
 const cache = new MemoryCache(100) // Max 100 entries
 
@@ -132,7 +132,7 @@ const value = cache.get('key')
 Specialized cache for layout computations.
 
 ```javascript
-import { LayoutCache, CacheManager } from '@umo/performance'
+import { LayoutCache, CacheManager } from '@kindy/performance'
 
 const cache = new CacheManager()
 const layoutCache = new LayoutCache(cache)
@@ -153,7 +153,7 @@ const cached = layoutCache.get(docHash, pageOptions)
 Function timing.
 
 ```javascript
-import { Benchmark } from '@umo/performance'
+import { Benchmark } from '@kindy/performance'
 
 const benchmark = new Benchmark('my-operation')
 
@@ -179,7 +179,7 @@ console.log(summary)
 FPS and memory monitoring.
 
 ```javascript
-import { PerformanceMonitor } from '@umo/performance'
+import { PerformanceMonitor } from '@kindy/performance'
 
 const monitor = new PerformanceMonitor()
 
@@ -203,7 +203,7 @@ monitor.stop()
 Document operation profiling.
 
 ```javascript
-import { DocumentProfiler } from '@umo/performance'
+import { DocumentProfiler } from '@kindy/performance'
 
 const profiler = new DocumentProfiler()
 
@@ -223,7 +223,7 @@ const report = profiler.getReport()
 ## Convenience Factory
 
 ```javascript
-import { createPerformanceToolkit } from '@umo/performance'
+import { createPerformanceToolkit } from '@kindy/performance'
 
 const toolkit = createPerformanceToolkit({
   cache: { l1MaxSize: 100 },

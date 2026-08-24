@@ -1,11 +1,11 @@
-# @umo/storage
+# @kindy/storage
 
 Storage engine for document persistence.
 
 ## Installation
 
 ```bash
-npm install @umo/storage
+npm install @kindy/storage
 ```
 
 ## Quick Start
@@ -16,7 +16,7 @@ import {
   OperationStorage,
   VersionStorage,
   LocalStorageAdapter,
-} from '@umo/storage'
+} from '@kindy/storage'
 
 // Create storage with adapter
 const adapter = new LocalStorageAdapter()
@@ -140,8 +140,8 @@ Gets the latest version.
 ## Usage with Layout Cache
 
 ```javascript
-import { CacheManager, LayoutCache } from '@umo/performance'
-import { LocalStorageAdapter } from '@umo/storage'
+import { CacheManager, LayoutCache } from '@kindy/performance'
+import { LocalStorageAdapter } from '@kindy/storage'
 
 const adapter = new LocalStorageAdapter()
 const cache = new CacheManager()

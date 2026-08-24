@@ -529,4 +529,70 @@ describe('DOCX codec', () => {
       replies: [expect.objectContaining({ user: 'Kinh doanh', text: 'Đã kiểm tra.' })],
     })
   })
+
+  it('keeps table grid, width, row behavior and cell width through Canvas', async () => {
+    const state = createEmptyDocumentState({
+      content: { type: 'doc', content: [{
+        type: 'table',
+        attrs: {
+          docxLayout: {
+            gridWidthsTwip: [2400, 4800],
+            widthTwip: 7200,
+            widthType: 'dxa',
+            indentTwip: 360,
+            alignment: 'center',
+          },
+        },
+        content: [{
+          type: 'tableRow',
+          attrs: { height: 36, repeatHeader: true, cantSplit: true },
+          content: [
+            {
+              type: 'tableHeader',
+              attrs: {
+                colspan: 1,
+                rowspan: 1,
+                colwidth: [160],
+                docxLayout: { widthTwip: 2400, widthType: 'dxa', marginsTwip: { left: 120, right: 120 } },
+              },
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Bên A' }] }],
+            },
+            {
+              type: 'tableHeader',
+              attrs: { colspan: 1, rowspan: 1, colwidth: [320], docxLayout: { widthTwip: 4800, widthType: 'dxa' } },
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Bên B' }] }],
+            },
+          ],
+        }],
+      }] },
+    })
+
+    const afterCanvas = createEmptyDocumentState({
+      ...state,
+      content: canvasDataToProseMirror(proseMirrorToCanvasData(state.content, state.page)),
+    })
+    const exported = await exportDocx(afterCanvas, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const archive = unzipSync(new Uint8Array(await exported.blob.arrayBuffer()))
+    const documentXml = strFromU8(archive['word/document.xml'])
+    expect(documentXml).toContain('<w:tblGrid>')
+    expect(documentXml).toContain('w:w="2400"')
+    expect(documentXml).toContain('w:w="4800"')
+    expect(documentXml).toContain('<w:tblHeader')
+    expect(documentXml).toContain('<w:cantSplit')
+
+    const imported = await importDocx(exported.blob, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const [table] = imported.state.content.content
+    expect(table.attrs.docxLayout).toMatchObject({
+      gridWidthsTwip: [2400, 4800],
+      widthTwip: 7200,
+      widthType: 'dxa',
+      indentTwip: 360,
+      alignment: 'center',
+    })
+    expect(table.content[0].attrs).toMatchObject({ repeatHeader: true, cantSplit: true })
+    expect(table.content[0].content[0].attrs).toMatchObject({
+      colwidth: [160],
+      docxLayout: expect.objectContaining({ widthTwip: 2400 }),
+    })
+  })
 })

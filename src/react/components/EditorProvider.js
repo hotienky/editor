@@ -8,9 +8,9 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo } from 'react'
-import { createDocument, createEmptyDocument } from '@umo/document'
-import { LayoutEngine } from '@umo/layout'
-import { getPluginManager } from '@umo/plugin'
+import { createDocument, createEmptyDocument } from '@kindy/document'
+import { LayoutEngine } from '@kindy/layout'
+import { getPluginManager } from '@kindy/plugin'
 
 // ─── Editor Context ────────────────────────────────────────────────────────
 

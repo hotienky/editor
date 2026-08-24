@@ -1,17 +1,17 @@
-# @umo/react
+# @kindy/react
 
 React adapter for Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/react
+npm install @kindy/react
 ```
 
 ## Quick Start
 
 ```jsx
-import { EditorProvider, useEditor, useDocument } from '@umo/react'
+import { EditorProvider, useEditor, useDocument } from '@kindy/react'
 
 function App() {
   return (
@@ -56,12 +56,12 @@ Root provider for the editor.
 </EditorProvider>
 ```
 
-#### `UMOEditor`
+#### `KindyEditor`
 
 Main editor component.
 
 ```jsx
-<UMOEditor className="my-editor" style={{ height: '100vh' }} />
+<KindyEditor className="my-editor" style={{ height: '100vh' }} />
 ```
 
 #### `Toolbar`
@@ -180,18 +180,18 @@ const {
 ```jsx
 import {
   EditorProvider,
-  UMOEditor,
+  KindyEditor,
   Toolbar,
   ToolbarButton,
   useDocument,
-} from '@umo/react'
+} from '@kindy/react'
 
 function App() {
   return (
     <EditorProvider>
       <div className="editor-container">
         <EditorToolbar />
-        <UMOEditor />
+        <KindyEditor />
       </div>
     </EditorProvider>
   )

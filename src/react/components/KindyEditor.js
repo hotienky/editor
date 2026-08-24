@@ -1,5 +1,5 @@
 /**
- * UMOEditor Component
+ * KindyEditor Component
  *
  * Main editor component for React.
  * Renders the document with pagination and editing capabilities.
@@ -12,9 +12,9 @@ import { useEditor } from './EditorProvider'
 import { ViewportContainer } from './ViewportContainer'
 import { PageView } from './PageView'
 
-// ─── UMOEditor Component ───────────────────────────────────────────────────
+// ─── KindyEditor Component ───────────────────────────────────────────────────
 
-export function UMOEditor({ className = '', style = {} }) {
+export function KindyEditor({ className = '', style = {} }) {
   const {
     document,
     layout,
@@ -56,7 +56,7 @@ export function UMOEditor({ className = '', style = {} }) {
   return (
     <div
       ref={containerRef}
-      className={`umo-editor ${className}`}
+      className={`kindy-editor ${className}`}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -81,18 +81,18 @@ export function UMOEditor({ className = '', style = {} }) {
 // ─── Styles ────────────────────────────────────────────────────────────────
 
 export const editorStyles = `
-.umo-editor {
+.kindy-editor {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   line-height: 1.6;
   color: #333;
 }
 
-.umo-editor:focus {
+.kindy-editor:focus {
   outline: none;
 }
 `
 
 export default {
-  UMOEditor,
+  KindyEditor,
   editorStyles,
 }

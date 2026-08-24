@@ -1,20 +1,20 @@
 /**
- * @umo/editor-client Tests
+ * @kindy/editor-client Tests
  *
  * Architecture: Test Layer — Editor Client Package
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useUmoEditor, useDocumentManager, useFileOperations } from '../src/index'
+import { useKindyEditor, useDocumentManager, useFileOperations } from '../src/index'
 
 describe('Editor Client Package', () => {
-  describe('useUmoEditor', () => {
+  describe('useKindyEditor', () => {
     it('should return editor composable', () => {
-      expect(typeof useUmoEditor).toBe('function')
+      expect(typeof useKindyEditor).toBe('function')
     })
 
     it('should return editor state', () => {
-      const editor = useUmoEditor()
+      const editor = useKindyEditor()
 
       expect(editor).toBeDefined()
       expect(editor.document).toBeDefined()
@@ -24,7 +24,7 @@ describe('Editor Client Package', () => {
     })
 
     it('should return editor methods', () => {
-      const editor = useUmoEditor()
+      const editor = useKindyEditor()
 
       expect(typeof editor.updateDocument).toBe('function')
       expect(typeof editor.updateSelection).toBe('function')
@@ -32,7 +32,7 @@ describe('Editor Client Package', () => {
     })
 
     it('should have default page options', () => {
-      const editor = useUmoEditor()
+      const editor = useKindyEditor()
 
       expect(editor.pageOptions.size).toBeDefined()
       expect(editor.pageOptions.orientation).toBe('portrait')
@@ -123,7 +123,7 @@ describe('Editor Client Package', () => {
         content: { type: 'doc', content: [] },
       }
 
-      localStorage.setItem('umo-document', JSON.stringify(document))
+      localStorage.setItem('kindy-document', JSON.stringify(document))
 
       const loaded = ops.load()
 

@@ -177,7 +177,7 @@ const myPlugin = new Plugin({
 3. **No Built-in Collaboration**: Requires external solution (Yjs)
 4. **No WYSIWYG**: Not true WYSIWYG by default
 
-## Lessons Learned for UMO
+## Lessons Learned for Kindy
 
 1. **AST-based Model**: Use ProseMirror's document model as foundation
 2. **Transaction System**: Track all changes through transactions

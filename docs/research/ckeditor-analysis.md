@@ -155,7 +155,7 @@ conversion.for('downcast').elementToElement({
 3. **Learning Curve**: Complex API
 4. **Limited WYSIWYG**: Not true WYSIWYG
 
-## Lessons Learned for UMO
+## Lessons Learned for Kindy
 
 1. **Data Pipeline**: Separate data model from rendering
 2. **Command Pattern**: All editing actions as commands

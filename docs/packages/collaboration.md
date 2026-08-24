@@ -1,17 +1,17 @@
-# @umo/collaboration
+# @kindy/collaboration
 
 Real-time collaboration package using Yjs CRDT.
 
 ## Installation
 
 ```bash
-npm install @umo/collaboration
+npm install @kindy/collaboration
 ```
 
 ## Quick Start
 
 ```javascript
-import { CollaborationProtocol, PresenceManager, VersionHistory } from '@umo/collaboration'
+import { CollaborationProtocol, PresenceManager, VersionHistory } from '@kindy/collaboration'
 
 // Connect to collaboration server
 const protocol = new CollaborationProtocol()

@@ -1,17 +1,17 @@
 /**
- * useUmoEditor Composable
+ * useKindyEditor Composable
  *
- * Main composable for the UMO Editor.
+ * Main composable for the Kindy Editor.
  *
  * Architecture: Product Layer — Editor Client
  */
 
 import { ref, reactive, computed, watch } from 'vue'
-import { createDocument, createEmptyDocument } from '@umo/document'
-import { LayoutEngine } from '@umo/layout'
-import { getPluginManager } from '@umo/plugin'
+import { createDocument, createEmptyDocument } from '@kindy/document'
+import { LayoutEngine } from '@kindy/layout'
+import { getPluginManager } from '@kindy/plugin'
 
-export function useUmoEditor(config = {}) {
+export function useKindyEditor(config = {}) {
   // ─── State ──────────────────────────────────────────────────────────
 
   const document = ref(
@@ -120,4 +120,4 @@ export function useUmoEditor(config = {}) {
   }
 }
 
-export default useUmoEditor
+export default useKindyEditor

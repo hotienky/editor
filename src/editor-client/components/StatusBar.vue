@@ -1,18 +1,18 @@
 <template>
-  <div class="umo-status-bar">
-    <div class="umo-status-left">
-      <span class="umo-status-item">Page {{ page }} of {{ totalPages }}</span>
-      <span class="umo-status-divider">|</span>
-      <span class="umo-status-item">{{ wordCount }} words</span>
-      <span class="umo-status-divider">|</span>
-      <span class="umo-status-item">{{ charCount }} characters</span>
+  <div class="kindy-status-bar">
+    <div class="kindy-status-left">
+      <span class="kindy-status-item">Page {{ page }} of {{ totalPages }}</span>
+      <span class="kindy-status-divider">|</span>
+      <span class="kindy-status-item">{{ wordCount }} words</span>
+      <span class="kindy-status-divider">|</span>
+      <span class="kindy-status-item">{{ charCount }} characters</span>
     </div>
 
-    <div class="umo-status-right">
-      <div class="umo-zoom-controls">
-        <button class="umo-zoom-btn" @click="zoomOut">−</button>
-        <span class="umo-zoom-value">{{ zoom }}%</span>
-        <button class="umo-zoom-btn" @click="zoomIn">+</button>
+    <div class="kindy-status-right">
+      <div class="kindy-zoom-controls">
+        <button class="kindy-zoom-btn" @click="zoomOut">−</button>
+        <span class="kindy-zoom-value">{{ zoom }}%</span>
+        <button class="kindy-zoom-btn" @click="zoomIn">+</button>
       </div>
     </div>
   </div>
@@ -54,39 +54,39 @@ const zoomOut = () => {
 </script>
 
 <style scoped>
-.umo-status-bar {
+.kindy-status-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
 }
 
-.umo-status-left {
+.kindy-status-left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.umo-status-item {
+.kindy-status-item {
   font-size: 12px;
 }
 
-.umo-status-divider {
+.kindy-status-divider {
   color: #cbd5e1;
 }
 
-.umo-status-right {
+.kindy-status-right {
   display: flex;
   align-items: center;
 }
 
-.umo-zoom-controls {
+.kindy-zoom-controls {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.umo-zoom-btn {
+.kindy-zoom-btn {
   width: 24px;
   height: 24px;
   border: 1px solid #e2e8f0;
@@ -96,11 +96,11 @@ const zoomOut = () => {
   font-size: 14px;
 }
 
-.umo-zoom-btn:hover {
+.kindy-zoom-btn:hover {
   background-color: #f1f5f9;
 }
 
-.umo-zoom-value {
+.kindy-zoom-value {
   min-width: 40px;
   text-align: center;
   font-size: 12px;

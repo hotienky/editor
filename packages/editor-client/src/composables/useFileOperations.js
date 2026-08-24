@@ -21,7 +21,7 @@ export function useFileOperations() {
     try {
       // Save to localStorage
       const data = JSON.stringify(document)
-      localStorage.setItem('umo-document', data)
+      localStorage.setItem('kindy-document', data)
       lastSavedAt.value = new Date().toISOString()
 
       // Simulate network delay
@@ -38,7 +38,7 @@ export function useFileOperations() {
 
   const load = () => {
     try {
-      const data = localStorage.getItem('umo-document')
+      const data = localStorage.getItem('kindy-document')
       if (data) {
         return JSON.parse(data)
       }

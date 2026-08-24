@@ -1,17 +1,17 @@
-# @umo/layout
+# @kindy/layout
 
 Layout engine package for Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/layout
+npm install @kindy/layout
 ```
 
 ## Quick Start
 
 ```javascript
-import { LayoutEngine } from '@umo/layout'
+import { LayoutEngine } from '@kindy/layout'
 
 const engine = new LayoutEngine()
 
@@ -136,7 +136,7 @@ Calculates total content height.
 ## Web Worker Support
 
 ```javascript
-import { LayoutEngine } from '@umo/layout'
+import { LayoutEngine } from '@kindy/layout'
 
 const engine = new LayoutEngine({
   workerEnabled: true,

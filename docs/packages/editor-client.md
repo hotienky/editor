@@ -1,22 +1,22 @@
-# @umo/editor-client
+# @kindy/editor-client
 
-UMO Editor Client — A Google Docs-like editor built on Open Document Platform.
+Kindy Editor Client — A Google Docs-like editor built on Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/editor-client
+npm install @kindy/editor-client
 ```
 
 ## Quick Start
 
 ```vue
 <template>
-  <UmoEditor :config="config" />
+  <KindyEditor :config="config" />
 </template>
 
 <script setup>
-import { UmoEditor } from '@umo/editor-client'
+import { KindyEditor } from '@kindy/editor-client'
 
 const config = {
   locale: 'vi-VN',
@@ -36,12 +36,12 @@ const config = {
 
 ## Components
 
-### `UmoEditor`
+### `KindyEditor`
 
 Main editor component.
 
 ```vue
-<UmoEditor
+<KindyEditor
   :config="config"
   :initial-content="content"
   :read-only="false"
@@ -86,7 +86,7 @@ Status bar with page info and zoom.
 
 ## Composables
 
-### `useUmoEditor`
+### `useKindyEditor`
 
 Returns editor state and operations.
 
@@ -98,7 +98,7 @@ const {
   pageOptions,
   updateDocument,
   updatePageOptions,
-} = useUmoEditor()
+} = useKindyEditor()
 ```
 
 ### `useDocumentManager`
@@ -155,7 +155,7 @@ const config = {
 ```vue
 <template>
   <div class="app">
-    <UmoEditor
+    <KindyEditor
       :config="config"
       @ready="handleReady"
       @save="handleSave"
@@ -164,7 +164,7 @@ const config = {
 </template>
 
 <script setup>
-import { UmoEditor } from '@umo/editor-client'
+import { KindyEditor } from '@kindy/editor-client'
 
 const config = {
   title: 'My Document',

@@ -1,5 +1,5 @@
 /**
- * @umo/react Tests
+ * @kindy/react Tests
  *
  * Architecture: Test Layer — React Adapter Package
  */
@@ -22,10 +22,10 @@ describe('React Adapter Package', () => {
       expect(fs.default.existsSync(componentPath)).toBe(true)
     })
 
-    it('should have UMOEditor component', async () => {
+    it('should have KindyEditor component', async () => {
       const fs = await import('fs')
       const path = await import('path')
-      const componentPath = path.default.join(__dirname, '../src/components/UMOEditor.js')
+      const componentPath = path.default.join(__dirname, '../src/components/KindyEditor.js')
       expect(fs.default.existsSync(componentPath)).toBe(true)
     })
 

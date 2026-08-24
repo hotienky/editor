@@ -40,9 +40,9 @@ A minimal document editor using Open Document Platform.
 
 ```javascript
 // main.js
-import { createDocument } from '@umo/document'
-import { LayoutEngine } from '@umo/layout'
-import { PageRenderer } from '@umo/render'
+import { createDocument } from '@kindy/document'
+import { LayoutEngine } from '@kindy/layout'
+import { PageRenderer } from '@kindy/render'
 
 // Initialize
 const engine = new LayoutEngine()

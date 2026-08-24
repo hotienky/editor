@@ -9,7 +9,7 @@
 export class CacheManager {
   constructor(options = {}) {
     this.l1Cache = new MemoryCache(options.l1MaxSize || 50) // Fast, small
-    this.l2Cache = new SessionCache(options.l2Prefix || 'umo-cache') // Medium
+    this.l2Cache = new SessionCache(options.l2Prefix || 'kindy-cache') // Medium
     this.l3Cache = null // Persistent (IndexedDB) - optional
 
     this.stats = {
@@ -174,7 +174,7 @@ export class MemoryCache {
  * Session Storage Cache (L2)
  */
 export class SessionCache {
-  constructor(prefix = 'umo-cache') {
+  constructor(prefix = 'kindy-cache') {
     this.prefix = prefix
   }
 

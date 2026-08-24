@@ -130,7 +130,7 @@ Build the render engine that converts Layout Tree into HTML/CSS.
 
 ## Deliverables
 
-- `@umo/render` package
+- `@kindy/render` package
 - Page Renderer
 - Virtual Renderer
 - React and Vue adapters

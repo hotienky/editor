@@ -1,5 +1,5 @@
 /**
- * @umo/storage Tests
+ * @kindy/storage Tests
  *
  * Architecture: Test Layer — Storage Package
  */

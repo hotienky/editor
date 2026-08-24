@@ -1,5 +1,5 @@
 /**
- * @umo/editor Tests
+ * @kindy/editor Tests
  *
  * Architecture: Test Layer — Editor Package
  */

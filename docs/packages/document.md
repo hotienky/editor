@@ -1,17 +1,17 @@
-# @umo/document
+# @kindy/document
 
 Document model package for Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/document
+npm install @kindy/document
 ```
 
 ## Quick Start
 
 ```javascript
-import { createDocument, createEmptyDocument, getSerializer, getValidator } from '@umo/document'
+import { createDocument, createEmptyDocument, getSerializer, getValidator } from '@kindy/document'
 
 // Create a document from content
 const doc = createDocument({

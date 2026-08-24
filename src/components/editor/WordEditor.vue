@@ -567,7 +567,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import WordIcon from './WordIcon.vue'
 import CanvasEditor, { EditorMode, EditorZone, PaperDirection, ElementType, TitleLevel } from '../../engines/canvas/core'
 import { createCanvasEngineAdapter, type CanvasEngineHandle } from '../../engines/canvas'
-import { importDocx, exportDocx } from '../../codecs/docx'
+import { importDocxInWorker, exportDocx } from '../../codecs/docx'
 import { createEmptyDocumentState } from '../../core/state'
 import type { CompatibilityReport, KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
 
@@ -1062,7 +1062,7 @@ const showShortcutsModal = () => {
 }
 
 const showAboutModal = () => {
-  alert('Kindy Word Editor 365 v2.0\nBộ soạn thảo và in ấn chuẩn 1:1 theo Microsoft Word Desktop & Google Docs trên nền tảng Canvas Engine.')
+  alert('Kindy Word Editor 365 v2.0\nCanvas Engine với DOCX round-trip theo Kindy Compatibility Profile. Những tính năng OOXML ngoài profile sẽ được cảnh báo thay vì cam kết tương thích tuyệt đối với Microsoft Word.')
 }
 
 // Formatting Actions
@@ -1333,7 +1333,7 @@ const onFileSelected = async (e: Event) => {
     reader.readAsText(file)
   } else if (file.name.toLowerCase().endsWith('.docx')) {
     try {
-      const result = await importDocx(file, { mode: 'best-effort', profile: props.docxProfile })
+      const result = await importDocxInWorker(file, { mode: 'best-effort', profile: props.docxProfile })
       if (result.state && engineHandle) {
         currentState = result.state
         engineHandle.load(result.state)
@@ -1349,6 +1349,7 @@ const onFileSelected = async (e: Event) => {
           ioNotice.value = { tone: 'success', text: 'Đã import DOCX và giữ metadata thuộc profile hỗ trợ.' }
         }
         emits('imported', { file, state: result.state, report: result.report })
+        ;(e.target as HTMLInputElement).value = ''
         return
       }
     } catch (err) {

@@ -24,13 +24,13 @@ export function Menu({ children, trigger, className = '' }) {
   }, [])
 
   return (
-    <div ref={menuRef} className={`umo-menu ${className}`} style={{ position: 'relative' }}>
+    <div ref={menuRef} className={`kindy-menu ${className}`} style={{ position: 'relative' }}>
       <div onClick={() => setIsOpen(!isOpen)}>
         {trigger}
       </div>
       {isOpen && (
         <div
-          className="umo-menu-content"
+          className="kindy-menu-content"
           style={{
             position: 'absolute',
             top: '100%',
@@ -53,7 +53,7 @@ export function Menu({ children, trigger, className = '' }) {
 export function MenuItem({ icon, label, onClick, disabled = false, shortcut }) {
   return (
     <button
-      className="umo-menu-item"
+      className="kindy-menu-item"
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -69,10 +69,10 @@ export function MenuItem({ icon, label, onClick, disabled = false, shortcut }) {
         textAlign: 'left',
       }}
     >
-      {icon && <span className="umo-menu-item-icon">{icon}</span>}
-      <span className="umo-menu-item-label" style={{ flex: 1 }}>{label}</span>
+      {icon && <span className="kindy-menu-item-icon">{icon}</span>}
+      <span className="kindy-menu-item-label" style={{ flex: 1 }}>{label}</span>
       {shortcut && (
-        <span className="umo-menu-item-shortcut" style={{ color: '#999', fontSize: '12px' }}>
+        <span className="kindy-menu-item-shortcut" style={{ color: '#999', fontSize: '12px' }}>
           {shortcut}
         </span>
       )}
@@ -83,7 +83,7 @@ export function MenuItem({ icon, label, onClick, disabled = false, shortcut }) {
 export function MenuSeparator() {
   return (
     <div
-      className="umo-menu-separator"
+      className="kindy-menu-separator"
       style={{
         height: '1px',
         margin: '4px 0',

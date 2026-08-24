@@ -1,5 +1,5 @@
 /**
- * @umo/vue Tests
+ * @kindy/vue Tests
  *
  * Architecture: Test Layer — Vue Adapter Package
  */

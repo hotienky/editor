@@ -132,11 +132,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': `${process.cwd()}/src`,
-      '@umo/document': `${process.cwd()}/packages/document/src`,
-      '@umo/layout': `${process.cwd()}/packages/layout/src`,
-      '@umo/render': `${process.cwd()}/packages/render/src`,
-      '@umo/editor': `${process.cwd()}/packages/editor/src`,
-      '@umo/collaboration': `${process.cwd()}/packages/collaboration/src`,
+      '@kindy/document': `${process.cwd()}/packages/document/src`,
+      '@kindy/layout': `${process.cwd()}/packages/layout/src`,
+      '@kindy/render': `${process.cwd()}/packages/render/src`,
+      '@kindy/editor': `${process.cwd()}/packages/editor/src`,
+      '@kindy/collaboration': `${process.cwd()}/packages/collaboration/src`,
     },
   },
 })

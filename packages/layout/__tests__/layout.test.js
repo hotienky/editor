@@ -1,5 +1,5 @@
 /**
- * @umo/layout Tests
+ * @kindy/layout Tests
  *
  * Architecture: Test Layer — Layout Package
  */

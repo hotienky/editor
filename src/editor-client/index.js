@@ -1,5 +1,5 @@
 /**
- * UMO Editor Client — Public API
+ * Kindy Editor Client — Public API
  *
  * A Google Docs-like editor built on Open Document Platform.
  *
@@ -8,7 +8,7 @@
 
 // ─── Main Editor Component ─────────────────────────────────────────────────
 
-export { UmoEditor } from './components/UmoEditor.vue'
+export { KindyEditor } from './components/KindyEditor.vue'
 
 // ─── Sub-components ────────────────────────────────────────────────────────
 
@@ -21,14 +21,14 @@ export { StatusBar } from './components/StatusBar.vue'
 
 // ─── Composables ───────────────────────────────────────────────────────────
 
-export { useUmoEditor } from './composables/useUmoEditor'
+export { useKindyEditor } from './composables/useKindyEditor'
 export { useDocumentManager } from './composables/useDocumentManager'
 export { useFileOperations } from './composables/useFileOperations'
 
 // ─── Plugin Installation ───────────────────────────────────────────────────
 
 export function install(app) {
-  app.component('UmoEditor', UmoEditor)
+  app.component('KindyEditor', KindyEditor)
   app.component('EditorHeader', EditorHeader)
   app.component('EditorToolbar', EditorToolbar)
   app.component('EditorContent', EditorContent)
@@ -40,14 +40,14 @@ export function install(app) {
 }
 
 export default {
-  UmoEditor,
+  KindyEditor,
   EditorHeader,
   EditorToolbar,
   EditorContent,
   EditorFooter,
   DocumentTabs,
   StatusBar,
-  useUmoEditor,
+  useKindyEditor,
   useDocumentManager,
   useFileOperations,
   install,

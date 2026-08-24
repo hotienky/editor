@@ -252,7 +252,7 @@ Build the layout engine that converts Document AST into Layout Tree.
 
 ## Deliverables
 
-- `@umo/layout` package
+- `@kindy/layout` package
 - Text measurement system
 - Line breaking algorithm
 - Pagination algorithm

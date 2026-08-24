@@ -1,5 +1,5 @@
 /**
- * @umo/ai Tests
+ * @kindy/ai Tests
  *
  * Architecture: Test Layer — AI Package
  */

@@ -1,29 +1,29 @@
 <template>
-  <header class="umo-editor-header">
-    <div class="umo-editor-header-left">
-      <div class="umo-logo">
-        <span class="umo-logo-icon">📝</span>
-        <span class="umo-logo-text">UMO Editor</span>
+  <header class="kindy-editor-header">
+    <div class="kindy-editor-header-left">
+      <div class="kindy-logo">
+        <span class="kindy-logo-icon">📝</span>
+        <span class="kindy-logo-text">Kindy Editor</span>
       </div>
     </div>
 
-    <div class="umo-editor-header-center">
+    <div class="kindy-editor-header-center">
       <input
         v-model="title"
-        class="umo-title-input"
+        class="kindy-title-input"
         type="text"
         placeholder="Untitled Document"
         @blur="handleTitleBlur"
       />
-      <span v-if="isSaving" class="umo-save-status">Saving...</span>
-      <span v-else class="umo-save-status saved">Saved</span>
+      <span v-if="isSaving" class="kindy-save-status">Saving...</span>
+      <span v-else class="kindy-save-status saved">Saved</span>
     </div>
 
-    <div class="umo-editor-header-right">
-      <button class="umo-btn umo-btn-ghost" @click="$emit('export')">
+    <div class="kindy-editor-header-right">
+      <button class="kindy-btn kindy-btn-ghost" @click="$emit('export')">
         Export
       </button>
-      <button class="umo-btn umo-btn-primary" @click="$emit('save')">
+      <button class="kindy-btn kindy-btn-primary" @click="$emit('save')">
         Save
       </button>
     </div>
@@ -61,7 +61,7 @@ const handleTitleBlur = () => {
 </script>
 
 <style scoped>
-.umo-editor-header {
+.kindy-editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -71,29 +71,29 @@ const handleTitleBlur = () => {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.umo-editor-header-left {
+.kindy-editor-header-left {
   display: flex;
   align-items: center;
 }
 
-.umo-logo {
+.kindy-logo {
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 600;
 }
 
-.umo-logo-icon {
+.kindy-logo-icon {
   font-size: 20px;
 }
 
-.umo-editor-header-center {
+.kindy-editor-header-center {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.umo-title-input {
+.kindy-title-input {
   border: none;
   background: transparent;
   font-size: 16px;
@@ -103,22 +103,22 @@ const handleTitleBlur = () => {
   min-width: 200px;
 }
 
-.umo-save-status {
+.kindy-save-status {
   font-size: 12px;
   color: #94a3b8;
 }
 
-.umo-save-status.saved {
+.kindy-save-status.saved {
   color: #22c55e;
 }
 
-.umo-editor-header-right {
+.kindy-editor-header-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.umo-btn {
+.kindy-btn {
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
@@ -126,21 +126,21 @@ const handleTitleBlur = () => {
   cursor: pointer;
 }
 
-.umo-btn-primary {
+.kindy-btn-primary {
   background-color: #3b82f6;
   color: #fff;
 }
 
-.umo-btn-primary:hover {
+.kindy-btn-primary:hover {
   background-color: #2563eb;
 }
 
-.umo-btn-ghost {
+.kindy-btn-ghost {
   background-color: transparent;
   color: #64748b;
 }
 
-.umo-btn-ghost:hover {
+.kindy-btn-ghost:hover {
   background-color: #f1f5f9;
 }
 </style>

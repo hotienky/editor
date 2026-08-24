@@ -1,5 +1,5 @@
 /**
- * @umo/collaboration Tests
+ * @kindy/collaboration Tests
  *
  * Architecture: Test Layer — Collaboration Package
  */

@@ -1,11 +1,11 @@
-# @umo/vue
+# @kindy/vue
 
 Vue 3 adapter for Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/vue
+npm install @kindy/vue
 ```
 
 ## Quick Start
@@ -13,12 +13,12 @@ npm install @umo/vue
 ```vue
 <template>
   <EditorProvider :config="config">
-    <UMOEditor />
+    <KindyEditor />
   </EditorProvider>
 </template>
 
 <script setup>
-import { EditorProvider, UMOEditor } from '@umo/vue'
+import { EditorProvider, KindyEditor } from '@kindy/vue'
 
 const config = {
   locale: 'vi-VN',
@@ -121,13 +121,13 @@ const {
 
 ### Components
 
-#### `UMOEditor`
+#### `KindyEditor`
 
 Main editor component.
 
 ```vue
 <template>
-  <UMOEditor class="my-editor" />
+  <KindyEditor class="my-editor" />
 </template>
 ```
 
@@ -163,14 +163,14 @@ Page display component.
   <EditorProvider :config="config">
     <div class="editor-container">
       <EditorToolbar />
-      <UMOEditor />
+      <KindyEditor />
       <StatusBar />
     </div>
   </EditorProvider>
 </template>
 
 <script setup>
-import { EditorProvider, UMOEditor, useDocument, useLayout } from '@umo/vue'
+import { EditorProvider, KindyEditor, useDocument, useLayout } from '@kindy/vue'
 
 const config = {
   locale: 'vi-VN',
@@ -193,11 +193,11 @@ const { totalPages } = useLayout()
 
 ```javascript
 import { createApp } from 'vue'
-import { install as umoPlugin } from '@umo/vue'
+import { install as umoPlugin } from '@kindy/vue'
 
 const app = createApp(App)
 
-// Install UMO plugin
+// Install Kindy plugin
 app.use(umoPlugin)
 
 app.mount('#app')

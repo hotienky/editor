@@ -115,7 +115,7 @@ Document
 3. **Performance**: Can be slow with large documents
 4. **Browser-dependent**: Rendering varies by browser
 
-## Lessons Learned for UMO
+## Lessons Learned for Kindy
 
 1. **Native Format Support**: Direct manipulation of OOXML
 2. **Server-side Rendering**: Consider for complex layouts

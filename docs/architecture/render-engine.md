@@ -62,7 +62,7 @@ Layout Tree
 ### 2.1 Components
 
 ```
-@umo/render
+@kindy/render
 ├── PageRenderer           # Generate HTML/CSS for a single page
 ├── ViewportVirtualizer    # Determine visible pages
 ├── HeaderFooterRenderer   # Render header/footer
@@ -359,8 +359,8 @@ const defaultConfig: VirtualScrollConfig = {
 ### 7.1 React Adapter
 
 ```typescript
-// @umo/react
-import { PageRenderer } from '@umo/render'
+// @kindy/react
+import { PageRenderer } from '@kindy/render'
 
 interface PageProps {
   layoutPage: LayoutPage
@@ -397,8 +397,8 @@ function Document({ layoutTree, visiblePages }: DocumentProps) {
 ### 7.2 Vue Adapter
 
 ```typescript
-// @umo/vue
-import { PageRenderer } from '@umo/render'
+// @kindy/vue
+import { PageRenderer } from '@kindy/render'
 
 const PageComponent = {
   props: {

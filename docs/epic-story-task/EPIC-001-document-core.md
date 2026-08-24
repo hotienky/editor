@@ -137,7 +137,7 @@ None (this is the first implementation phase)
 
 ## Deliverables
 
-- `@umo/core` package
+- `@kindy/core` package
 - Document, Node, Tree classes
 - Schema system
 - Command and Transaction engines

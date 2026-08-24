@@ -13,7 +13,7 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
-import { cmToPx } from '@umo/layout'
+import { cmToPx } from '@kindy/layout'
 import { createDomDocumentLayoutService } from '@/layout/document-layout-service'
 import {
   getPageGeometry,

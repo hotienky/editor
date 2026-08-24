@@ -1,7 +1,7 @@
 {
-  "name": "@umo/editor-client",
+  "name": "@kindy/editor-client",
   "version": "0.1.0",
-  "description": "UMO Editor Client — Google Docs-like editor built on Open Document Platform",
+  "description": "Kindy Editor Client — Google Docs-like editor built on Open Document Platform",
   "type": "module",
   "main": "./src/index.js",
   "exports": {
@@ -12,15 +12,15 @@
     "vue": ">=3.0.0"
   },
   "dependencies": {
-    "@umo/document": "*",
-    "@umo/layout": "*",
-    "@umo/render": "*",
-    "@umo/editor": "*",
-    "@umo/collaboration": "*",
-    "@umo/storage": "*",
-    "@umo/io": "*",
-    "@umo/plugin": "*",
-    "@umo/ai": "*",
-    "@umo/vue": "*"
+    "@kindy/document": "*",
+    "@kindy/layout": "*",
+    "@kindy/render": "*",
+    "@kindy/editor": "*",
+    "@kindy/collaboration": "*",
+    "@kindy/storage": "*",
+    "@kindy/io": "*",
+    "@kindy/plugin": "*",
+    "@kindy/ai": "*",
+    "@kindy/vue": "*"
   }
 }

@@ -24,14 +24,14 @@ my-editor/
   <EditorProvider :config="config">
     <div class="app">
       <EditorToolbar />
-      <UMOEditor class="editor" />
+      <KindyEditor class="editor" />
       <StatusBar />
     </div>
   </EditorProvider>
 </template>
 
 <script setup>
-import { EditorProvider, UMOEditor } from '@umo/vue'
+import { EditorProvider, KindyEditor } from '@kindy/vue'
 import EditorToolbar from './components/Toolbar.vue'
 import StatusBar from './components/StatusBar.vue'
 
@@ -78,7 +78,7 @@ const config = {
 
 <script setup>
 import { computed } from 'vue'
-import { useEditor, useDocument } from '@umo/vue'
+import { useEditor, useDocument } from '@kindy/vue'
 
 const { document, updateDocument } = useEditor()
 const { insertText } = useDocument()
@@ -165,7 +165,7 @@ button.active {
 
 <script setup>
 import { computed } from 'vue'
-import { useDocument, useLayout } from '@umo/vue'
+import { useDocument, useLayout } from '@kindy/vue'
 
 const { wordCount, charCount } = useDocument()
 const { totalPages } = useLayout()
@@ -206,10 +206,10 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@umo/document': '@umo/document/src',
-      '@umo/layout': '@umo/layout/src',
-      '@umo/render': '@umo/render/src',
-      '@umo/vue': '@umo/vue/src',
+      '@kindy/document': '@kindy/document/src',
+      '@kindy/layout': '@kindy/layout/src',
+      '@kindy/render': '@kindy/render/src',
+      '@kindy/vue': '@kindy/vue/src',
     },
   },
 })
@@ -226,10 +226,10 @@ export default defineConfig({
   },
   "dependencies": {
     "vue": "^3.5.29",
-    "@umo/document": "*",
-    "@umo/layout": "*",
-    "@umo/render": "*",
-    "@umo/vue": "*"
+    "@kindy/document": "*",
+    "@kindy/layout": "*",
+    "@kindy/render": "*",
+    "@kindy/vue": "*"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.4",

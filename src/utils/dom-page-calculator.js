@@ -35,7 +35,7 @@ function readCssVarPx(style, varName, defaultCm, cmToPxFn) {
  * Reads CSS variables from the .kindy-page-editor-wrap element.
  *
  * @param {HTMLElement} editorDom   - The ProseMirror .ProseMirror element
- * @param {Function}   cmToPxFn    - cm-to-px converter from @umo/layout
+ * @param {Function}   cmToPxFn    - cm-to-px converter from @kindy/layout
  * @returns {number}  Content area height in pixels (logical, before zoom)
  */
 export function getPageGeometry(editorDom, cmToPxFn) {
@@ -280,7 +280,7 @@ export function computePagesFromHeights(blockHeights, contentHeightPx, options =
  * All-in-one helper: read DOM heights, compute page content height, paginate.
  *
  * @param {HTMLElement} editorDom  - The .ProseMirror element
- * @param {Function}    cmToPxFn  - from @umo/layout
+ * @param {Function}    cmToPxFn  - from @kindy/layout
  * @returns {Array<{pageNumber: number, blockStart: number, blockEnd: number, height: number, endedByManualBreak: boolean}>}
  */
 export function paginateFromDOM(editorDom, cmToPxFn, measurementCache, sectionLayout = {}) {

@@ -1,5 +1,5 @@
 /**
- * @umo/performance Tests
+ * @kindy/performance Tests
  *
  * Architecture: Test Layer — Performance Package
  */

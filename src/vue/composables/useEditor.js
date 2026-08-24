@@ -7,9 +7,9 @@
  */
 
 import { ref, reactive, computed, provide, inject } from 'vue'
-import { createDocument, createEmptyDocument } from '@umo/document'
-import { LayoutEngine } from '@umo/layout'
-import { getPluginManager } from '@umo/plugin'
+import { createDocument, createEmptyDocument } from '@kindy/document'
+import { LayoutEngine } from '@kindy/layout'
+import { getPluginManager } from '@kindy/plugin'
 
 // ─── Symbol for injection ──────────────────────────────────────────────────
 

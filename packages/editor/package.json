@@ -1,5 +1,5 @@
 {
-  "name": "@umo/editor",
+  "name": "@kindy/editor",
   "version": "0.1.0",
   "description": "Editing Engine for Open Document Platform",
   "main": "src/index.js",
@@ -14,7 +14,7 @@
     "transactions",
     "selection"
   ],
-  "author": "UMO Team",
+  "author": "Kindy Team",
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {}

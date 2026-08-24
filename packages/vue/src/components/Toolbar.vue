@@ -1,6 +1,6 @@
 <template>
   <div
-    :class="['umo-toolbar', className]"
+    :class="['kindy-toolbar', className]"
     :style="toolbarStyle"
   >
     <slot />
@@ -32,7 +32,7 @@ const toolbarStyle = computed(() => ({
 </script>
 
 <style scoped>
-.umo-toolbar {
+.kindy-toolbar {
   /* Toolbar styles */
 }
 </style>

@@ -11,7 +11,7 @@ import { useEditor } from './EditorProvider'
 export function Toolbar({ children, className = '', style = {} }) {
   return (
     <div
-      className={`umo-toolbar ${className}`}
+      className={`kindy-toolbar ${className}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -30,7 +30,7 @@ export function Toolbar({ children, className = '', style = {} }) {
 export function ToolbarButton({ icon, label, onClick, disabled = false, active = false }) {
   return (
     <button
-      className={`umo-toolbar-button ${active ? 'active' : ''}`}
+      className={`kindy-toolbar-button ${active ? 'active' : ''}`}
       onClick={onClick}
       disabled={disabled}
       title={label}
@@ -55,7 +55,7 @@ export function ToolbarButton({ icon, label, onClick, disabled = false, active =
 export function ToolbarGroup({ children, label }) {
   return (
     <div
-      className="umo-toolbar-group"
+      className="kindy-toolbar-group"
       role="group"
       aria-label={label}
       style={{

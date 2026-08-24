@@ -1,17 +1,17 @@
-# @umo/plugin
+# @kindy/plugin
 
 Plugin system for Open Document Platform.
 
 ## Installation
 
 ```bash
-npm install @umo/plugin
+npm install @kindy/plugin
 ```
 
 ## Quick Start
 
 ```javascript
-import { PluginManager, BasePlugin, PluginType, PluginPriority } from '@umo/plugin'
+import { PluginManager, BasePlugin, PluginType, PluginPriority } from '@kindy/plugin'
 
 // Get plugin manager
 const manager = new PluginManager()

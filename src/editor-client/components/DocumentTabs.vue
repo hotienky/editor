@@ -1,24 +1,24 @@
 <template>
-  <div class="umo-document-tabs">
-    <div class="umo-tabs-list">
+  <div class="kindy-document-tabs">
+    <div class="kindy-tabs-list">
       <div
         v-for="tab in tabs"
         :key="tab.id"
-        class="umo-tab"
+        class="kindy-tab"
         :class="{ active: tab.id === activeTab }"
         @click="$emit('select', tab.id)"
       >
-        <span class="umo-tab-title">{{ tab.title }}</span>
+        <span class="kindy-tab-title">{{ tab.title }}</span>
         <button
           v-if="tabs.length > 1"
-          class="umo-tab-close"
+          class="kindy-tab-close"
           @click.stop="$emit('close', tab.id)"
         >
           ×
         </button>
       </div>
     </div>
-    <button class="umo-tab-add" @click="$emit('add')">+</button>
+    <button class="kindy-tab-add" @click="$emit('add')">+</button>
   </div>
 </template>
 
@@ -38,7 +38,7 @@ const emit = defineEmits(['select', 'close', 'add'])
 </script>
 
 <style scoped>
-.umo-document-tabs {
+.kindy-document-tabs {
   display: flex;
   align-items: center;
   width: 200px;
@@ -46,14 +46,14 @@ const emit = defineEmits(['select', 'close', 'add'])
   border-right: 1px solid #e2e8f0;
 }
 
-.umo-tabs-list {
+.kindy-tabs-list {
   display: flex;
   flex-direction: column;
   flex: 1;
   overflow-y: auto;
 }
 
-.umo-tab {
+.kindy-tab {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -62,23 +62,23 @@ const emit = defineEmits(['select', 'close', 'add'])
   border-bottom: 1px solid #e2e8f0;
 }
 
-.umo-tab:hover {
+.kindy-tab:hover {
   background-color: #f1f5f9;
 }
 
-.umo-tab.active {
+.kindy-tab.active {
   background-color: #e0e7ff;
   border-left: 3px solid #3b82f6;
 }
 
-.umo-tab-title {
+.kindy-tab-title {
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.umo-tab-close {
+.kindy-tab-close {
   padding: 0 4px;
   border: none;
   background: transparent;
@@ -87,11 +87,11 @@ const emit = defineEmits(['select', 'close', 'add'])
   font-size: 16px;
 }
 
-.umo-tab-close:hover {
+.kindy-tab-close:hover {
   color: #ef4444;
 }
 
-.umo-tab-add {
+.kindy-tab-add {
   padding: 8px 12px;
   border: none;
   background: transparent;
@@ -100,7 +100,7 @@ const emit = defineEmits(['select', 'close', 'add'])
   font-size: 18px;
 }
 
-.umo-tab-add:hover {
+.kindy-tab-add:hover {
   background-color: #f1f5f9;
 }
 </style>

@@ -112,7 +112,7 @@ Build the import/export engine for document formats.
 
 ## Deliverables
 
-- `@umo/io` package
+- `@kindy/io` package
 - DOCX import/export
 - PDF export
 - HTML import/export

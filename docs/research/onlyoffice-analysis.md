@@ -155,7 +155,7 @@ HTML5 Canvas
 2. **Resource intensive**: Requires significant server resources
 3. **Learning curve**: Complex API for developers
 
-## Lessons Learned for UMO
+## Lessons Learned for Kindy
 
 1. **True WYSIWYG**: Use a unified layout engine for all modes
 2. **Native formats**: Direct manipulation of document structures

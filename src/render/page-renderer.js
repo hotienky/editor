@@ -8,9 +8,9 @@
  * Architecture: Layer 4 — Render Engine
  */
 
-import { cmToPx } from '@umo/layout'
-import { getHeaderFooterContent } from '@umo/layout'
-import { getPageNumberText } from '@umo/layout'
+import { cmToPx } from '@kindy/layout'
+import { getHeaderFooterContent } from '@kindy/layout'
+import { getPageNumberText } from '@kindy/layout'
 
 // ─── CSS Class Names ───────────────────────────────────────────────────────
 

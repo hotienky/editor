@@ -1,11 +1,11 @@
-# @umo/io
+# @kindy/io
 
 Import/Export engine for document formats.
 
 ## Installation
 
 ```bash
-npm install @umo/io
+npm install @kindy/io
 ```
 
 ## Quick Start
@@ -19,7 +19,7 @@ import {
   MarkdownExporter,
   JsonExporter,
   PlainTextExporter,
-} from '@umo/io'
+} from '@kindy/io'
 
 // Import HTML
 const htmlImporter = new HtmlImporter()

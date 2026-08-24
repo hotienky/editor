@@ -113,7 +113,7 @@ Google Docs uses OT for conflict resolution:
 3. **Browser-dependent**: Rendering varies by browser
 4. **No native DOCX support**: Requires conversion
 
-## Lessons Learned for UMO
+## Lessons Learned for Kindy
 
 1. **Document Model**: Use AST-based model, not HTML
 2. **Collaboration**: Consider CRDT (Yjs) instead of OT for better offline support

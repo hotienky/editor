@@ -75,7 +75,7 @@ Build the AI platform for intelligent editing features.
 
 ## Deliverables
 
-- `@umo/ai` package
+- `@kindy/ai` package
 - AI API
 - AI features
 - AI integrations

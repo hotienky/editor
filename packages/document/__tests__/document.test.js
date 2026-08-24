@@ -1,5 +1,5 @@
 /**
- * @umo/document Tests
+ * @kindy/document Tests
  *
  * Architecture: Test Layer — Document Package
  */

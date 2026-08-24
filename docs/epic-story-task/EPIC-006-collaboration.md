@@ -93,7 +93,7 @@ Build the collaboration engine for real-time editing.
 
 ## Deliverables
 
-- `@umo/collaboration` package
+- `@kindy/collaboration` package
 - Yjs integration
 - Presence system
 - WebSocket server

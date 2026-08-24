@@ -1,5 +1,5 @@
 /**
- * @umo/io Tests
+ * @kindy/io Tests
  *
  * Architecture: Test Layer — IO Package
  */

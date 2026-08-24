@@ -1,10 +1,10 @@
 <template>
   <div
-    :class="['umo-page', className]"
+    :class="['kindy-page', className]"
     :data-page="page.pageNumber"
     :style="pageStyle"
   >
-    <div class="umo-page-content" :style="contentStyle">
+    <div class="kindy-page-content" :style="contentStyle">
       <slot />
     </div>
   </div>
@@ -58,11 +58,11 @@ const contentStyle = computed(() => {
 </script>
 
 <style scoped>
-.umo-page {
+.kindy-page {
   /* Page styles */
 }
 
-.umo-page-content {
+.kindy-page-content {
   /* Page content styles */
 }
 </style>

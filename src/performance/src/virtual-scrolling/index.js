@@ -191,7 +191,7 @@ export class PagePool {
 
     if (!element) {
       element = document.createElement('div')
-      element.className = 'umo-page'
+      element.className = 'kindy-page'
     }
 
     // Render page content

@@ -116,7 +116,7 @@ test.describe('CanvasEngine editor', () => {
     console.info(`[canvas-benchmark] pages=${result.total} layoutMs=${result.layoutMs.toFixed(1)} backingBitmaps=${result.materialized}`)
   })
 
-  test('toggles the comments sidebar and displays comment cards', async ({ page }) => {
+  test('toggles the comments sidebar without injecting sample comments', async ({ page }) => {
     await page.goto('./')
     await page.getByRole('button', { name: 'Xem', exact: true }).click()
     const commentBtn = page.getByRole('button', { name: 'Bình luận', exact: true })
@@ -125,6 +125,7 @@ test.describe('CanvasEngine editor', () => {
 
     const commentsSidebar = page.locator('.comments-sidebar')
     await expect(commentsSidebar).toBeVisible()
-    await expect(page.locator('.comment-card').first()).toBeVisible()
+    await expect(commentsSidebar.getByText('Chưa có bình luận nào')).toBeVisible()
+    await expect(page.locator('.comment-card')).toHaveCount(0)
   })
 })

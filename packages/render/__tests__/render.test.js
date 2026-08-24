@@ -1,5 +1,5 @@
 /**
- * @umo/render Tests
+ * @kindy/render Tests
  *
  * Architecture: Test Layer — Render Package
  */

@@ -1,6 +1,6 @@
 <template>
-  <div class="umo-editor-toolbar">
-    <div class="umo-toolbar-section">
+  <div class="kindy-editor-toolbar">
+    <div class="kindy-toolbar-section">
       <!-- File Operations -->
       <ToolbarGroup label="File">
         <ToolbarButton icon="📄" label="New" @click="handleNew" />
@@ -95,13 +95,13 @@
     </div>
 
     <!-- Page Options -->
-    <div class="umo-toolbar-right">
-      <select v-model="pageFormat" class="umo-select">
+    <div class="kindy-toolbar-right">
+      <select v-model="pageFormat" class="kindy-select">
         <option value="a4">A4</option>
         <option value="letter">Letter</option>
         <option value="legal">Legal</option>
       </select>
-      <select v-model="pageOrientation" class="umo-select">
+      <select v-model="pageOrientation" class="kindy-select">
         <option value="portrait">Portrait</option>
         <option value="landscape">Landscape</option>
       </select>
@@ -240,7 +240,7 @@ const handleInsertFile = () => {
 </script>
 
 <style scoped>
-.umo-editor-toolbar {
+.kindy-editor-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -249,19 +249,19 @@ const handleInsertFile = () => {
   border-bottom: 1px solid #e2e8f0;
 }
 
-.umo-toolbar-section {
+.kindy-toolbar-section {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.umo-toolbar-right {
+.kindy-toolbar-right {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.umo-select {
+.kindy-select {
   padding: 4px 8px;
   border: 1px solid #e2e8f0;
   border-radius: 4px;

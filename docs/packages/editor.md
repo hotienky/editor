@@ -1,17 +1,17 @@
-# @umo/editor
+# @kindy/editor
 
 Editor commands and transactions package.
 
 ## Installation
 
 ```bash
-npm install @umo/editor
+npm install @kindy/editor
 ```
 
 ## Quick Start
 
 ```javascript
-import { Editor, UndoManager } from '@umo/editor'
+import { Editor, UndoManager } from '@kindy/editor'
 
 const editor = new Editor()
 

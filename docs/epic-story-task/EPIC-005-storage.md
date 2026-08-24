@@ -110,7 +110,7 @@ Build the storage engine for document persistence and versioning.
 
 ## Deliverables
 
-- `@umo/storage` package
+- `@kindy/storage` package
 - Snapshot storage
 - Operation storage
 - Version history

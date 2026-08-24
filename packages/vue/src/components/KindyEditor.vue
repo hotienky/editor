@@ -1,18 +1,18 @@
 <template>
   <div
     ref="containerRef"
-    :class="['umo-editor', className]"
+    :class="['kindy-editor', className]"
     :style="editorStyle"
   >
-    <div class="umo-viewport">
-      <div class="umo-viewport-content">
+    <div class="kindy-viewport">
+      <div class="kindy-viewport-content">
         <div
           v-for="page in pages"
           :key="page.pageNumber"
           :data-page="page.pageNumber"
-          class="umo-page"
+          class="kindy-page"
         >
-          <div class="umo-page-content">
+          <div class="kindy-page-content">
             <!-- Page content will be rendered here -->
           </div>
         </div>
@@ -65,23 +65,23 @@ const editorStyle = computed(() => ({
 </script>
 
 <style scoped>
-.umo-editor {
+.kindy-editor {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   line-height: 1.6;
   color: #333;
 }
 
-.umo-editor:focus {
+.kindy-editor:focus {
   outline: none;
 }
 
-.umo-viewport {
+.kindy-viewport {
   flex: 1;
   overflow: auto;
   background-color: #f1f5f9;
 }
 
-.umo-viewport-content {
+.kindy-viewport-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -89,7 +89,7 @@ const editorStyle = computed(() => ({
   padding: 20px;
 }
 
-.umo-page {
+.kindy-page {
   background-color: #fff;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   border-radius: 2px;
