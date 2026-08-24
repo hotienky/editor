@@ -451,6 +451,42 @@ describe('DOCX codec', () => {
     })
   })
 
+  it('preserves a comment range across paragraphs and nested OOXML containers', () => {
+    const state = ooxmlToDocumentState({
+      contentTypes: 'wordprocessingml.document',
+      documentXml: `
+        <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:body>
+            <w:p><w:sdt><w:sdtContent>
+              <w:commentRangeStart w:id="9"/>
+              <w:r><w:t>Điều khoản thứ nhất</w:t></w:r>
+            </w:sdtContent></w:sdt></w:p>
+            <w:p><w:smartTag>
+              <w:r><w:t>Điều khoản thứ hai</w:t></w:r>
+            </w:smartTag><w:commentRangeEnd w:id="9"/></w:p>
+          </w:body>
+        </w:document>
+      `,
+      commentsXml: `
+        <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+          <w:comment w:id="9" w:author="Pháp chế" w:date="2026-08-24T00:00:00Z">
+            <w:p><w:r><w:t>Áp dụng cho cả hai đoạn.</w:t></w:r></w:p>
+          </w:comment>
+        </w:comments>
+      `,
+      media: {},
+    })
+
+    expect(state.content.content).toHaveLength(2)
+    for (const paragraph of state.content.content) {
+      expect(paragraph.content[0].marks).toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'comment', attrs: expect.objectContaining({ user: 'Pháp chế' }) }),
+      ]))
+    }
+    const thread = JSON.parse(state.content.content[1].content[0].marks.find((mark) => mark.type === 'comment').attrs.thread)
+    expect(thread.text).toContain('Áp dụng cho cả hai đoạn.')
+  })
+
   it('keeps DOCX comments and paragraph geometry through a Canvas edit projection', async () => {
     const thread = {
       id: 'comment-roundtrip-canvas',

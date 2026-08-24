@@ -3,15 +3,15 @@
     <div class="kindy-toolbar-section">
       <!-- File Operations -->
       <ToolbarGroup label="File">
-        <ToolbarButton icon="📄" label="New" @click="handleNew" />
-        <ToolbarButton icon="📂" label="Open" @click="handleOpen" />
-        <ToolbarButton icon="💾" label="Save" @click="handleSave" />
+        <ToolbarButton icon="new" label="New" @click="handleNew" />
+        <ToolbarButton icon="open" label="Open" @click="handleOpen" />
+        <ToolbarButton icon="save" label="Save" @click="handleSave" />
       </ToolbarGroup>
 
       <!-- Edit Operations -->
       <ToolbarGroup label="Edit">
-        <ToolbarButton icon="↩️" label="Undo" :disabled="!canUndo" @click="handleUndo" />
-        <ToolbarButton icon="↪️" label="Redo" :disabled="!canRedo" @click="handleRedo" />
+        <ToolbarButton icon="undo" label="Undo" :disabled="!canUndo" @click="handleUndo" />
+        <ToolbarButton icon="redo" label="Redo" :disabled="!canRedo" @click="handleRedo" />
       </ToolbarGroup>
 
       <!-- Text Formatting -->
@@ -88,9 +88,9 @@
 
       <!-- Insert -->
       <ToolbarGroup label="Insert">
-        <ToolbarButton icon="📷" label="Image" @click="handleInsertImage" />
-        <ToolbarButton icon="📊" label="Table" @click="handleInsertTable" />
-        <ToolbarButton icon="📎" label="File" @click="handleInsertFile" />
+        <ToolbarButton icon="img" label="Image" @click="handleInsertImage" />
+        <ToolbarButton icon="tbl" label="Table" @click="handleInsertTable" />
+        <ToolbarButton icon="att" label="File" @click="handleInsertFile" />
       </ToolbarGroup>
     </div>
 

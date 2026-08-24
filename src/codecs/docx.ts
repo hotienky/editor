@@ -869,10 +869,17 @@ function ooxmlParagraph(
   assets: AssetReference[],
   comments: Map<string, ParsedDocxComment> = new Map(),
   styleContext: DocxStyleContext = emptyStyleContext(),
+  activeComments: string[] = [],
 ) {
   const properties = xmlFirst(element, 'pPr')
   const paragraphStyle = xmlValue(properties ? xmlFirst(properties, 'pStyle') : undefined) || ''
-  const headingMatch = paragraphStyle.match(/(?:Heading|Tiêuđề|Titre)\s*([1-6])/i)
+  const outlineLvl = properties ? xmlFirst(properties, 'outlineLvl') : undefined
+  const outlineVal = outlineLvl ? Number(xmlValue(outlineLvl)) : NaN
+  const isOutlineHeading = Number.isFinite(outlineVal) && outlineVal >= 0 && outlineVal <= 8
+  const headingMatch = paragraphStyle.match(/(?:Heading|Tiêu\s*đề|Titre|Title|DieuTitle|Dieu)\s*([1-6])?/i)
+  const isHeadingStyle = Boolean(headingMatch) || ['title', 'subtitle', 'tieude', 'u-dieutitle'].includes(paragraphStyle.toLowerCase())
+  const isHeadingNode = isOutlineHeading || isHeadingStyle
+  const headingLevel = isOutlineHeading ? (outlineVal + 1) : (headingMatch?.[1] ? Number(headingMatch[1]) : 1)
   const resolvedStyle = styleContext.styles.get(paragraphStyle)
   const format = mergeParagraphFormat(
     styleContext.paragraphDefault,
@@ -911,7 +918,6 @@ function ooxmlParagraph(
   if (format.left) attrs.indent = twipsToCentimeters(String(format.left))
 
   const content: JSONContent[] = []
-  const activeComments: string[] = []
   const applyComments = (values: JSONContent[]) => {
     if (!activeComments.length) return values
     return values.map((value) => {
@@ -924,31 +930,41 @@ function ooxmlParagraph(
       return { ...value, marks }
     })
   }
-  for (const child of [...element.children]) {
-    if (child.localName === 'commentRangeStart') {
-      const id = child.getAttribute('w:id') || child.getAttribute('id') || ''
-      if (id && !activeComments.includes(id)) activeComments.push(id)
-      continue
-    }
-    if (child.localName === 'commentRangeEnd') {
-      const id = child.getAttribute('w:id') || child.getAttribute('id') || ''
-      const index = activeComments.lastIndexOf(id)
-      if (index >= 0) activeComments.splice(index, 1)
-      continue
-    }
-    if (child.localName === 'r') content.push(...applyComments(ooxmlRun(child, relationships, parts, assets, inheritedRunFormat)))
-    if (child.localName === 'hyperlink' || child.localName === 'ins' || child.localName === 'del') {
-      const hyperlinkId = child.getAttribute('r:id') || child.getAttribute('id')
-      const href = hyperlinkId ? relationships.get(hyperlinkId) : undefined
-      xmlElements(child, 'r', true).forEach((run) => {
-        const values = ooxmlRun(run, relationships, parts, assets, inheritedRunFormat)
-        if (href) values.forEach((value) => {
-          if (value.type === 'text') value.marks = [...(value.marks || []), { type: 'link', attrs: { href } }]
+  const inlineContainers = new Set([
+    'hyperlink', 'ins', 'del', 'moveFrom', 'moveTo', 'smartTag', 'customXml',
+    'sdt', 'sdtContent', 'fldSimple', 'dir', 'bdo',
+  ])
+  const processInlineChildren = (container: Element, inheritedHref?: string) => {
+    for (const child of [...container.children]) {
+      if (child.localName === 'commentRangeStart') {
+        const id = child.getAttribute('w:id') || child.getAttribute('id') || ''
+        if (id && !activeComments.includes(id)) activeComments.push(id)
+        continue
+      }
+      if (child.localName === 'commentRangeEnd') {
+        const id = child.getAttribute('w:id') || child.getAttribute('id') || ''
+        const index = activeComments.lastIndexOf(id)
+        if (index >= 0) activeComments.splice(index, 1)
+        continue
+      }
+      if (child.localName === 'r') {
+        const values = ooxmlRun(child, relationships, parts, assets, inheritedRunFormat)
+        if (inheritedHref) values.forEach((value) => {
+          if (value.type === 'text') {
+            value.marks = [...(value.marks || []), { type: 'link', attrs: { href: inheritedHref } }]
+          }
         })
         content.push(...applyComments(values))
-      })
+        continue
+      }
+      if (!inlineContainers.has(child.localName)) continue
+      const hyperlinkId = child.localName === 'hyperlink'
+        ? child.getAttribute('r:id') || child.getAttribute('id')
+        : undefined
+      processInlineChildren(child, hyperlinkId ? relationships.get(hyperlinkId) : inheritedHref)
     }
   }
+  processInlineChildren(element)
   let tabIndex = 0
   for (const child of content) {
     if (child.type !== 'docxTab') continue
@@ -965,7 +981,11 @@ function ooxmlParagraph(
     tabIndex += 1
   }
   const numPr = properties ? xmlFirst(properties, 'numPr') : undefined
-  const node = { type: headingMatch ? 'heading' : 'paragraph', attrs: headingMatch ? { ...attrs, level: Number(headingMatch[1]) } : attrs, content: content.length ? content : undefined } as JSONContent
+  const node = {
+    type: isHeadingNode ? 'heading' : 'paragraph',
+    attrs: isHeadingNode ? { ...attrs, level: Math.min(6, Math.max(1, headingLevel)) } : attrs,
+    content: content.length ? content : undefined,
+  } as JSONContent
   return {
     nodes: splitParagraphPageBreaks(node),
     numbering: numPr ? { id: xmlValue(xmlFirst(numPr, 'numId')) || '', level: Number(xmlValue(xmlFirst(numPr, 'ilvl')) || 0) } : null,
@@ -979,6 +999,7 @@ function ooxmlTable(
   assets: AssetReference[],
   comments: Map<string, ParsedDocxComment> = new Map(),
   styleContext: DocxStyleContext = emptyStyleContext(),
+  activeComments: string[] = [],
 ): JSONContent {
   const tableProperties = xmlFirst(element, 'tblPr')
   const tableGrid = xmlFirst(element, 'tblGrid')
@@ -1080,7 +1101,7 @@ function ooxmlTable(
         },
         content: [...cell.children]
           .filter((child) => child.localName === 'p')
-          .flatMap((paragraph) => ooxmlParagraph(paragraph, relationships, parts, assets, comments, styleContext).nodes),
+          .flatMap((paragraph) => ooxmlParagraph(paragraph, relationships, parts, assets, comments, styleContext, activeComments).nodes),
       }
       if (!node.content?.length) node.content = [{ type: 'paragraph' }]
       cells.push(node)
@@ -1208,6 +1229,7 @@ export function ooxmlToDocumentState(parts: DocxPackageParts): KindyDocumentStat
   let activeLists: JSONContent[] = []
   let activeListId = ''
   let activeListType = ''
+  const activeCommentIds: string[] = []
   const resetActiveList = () => {
     activeLists = []
     activeListId = ''
@@ -1221,11 +1243,11 @@ export function ooxmlToDocumentState(parts: DocxPackageParts): KindyDocumentStat
   for (const child of [...body.children]) {
     if (child.localName === 'tbl') {
       resetActiveList()
-      content.push(ooxmlTable(child, relationships, parts, assets, comments, styleContext))
+      content.push(ooxmlTable(child, relationships, parts, assets, comments, styleContext, activeCommentIds))
       continue
     }
     if (child.localName !== 'p') continue
-    const parsed = ooxmlParagraph(child, relationships, parts, assets, comments, styleContext)
+    const parsed = ooxmlParagraph(child, relationships, parts, assets, comments, styleContext, activeCommentIds)
     for (const node of parsed.nodes) {
       if (node.type === 'pageBreak') {
         resetActiveList()
@@ -1303,10 +1325,14 @@ export async function importDocx(file: Blob, options: DocxCodecOptions = {}): Pr
         "p[style-name='Heading 3'] => h3:fresh",
       ],
     })
-    const mammothIssues: CompatibilityIssue[] = converted.messages.map((message: { type: string; message: string }) => ({
-      code: 'MAMMOTH_MESSAGE', feature: 'conversion', message: message.message,
-      severity: message.type === 'error' ? 'error' : 'warning',
-    }))
+    const isInformationalStyleNotice = (msg: string) =>
+      typeof msg === 'string' && (msg.startsWith('Unrecognised paragraph style:') || msg.startsWith('Unrecognised run style:'))
+    const mammothIssues: CompatibilityIssue[] = converted.messages
+      .filter((message: { message: string }) => !isInformationalStyleNotice(message.message))
+      .map((message: { type: string; message: string }) => ({
+        code: 'MAMMOTH_MESSAGE', feature: 'conversion', message: message.message,
+        severity: message.type === 'error' ? 'error' : 'warning',
+      }))
     const combined = report([...inspection.report.issues, ...mammothIssues], profile)
     throwIfStrict(combined, options.mode)
     const state = typeof DOMParser === 'undefined' ? htmlToDocumentState(converted.value) : ooxmlToDocumentState(parts)
@@ -1341,9 +1367,19 @@ export async function importDocxInWorker(file: Blob, options: DocxCodecOptions &
         return
       }
       const messages = event.data.messages || []
+      const isInformationalStyleNotice = (msg: string) =>
+        typeof msg === 'string' && (msg.startsWith('Unrecognised paragraph style:') || msg.startsWith('Unrecognised run style:'))
+      const mammothIssues: CompatibilityIssue[] = messages
+        .filter((message: { message: string }) => !isInformationalStyleNotice(message.message))
+        .map((message: { type: string; message: string }) => ({
+          code: 'MAMMOTH_MESSAGE',
+          feature: 'conversion',
+          message: message.message,
+          severity: message.type === 'error' ? 'error' : 'warning',
+        }))
       const issues: CompatibilityIssue[] = [
         ...inspectParts(event.data.parts, options.profile || KINDY_DOCX_PROFILE).report.issues,
-        ...messages.map((message: { type: string; message: string }) => ({ code: 'MAMMOTH_MESSAGE', feature: 'conversion', message: message.message, severity: message.type === 'error' ? 'error' : 'warning' })),
+        ...mammothIssues,
       ]
       const compatibility = report(issues, options.profile || KINDY_DOCX_PROFILE)
       try {

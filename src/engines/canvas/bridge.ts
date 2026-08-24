@@ -39,7 +39,7 @@ const rowFlexFromAttrs = (attrs: JSONContent['attrs']): RowFlex | undefined => {
   const align = String(attrs?.textAlign || attrs?.align || '').toLowerCase()
   if (align === 'center') return RowFlex.CENTER
   if (align === 'right' || align === 'end') return RowFlex.RIGHT
-  if (align === 'justify') return RowFlex.JUSTIFY
+  if (align === 'justify' || align === 'both' || align === 'distribute' || align === 'alignment') return RowFlex.JUSTIFY
   if (align === 'left' || align === 'start') return RowFlex.LEFT
   return undefined
 }
@@ -198,12 +198,19 @@ const blockNodeToElements = (node: JSONContent): IElement[] => {
   }
   if (node.type === 'heading') {
     const level = Math.min(6, Math.max(1, Number(node.attrs?.level) || 1))
+    const titleId = String(node.attrs?.titleId || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`)
+    const valueList = inlineNodesToElements(node.content, paragraphStyle(node))
+    valueList.forEach((el) => {
+      el.titleId = titleId
+      el.level = TITLE_LEVELS[level - 1]
+    })
     return [{
       type: ElementType.TITLE,
       value: '',
+      titleId,
       level: TITLE_LEVELS[level - 1],
-      valueList: inlineNodesToElements(node.content, paragraphStyle(node)),
-      extension: { kindyNodeAttrs: node.attrs || {}, kindyNodeType: node.type },
+      valueList,
+      extension: { kindyNodeAttrs: { ...node.attrs, titleId }, kindyNodeType: node.type },
     }]
   }
   if (node.type === 'bulletList' || node.type === 'orderedList') {

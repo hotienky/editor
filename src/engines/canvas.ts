@@ -27,6 +27,7 @@ const pageStateToEditorOptions = (
     defaultSize: 12,
     sizeUnit: 'pt',
     defaultRowMargin: 1.25,
+    marginIndicatorSize: 0,
     locale: String(options.locale || 'vi'),
     width: Math.min(portraitWidth, portraitHeight),
     height: Math.max(portraitWidth, portraitHeight),

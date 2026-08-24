@@ -12,13 +12,14 @@ export class Margin {
   }
 
   public render(ctx: CanvasRenderingContext2D, pageNo: number) {
+    const marginIndicatorSize = this.draw.getMarginIndicatorSize()
+    if (marginIndicatorSize <= 0) return
     const { marginIndicatorColor, pageMode } = this.options
     const { width, height: pageHeight, margins } = this.draw.getPageSize(pageNo)
     const height =
       pageMode === PageMode.CONTINUITY
         ? this.draw.getCanvasHeight(pageNo) / this.draw.getPagePixelRatio()
         : pageHeight
-    const marginIndicatorSize = this.draw.getMarginIndicatorSize()
     ctx.save()
     ctx.translate(0.5, 0.5)
     ctx.strokeStyle = marginIndicatorColor

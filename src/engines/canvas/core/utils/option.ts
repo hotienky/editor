@@ -242,7 +242,7 @@ export function mergeOption(
     highlightMarginHeight: 8,
     resizerColor: '#4182D9',
     resizerSize: 5,
-    marginIndicatorSize: 35,
+    marginIndicatorSize: 0,
     marginIndicatorColor: '#BABABA',
     margins: [12, 58, 58, 77],
     gutter: 0,

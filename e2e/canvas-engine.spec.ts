@@ -7,7 +7,7 @@ test.describe('CanvasEngine editor', () => {
     await page.goto('./?kindy-benchmark=1')
 
     await expect(page.locator('.word-editor-app')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Trang đầu', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Tệp', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Chèn', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Bố cục', exact: true })).toBeVisible()
     await expect(pages(page).first()).toBeVisible()
@@ -18,7 +18,7 @@ test.describe('CanvasEngine editor', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('./')
 
-    await expect(page.getByRole('button', { name: 'Trang đầu', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Tệp', exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Chèn', exact: true })).toBeVisible()
     await expect(page.locator('.canvas-scroll-container')).toBeVisible()
     const rootOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
@@ -62,14 +62,16 @@ test.describe('CanvasEngine editor', () => {
   })
 
   test('exposes real header and footer editing zones', async ({ page }) => {
-    await page.goto('./')
+    await page.goto('./?kindy-benchmark=1')
     await page.getByRole('button', { name: 'Bố cục', exact: true }).click()
 
-    await expect(page.getByRole('button', { name: 'Sửa đầu trang', exact: true })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Sửa chân trang', exact: true })).toBeVisible()
-    const headerButton = page.getByRole('button', { name: 'Sửa đầu trang', exact: true })
-    await headerButton.click()
-    await expect(headerButton).toHaveClass(/active/)
+    const headerAction = page.getByText('Sửa đầu trang (Header)', { exact: true })
+    await expect(headerAction).toBeVisible()
+    await expect(page.getByText('Sửa chân trang (Footer)', { exact: true })).toBeVisible()
+    await headerAction.click()
+    await expect.poll(() => page.evaluate(() => (
+      (window as any).__KINDY_CANVAS_BENCHMARK__?.getCanvasEditor().command.getRangeContext()?.zone
+    ))).toBe('header')
   })
 
   test('materializes only a bounded canvas window for a multi-page document', async ({ page }) => {

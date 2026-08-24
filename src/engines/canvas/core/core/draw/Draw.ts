@@ -2285,25 +2285,27 @@ export class Draw {
         }
         // 换行原因：宽度不足
         curRow.isWidthNotEnough = isWidthNotEnough && !isForceBreak
-        // 两端对齐、分散对齐
+        // 两端对齐、分散对齐 (Chỉ căn đều khi dòng tràn do thiếu chiều rộng, dòng cuối đoạn văn không bị giãn)
         if (
           !curRow.isSurround &&
+          curRow.isWidthNotEnough &&
           (preElement?.rowFlex === RowFlex.JUSTIFY ||
-            (preElement?.rowFlex === RowFlex.ALIGNMENT &&
-              curRow.isWidthNotEnough))
+            preElement?.rowFlex === RowFlex.ALIGNMENT)
         ) {
           // 忽略换行符及尾部元素间隔设置
           const rowElementList =
             curRow.elementList[0]?.value === ZERO
               ? curRow.elementList.slice(1)
               : curRow.elementList
-          const gap =
-            (availableWidth - curRow.width) / (rowElementList.length - 1)
-          for (let e = 0; e < rowElementList.length - 1; e++) {
-            const el = rowElementList[e]
-            el.metrics.width += gap
+          if (rowElementList.length > 1) {
+            const gap =
+              (availableWidth - curRow.width) / (rowElementList.length - 1)
+            for (let e = 0; e < rowElementList.length - 1; e++) {
+              const el = rowElementList[e]
+              el.metrics.width += gap
+            }
+            curRow.width = availableWidth
           }
-          curRow.width = availableWidth
         }
       }
       // 重新计算坐标、页码、下一行首行元素环绕交叉

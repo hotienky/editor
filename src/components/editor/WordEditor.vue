@@ -342,13 +342,61 @@
     </div>
 
     <div v-if="ioNotice" class="document-io-notice" :class="`is-${ioNotice.tone}`" role="status">
-      <span>{{ ioNotice.text }}</span>
-      <button type="button" aria-label="Đóng thông báo" @click="ioNotice = null">✕</button>
+      <span class="notice-text">{{ ioNotice.text }}</span>
+      <button v-if="currentIssues.length" type="button" class="notice-detail-btn" @click="showCompatibilityModal = true">
+        <WordIcon name="info" :size="12" />
+        <span>Xem chi tiết ({{ currentIssues.length }})</span>
+      </button>
+      <button type="button" class="notice-close-btn" aria-label="Đóng thông báo" @click="ioNotice = null">
+        <WordIcon name="close" :size="12" />
+      </button>
     </div>
 
     <!-- Hidden file inputs -->
     <input ref="fileInputRef" type="file" style="display: none" accept=".docx,.json" @change="onFileSelected" />
     <input ref="imageInputRef" type="file" style="display: none" accept="image/*" @change="onImageSelected" />
+
+    <!-- Compatibility Report Modal -->
+    <div v-if="showCompatibilityModal" class="word-modal-overlay" @click="showCompatibilityModal = false">
+      <div class="word-modal compatibility-modal" @click.stop>
+        <div class="modal-header">
+          <h3>Báo Cáo Tương Thích DOCX ({{ currentIssues.length }} cảnh báo)</h3>
+          <div class="modal-header-actions">
+            <button type="button" class="copy-issues-btn" @click="copyCompatibilityIssues">
+              <WordIcon :name="isCopiedIssues ? 'check' : 'copy'" :size="13" />
+              <span>{{ isCopiedIssues ? 'Đã sao chép!' : 'Sao chép danh sách lỗi' }}</span>
+            </button>
+            <button class="close-btn" @click="showCompatibilityModal = false">
+              <WordIcon name="close" :size="14" />
+            </button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <p class="compatibility-intro">
+            Các mục dưới đây nằm ngoài hoặc chỉ được hỗ trợ một phần trong DOCX Compatibility Profile. Hãy đối chiếu với file gốc trước khi phát hành:
+          </p>
+          <div class="issues-list">
+            <div v-for="(issue, idx) in currentIssues" :key="idx" class="issue-card" :class="`severity-${issue.severity}`">
+              <div class="issue-header">
+                <span class="issue-badge">{{ issue.code }}</span>
+                <span class="issue-feature">{{ issue.feature }}</span>
+              </div>
+              <div class="issue-msg">{{ issue.message }}</div>
+              <div class="issue-fix">
+                <strong>Trạng thái:</strong> Phần nằm trong profile đã được chuyển đổi; phần ngoài profile có thể được làm phẳng hoặc bỏ qua theo chế độ best-effort.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="modal-cancel-btn" @click="copyCompatibilityIssues">
+            <WordIcon :name="isCopiedIssues ? 'check' : 'copy'" :size="13" />
+            <span>{{ isCopiedIssues ? 'Đã sao chép' : 'Copy toàn bộ' }}</span>
+          </button>
+          <button class="modal-ok-btn" @click="showCompatibilityModal = false">Đã hiểu & Tiếp tục</button>
+        </div>
+      </div>
+    </div>
 
     <!-- 3. Main Workspace: Catalog Sidebar + Canvas Editor Host + Comments Sidebar -->
     <main class="word-workspace">
@@ -359,7 +407,9 @@
             <WordIcon name="catalog" :size="14" />
             <span>Mục lục tài liệu</span>
           </div>
-          <button class="close-btn" @click="showCatalog = false">✕</button>
+          <button class="close-btn" @click="showCatalog = false">
+            <WordIcon name="close" :size="14" />
+          </button>
         </div>
         <div class="catalog-list">
           <div v-if="catalogItems.length === 0" class="catalog-empty">Không có tiêu đề nào</div>
@@ -389,7 +439,9 @@
           </div>
           <div class="comments-header-actions">
             <button class="btn-add-comment-quick" title="Thêm bình luận" @click="handleAddComment">＋ Thêm</button>
-            <button class="close-btn" @click="showCommentsSidebar = false">✕</button>
+            <button class="close-btn" @click="showCommentsSidebar = false">
+              <WordIcon name="close" :size="14" />
+            </button>
           </div>
         </div>
 
@@ -398,7 +450,9 @@
           <div v-if="draftComment" class="comment-card draft-card">
             <div class="comment-card-header">
               <div class="comment-author">
-                <span class="avatar">{{ draftComment.avatar }}</span>
+                <span class="avatar">
+                  <WordIcon name="user" :size="14" />
+                </span>
                 <span class="name">{{ draftComment.author }}</span>
               </div>
             </div>
@@ -423,7 +477,7 @@
 
           <!-- Empty Comments state -->
           <div v-if="comments.length === 0 && !draftComment" class="comments-empty">
-            <div style="font-size: 24px; margin-bottom: 6px;">💬</div>
+            <WordIcon name="comment" :size="32" style="opacity: 0.35; margin-bottom: 8px;" />
             <div style="font-weight: 500;">Chưa có bình luận nào</div>
             <div class="comments-empty-tip">Bôi đen văn bản trên trang và nhấn nút <strong>"Bình luận"</strong> để nhận xét.</div>
           </div>
@@ -438,7 +492,9 @@
           >
             <div class="comment-card-header">
               <div class="comment-author">
-                <span class="avatar">{{ comment.avatar || '👤' }}</span>
+                <span class="avatar">
+                  <WordIcon name="user" :size="14" />
+                </span>
                 <div>
                   <div class="name">{{ comment.author }}</div>
                   <div class="time">{{ comment.createdAt }}</div>
@@ -450,10 +506,10 @@
                   :title="comment.resolved ? 'Mở lại bình luận' : 'Đánh dấu đã giải quyết'"
                   @click.stop="toggleResolveComment(comment)"
                 >
-                  {{ comment.resolved ? '↩' : '✓' }}
+                  <WordIcon :name="comment.resolved ? 'reply' : 'check'" :size="12" />
                 </button>
                 <button class="comment-icon-btn delete" title="Xóa bình luận này" @click.stop="deleteComment(comment)">
-                  ✕
+                  <WordIcon name="close" :size="12" />
                 </button>
               </div>
             </div>
@@ -518,9 +574,9 @@
 
       <div class="statusbar-center">
         <select v-model="editorMode" class="mode-select" @change="changeEditorMode">
-          <option value="edit">✎ Chế độ chỉnh sửa</option>
-          <option value="readonly">👁️ Chế độ chỉ đọc</option>
-          <option value="form">📋 Chế độ điền biểu mẫu (Form)</option>
+          <option value="edit">Chế độ chỉnh sửa</option>
+          <option value="readonly">Chế độ chỉ đọc</option>
+          <option value="form">Chế độ điền biểu mẫu (Form)</option>
         </select>
       </div>
 
@@ -540,7 +596,9 @@
       <div class="word-modal" @click.stop>
         <div class="modal-header">
           <h3>Chèn Bảng Biểu</h3>
-          <button class="close-btn" @click="showTableModal = false">✕</button>
+          <button class="close-btn" @click="showTableModal = false">
+            <WordIcon name="close" :size="14" />
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-row">
@@ -563,15 +621,34 @@
 
 <script setup lang="ts">
 import type { JSONContent } from '@tiptap/core'
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import WordIcon from './WordIcon.vue'
 import CanvasEditor, { EditorMode, EditorZone, PaperDirection, ElementType, TitleLevel } from '../../engines/canvas/core'
 import { createCanvasEngineAdapter, type CanvasEngineHandle } from '../../engines/canvas'
 import { importDocxInWorker, exportDocx } from '../../codecs/docx'
 import { createEmptyDocumentState } from '../../core/state'
-import type { CompatibilityReport, KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
+import type { CompatibilityIssue, CompatibilityReport, KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
 
 defineOptions({ name: 'KindyEditor' })
+
+const currentIssues = ref<CompatibilityIssue[]>([])
+const showCompatibilityModal = ref(false)
+const isCopiedIssues = ref(false)
+
+const copyCompatibilityIssues = async () => {
+  try {
+    const text = currentIssues.value
+      .map((item, i) => `${i + 1}. [${item.code}] (${item.feature}): ${item.message}`)
+      .join('\n')
+    await navigator.clipboard.writeText(text)
+    isCopiedIssues.value = true
+    setTimeout(() => {
+      isCopiedIssues.value = false
+    }, 2500)
+  } catch (err) {
+    console.error('Không thể copy:', err)
+  }
+}
 
 export interface CommentItem {
   id: string
@@ -735,7 +812,7 @@ const syncCommentsFromState = (state: KindyDocumentState) => {
         author: String(thread.user || mark.attrs?.user || 'Không rõ người gửi'),
         userId: String(thread.userId || ''),
         color: String(thread.color || mark.attrs?.color || 'rgba(255, 213, 79, 0.4)'),
-        avatar: '👤',
+        avatar: '',
         content: String(thread.text),
         createdAt: displayTimestamp(createdAtValue),
         createdAtValue,
@@ -938,6 +1015,7 @@ onMounted(() => {
   }
 
   updateStats()
+  updateCatalog()
   totalPages.value = Math.max(1, canvasHostRef.value.querySelectorAll('canvas[data-index]').length)
   editorMode.value = props.document?.readOnly ? 'readonly' : 'edit'
   emits('created', { editor, engine: engineHandle })
@@ -1215,7 +1293,7 @@ const handleAddComment = () => {
     author: 'Bạn (Người đánh giá)',
     userId: '',
     color: 'rgba(255, 213, 79, 0.4)',
-    avatar: '✍️',
+    avatar: '',
     content: '',
     createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     createdAtValue: Date.now(),
@@ -1307,8 +1385,63 @@ const changeEditorMode = () => {
   else editor.command.executeMode(EditorMode.EDIT)
 }
 
+const flattenCatalog = (items: any[] = [], depth = 0): Array<{ id: string; name: string; level: number; pageNo: number }> => {
+  const result: Array<{ id: string; name: string; level: number; pageNo: number }> = []
+  for (const item of items) {
+    result.push({
+      id: item.id || item.titleId || '',
+      name: item.name || item.value || 'Tiêu đề',
+      level: depth,
+      pageNo: item.pageNo ?? 0,
+    })
+    if (item.subCatalog && Array.isArray(item.subCatalog) && item.subCatalog.length) {
+      result.push(...flattenCatalog(item.subCatalog, depth + 1))
+    }
+  }
+  return result
+}
+
+const updateCatalog = async () => {
+  if (!editor) return
+  try {
+    const catalog = await editor.command.getCatalog()
+    if (catalog && Array.isArray(catalog) && catalog.length) {
+      catalogItems.value = flattenCatalog(catalog)
+      return
+    }
+  } catch (err) {
+    // Canvas worker getCatalog may return null if no title elements
+  }
+  // Fallback: extract headings directly from currentState.content
+  const extracted: Array<{ id: string; name: string; level: number; pageNo: number }> = []
+  const scanHeadings = (node: JSONContent) => {
+    if (node.type === 'heading') {
+      const text = (node.content || []).map((c) => c.text || '').join('').trim()
+      if (text) {
+        extracted.push({
+          id: String(node.attrs?.titleId || ''),
+          name: text,
+          level: (Number(node.attrs?.level) || 1) - 1,
+          pageNo: 0,
+        })
+      }
+    }
+    if (node.content) node.content.forEach(scanHeadings)
+  }
+  if (currentState?.content) scanHeadings(currentState.content)
+  catalogItems.value = extracted
+}
+
+watch(showCatalog, (isOpen) => {
+  if (isOpen) updateCatalog()
+})
+
 const jumpToCatalog = (item: any) => {
-  editor?.command.executeLocationCatalog(item.id)
+  if (editor && item.id) {
+    editor.command.executeLocationCatalog(item.id)
+  } else if (editor && typeof item.pageNo === 'number' && item.pageNo >= 0) {
+    editor.command.executePage(item.pageNo)
+  }
 }
 
 const onFileSelected = async (e: Event) => {
@@ -1320,11 +1453,15 @@ const onFileSelected = async (e: Event) => {
       try {
         const json = JSON.parse(reader.result as string)
         if (json.content && json.page && engineHandle) {
+          currentState = json
           engineHandle.load(json)
+          updateCatalog()
         } else if (json.data && editor) {
           editor.command.executeSetValue(json.data)
+          updateCatalog()
         } else if (editor) {
           editor.command.executeSetValue(json)
+          updateCatalog()
         }
       } catch (err) {
         console.error('Lỗi đọc file JSON:', err)
@@ -1339,6 +1476,8 @@ const onFileSelected = async (e: Event) => {
         engineHandle.load(result.state)
         syncCommentsFromState(result.state)
         documentTitle.value = file.name
+        currentIssues.value = result.report.issues || []
+        updateCatalog()
         if (result.report.issues.length) {
           emits('compatibility-warning', result.report)
           ioNotice.value = {
@@ -1732,7 +1871,30 @@ defineExpose({
   border-color: #fecaca;
 }
 
-.document-io-notice button {
+.document-io-notice .notice-text {
+  flex: 1 1 auto;
+}
+
+.notice-detail-btn {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  border: none !important;
+  transition: background 0.15s ease !important;
+}
+
+.notice-detail-btn:hover {
+  background: #d97706 !important;
+}
+
+.notice-close-btn {
   flex: 0 0 auto;
   width: 24px;
   height: 24px;
@@ -1743,8 +1905,118 @@ defineExpose({
   cursor: pointer;
 }
 
-.document-io-notice button:hover {
+.notice-close-btn:hover {
   background: rgb(15 23 42 / 8%);
+}
+
+.compatibility-modal {
+  width: 650px !important;
+  max-width: 90vw !important;
+  max-height: 85vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  user-select: text !important;
+}
+
+.compatibility-modal * {
+  user-select: text !important;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.copy-issues-btn {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 4px 10px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease !important;
+}
+
+.copy-issues-btn:hover {
+  background: #1d4ed8 !important;
+}
+
+.compatibility-modal .modal-body {
+  overflow-y: auto !important;
+  max-height: 60vh !important;
+  padding: 16px 20px !important;
+}
+
+.compatibility-intro {
+  margin-top: 0;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.issue-card {
+  padding: 12px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.issue-card.severity-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.issue-card.severity-error {
+  border-left: 4px solid #ef4444;
+}
+
+.issue-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.issue-badge {
+  background: #e2e8f0;
+  color: #1e293b;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.issue-feature {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.issue-msg {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.issue-fix {
+  font-size: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  padding: 6px 8px;
+  border-radius: 4px;
+  line-height: 1.4;
 }
 
 .tb-btn {

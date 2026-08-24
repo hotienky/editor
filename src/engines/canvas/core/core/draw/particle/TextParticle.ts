@@ -20,6 +20,7 @@ export class TextParticle {
   private ctx: CanvasRenderingContext2D
   private curX: number
   private curY: number
+  private nextExpectedX: number
   private text: string
   private curStyle: string
   private curColor?: string
@@ -31,6 +32,7 @@ export class TextParticle {
     this.ctx = draw.getCtx()
     this.curX = -1
     this.curY = -1
+    this.nextExpectedX = -1
     this.text = ''
     this.curStyle = ''
     this.cacheMeasureText = new Map()
@@ -123,6 +125,9 @@ export class TextParticle {
   public complete() {
     this._render()
     this.text = ''
+    this.curX = -1
+    this.curY = -1
+    this.nextExpectedX = -1
   }
 
   public record(
@@ -141,21 +146,29 @@ export class TextParticle {
       this.complete()
       return
     }
-    // 主动完成的重设起始点
-    if (!this.text) {
-      this._setCurXY(x, y)
-    }
-    // 样式发生改变
+    // Nếu toạ độ x, y không liền kề hoặc style thay đổi -> hoàn tất batch cũ
+    const isDiscontinuous =
+      this.text &&
+      (Math.abs(y - this.curY) > 0.5 ||
+        (this.nextExpectedX > 0 && Math.abs(x - this.nextExpectedX) > 1))
+
     if (
+      isDiscontinuous ||
       (this.curStyle && element.style !== this.curStyle) ||
       element.color !== this.curColor
     ) {
       this.complete()
+    }
+
+    // 主动完成的重设起始点
+    if (!this.text) {
       this._setCurXY(x, y)
     }
+
     this.text += element.value
     this.curStyle = element.style
     this.curColor = element.color
+    this.nextExpectedX = x + (element.metrics?.width || 0)
   }
 
   private _setCurXY(x: number, y: number) {
