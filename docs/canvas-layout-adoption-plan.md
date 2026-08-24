@@ -61,8 +61,8 @@ Các nguyên tắc bắt buộc:
 
 | Phase | Trạng thái | Bằng chứng |
 |---|---|---|
-| Phase 0 — layout boundary | Implemented, đang qua release gate | `src/layout/types.ts`, `src/layout/document-layout-service.ts` và contract tests |
-| Phase 1 — incremental pagination | Chưa bắt đầu | Chỉ mở sau Phase 0 benchmark/regression gate |
+| Phase 0 — layout boundary | Gate passed | Unit/typecheck/lint/build và toàn bộ browser E2E pass |
+| Phase 1 — incremental pagination | Foundation implemented | Page registry O(1), stable ephemeral IDs, invalidation index và 200-page stress report |
 | Phase 2–6 | Chưa bắt đầu | Phụ thuộc các phase trước và risk gates |
 
 ## 2. Các phần đáng học hỏi

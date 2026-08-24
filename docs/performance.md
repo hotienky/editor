@@ -120,6 +120,25 @@ Kết luận hiện tại: production harness xác nhận target 100 trang text 
 vì vậy không suy rộng thành SLA cho mọi thiết bị. Corpus 200 trang mixed không đạt
 và vẫn là stress limit, không được quảng bá là SLA.
 
+### Baseline sau `DocumentLayoutService` Phase 0, ngày 24/08/2026
+
+Production preview, Chromium headless, viewport 1600×1000, 40 input samples:
+
+| Corpus | Editor ready | Typing median | Typing p95 | Typing max | Pagination |
+|---|---:|---:|---:|---:|---:|
+| 100 trang text | 448,4 ms | 16,8 ms | 28,1 ms | 35,6 ms | 4,0 ms |
+| 100 trang mixed | 747,6 ms | 23,7 ms | 34,4 ms | 35,8 ms | 3,2 ms |
+| 200 trang mixed | 1.281,8 ms | 48,1 ms | 60,7 ms | 61,7 ms | 2,9 ms |
+
+Hai corpus 100 trang pass release gate. Corpus 200 trang pass stress hard ceiling
+75ms nhưng chưa đạt target typing p95 50ms, nên vẫn được phân loại
+`stress-only-not-sla`.
+
+Số liệu cho thấy page assignment không phải bottleneck hiện tại. Đưa bước compute
+2–4ms sang Worker chưa được chấp thuận vì serialization/cancellation/stale-result
+có thể tốn nhiều hơn lợi ích. Hướng tối ưu tiếp theo là DOM/editor transaction
+cost và layer ngoài viewport.
+
 Có spike p99 khoảng 184–391ms trong lần đo này. Kết quả chỉ là baseline text,
 không phải SLA cho DOCX có bảng lớn, ảnh, comment hoặc Track Changes. Benchmark
 Node riêng với fixture hiện tại đo state khoảng 328KB/657KB: clone p95 lần

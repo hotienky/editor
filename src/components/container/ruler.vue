@@ -35,7 +35,7 @@
           class="kindy-ruler-tick-group"
           :style="{ left: (cm - 1) * pxPerCm + 'px' }"
         >
-          <span class="tick-number">{{ cm }}</span>
+          <span v-if="shouldShowRulerLabel(cm, labelInterval)" class="tick-number">{{ cm }}</span>
           <div class="tick-line tick-main"></div>
           <div class="tick-line tick-sub" :style="{ left: pxPerCm * 0.25 + 'px' }"></div>
           <div class="tick-line tick-mid" :style="{ left: pxPerCm * 0.5 + 'px' }"></div>
@@ -103,6 +103,10 @@ import {
   getDocxLayoutCentimeters,
   twipsToCentimeters,
 } from '@/utils/ooxml-units'
+import {
+  getRulerLabelInterval,
+  shouldShowRulerLabel,
+} from '@/utils/ruler'
 
 const pageOptions = inject('page')
 const editor = inject('editor')
@@ -120,6 +124,7 @@ const pageMargin = computed(() => rawPage.value.margin || {
 })
 const zoomLevel = computed(() => Math.max(0.1, Number(rawPage.value.zoomLevel || 100) / 100))
 const pxPerCm = computed(() => (96 / 2.54) * zoomLevel.value)
+const labelInterval = computed(() => getRulerLabelInterval(pxPerCm.value))
 const draftLeftMarginCm = ref(null)
 const draftRightMarginCm = ref(null)
 const leftMarginCm = computed(() => draftLeftMarginCm.value ?? Number(pageMargin.value.left || 0))

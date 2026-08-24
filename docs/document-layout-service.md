@@ -1,6 +1,6 @@
 # `DocumentLayoutService`
 
-> Trạng thái: Phase 0 implemented  
+> Trạng thái: Phase 0 gate passed / Phase 1 registry foundation implemented
 > Phạm vi: internal layout boundary của Kindy Editor. Chưa phải public SDK API.
 
 ## Mục đích
@@ -43,6 +43,7 @@ KindyDocumentState / ProseMirror transactions
 |---|---|
 | `src/layout/types.ts` | Typed contract cho tree, page, assignment, invalidation và telemetry |
 | `src/layout/document-layout-service.ts` | DOM implementation và registry queries |
+| `src/layout/page-registry.ts` | Lookup page/block O(1), stable ephemeral IDs và viewport bounds |
 | `src/extensions/pagination.js` | Bridge từ ProseMirror transaction sang service và decoration |
 | `src/utils/dom-page-calculator.js` | DOM block measurement và pure page assignment hiện tại |
 | `src/layout/__tests__/document-layout-service.test.ts` | Contract, parity, cache, break và lifecycle tests |
@@ -110,6 +111,7 @@ interface LayoutTelemetry {
   reason: 'open' | 'transaction' | 'resize' | 'font' | 'image' | 'section' | 'manual'
   totalBlocks: number
   invalidatedBlocks: number
+  firstInvalidatedBlock: number | null
   measuredBlocks: number
   cacheHits: number
   cacheMisses: number
@@ -130,6 +132,8 @@ Telemetry không chứa nội dung hợp đồng.
 - Page geometry và section transition hiện tại không đổi.
 - Manual page break và section break không đổi semantic.
 - Current page, go-to-page, scroll-to-page và get-page-layout đọc cùng registry.
+- Page/block có stable ephemeral ID trong một editor session; ID không được lưu
+  vào canonical state.
 - Abort trước/sau DOM measurement được hỗ trợ ở service contract.
 - Cache invalidation cho transaction, ResizeObserver và font load.
 
@@ -156,3 +160,16 @@ Các giới hạn này tương ứng Phase 1–6 trong
 - `destroy()` và invalidation contract pass.
 
 Phase 1 chỉ được mở sau khi các gate trên đạt.
+
+## Quyết định Phase 1 sau benchmark
+
+Production stress 200 trang mixed ngày 24/08/2026:
+
+| Editor ready | Typing median | Typing p95 | Pagination |
+|---:|---:|---:|---:|
+| 1.281,8 ms | 48,1 ms | 60,7 ms | 2,9 ms |
+
+Page assignment/layout compute không phải bottleneck chính. Vì vậy chưa chuyển
+page assignment sang Worker: serialization và async stale-result risk lớn hơn
+lợi ích khi compute chỉ chiếm vài millisecond. Phase 1 ưu tiên registry/index,
+DOM/editor cost và differential invalidation tests.

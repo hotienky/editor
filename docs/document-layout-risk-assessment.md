@@ -47,16 +47,19 @@ Quyết định go/no-go:
 
 | Kiểm tra | Kết quả |
 |---|---:|
-| Vitest | 29 file pass, 1 file skip; 255 test pass, 1 test skip |
+| Vitest | 30 file pass, 1 file skip; 262 test pass, 1 test skip |
 | TypeScript | `tsc --noEmit` pass |
+| Browser E2E | 8 pass, 2 skip; workspace/import/edit/export/print và 100-page gates pass |
 | Production library build | Pass |
-| ESM bundle | 3.559,87 kB; gzip 767,86 kB |
-| CJS bundle | 2.546,04 kB; gzip 667,26 kB |
+| ESM bundle | 3.568,50 kB; gzip 770,36 kB |
+| CJS bundle | 2.552,42 kB; gzip 669,69 kB |
 | CSS | 590,53 kB; gzip 76,03 kB |
 | DOCX Worker | 778,74 kB |
 
-Bundle hiện đã lớn. Port thêm renderer/table/image code mà không code-split là một
-rủi ro tải trang và memory, dù không trực tiếp làm typing chậm.
+Bundle hiện đã lớn. Phase 0 + PageRegistry tăng khoảng 8,63kB ESM so với baseline
+trước service, tương đương khoảng 0,24% và pass gate 5%. Port thêm
+renderer/table/image code mà không code-split vẫn là một rủi ro tải trang và
+memory, dù không trực tiếp làm typing chậm.
 
 ### 2.2. Synthetic Node benchmark ngày 24/08/2026
 
@@ -108,6 +111,11 @@ Baseline development đã ghi trước đó:
 
 Kết quả này vượt target typing p95 50 ms. Do đó 200 trang mixed là **stress
 limit**, không phải supported SLA.
+
+Production stress được chạy lại sau Phase 0 ngày 24/08/2026: editor ready
+1.281,8ms, typing median 48,1ms, typing p95 60,7ms, max 61,7ms và pagination
+2,9ms. Kết quả tốt hơn historical development baseline nhưng vẫn chưa đạt target
+50ms; classification tiếp tục là `stress-only-not-sla`.
 
 ## 3. Phương pháp xếp hạng rủi ro
 

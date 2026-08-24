@@ -14,6 +14,7 @@ tài liệu public cùng khớp nhau.
 | DOCX body text/style/list/table/image/page break/page setup | Done trong profile v2.0 | Golden/unit test; DOCX v2.2 đã mở và convert PDF bằng LibreOffice headless không yêu cầu repair |
 | Browser print | Supported browser flow | E2E kiểm tra iframe/@page/content; vẫn không phải deterministic PDF Blob |
 | Tài liệu dài | 100 trang text/mixed pass local production gate | Text 490,3ms/21,5ms p95; mixed 849,7ms/36,5ms p95, 40 mẫu. Pagination 2,8–3,7ms. CI upload JSON; 200 mixed vẫn là stress limit |
+| DocumentLayoutService | Phase 0 gate passed; Phase 1 registry foundation done | Typed boundary, DOM implementation, O(1) registry, telemetry, stable ephemeral IDs và differential cache test |
 | Multiple section DOCX round-trip | Done v2.1 codec/pagination/print | Editing canvas liên tục vẫn có thể khác Word; cần Chromium visual regression |
 | Header/footer DOCX import + variants | Done v2.1 codec | Golden strict gồm default/first/even và logo header |
 | Page-number start/first/odd/even | Done v2.1 codec | Golden strict gồm page-number start và section landscape |
