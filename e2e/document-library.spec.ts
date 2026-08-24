@@ -577,3 +577,55 @@ for (const corpus of [
     expect(paginationMs).toBeLessThanOrEqual(500)
   })
 }
+
+test('200-page mixed stress report', async ({ page }, testInfo) => {
+  test.skip(process.env.KINDY_E2E_STRESS !== '1', 'Run with KINDY_E2E_STRESS=1')
+
+  await page.goto('./?benchmarkPages=200&benchmarkVariant=mixed')
+  const result = page.locator('#benchmark-result')
+  await expect(result).toContainText('200 trang', { timeout: 30_000 })
+
+  const editor = page.locator('.kindy-editor')
+  await editor.click()
+  await editor.press('ControlOrMeta+End')
+  for (let index = 0; index < 40; index += 1) await editor.type('x')
+
+  await expect.poll(async () => {
+    const samples = (await result.getAttribute('data-typing-samples')) || ''
+    return samples.split(',').filter(Boolean).length
+  }, { timeout: 20_000 }).toBeGreaterThanOrEqual(40)
+
+  const text = await result.innerText()
+  const samples = ((await result.getAttribute('data-typing-samples')) || '')
+    .split(',')
+    .filter(Boolean)
+    .map(Number)
+    .sort((a, b) => a - b)
+  const performanceResult = {
+    generatedAt: new Date().toISOString(),
+    browser: testInfo.project.name || 'chromium',
+    buildMode: process.env.KINDY_E2E_BASE_URL ? 'external/dev' : 'production-preview',
+    corpus: 'mixed',
+    pages: 200,
+    openMs: Number(text.match(/^([\d.]+)ms/)?.[1]),
+    typingP95Ms: Number(text.match(/typing p95 ([\d.]+)ms/)?.[1]),
+    typingMedianMs: samples[Math.floor(samples.length / 2)],
+    typingMaxMs: Math.max(...samples),
+    paginationMs: Number(text.match(/paginate ([\d.]+)ms/)?.[1]),
+    typingSamples: samples,
+    classification: 'stress-only-not-sla',
+  }
+  await mkdir('.artifacts', { recursive: true })
+  await writeFile(
+    '.artifacts/browser-performance-mixed-200.json',
+    JSON.stringify(performanceResult, null, 2),
+  )
+  await testInfo.attach('browser-performance-mixed-200.json', {
+    body: Buffer.from(JSON.stringify(performanceResult, null, 2)),
+    contentType: 'application/json',
+  })
+
+  expect(performanceResult.openMs).toBeLessThanOrEqual(5_000)
+  expect(performanceResult.typingP95Ms).toBeLessThanOrEqual(100)
+  expect(performanceResult.paginationMs).toBeLessThanOrEqual(1_000)
+})

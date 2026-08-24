@@ -14,11 +14,10 @@ import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { cmToPx } from '@umo/layout'
+import { createDomDocumentLayoutService } from '@/layout/document-layout-service'
 import {
-  createBlockMeasurementCache,
   getPageGeometry,
   getTopLevelBlockElements,
-  paginateFromDOM,
 } from '@/utils/dom-page-calculator'
 
 export const PaginationPluginKey = new PluginKey('pagination')
@@ -129,10 +128,12 @@ export const Pagination = Extension.create({
       onPageCountChange: null,
       onCurrentPageChange: null,
       onLayoutChange: null,
+      createLayoutService: () => createDomDocumentLayoutService({ cmToPx }),
     }
   },
 
   addStorage() {
+    const layoutService = this.options.createLayoutService()
     return {
       totalPages: 1,
       currentPage: 1,
@@ -149,7 +150,12 @@ export const Pagination = Extension.create({
       visualBreaks: [],
       manualBreaks: [],
       isComputing: false,
-      measurementCache: createBlockMeasurementCache(),
+      layoutService,
+      // Backwards-compatible internal alias. The service remains the sole
+      // owner of this cache and all invalidation must go through the service.
+      measurementCache: layoutService.measurementCache,
+      documentRevision: 0,
+      lastTelemetry: null,
       lastDurationMs: 0,
       lastCompletedAt: 0,
     }
@@ -159,108 +165,46 @@ export const Pagination = Extension.create({
     return {
       /**
        * Recompute page layout using REAL DOM block heights.
-       * Runs asynchronously and safely updates decorations.
+       * The service owns measurement, page projection and telemetry; this
+       * command only commits the resulting registry and decorations.
        */
       repaginate:
-        () =>
+        (reason = 'manual') =>
         ({ editor }) => {
           if (!editor || !editor.view || !editor.state) return false
 
           // Prevent re-entrant computation
           if (this.storage.isComputing) return true
           this.storage.isComputing = true
+          this.storage.lastTelemetry = null
           const startedAt = performance.now()
 
           try {
             const editorDom = editor.view.dom
             if (!editorDom || !editorDom.isConnected) return false
 
-            // Read actual DOM block heights and compute page assignments
-            const pageAssignments = paginateFromDOM(
+            const result = this.storage.layoutService.layout({
               editorDom,
-              cmToPx,
-              this.storage.measurementCache,
-              buildSectionLayout(editor, editorDom),
-            )
-            const totalPages = Math.max(1, pageAssignments.reduce(
-              (total, page) => Math.max(total, page.pageNumber + page.pageSpan - 1),
-              1,
-            ))
-
-            // Build layout tree structure
-            const layoutPages = pageAssignments.flatMap((p) =>
-              Array.from({ length: p.pageSpan }, (_, offset) => {
-                const pageNumber = p.pageNumber + offset
-                return {
-                  pageNumber,
-                  sectionPageNumber: p.sectionPageNumber + offset,
-                  blockStart: p.blockStart,
-                  blockEnd: p.blockEnd,
-                  contentHeight: offset < p.pageSpan - 1
-                    ? p.height / p.pageSpan
-                    : p.height - (p.pageSpan - 1) * (p.height / p.pageSpan),
-                  contentWidth: 0,
-                  isFirst: pageNumber === 1,
-                  isLast: pageNumber === totalPages,
-                  isOdd: pageNumber % 2 !== 0,
-                  startsInsideBlock: offset > 0,
-                  endedByManualBreak: offset === p.pageSpan - 1 && !!p.endedByManualBreak,
-                  sectionIndex: p.sectionIndex,
-                  sectionId: p.sectionId,
-                  section: p.section,
-                  geometry: p.geometry,
-                  header: p.section?.config?.header || {},
-                  footer: p.section?.config?.footer || {},
-                  pageNumberDisplay: { text: String(p.sectionPageNumber + offset) },
-                }
-              }),
-            )
-
-            const visualBreaks = []
-            for (let index = 1; index < pageAssignments.length; index++) {
-              const current = pageAssignments[index]
-              const previous = pageAssignments[index - 1]
-              if (!previous.endedByManualBreak) {
-                visualBreaks.push({
-                  blockIndex: current.blockStart,
-                  pageNumber: current.pageNumber,
-                  spacerHeight: previous.spacerHeight,
-                  separatorOffset: previous.separatorOffset,
-                  pageGap: previous.pageGap,
-                  sectionIndex: current.sectionIndex,
-                  sectionId: current.sectionId,
-                  geometry: current.geometry,
-                  header: current.section?.config?.header || {},
-                  footer: previous.section?.config?.footer || {},
-                })
-              }
-            }
-            const manualBreaks = pageAssignments
-              .filter((page) => page.endedByManualBreak && page.manualBreakBlock !== null)
-              .map((page) => ({
-                blockIndex: page.manualBreakBlock,
-                pageNumber: page.pageNumber + page.pageSpan,
-                spacerHeight: page.spacerHeight,
-                separatorOffset: page.separatorOffset,
-                pageGap: page.pageGap,
-                sectionIndex: page.nextSection?.index ?? page.sectionIndex,
-                sectionId: page.nextSection?.id || page.sectionId,
-                geometry: page.nextPageGeometry || page.geometry,
-                header: page.nextSection?.config?.header || page.section?.config?.header || {},
-                footer: page.section?.config?.footer || {},
-              }))
-
-            const layoutTree = {
-              totalPages,
-              pages: layoutPages,
-              version: (this.storage.layoutTree?.version || 0) + 1,
-            }
+              sectionLayout: buildSectionLayout(editor, editorDom),
+              documentRevision: this.storage.documentRevision,
+              reason,
+            })
+            const {
+              layoutTree,
+              visualBreaks,
+              manualBreaks,
+              telemetry,
+            } = result
+            const { totalPages } = layoutTree
+            const layoutPages = layoutTree.pages
 
             // Update storage
             this.storage.totalPages = totalPages
             this.storage.layoutTree = layoutTree
             this.storage.visualBreaks = visualBreaks
             this.storage.manualBreaks = manualBreaks
+            this.storage.lastTelemetry = telemetry
+            this.storage.lastDurationMs = telemetry.totalMs
 
             // Flat pages metadata
             this.storage.pages = layoutPages.map((page) => ({
@@ -300,15 +244,15 @@ export const Pagination = Extension.create({
             console.warn('[Pagination] repaginate error:', err)
             return false
           } finally {
-            this.storage.lastDurationMs = performance.now() - startedAt
+            if (!this.storage.lastTelemetry) {
+              this.storage.lastDurationMs = performance.now() - startedAt
+            }
             this.storage.lastCompletedAt = performance.now()
             this.storage.isComputing = false
           }
         },
 
-      /**
-       * Get current page number in O(1) time
-       */
+      /** Get the current page from the canonical layout registry. */
       getCurrentPage:
         () =>
         ({ editor }) => {
@@ -320,13 +264,10 @@ export const Pagination = Extension.create({
           const { layoutTree } = this.storage
           if (!layoutTree?.pages) return 1
 
-          for (const page of layoutTree.pages) {
-            if (blockIndex >= page.blockStart && blockIndex <= page.blockEnd) {
-              return page.pageNumber
-            }
-          }
-
-          return 1
+          return this.storage.layoutService.getPageAtPosition(
+            { blockIndex },
+            layoutTree,
+          )?.pageNumber || 1
         },
 
       /**
@@ -340,7 +281,7 @@ export const Pagination = Extension.create({
           const { layoutTree } = this.storage
           if (!layoutTree?.pages) return false
 
-          const targetPage = layoutTree.pages.find((p) => p.pageNumber === pageNumber)
+          const targetPage = this.storage.layoutService.getPage(pageNumber, layoutTree)
           if (!targetPage) return false
 
           let targetPos = 0
@@ -373,7 +314,7 @@ export const Pagination = Extension.create({
         () => {
           const { layoutTree } = this.storage
           if (!layoutTree?.pages) return null
-          return layoutTree.pages.find((p) => p.pageNumber === pageNumber) || null
+          return this.storage.layoutService.getPage(pageNumber, layoutTree)
         },
 
       /**
@@ -387,7 +328,7 @@ export const Pagination = Extension.create({
           const { layoutTree } = this.storage
           if (!layoutTree?.pages) return false
 
-          const targetPage = layoutTree.pages.find((p) => p.pageNumber === pageNumber)
+          const targetPage = this.storage.layoutService.getPage(pageNumber, layoutTree)
           if (!targetPage) return false
 
           const editorDom = editor.view.dom
@@ -403,12 +344,20 @@ export const Pagination = Extension.create({
     }
   },
 
+  onDestroy() {
+    // ProseMirror plugin views may be recreated during editor reconfiguration.
+    // The layout service belongs to the Tiptap extension/editor lifecycle, not
+    // to an individual plugin view.
+    this.storage.layoutService.destroy()
+  },
+
   addProseMirrorPlugins() {
     const extension = this
     let repaginateTimer = null
     let rafId = null
     let resizeObserver = null
     let observedBlocks = new Set()
+    let pendingReason = 'manual'
 
     const syncObservedBlocks = (view) => {
       if (!resizeObserver || !view?.dom) return
@@ -426,6 +375,7 @@ export const Pagination = Extension.create({
     // prefix and suffix keeps a normal keystroke to one invalidated DOM block.
     const invalidateChangedBlocks = (view, previousState) => {
       if (!view?.dom || !previousState || previousState.doc === view.state.doc) return
+      extension.storage.documentRevision += 1
       const oldDoc = previousState.doc
       const newDoc = view.state.doc
       let start = 0
@@ -441,12 +391,20 @@ export const Pagination = Extension.create({
 
       const blocks = getTopLevelBlockElements(view.dom)
       for (let index = start; index <= newEnd; index += 1) {
-        extension.storage.measurementCache.invalidate(blocks[index])
+        if (blocks[index]) {
+          extension.storage.layoutService.invalidate({
+            scope: 'block',
+            element: blocks[index],
+            blockIndex: index,
+            reason: 'transaction',
+          })
+        }
       }
     }
 
     // Debounced and RAF-batched repaginate for buttery-smooth typing
-    const scheduleRepaginate = (delay = 200) => {
+    const scheduleRepaginate = (delay = 200, reason = 'transaction') => {
+      pendingReason = reason
       if (repaginateTimer) clearTimeout(repaginateTimer)
       repaginateTimer = setTimeout(() => {
         repaginateTimer = null
@@ -454,7 +412,9 @@ export const Pagination = Extension.create({
         rafId = requestAnimationFrame(() => {
           rafId = null
           if (extension.editor && !extension.storage.isComputing) {
-            extension.editor.commands.repaginate()
+            const layoutReason = pendingReason
+            pendingReason = 'manual'
+            extension.editor.commands.repaginate(layoutReason)
           }
         })
       }, delay)
@@ -469,16 +429,20 @@ export const Pagination = Extension.create({
           if (typeof ResizeObserver !== 'undefined') {
             resizeObserver = new ResizeObserver((entries) => {
               for (const entry of entries) {
-                extension.storage.measurementCache.invalidate(entry.target)
+                extension.storage.layoutService.invalidate({
+                  scope: 'block',
+                  element: entry.target,
+                  reason: 'resize',
+                })
               }
-              scheduleRepaginate(80)
+              scheduleRepaginate(80, 'resize')
             })
             syncObservedBlocks(view)
           }
 
           const onFontsLoaded = () => {
-            extension.storage.measurementCache.invalidateAll()
-            scheduleRepaginate(80)
+            extension.storage.layoutService.invalidate({ scope: 'all', reason: 'font' })
+            scheduleRepaginate(80, 'font')
           }
           document.fonts?.addEventListener?.('loadingdone', onFontsLoaded)
 
@@ -489,7 +453,7 @@ export const Pagination = Extension.create({
               if (!initialDone) {
                 initialDone = true
                 // Initial pagination once DOM is fully rendered
-                scheduleRepaginate(300)
+                scheduleRepaginate(300, 'open')
               }
             },
             destroy() {
@@ -499,7 +463,6 @@ export const Pagination = Extension.create({
               resizeObserver = null
               observedBlocks.clear()
               document.fonts?.removeEventListener?.('loadingdone', onFontsLoaded)
-              extension.storage.measurementCache.invalidateAll()
             },
           }
         },
@@ -512,12 +475,12 @@ export const Pagination = Extension.create({
           if (hasMeta) return null
 
           if (transactions.some((tr) => tr.docChanged)) {
-            scheduleRepaginate(200)
+            scheduleRepaginate(200, 'transaction')
           }
           return null
         },
 
-        // Fast O(1) cursor page tracking
+        // Cursor page tracking through the canonical layout registry.
         state: {
           init() {
             return { page: 1 }
@@ -530,17 +493,19 @@ export const Pagination = Extension.create({
 
                 const { layoutTree } = extension.storage
                 if (layoutTree?.pages) {
-                  for (const page of layoutTree.pages) {
-                    if (blockIndex >= page.blockStart && blockIndex <= page.blockEnd) {
-                      if (page.pageNumber !== value.page) {
-                        extension.storage.currentPage = page.pageNumber
-                        if (extension.options.onCurrentPageChange) {
-                          extension.options.onCurrentPageChange(page.pageNumber)
-                        }
-                        return { page: page.pageNumber }
+                  const page = extension.storage.layoutService.getPageAtPosition(
+                    { blockIndex },
+                    layoutTree,
+                  )
+                  if (page) {
+                    if (page.pageNumber !== value.page) {
+                      extension.storage.currentPage = page.pageNumber
+                      if (extension.options.onCurrentPageChange) {
+                        extension.options.onCurrentPageChange(page.pageNumber)
                       }
-                      return value
+                      return { page: page.pageNumber }
                     }
+                    return value
                   }
                 }
               } catch (e) {
