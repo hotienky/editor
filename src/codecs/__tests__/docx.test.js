@@ -396,7 +396,7 @@ describe('DOCX codec', () => {
     expect(imported.state.content.content.some((node) => node.type === 'sectionBreak')).toBe(true)
   })
 
-  it('round-trips v2.2 inserted and deleted text revisions', async () => {
+  it('round-trips v2.1 inserted and deleted text revisions', async () => {
     const state = createEmptyDocumentState({
       content: { type: 'doc', content: [{ type: 'paragraph', content: [
         { type: 'text', text: 'Giữ nguyên. ' },
@@ -405,14 +405,14 @@ describe('DOCX codec', () => {
       ] }] },
     })
 
-    const exported = await exportDocx(state, { profile: 'kindy-docx-v2.2' })
+    const exported = await exportDocx(state, { profile: 'kindy-docx-v2.1' })
     const archive = unzipSync(new Uint8Array(await exported.blob.arrayBuffer()))
     const documentXml = strFromU8(archive['word/document.xml'])
     expect(documentXml).toContain('<w:ins')
     expect(documentXml).toContain('<w:del')
     expect(documentXml).toContain('w:author="Nguyễn A"')
 
-    const imported = await importDocx(exported.blob, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const imported = await importDocx(exported.blob, { profile: 'kindy-docx-v2.1', mode: 'strict' })
     const texts = imported.state.content.content[0].content
     expect(texts.find((node) => node.text === 'Nội dung thêm').marks).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'trackChange', attrs: expect.objectContaining({ type: 'insert', author: 'Nguyễn A' }) }),
@@ -422,7 +422,7 @@ describe('DOCX codec', () => {
     ]))
   })
 
-  it('round-trips v2.2 comment ranges and thread metadata', async () => {
+  it('round-trips v2.1 comment ranges and thread metadata', async () => {
     const thread = {
       id: 'comment-contract-clause', user: 'Lê Pháp chế', userId: 'legal-1',
       color: 'rgba(255, 213, 79, 0.4)', text: 'Kiểm tra lại thời hạn thanh toán.',
@@ -436,13 +436,13 @@ describe('DOCX codec', () => {
       ] }] },
     })
 
-    const exported = await exportDocx(state, { profile: 'kindy-docx-v2.2' })
+    const exported = await exportDocx(state, { profile: 'kindy-docx-v2.1' })
     const archive = unzipSync(new Uint8Array(await exported.blob.arrayBuffer()))
     expect(strFromU8(archive['word/document.xml'])).toContain('commentRangeStart')
     expect(strFromU8(archive['word/comments.xml'])).toContain('Kiểm tra lại thời hạn thanh toán.')
     expect(strFromU8(archive['word/commentsExtended.xml'])).toContain('paraIdParent')
 
-    const imported = await importDocx(exported.blob, { profile: 'kindy-docx-v2.2', mode: 'strict' })
+    const imported = await importDocx(exported.blob, { profile: 'kindy-docx-v2.1', mode: 'strict' })
     const [commented] = imported.state.content.content[0].content
     const comment = commented.marks.find((mark) => mark.type === 'comment')
     expect(comment.attrs).toMatchObject({ user: 'Lê Pháp chế' })

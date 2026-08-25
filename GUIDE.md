@@ -125,7 +125,7 @@ Các guard server vẫn bắt buộc dù client đã validate:
 `exportDocx(state)` mặc định strict. Khi có node ngoài profile, hàm ném `DOCX_UNSUPPORTED`. UI có thể hiển thị report rồi gọi lại `{ mode: 'best-effort' }` sau khi người dùng xác nhận.
 
 Profile mặc định là `kindy-docx-v2.0`. Dùng `{ profile: 'kindy-docx-v2.1' }`
-cho sections/header/footer và `kindy-docx-v2.2` cho comments/Track Changes.
+cho sections/header/footer, comments/Track Changes.
 Workspace nhận prop `docxProfile` tương ứng; không tự nâng profile âm thầm.
 
 DOCX output là ZIP/OOXML từ package `docx`; test phải kiểm tra `word/document.xml` và mở qua LibreOffice/Word mà không repair.

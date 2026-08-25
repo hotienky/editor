@@ -17,11 +17,11 @@ Breaking release chuyển Kindy Editor thành DOCX Document Library SDK.
 - Browser print/Save as PDF flow.
 - OpenAPI contract và REST mock transport.
 - Tiptap engine adapter và Yjs collaboration adapter boundary.
-- Compatibility profiles v2.1 cho section/header/footer/page numbering và v2.2 cho comments/Track Changes.
+- Compatibility profile v2.1 cho section/header/footer/page numbering, comments/Track Changes.
 - Section-aware pagination/print, header/footer variants và Yjs workspace lifecycle.
 - Corpus benchmark text/mixed 100–200 trang và measurement cache theo block.
 - Playwright E2E production cho import/edit/autosave/version/restore/export/print và benchmark 100 trang.
-- LibreOffice headless golden gate xác nhận DOCX v2.2 mở/convert PDF không yêu cầu repair.
+- LibreOffice headless golden gate xác nhận DOCX mở/convert PDF không yêu cầu repair.
 - Packed-consumer smoke test cho ESM core, Vue UI, stylesheet và relative DOCX Worker URL.
 - Reproducible npm lockfile và CI dùng `npm ci` trên cả unit, LibreOffice và browser E2E jobs.
 

@@ -54,6 +54,9 @@
                     <div class="menu-item" @click="downloadCurrentDocx(); closeMenu()">
                       <span>Tải xuống (.docx)</span>
                     </div>
+                    <div class="menu-item" @click="downloadCurrentPdf(); closeMenu()">
+                      <span>Tải xuống (.pdf)</span>
+                    </div>
                     <div class="menu-item" @click="print(); closeMenu()">
                       <span>In ấn (Ctrl+P)</span>
                     </div>
@@ -164,6 +167,10 @@
               <span>Bình luận</span>
             </button>
 
+            <button class="kindy-docs-btn-export-pdf" title="Tải xuống tài liệu dạng PDF" @click="downloadCurrentPdf">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              <span>Xuất PDF</span>
+            </button>
             <button class="kindy-docs-btn-share" title="Tải xuống hoặc chia sẻ tài liệu" @click="downloadCurrentDocx">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
               <span>Chia sẻ</span>
@@ -230,6 +237,7 @@ import saveAs from 'file-saver'
 import { onClickOutside } from '@vueuse/core'
 import { computed, nextTick, onBeforeUnmount, onErrorCaptured, onMounted, ref, shallowRef, useSlots, watch } from 'vue'
 import { exportDocx, importDocxInWorker } from '../../codecs'
+import { exportDocumentToPdf } from '../../codecs/pdf'
 import { DocumentLibraryClient, createDocumentLibrary } from '../../core/client'
 import { DocumentLibraryError } from '../../core/errors'
 import { createEmptyDocumentState } from '../../core/state'
@@ -843,6 +851,19 @@ async function exportCurrentDocx(options: { mode?: 'strict' | 'best-effort'; sto
   return { ...exported, source: 'serialized' as const }
 }
 
+async function downloadCurrentPdf() {
+  exporting.value = true
+  try {
+    const editorPane = document.querySelector(".kindy-docs-editor-pane, .kindy-editor-container, .kindy-main, .kindy-page-content") as HTMLElement | null
+    const title = current.value?.document.title || "tai-lieu"
+    await exportDocumentToPdf(editorPane, { filename: title })
+  } catch (error) {
+    onError(error)
+  } finally {
+    exporting.value = false
+  }
+}
+
 async function downloadCurrentDocx() {
   exporting.value = true
   try {
@@ -1113,6 +1134,26 @@ defineExpose({
   gap: 10px;
 }
 
+.kindy-docs-btn-export-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: all 0.15s ease;
+  &:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+  }
+}
 .kindy-docs-btn-comments {
   display: flex;
   align-items: center;

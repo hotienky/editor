@@ -193,12 +193,20 @@ export const NodeTypes = {
     group: NodeGroup.BLOCK,
     content: 'tableRow+',
     isolating: true,
+    attributes: {
+      alignment: { default: null },
+      borders: { default: null },
+      width: { default: null },
+    },
   },
 
   tableRow: {
     name: 'tableRow',
     content: '(tableCell | tableHeader)*',
     tableRole: 'row',
+    attributes: {
+      height: { default: null },
+    },
   },
 
   tableCell: {
@@ -212,6 +220,7 @@ export const NodeTypes = {
       align: { default: null },
       background: { default: null },
       color: { default: null },
+      margins: { default: null },
     },
   },
 
@@ -227,6 +236,7 @@ export const NodeTypes = {
       align: { default: null },
       background: { default: null },
       color: { default: null },
+      margins: { default: null },
     },
   },
 
@@ -283,6 +293,7 @@ export const NodeTypes = {
       width: { default: 150 },
       height: { default: 80 },
       inline: { default: true },
+      floating: { default: null },
       equalProportion: { default: false },
       nodeAlign: { default: 'center' },
     },

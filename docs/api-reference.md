@@ -32,7 +32,7 @@ Workspace hoàn chỉnh kết nối UI với `DocumentLibraryClient`.
 | `client` | `DocumentLibraryClient` | — | Client do ứng dụng chủ quản lý |
 | `autosave` | `{ enabled?: boolean; delay?: number }` | client default | Delay tối thiểu 250ms |
 | `stateSyncDelay` | `number` | `300` | Gom chuỗi transaction trước khi tạo canonical JSON; tối thiểu 32ms |
-| `docxProfile` | `'kindy-docx-v2.0' \| 'kindy-docx-v2.1' \| 'kindy-docx-v2.2'` | `kindy-docx-v2.0` | Profile strict dùng cho import/export; chỉ nâng khi integration đã chấp nhận capability matrix tương ứng |
+| `docxProfile` | `'kindy-docx-v2.0' \| 'kindy-docx-v2.1'` | `kindy-docx-v2.0` | Profile strict dùng cho import/export; chỉ nâng khi integration đã chấp nhận capability matrix tương ứng |
 | `collaboration` | `CollaborationAdapter` | — | Adapter realtime của host; workspace connect/disconnect theo vòng đời document/editor |
 | `user` | `{ id?, name?, color? }` | — | Identity dùng chung cho Track Changes và collaboration |
 | `locale` | `string` | `vi-VN` | Library UI và editor locale |

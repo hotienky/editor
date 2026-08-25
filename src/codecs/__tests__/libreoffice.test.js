@@ -10,7 +10,7 @@ import { exportDocx } from '../docx'
 const execFileAsync = promisify(execFile)
 const runWithLibreOffice = process.env.KINDY_TEST_LIBREOFFICE === '1' ? it : it.skip
 
-runWithLibreOffice('opens the v2.2 golden DOCX in LibreOffice without repair', async () => {
+runWithLibreOffice('opens the v2.1 golden DOCX in LibreOffice without repair', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'kindy-libreoffice-'))
   const outputDirectory = join(directory, 'converted')
   const inputPath = join(directory, 'kindy-golden.docx')
@@ -43,7 +43,7 @@ runWithLibreOffice('opens the v2.2 golden DOCX in LibreOffice without repair', a
         ] },
       ] },
     })
-    const exported = await exportDocx(state, { profile: 'kindy-docx-v2.2' })
+    const exported = await exportDocx(state, { profile: 'kindy-docx-v2.1' })
     await writeFile(inputPath, new Uint8Array(await exported.blob.arrayBuffer()))
     await execFileAsync('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', outputDirectory, inputPath], { timeout: 60_000 })
     await expect(access(outputPath)).resolves.toBeUndefined()

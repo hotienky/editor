@@ -18,7 +18,7 @@ Workspace hoàn chỉnh tích hợp toàn bộ các phân vùng làm việc.
 | `locale` | `string` | `'vi-VN'` | Ngôn ngữ giao diện (`vi-VN`, `en-US`, `zh-CN`). |
 | `theme` | `Record<string, string>` | `{}` | Các biến CSS Variables ghi đè giao diện. |
 | `messages` | `Partial<KindyLibraryMessages>` | `{}` | Tùy biến nhãn văn bản của UI. |
-| `docxProfile` | `'kindy-docx-v2.0' \| 'kindy-docx-v2.1' \| 'kindy-docx-v2.2'` | `'kindy-docx-v2.0'` | Profile tương thích DOCX cho import/export. |
+| `docxProfile` | `'kindy-docx-v2.0' \| 'kindy-docx-v2.1'` | `'kindy-docx-v2.0'` | Profile tương thích DOCX cho import/export. |
 | `collaboration` | `CollaborationAdapter` | `undefined` | Adapter cộng tác realtime. |
 | `user` | `{ id?: string; name?: string; color?: string }` | `undefined` | Định danh người dùng hiện tại. |
 | `ui` | `Partial<KindyLibraryUiOptions>` | `{}` | Tùy biến kích thước cột sidebar, layout mật độ. |

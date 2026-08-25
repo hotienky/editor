@@ -69,8 +69,7 @@ SDK hỗ trợ 3 mức profile theo tiêu chuẩn:
 | Profile | Hỗ trợ tính năng | Khi nào sử dụng |
 |---|---|---|
 | `kindy-docx-v2.0` (Mặc định) | Đoạn văn, Heading, List, Table, Image, Bold/Italic/Color, Rulers & Tabs, Watermark. | Các văn bản, hợp đồng tiêu chuẩn thông dụng. |
-| `kindy-docx-v2.1` | Thêm Header & Footer nhiều trang (Odd/Even/First page), Sections nhiều cột. | Báo cáo, sách, tài liệu in ấn nhiều chương mục. |
-| `kindy-docx-v2.2` | Thêm Comments, Đánh dấu sửa đổi (Track Changes), Revisions. | Quy trình thẩm định, duyệt hợp đồng nhiều bên. |
+| `kindy-docx-v2.1` | Thêm Header & Footer nhiều trang (Odd/Even/First page), Sections nhiều cột, Comments, Đánh dấu sửa đổi (Track Changes), Revisions. | Báo cáo, sách, tài liệu in ấn nhiều chương mục; quy trình thẩm định, duyệt hợp đồng nhiều bên. |
 
 ---
 

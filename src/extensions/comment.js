@@ -213,6 +213,11 @@ export default Mark.create({
             return false
           }
           const from = Math.min(...ranges.map((item) => item[0]))
+
+          if (dispatch) {
+            tr.setSelection(TextSelection.create(tr.doc, from))
+          }
+
           const elements = editor.view.dom.querySelectorAll(
             `[data-comment="${id}"]`,
           )
@@ -222,16 +227,27 @@ export default Mark.create({
               el.classList.remove('kindy-comment-flash')
             }, 1500)
           })
+
+          // Scroll the comment element into view within the scroll container
           if (elements[0]) {
-            elements[0].scrollIntoView({
-              behavior: 'smooth',
-              block: 'center',
-              inline: 'nearest',
-            })
+            const scrollContainer = elements[0].closest('.kindy-zoomable-container')
+            if (scrollContainer && scrollContainer !== document.documentElement) {
+              const containerRect = scrollContainer.getBoundingClientRect()
+              const elementRect = elements[0].getBoundingClientRect()
+              const relativeTop = elementRect.top - containerRect.top + scrollContainer.scrollTop
+              scrollContainer.scrollTo({
+                top: relativeTop - containerRect.height / 2 + elementRect.height / 2,
+                behavior: 'smooth',
+              })
+            } else {
+              elements[0].scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+                inline: 'nearest',
+              })
+            }
           }
-          if (dispatch) {
-            tr.setSelection(TextSelection.create(tr.doc, from))
-          }
+
           return true
         },
     }

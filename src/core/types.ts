@@ -204,7 +204,7 @@ export interface CompatibilityIssue {
 }
 
 export interface CompatibilityReport {
-  profile: 'kindy-docx-v2.0' | 'kindy-docx-v2.1' | 'kindy-docx-v2.2'
+  profile: 'kindy-docx-v2.0' | 'kindy-docx-v2.1'
   supported: boolean
   issues: CompatibilityIssue[]
 }

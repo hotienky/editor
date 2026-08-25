@@ -225,8 +225,7 @@ const output = await exportDocx(imported.state) // strict mặc định
 ```
 
 UI workspace tự xử lý luồng xác nhận best-effort khi import hoặc download. API programmatic mặc định strict và ném `DOCX_UNSUPPORTED` nếu state có feature ngoài profile.
-Mặc định là v2.0. Chọn `kindy-docx-v2.1` cho sections/header/footer hoặc
-`kindy-docx-v2.2` cho comments/Track Changes sau khi integration đã chạy corpus tương ứng.
+Mặc định là v2.0. Chọn `kindy-docx-v2.1` cho sections/header/footer, comments/Track Changes sau khi integration đã chạy corpus tương ứng.
 
 `POST /documents/import` phải lưu blob gốc và trả `DocumentRecord.originalSource` gồm `artifactId`, `revisionId`, `format: 'original-docx'` và `fileName`. Nhờ đó `KindyDocumentLibrary.downloadDocx()` trả đúng file gốc khi revision chưa đổi. URL artifact của REST backend phải là URL tải được (thường là signed URL); Memory adapter trả trực tiếp `Blob`.
 

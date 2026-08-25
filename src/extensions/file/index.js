@@ -162,7 +162,7 @@ export default Node.create({
             id,
             [previewType === 'file' ? 'url' : 'src']: URL.createObjectURL(file),
             name,
-            type: type || 'unknown', // Ensure type is never null
+            type: type || 'unknown',
             size,
             previewType,
           }
@@ -171,23 +171,16 @@ export default Node.create({
           if (previewType === 'image') {
             const { width, height, inline } = dimensions
             if (width && width > 0) {
-              nodeData = {
-                ...nodeData,
-                width,
-              }
+              nodeData.width = width
             }
             if (height && height > 0) {
-              nodeData = {
-                ...nodeData,
-                height,
-              }
+              nodeData.height = height
             }
             if (inline) {
               previewType = 'inlineImage'
-              nodeData = {
-                ...nodeData,
-                inline: true,
-              }
+              nodeData.inline = true
+            } else {
+              nodeData.draggable = true
             }
           }
           return commands.insertContentAt(position, {

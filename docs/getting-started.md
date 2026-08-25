@@ -170,7 +170,7 @@ Trước khi nối backend thật, kiểm tra tuần tự:
 7. Export tạo ZIP/OOXML hợp lệ; print mở được print dialog.
 8. Hai client lưu cùng `baseRevisionId` phải khiến client thứ hai nhận `VERSION_CONFLICT`.
 
-Với DOCX thực tế, kiểm tra thêm `CompatibilityReport`: floating image sẽ được làm phẳng thành inline; EMF/WMF/TIFF không thuộc profile render ổn định. Sections/header/footer dùng `docxProfile="kindy-docx-v2.1"`; comments/Track Changes dùng v2.2. Xem ma trận hỗ trợ trước khi bật strict profile cao hơn.
+Với DOCX thực tế, kiểm tra thêm `CompatibilityReport`: floating image sẽ được làm phẳng thành inline; EMF/WMF/TIFF không thuộc profile render ổn định. Sections/header/footer, comments/Track Changes dùng `docxProfile="kindy-docx-v2.1"`. Xem ma trận hỗ trợ trước khi bật strict profile cao hơn.
 
 ## 8. Bước tiếp theo
 

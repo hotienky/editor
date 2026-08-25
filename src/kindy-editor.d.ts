@@ -43,7 +43,7 @@ export interface Page<T> { items: T[]; total: number; page: number; pageSize: nu
 export interface DocumentQuery { search?: string; folderId?: string | null; tags?: string[]; page?: number; pageSize?: number; templatesOnly?: boolean }
 export interface CreateDocumentInput { title: string; fileName?: string; folderId?: string | null; tags?: string[]; templateId?: string; state?: KindyDocumentState; metadata?: Record<string, unknown> }
 export interface CompatibilityIssue { code: string; feature: string; message: string; severity: 'info' | 'warning' | 'error'; location?: string }
-export interface CompatibilityReport { profile: 'kindy-docx-v2.0' | 'kindy-docx-v2.1' | 'kindy-docx-v2.2'; supported: boolean; issues: CompatibilityIssue[] }
+export interface CompatibilityReport { profile: 'kindy-docx-v2.0' | 'kindy-docx-v2.1'; supported: boolean; issues: CompatibilityIssue[] }
 export interface ImportDocumentInput extends CreateDocumentInput { file: File | Blob; state: KindyDocumentState; compatibilityReport?: CompatibilityReport }
 export interface SaveStateInput { state: KindyDocumentState; baseRevisionId: string; reason: SaveReason; clientMutationId: string }
 export interface SaveResult { revisionId: string; savedAt: string; version?: DocumentVersion }

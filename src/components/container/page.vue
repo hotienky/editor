@@ -180,6 +180,8 @@
               </div>
               </div>
             </div>
+            <!-- FLOATING MARGIN COMMENTS (Word-style) -->
+            <FloatingComments v-if="commentStore.visible" />
           </div>
         </div>
       </div>
@@ -208,7 +210,6 @@
     />
     <container-search-replace />
     <container-print />
-    <container-comment v-if="commentStore.visible" />
     <dialog-header-footer v-model:visible="hfDialogVisible" :target-type="hfDialogType" />
     <dialog-preferences v-model:visible="prefDialogVisible" />
     <dialog-version-history v-model:visible="historyDialogVisible" />
@@ -226,6 +227,7 @@ import ContainerTabs from '@/components/container/tabs.vue'
 import ContainerSuggestions from '@/components/container/suggestions.vue'
 import ContainerRuler from '@/components/container/ruler.vue'
 import DocxFragment from '@/components/container/docx-fragment.vue'
+import FloatingComments from '@/components/floating/FloatingComments.vue'
 
 const container = inject('container')
 const imageViewer = inject('imageViewer')
@@ -704,6 +706,8 @@ const currentImageIndex = $computed({
   flex-direction: column;
   align-items: center;
   width: 100%;
+  position: relative;
+  padding-right: 280px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */

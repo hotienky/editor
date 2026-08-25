@@ -1,6 +1,7 @@
 import type { JSONContent } from '@tiptap/core'
 import {
   AlignmentType,
+  BorderStyle,
   CommentRangeEnd,
   CommentRangeStart,
   CommentReference,
@@ -10,6 +11,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  HeightRule,
   ImageRun,
   InsertedTextRun,
   Packer,
@@ -97,8 +99,8 @@ export interface DocxPackageParts {
 }
 
 const unsupportedOoxml: Array<[RegExp, string, string]> = [
-  [/<w:(?:ins|del)\b/, 'TRACK_CHANGES', 'Track Changes requires the v2.2 compatibility profile.'],
-  [/<w:commentRangeStart\b/, 'COMMENTS', 'DOCX comments require the v2.2 compatibility profile.'],
+  [/<w:(?:ins|del)\b/, 'TRACK_CHANGES', 'Track Changes requires the v2.1 compatibility profile.'],
+  [/<w:commentRangeStart\b/, 'COMMENTS', 'DOCX comments require the v2.1 compatibility profile.'],
   [/<w:(?:altChunk|object)\b/, 'EMBEDDED_OBJECT', 'Embedded Word objects are not supported.'],
   [/<m:oMath\b/, 'EQUATION', 'Word equations are imported as best-effort content.'],
   [/<w:(?:footnoteReference|endnoteReference)\b/, 'FOOTNOTE', 'Footnotes and endnotes are outside the v2.0 DOCX profile.'],
@@ -120,7 +122,6 @@ const cloneIssue = (issue: CompatibilityIssue) => ({ ...issue })
 const profileRank = (profile: CompatibilityReport['profile'] = KINDY_DOCX_PROFILE) => ({
   'kindy-docx-v2.0': 0,
   'kindy-docx-v2.1': 1,
-  'kindy-docx-v2.2': 2,
 }[profile])
 
 function report(issues: CompatibilityIssue[] = [], profile: CompatibilityReport['profile'] = KINDY_DOCX_PROFILE): CompatibilityReport {
@@ -227,7 +228,7 @@ function inspectParts(parts: DocxPackageParts, profile: CompatibilityReport['pro
   const { documentXml } = parts
   const issues: CompatibilityIssue[] = []
   for (const [pattern, code, message] of unsupportedOoxml) {
-    if (profileRank(profile) >= 2 && (code === 'TRACK_CHANGES' || code === 'COMMENTS')) continue
+    if (profileRank(profile) >= 1 && (code === 'TRACK_CHANGES' || code === 'COMMENTS')) continue
     if (pattern.test(documentXml)) issues.push({ code, feature: code.toLowerCase(), message, severity: 'warning' })
   }
   const sectionCount = (documentXml.match(/<w:sectPr\b/g) || []).length
@@ -715,6 +716,27 @@ function imageFromOoxml(
     })
   }
   const { width, height } = imageDimensions(element)
+
+  const isFloating = element.localName === 'anchor'
+  let floating = null
+  if (isFloating) {
+    const positionH = xmlFirst(element, 'positionH')
+    const positionV = xmlFirst(element, 'positionV')
+    const wrapText = xmlFirst(element, 'wrapText')
+
+    const hRelativeFrom = positionH?.getAttribute('relativeFrom') || 'column'
+    const hAlign = xmlValue(positionH) || positionH?.getAttribute('w:posOffset') || 'left'
+    const vRelativeFrom = positionV?.getAttribute('relativeFrom') || 'paragraph'
+    const vAlign = xmlValue(positionV) || positionV?.getAttribute('w:posOffset') || 'top'
+    const wrapType = wrapText?.getAttribute('type') || wrapText?.getAttribute('w:type') || 'square'
+
+    floating = {
+      horizontal: { relativeFrom: hRelativeFrom, align: hAlign },
+      vertical: { relativeFrom: vRelativeFrom, align: vAlign },
+      wrapType,
+    }
+  }
+
   return {
     type: 'inlineImage',
     attrs: {
@@ -726,7 +748,8 @@ function imageFromOoxml(
       title,
       width: width || 150,
       height: height || 80,
-      inline: true,
+      inline: !isFloating,
+      floating,
       uploaded: true,
     },
   }
@@ -998,6 +1021,31 @@ function ooxmlParagraph(
   }
 }
 
+function parseBorderElement(el: Element | undefined): { style: string; color: string; size: number } | null {
+  if (!el) return null
+  const val = xmlValue(el) || el.getAttribute('w:val') || 'single'
+  const color = el.getAttribute('w:color') || '000000'
+  const size = Number(el.getAttribute('w:sz') || '4')
+  if (val === 'none' || val === 'nil') return null
+  return {
+    style: val === 'single' ? 'single' : val === 'double' ? 'double' : val === 'dotted' ? 'dotted' : val === 'dashed' ? 'dashed' : 'single',
+    color: color === 'auto' ? '000000' : color,
+    size: Number.isFinite(size) && size > 0 ? size : 4,
+  }
+}
+
+function parseCellBorders(cellEl: Element): Record<string, { style: string; color: string; size: number } | null> | null {
+  const tcPr = xmlFirst(cellEl, 'tcPr')
+  if (!tcPr) return null
+  const bordersEl = xmlFirst(tcPr, 'tcBorders')
+  if (!bordersEl) return null
+  const top = parseBorderElement(xmlFirst(bordersEl, 'top'))
+  const start = parseBorderElement(xmlFirst(bordersEl, 'start') || xmlFirst(bordersEl, 'left'))
+  const bottom = parseBorderElement(xmlFirst(bordersEl, 'bottom'))
+  const end = parseBorderElement(xmlFirst(bordersEl, 'end') || xmlFirst(bordersEl, 'right'))
+  return { top, start, bottom, end }
+}
+
 function ooxmlTable(
   element: Element,
   relationships: Map<string, string>,
@@ -1016,11 +1064,45 @@ function ooxmlTable(
       })
     : []
 
+  const tblPr = xmlFirst(element, 'tblPr')
+  const jcEl = tblPr ? xmlFirst(tblPr, 'jc') : undefined
+  const tableAlignment = jcEl ? (xmlValue(jcEl) || jcEl.getAttribute('w:val') || null) : null
+
+  const tblBordersEl = tblPr ? xmlFirst(tblPr, 'tblBorders') : undefined
+  const tableBorders = tblBordersEl ? {
+    top: parseBorderElement(xmlFirst(tblBordersEl, 'top')),
+    bottom: parseBorderElement(xmlFirst(tblBordersEl, 'bottom')),
+    left: parseBorderElement(xmlFirst(tblBordersEl, 'left') || xmlFirst(tblBordersEl, 'start')),
+    right: parseBorderElement(xmlFirst(tblBordersEl, 'right') || xmlFirst(tblBordersEl, 'end')),
+    insideH: parseBorderElement(xmlFirst(tblBordersEl, 'insideH')),
+    insideV: parseBorderElement(xmlFirst(tblBordersEl, 'insideV')),
+  } : null
+
+  const tblWEl = tblPr ? xmlFirst(tblPr, 'tblW') : undefined
+  const tblWType = tblWEl?.getAttribute('w:type') || tblWEl?.getAttribute('type') || 'auto'
+  const tblWVal = Number(tblWEl?.getAttribute('w:w') || tblWEl?.getAttribute('w'))
+  const tableWidth = tblWType === 'pct'
+    ? { pct: Number.isFinite(tblWVal) ? tblWVal : 5000 }
+    : tblWType === 'dxa' && Number.isFinite(tblWVal) && tblWVal > 0
+      ? { twips: tblWVal }
+      : null
+
   for (const row of xmlElements(element, 'tr', true)) {
     const nextMerges = new Map<number, JSONContent>()
     const continued = new Set<JSONContent>()
     const rowProperties = xmlFirst(row, 'trPr')
     const cellType = rowProperties && xmlFirst(rowProperties, 'tblHeader') ? 'tableHeader' : 'tableCell'
+
+    // Parse row height (w:trHeight)
+    let rowHeight: number | null = null
+    if (rowProperties) {
+      const trHeightEl = xmlFirst(rowProperties, 'trHeight')
+      if (trHeightEl) {
+        const hVal = Number(trHeightEl.getAttribute('w:val') || trHeightEl.getAttribute('w'))
+        if (Number.isFinite(hVal) && hVal > 0) rowHeight = hVal
+      }
+    }
+
     const cells: JSONContent[] = []
     let column = 0
     for (const cell of xmlElements(row, 'tc', true)) {
@@ -1057,6 +1139,29 @@ function ooxmlTable(
         cellColWidths = [Math.round(tcWVal / 15)]
       }
 
+      const cellBorders = parseCellBorders(cell)
+
+      // Parse cell margins (w:tcMar)
+      let cellMargins: { top?: number; bottom?: number; start?: number; end?: number } | null = null
+      if (properties) {
+        const tcMarEl = xmlFirst(properties, 'tcMar')
+        if (tcMarEl) {
+          const readMargin = (tag: string): number | undefined => {
+            const el = xmlFirst(tcMarEl, tag) || xmlFirst(tcMarEl, tag === 'start' ? 'left' : tag === 'end' ? 'right' : tag)
+            if (!el) return undefined
+            const val = Number(el.getAttribute('w:w') || el.getAttribute('w'))
+            return Number.isFinite(val) && val > 0 ? val : undefined
+          }
+          const mTop = readMargin('top')
+          const mBottom = readMargin('bottom')
+          const mStart = readMargin('start')
+          const mEnd = readMargin('end')
+          if (mTop || mBottom || mStart || mEnd) {
+            cellMargins = { top: mTop, bottom: mBottom, start: mStart, end: mEnd }
+          }
+        }
+      }
+
       const node: JSONContent = {
         type: cellType,
         attrs: {
@@ -1065,6 +1170,8 @@ function ooxmlTable(
           colwidth: cellColWidths?.length ? cellColWidths : null,
           verticalAlign: verticalAlign || null,
           background: fill && fill !== 'auto' ? `#${fill}` : null,
+          borders: cellBorders || undefined,
+          margins: cellMargins || undefined,
         },
         content: [...cell.children]
           .filter((child) => child.localName === 'p')
@@ -1078,10 +1185,19 @@ function ooxmlTable(
       column += colspan
     }
     activeMerges = nextMerges
-    rows.push({ type: 'tableRow', content: cells })
+    rows.push({
+      type: 'tableRow',
+      attrs: rowHeight ? { height: rowHeight } : undefined,
+      content: cells,
+    })
   }
   return {
     type: 'table',
+    attrs: {
+      alignment: tableAlignment || undefined,
+      borders: tableBorders || undefined,
+      width: tableWidth || undefined,
+    },
     content: rows,
   }
 }
@@ -1362,7 +1478,7 @@ function unsupportedStateIssues(
   }
   node.marks?.forEach((mark) => {
     const supportedMark = supportedMarkTypes.has(mark.type)
-      || (profileRank(profile) >= 2 && (mark.type === 'trackChange' || mark.type === 'comment'))
+      || (profileRank(profile) >= 1 && (mark.type === 'trackChange' || mark.type === 'comment'))
     if (!supportedMark) {
       issues.push({ code: 'UNSUPPORTED_MARK', feature: mark.type, severity: 'warning', message: `Mark “${mark.type}” is outside the ${profile} profile.`, location: path })
     }
@@ -1660,6 +1776,36 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
       bottom: VerticalAlign.BOTTOM,
     }[String(value || '').toLowerCase()] || VerticalAlign.CENTER)
 
+    const mapAlignment = (value: unknown) => ({
+      left: AlignmentType.LEFT,
+      center: AlignmentType.CENTER,
+      right: AlignmentType.RIGHT,
+    }[String(value || '').toLowerCase()] || undefined)
+
+    const mapBorderStyle = (value: string) => ({
+      single: BorderStyle.SINGLE,
+      double: BorderStyle.DOUBLE,
+      dashed: BorderStyle.DASHED,
+      dotted: BorderStyle.DOTTED,
+      thick: BorderStyle.THICK,
+      none: BorderStyle.NONE,
+      nil: BorderStyle.NONE,
+    }[value] || BorderStyle.SINGLE)
+
+    const mapBorder = (b: { style: string; color: string; size: number } | null | undefined) =>
+      b ? { style: mapBorderStyle(b.style), color: b.color, size: Math.min(96, Math.max(0, b.size)), space: 0 } : undefined
+
+    const tableBorders = node.attrs?.borders
+      ? {
+          top: mapBorder(node.attrs.borders.top),
+          bottom: mapBorder(node.attrs.borders.bottom),
+          left: mapBorder(node.attrs.borders.left),
+          right: mapBorder(node.attrs.borders.right),
+          insideHorizontal: mapBorder(node.attrs.borders.insideH),
+          insideVertical: mapBorder(node.attrs.borders.insideV),
+        }
+      : undefined
+
     // Calculate total columns
     let totalCols = 1
     for (const row of node.content || []) {
@@ -1714,6 +1860,15 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
         }
         colIdx += colspan
 
+        const cellBorders = cell.attrs?.borders
+          ? {
+              top: mapBorder(cell.attrs.borders.top),
+              start: mapBorder(cell.attrs.borders.start),
+              bottom: mapBorder(cell.attrs.borders.bottom),
+              end: mapBorder(cell.attrs.borders.end),
+            }
+          : undefined
+
         cells.push(new TableCell({
           children: await nodesToChildren(cell.content || [{ type: 'paragraph' }]),
           columnSpan: colspan,
@@ -1723,14 +1878,35 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
           shading: normalizeColor(String(cell.attrs?.background || ''))
             ? { fill: normalizeColor(String(cell.attrs?.background || '')) }
             : undefined,
+          borders: cellBorders,
+          margins: cell.attrs?.margins
+            ? {
+                top: Number(cell.attrs.margins.top) || 0,
+                bottom: Number(cell.attrs.margins.bottom) || 0,
+                left: Number(cell.attrs.margins.start) || 0,
+                right: Number(cell.attrs.margins.end) || 0,
+                marginUnitType: WidthType.DXA,
+              }
+            : undefined,
         }))
       }
-      rows.push(new TableRow({ children: cells }))
+      rows.push(new TableRow({
+        children: cells,
+        height: row.attrs?.height
+          ? { value: Number(row.attrs.height), rule: HeightRule.AT_LEAST }
+          : undefined,
+      }))
     }
     return [new Table({
       rows,
       columnWidths: finalColumnWidths,
-      width: { size: totalTableWidthTwips, type: WidthType.DXA },
+      width: node.attrs?.width?.twips
+        ? { size: node.attrs.width.twips, type: WidthType.DXA }
+        : node.attrs?.width?.pct
+          ? { size: node.attrs.width.pct, type: WidthType.PERCENTAGE }
+          : { size: totalTableWidthTwips, type: WidthType.DXA },
+      borders: tableBorders,
+      alignment: mapAlignment(node.attrs?.alignment),
     })]
   }
   return nodesToChildren(node.content || [])

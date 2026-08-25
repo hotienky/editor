@@ -315,7 +315,7 @@ Nguồn:
 | DOCX import/export | Codec nằm trong repository | External plugin không có source | Kindy kiểm soát tốt hơn |
 | Section/header/footer | Canonical section state đang mở rộng | Chủ yếu global; break đổi orientation | Kindy model phù hợp OOXML hơn |
 | Comments/review | Tích hợp vào ProseMirror schema/roadmap | Group/trace primitives | Không đủ để thay Kindy |
-| Realtime | Yjs/ProseMirror boundary có sẵn | Experimental branch ngoài main | Không phù hợp v2.2 |
+| Realtime | Yjs/ProseMirror boundary có sẵn | Experimental branch ngoài main | Không phù hợp v2.1 |
 | 100 trang | DOM toàn document; đã có benchmark | Full layout + canvas/page | Cả hai cần guardrail; canvas hiện có memory risk |
 | Extensibility | Tiptap extension + engine adapter | command/register/plugin callback | Cả hai mở rộng được, canvas core tightly coupled hơn |
 | Phạm vi sản phẩm | DOCX contract editor/library | General/EMR/form/cascade/graffiti | Canvas mang nhiều module ngoài scope |

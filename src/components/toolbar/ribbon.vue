@@ -77,6 +77,7 @@
           </div>
           <div class="kindy-virtual-group">
             <menus-toolbar-base-print v-if="!disableMenu('print')" />
+            <menus-toolbar-base-export-pdf />
           </div>
           <div class="virtual-group is-slot">
             <slot name="toolbar_base" toolbar-mode="ribbon" />

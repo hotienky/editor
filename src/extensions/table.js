@@ -19,6 +19,49 @@ const CustomTable = Table.extend({
     }
   },
 
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      alignment: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-alignment') || null,
+        renderHTML: ({ alignment }) => {
+          if (!alignment) return {}
+          return { 'data-alignment': alignment, style: `margin-left: auto; margin-right: auto;` }
+        },
+      },
+      borders: {
+        default: null,
+        parseHTML: () => null,
+        renderHTML: () => ({}),
+      },
+      width: {
+        default: null,
+        parseHTML: (element) => {
+          const style = element.getAttribute('style') || ''
+          const match = style.match(/width:\s*(\d+(?:\.\d+)?%?)/i)
+          return match ? match[1] : null
+        },
+        renderHTML: ({ width }) => {
+          if (!width) return {}
+          if (typeof width === 'object') {
+            if (width.pct) return { style: `width: ${width.pct / 50}%` }
+            if (width.twips) return { style: `width: ${Math.round(width.twips / 15 * 100) / 100}px` }
+          }
+          return { style: `width: ${width}` }
+        },
+      },
+    }
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    const { alignment, ...rest } = HTMLAttributes
+    const style = alignment
+      ? `margin-left: auto; margin-right: auto;${rest.style ? ` ${rest.style}` : ''}`
+      : rest.style
+    return ['table', { ...rest, ...(style ? { style } : {}), ...(alignment ? { 'data-alignment': alignment } : {}) }, ['tbody', 0]]
+  },
+
   addCommands() {
     return {
       ...this.parent?.(),
@@ -187,6 +230,11 @@ const TableCellOptions = {
         renderHTML: ({ verticalAlign }) => {
           return verticalAlign ? { valign: verticalAlign } : {}
         },
+      },
+      margins: {
+        default: null,
+        parseHTML: () => null,
+        renderHTML: () => ({}),
       },
     }
   },

@@ -5,7 +5,6 @@ import { NodeSelection } from '@tiptap/pm/state'
 
 import { shortId } from '@/utils/short-id'
 
-// Bảng màu highlight theo người dùng (giống Word)
 const COMMENT_COLORS = [
   'rgba(255, 213, 79, 0.4)',
   'rgba(255, 159, 191, 0.45)',
@@ -27,32 +26,57 @@ const colorIndex = (id) => {
   return Math.abs(hash)
 }
 
-// Màu cố định cho từng người dùng
 export const colorForUser = (id) =>
   COMMENT_COLORS[colorIndex(id) % COMMENT_COLORS.length]
 
 const parseThread = (raw) => {
-  if (typeof raw !== 'string' || raw === '') {
-    return null
-  }
+  if (typeof raw !== 'string' || raw === '') return null
   try {
     const data = JSON.parse(raw)
     return data && typeof data === 'object' ? data : null
-  } catch (error) {
+  } catch {
     return null
   }
 }
 
-// Store bình luận: single source of truth lúc chạy,
-// được đồng bộ xuống document (mark) và đọc ngược lại từ document
+// ─── Event Emitter ─────────────────────────────────────────────────────────
+// Fires events so external systems (API, WebSocket, etc.) can react
+// Usage: commentStore.on('created', (thread) => api.post('/comments', thread))
+const createEventEmitter = () => {
+  const listeners = new Map()
+
+  const on = (event, fn) => {
+    if (!listeners.has(event)) listeners.set(event, new Set())
+    listeners.get(event).add(fn)
+    return () => listeners.get(event)?.delete(fn)
+  }
+
+  const emit = (event, payload) => {
+    listeners.get(event)?.forEach((fn) => {
+      try { fn(payload) } catch (e) { console.error(`[CommentEvent] ${event}:`, e) }
+    })
+  }
+
+  return { on, emit }
+}
+
+export const COMMENT_EVENTS = {
+  CREATED: 'created',
+  UPDATED: 'updated',
+  REPLY_ADDED: 'reply_added',
+  RESOLVED: 'resolved',
+  DELETED: 'deleted',
+  SYNCED: 'synced',
+}
+
 export const createCommentStore = (options, editorRef) => {
   const visibleStorage = useStorage('kindy-comment-sidebar-visible', false)
+  const events = createEventEmitter()
 
   const store = reactive({
     comments: [],
     activeId: null,
     visible: visibleStorage,
-    // Đánh dấu comment vừa được tạo để sidebar tự mở chế độ nhập nội dung
     pendingAdd: false,
   })
 
@@ -73,20 +97,15 @@ export const createCommentStore = (options, editorRef) => {
     }
   }
 
-  // Tìm comment đang tồn tại trong vùng chọn
   const findCommentInSelection = (editor) => {
     const { doc, selection } = editor.state
     let id = null
     doc.nodesBetween(selection.from, selection.to, (node) => {
-      if (id) {
-        return false
-      }
+      if (id) return false
       if (node.isText) {
         for (const mark of node.marks) {
-          const { type, attrs } = mark
-          const { id: commentId } = attrs
-          if (type.name === 'comment') {
-            id = commentId
+          if (mark.type.name === 'comment') {
+            ;({ id } = mark.attrs)
             break
           }
         }
@@ -96,82 +115,81 @@ export const createCommentStore = (options, editorRef) => {
     return id
   }
 
-  // Thêm comment trên vùng đang chọn, mở sidebar và tập trung vào thread mới
   const addComment = (text = '') => {
     const editor = editorRef.value
-    if (!editor) {
-      return null
-    }
+    if (!editor) return null
     const { selection } = editor.state
-    if (selection.empty || selection instanceof NodeSelection) {
-      return null
-    }
-    // Vùng chọn đã có comment: tập trung tới comment đó
+    if (selection.empty || selection instanceof NodeSelection) return null
+
     const existingId = findCommentInSelection(editor)
     if (existingId) {
       store.activeId = existingId
       return { id: existingId, existing: true }
     }
+
     const thread = createThread(text)
     editor.chain().focus().setComment(thread).run()
     store.comments.push(thread)
     store.activeId = thread.id
     store.pendingAdd = true
+
+    events.emit(COMMENT_EVENTS.CREATED, { ...thread })
     return thread
   }
 
-  // Cập nhật nội dung thread + đồng bộ xuống mọi span của comment
   const updateThread = (id, patch) => {
     const editor = editorRef.value
     const index = store.comments.findIndex((item) => item.id === id)
-    if (index < 0) {
-      return null
-    }
-    const next = { ...store.comments[index], ...patch, id }
+    if (index < 0) return null
+
+    const prev = { ...store.comments[index] }
+    const next = { ...prev, ...patch, id }
     store.comments[index] = next
+
     if (editor) {
       editor.chain().updateCommentThread({ id, thread: next }).run()
     }
+
+    events.emit(COMMENT_EVENTS.UPDATED, { prev, next })
     return next
   }
 
   const addReply = (id, text) => {
     const thread = store.comments.find((item) => item.id === id)
-    if (!thread || !text) {
-      return null
-    }
+    if (!thread || !text) return null
+
     const user = currentUser()
-    return updateThread(id, {
-      replies: [
-        ...thread.replies,
-        {
-          id: shortId(),
-          user: user.label || user.id || t('comment.anonymous'),
-          userId: user.id || '',
-          text,
-          createdAt: Date.now(),
-        },
-      ],
-    })
+    const reply = {
+      id: shortId(),
+      user: user.label || user.id || t('comment.anonymous'),
+      userId: user.id || '',
+      text,
+      createdAt: Date.now(),
+    }
+
+    updateThread(id, { replies: [...thread.replies, reply] })
+    events.emit(COMMENT_EVENTS.REPLY_ADDED, { commentId: id, reply })
+    return reply
   }
 
   const setResolved = (id, resolved) => {
     const thread = store.comments.find((item) => item.id === id)
-    if (!thread) {
-      return null
-    }
-    return updateThread(id, {
+    if (!thread) return null
+
+    updateThread(id, {
       resolved,
       resolvedAt: resolved ? Date.now() : null,
     })
+    events.emit(COMMENT_EVENTS.RESOLVED, { commentId: id, resolved })
   }
 
   const removeComment = (id) => {
     const editor = editorRef.value
     const index = store.comments.findIndex((item) => item.id === id)
-    if (index < 0) {
-      return false
-    }
+    if (index < 0) return false
+
+    const removed = { ...store.comments[index] }
+
     if (editor) {
       editor.chain().focus().removeComment(id).run()
     }
@@ -179,10 +197,11 @@ export const createCommentStore = (options, editorRef) => {
     if (store.activeId === id) {
       store.activeId = store.comments[0]?.id || null
     }
+
+    events.emit(COMMENT_EVENTS.DELETED, removed)
     return true
   }
 
-  // Di chuyển con trỏ tới vùng comment và đánh dấu active
   const focus = (id) => {
     store.activeId = id
     return editorRef.value?.chain().focusComment(id).run()
@@ -193,34 +212,21 @@ export const createCommentStore = (options, editorRef) => {
   }
 
   const getCommentCount = () => store.comments.length
+  const getComment = (id) => store.comments.find((item) => item.id === id) || null
+  const consumePendingAdd = () => { store.pendingAdd = false }
 
-  const getComment = (id) =>
-    store.comments.find((item) => item.id === id) || null
-
-  // Xóa cờ "comment mới" sau khi sidebar đã xử lý
-  const consumePendingAdd = () => {
-    store.pendingAdd = false
-  }
-
-  // Đọc lại toàn bộ thread từ document (sau load, undo/redo, xóa text...)
   const syncFromDoc = () => {
     const editor = editorRef.value
-    if (!editor) {
-      return
-    }
+    if (!editor) return
+
     const found = []
     editor.state.doc.descendants((node) => {
-      if (!node.isText) {
-        return
-      }
+      if (!node.isText) return
       for (const mark of node.marks) {
-        if (mark.type.name !== 'comment') {
-          continue
-        }
+        if (mark.type.name !== 'comment') continue
         const { id } = mark.attrs
-        if (!id || found.some((item) => item.id === id)) {
-          continue
-        }
+        if (!id || found.some((item) => item.id === id)) continue
+
         let thread = parseThread(mark.attrs.thread)
         if (!thread) {
           thread = {
@@ -238,11 +244,16 @@ export const createCommentStore = (options, editorRef) => {
         found.push(thread)
       }
     })
+
     store.comments = found
     if (!found.some((item) => item.id === store.activeId)) {
       store.activeId = found[0]?.id || null
     }
+    events.emit(COMMENT_EVENTS.SYNCED, { comments: [...found] })
   }
+
+  // Subscribe to events: store.on('created', (data) => ...)
+  const { on } = events
 
   return Object.assign(store, {
     addComment,
@@ -256,5 +267,6 @@ export const createCommentStore = (options, editorRef) => {
     getComment,
     consumePendingAdd,
     syncFromDoc,
+    on,
   })
 }

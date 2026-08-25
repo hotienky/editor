@@ -251,6 +251,7 @@ const shouldListenCropTransactions = $computed(
 const wrapperClass = $computed(() => ({
   'kindy-floating-node': attrs.draggable,
   'is-inline-image': attrs.inline,
+  'is-floating-image': !!attrs.floating && !attrs.inline,
 }))
 const imageClass = $computed(() => ({
   'is-draggable': attrs.draggable,
@@ -288,6 +289,19 @@ const nodeStyle = $computed(() => {
     margin?.top && margin?.top !== '' ? `${margin.top}px` : undefined
   const marginBottom =
     margin?.bottom && margin?.bottom !== '' ? `${margin.bottom}px` : undefined
+
+  if (attrs.floating && !attrs.inline) {
+    const wrapType = attrs.floating.wrapType || 'square'
+    const isNone = wrapType === 'none' || wrapType === 'through'
+    return {
+      position: 'relative',
+      width: '100%',
+      marginTop,
+      marginBottom,
+      ...(isNone ? {} : { clear: 'both' }),
+    }
+  }
+
   return {
     justifyContent: nodeAlign,
     position: attrs.draggable ? 'relative' : undefined,
@@ -298,16 +312,33 @@ const nodeStyle = $computed(() => {
     marginBottom,
   }
 })
-const imageContainerStyle = $computed(() => ({
-  width:
-    attrs.draggable && !attrs.inline
-      ? `${Math.max(Number(attrs.width) || 0, 14)}px`
-      : undefined,
-  maxWidth: attrs.draggable ? 'none' : '100%',
-  position: attrs.draggable ? 'absolute' : 'relative',
-  left: attrs.draggable ? `${Number(attrs.left) || 0}px` : undefined,
-  top: attrs.draggable ? `${Number(attrs.top) || 0}px` : undefined,
-}))
+const imageContainerStyle = $computed(() => {
+  if (attrs.floating && !attrs.inline) {
+    const hAlign = attrs.floating.horizontal?.align || 'left'
+    const wrapType = attrs.floating.wrapType || 'square'
+    const width = Math.max(Number(attrs.width) || 150, 14)
+    const sideStyle = hAlign === 'right' || hAlign === 'outside'
+      ? { float: 'right', marginLeft: '12px' }
+      : { float: 'left', marginRight: '12px' }
+    return {
+      width: `${width}px`,
+      maxWidth: '40%',
+      position: 'relative',
+      ...sideStyle,
+      ...(wrapType === 'none' || wrapType === 'through' ? { float: 'none', margin: '8px auto' } : {}),
+    }
+  }
+  return {
+    width:
+      attrs.draggable && !attrs.inline
+        ? `${Math.max(Number(attrs.width) || 0, 14)}px`
+        : undefined,
+    maxWidth: attrs.draggable ? 'none' : '100%',
+    position: attrs.draggable ? 'absolute' : 'relative',
+    left: attrs.draggable ? `${Number(attrs.left) || 0}px` : undefined,
+    top: attrs.draggable ? `${Number(attrs.top) || 0}px` : undefined,
+  }
+})
 
 const getHostElement = () => containerRef.value?.$el
 const getImageContainerElement = () => imageContainerRef.value
@@ -1272,6 +1303,17 @@ onMounted(async () => {
     img {
       max-width: 100% !important;
       max-height: 100% !important;
+    }
+  }
+  &.is-floating-image {
+    display: block;
+    .kindy-node-image {
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+      border-radius: 2px;
+    }
+    img {
+      max-width: 100%;
+      max-height: 100%;
     }
   }
   &.kindy-node-focused,
