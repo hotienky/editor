@@ -29,7 +29,7 @@ import {
   WidthType,
   convertMillimetersToTwip,
 } from 'docx'
-import { strFromU8, unzipSync } from 'fflate'
+import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import * as mammoth from 'mammoth/mammoth.browser'
 
 import { DocumentLibraryError } from '../core/errors'
@@ -93,6 +93,7 @@ export interface DocxPackageParts {
   relatedXml?: Record<string, string>
   relatedRelationshipsXml?: Record<string, string>
   media: Record<string, Uint8Array>
+  unsupportedParts?: Record<string, Uint8Array>
 }
 
 const unsupportedOoxml: Array<[RegExp, string, string]> = [
@@ -151,7 +152,8 @@ export async function extractDocxPackage(file: Blob, customLimits: Partial<DocxI
       filter: (entry) => {
         entryCount += 1
         if (entryCount > limits.maxEntries) throw new DocumentLibraryError('DOCX_INVALID', 'The DOCX ZIP contains too many entries.')
-        const selected = entry.name === '[Content_Types].xml' || entry.name.startsWith('word/')
+        if (entry.name.includes('..')) return false
+        const selected = entry.name === '[Content_Types].xml' || entry.name.startsWith('word/') || entry.name.startsWith('docProps/') || entry.name.startsWith('_rels/')
         if (!selected) return false
         uncompressedBytes += entry.originalSize
         if (uncompressedBytes > limits.maxUncompressedBytes) throw new DocumentLibraryError('DOCX_INVALID', 'The DOCX exceeds the configured uncompressed-size limit.')
@@ -178,6 +180,34 @@ export async function extractDocxPackage(file: Blob, customLimits: Partial<DocxI
     throw new DocumentLibraryError('DOCX_INVALID', 'The OOXML package is not a Word document.')
   }
 
+  const relatedXml = Object.fromEntries(Object.entries(entries)
+    .filter(([name]) => /^word\/(?:header|footer)\d+\.xml$/i.test(name))
+    .map(([name, value]) => [name, strFromU8(value)]))
+
+  const relatedRelationshipsXml = Object.fromEntries(Object.entries(entries)
+    .filter(([name]) => /^word\/_rels\/(?:header|footer)\d+\.xml\.rels$/i.test(name))
+    .map(([name, value]) => [name, strFromU8(value)]))
+
+  const media = Object.fromEntries(Object.entries(entries).filter(([name]) => name.startsWith('word/media/') && !name.endsWith('/')))
+
+  const recognizedPartNames = new Set([
+    '[Content_Types].xml',
+    '_rels/.rels',
+    'word/document.xml',
+    'word/_rels/document.xml.rels',
+    'word/numbering.xml',
+    'word/styles.xml',
+    'word/comments.xml',
+    'word/commentsExtended.xml',
+    ...Object.keys(relatedXml),
+    ...Object.keys(relatedRelationshipsXml),
+    ...Object.keys(media),
+  ])
+
+  const unsupportedParts = Object.fromEntries(
+    Object.entries(entries).filter(([name]) => !recognizedPartNames.has(name) && !name.endsWith('/'))
+  )
+
   return {
     contentTypes,
     documentXml: strFromU8(entries['word/document.xml']),
@@ -186,13 +216,10 @@ export async function extractDocxPackage(file: Blob, customLimits: Partial<DocxI
     stylesXml: entries['word/styles.xml'] ? strFromU8(entries['word/styles.xml']) : undefined,
     commentsXml: entries['word/comments.xml'] ? strFromU8(entries['word/comments.xml']) : undefined,
     commentsExtendedXml: entries['word/commentsExtended.xml'] ? strFromU8(entries['word/commentsExtended.xml']) : undefined,
-    relatedXml: Object.fromEntries(Object.entries(entries)
-      .filter(([name]) => /^word\/(?:header|footer)\d+\.xml$/i.test(name))
-      .map(([name, value]) => [name, strFromU8(value)])),
-    relatedRelationshipsXml: Object.fromEntries(Object.entries(entries)
-      .filter(([name]) => /^word\/_rels\/(?:header|footer)\d+\.xml\.rels$/i.test(name))
-      .map(([name, value]) => [name, strFromU8(value)])),
-    media: Object.fromEntries(Object.entries(entries).filter(([name]) => name.startsWith('word/media/') && !name.endsWith('/'))),
+    relatedXml,
+    relatedRelationshipsXml,
+    media,
+    unsupportedParts: Object.keys(unsupportedParts).length > 0 ? unsupportedParts : undefined,
   }
 }
 
@@ -329,14 +356,14 @@ function blockContent(element: Element): JSONContent[] {
   return [...element.children].flatMap(blockContent)
 }
 
-export function htmlToDocumentState(html: string, page?: Partial<KindyPageState>): KindyDocumentState {
+export function htmlToDocumentState(html: string, page?: Partial<KindyPageState>, unsupportedParts?: Record<string, Uint8Array | string>): KindyDocumentState {
   if (typeof DOMParser === 'undefined') {
     const text = html.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, '').trim()
-    return createEmptyDocumentState({ content: { type: 'doc', content: [{ type: 'paragraph', content: text ? [{ type: 'text', text }] : undefined }] }, page: page as KindyPageState })
+    return createEmptyDocumentState({ content: { type: 'doc', content: [{ type: 'paragraph', content: text ? [{ type: 'text', text }] : undefined }] }, page: page as KindyPageState, unsupportedParts })
   }
   const { body } = new DOMParser().parseFromString(html, 'text/html')
   const content = [...body.children].flatMap(blockContent)
-  return createEmptyDocumentState({ content: { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] }, page: page as KindyPageState })
+  return createEmptyDocumentState({ content: { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] }, page: page as KindyPageState, unsupportedParts })
 }
 
 const xmlElements = (node: Element | Document, localName: string, direct = false) => {
@@ -981,6 +1008,14 @@ function ooxmlTable(
 ): JSONContent {
   let activeMerges = new Map<number, JSONContent>()
   const rows: JSONContent[] = []
+  const tblGrid = xmlFirst(element, 'tblGrid')
+  const gridCols = tblGrid
+    ? xmlElements(tblGrid, 'gridCol', true).map((col) => {
+        const w = Number(col.getAttribute('w:w') || col.getAttribute('w'))
+        return Number.isFinite(w) && w > 0 ? w : null
+      })
+    : []
+
   for (const row of xmlElements(element, 'tr', true)) {
     const nextMerges = new Map<number, JSONContent>()
     const continued = new Set<JSONContent>()
@@ -1009,11 +1044,25 @@ function ooxmlTable(
 
       const verticalAlign = xmlValue(properties ? xmlFirst(properties, 'vAlign') : undefined)
       const fill = properties ? xmlFirst(properties, 'shd')?.getAttribute('w:fill') || xmlFirst(properties, 'shd')?.getAttribute('fill') : undefined
+
+      const tcWEl = properties ? xmlFirst(properties, 'tcW') : undefined
+      const tcWVal = Number(tcWEl?.getAttribute('w:w') || tcWEl?.getAttribute('w'))
+      let cellColWidths: number[] | null = null
+      if (gridCols.length >= column + colspan) {
+        const slice = gridCols.slice(column, column + colspan)
+        if (slice.some((w) => w !== null)) {
+          cellColWidths = slice.map((w) => (w ? Math.round(w / 15) : null)).filter((w): w is number => w !== null)
+        }
+      } else if (Number.isFinite(tcWVal) && tcWVal > 0) {
+        cellColWidths = [Math.round(tcWVal / 15)]
+      }
+
       const node: JSONContent = {
         type: cellType,
         attrs: {
           colspan,
           rowspan: 1,
+          colwidth: cellColWidths?.length ? cellColWidths : null,
           verticalAlign: verticalAlign || null,
           background: fill && fill !== 'auto' ? `#${fill}` : null,
         },
@@ -1215,7 +1264,7 @@ export function ooxmlToDocumentState(parts: DocxPackageParts): KindyDocumentStat
     footer: firstSection.footer,
     sections: sections.map(({ breakType: _breakType, ...section }) => section),
   } : {}
-  return createEmptyDocumentState({ content: { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] }, page: page as KindyPageState, assets })
+  return createEmptyDocumentState({ content: { type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] }, page: page as KindyPageState, assets, unsupportedParts: parts.unsupportedParts })
 }
 
 export async function importDocx(file: Blob, options: DocxCodecOptions = {}): Promise<DocxImportResult> {
@@ -1239,7 +1288,7 @@ export async function importDocx(file: Blob, options: DocxCodecOptions = {}): Pr
     }))
     const combined = report([...inspection.report.issues, ...mammothIssues], profile)
     throwIfStrict(combined, options.mode)
-    const state = typeof DOMParser === 'undefined' ? htmlToDocumentState(converted.value) : ooxmlToDocumentState(parts)
+    const state = typeof DOMParser === 'undefined' ? htmlToDocumentState(converted.value, undefined, parts.unsupportedParts) : ooxmlToDocumentState(parts)
     return { state, report: combined, messages: converted.messages }
   } catch (cause) {
     if (cause instanceof DocumentLibraryError) throw cause
@@ -1278,7 +1327,7 @@ export async function importDocxInWorker(file: Blob, options: DocxCodecOptions &
       const compatibility = report(issues, options.profile || KINDY_DOCX_PROFILE)
       try {
         throwIfStrict(compatibility, options.mode || 'best-effort')
-        resolve({ state: typeof DOMParser === 'undefined' ? htmlToDocumentState(event.data.html) : ooxmlToDocumentState(event.data.parts), report: compatibility, messages })
+        resolve({ state: typeof DOMParser === 'undefined' ? htmlToDocumentState(event.data.html, undefined, event.data.parts?.unsupportedParts) : ooxmlToDocumentState(event.data.parts), report: compatibility, messages })
       } catch (error) { reject(error) }
     }
     file.arrayBuffer().then((buffer) => worker.postMessage({ id, buffer, limits: options.limits }, [buffer])).catch(reject)
@@ -1476,6 +1525,8 @@ async function inlineRuns(nodes: JSONContent[] = []): Promise<Array<TextRun | In
     }
     if (node.type !== 'text') continue
     const textStyle = markValue(node, 'textStyle')?.attrs || {}
+    const highlight = markValue(node, 'highlight')?.attrs || {}
+    const backgroundColor = highlight.color || textStyle.backgroundColor
     const runOptions = {
       text: node.text || '',
       bold: Boolean(markValue(node, 'bold')),
@@ -1487,8 +1538,8 @@ async function inlineRuns(nodes: JSONContent[] = []): Promise<Array<TextRun | In
       font: String(textStyle.fontFamily || '') || undefined,
       size: fontSizeHalfPoints(textStyle.fontSize),
       color: normalizeColor(String(textStyle.color || '')),
-      shading: normalizeColor(String(textStyle.backgroundColor || ''))
-        ? { fill: normalizeColor(String(textStyle.backgroundColor || '')) }
+      shading: normalizeColor(String(backgroundColor || ''))
+        ? { fill: normalizeColor(String(backgroundColor || '')) }
         : undefined,
     }
     const tracked = markValue(node, 'trackChange')
@@ -1608,14 +1659,66 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
       center: VerticalAlign.CENTER,
       bottom: VerticalAlign.BOTTOM,
     }[String(value || '').toLowerCase()] || VerticalAlign.CENTER)
+
+    // Calculate total columns
+    let totalCols = 1
+    for (const row of node.content || []) {
+      let rowCols = 0
+      for (const cell of row.content || []) {
+        rowCols += Number(cell.attrs?.colspan) || 1
+      }
+      if (rowCols > totalCols) totalCols = rowCols
+    }
+
+    // Discover column widths (in twips / DXA)
+    const colWidths: Array<number | null> = Array(totalCols).fill(null)
+    for (const row of node.content || []) {
+      let colIdx = 0
+      for (const cell of row.content || []) {
+        const colspan = Number(cell.attrs?.colspan) || 1
+        const rawColWidth = cell.attrs?.colwidth
+        if (Array.isArray(rawColWidth) && rawColWidth.length > 0) {
+          for (let i = 0; i < colspan; i++) {
+            const w = Number(rawColWidth[i])
+            if (colIdx + i < totalCols && Number.isFinite(w) && w > 0) {
+              colWidths[colIdx + i] = w > 600 ? Math.round(w) : Math.round(w * 15)
+            }
+          }
+        }
+        colIdx += colspan
+      }
+    }
+
+    // Fill missing column widths (standard printable page width ~9026 twips = 15.92 cm)
+    const knownSum = colWidths.reduce((acc: number, w) => acc + (w || 0), 0)
+    const unknownCount = colWidths.filter((w) => w === null).length
+    if (unknownCount > 0) {
+      const remainingWidth = Math.max(unknownCount * 800, 9026 - knownSum)
+      const defaultColWidth = Math.round(remainingWidth / unknownCount)
+      for (let i = 0; i < totalCols; i++) {
+        if (colWidths[i] === null) colWidths[i] = defaultColWidth
+      }
+    }
+    const finalColumnWidths = colWidths.map((w) => w || Math.round(9026 / totalCols))
+    const totalTableWidthTwips = finalColumnWidths.reduce((acc, w) => acc + w, 0)
+
     const rows: TableRow[] = []
     for (const row of node.content || []) {
       const cells: TableCell[] = []
+      let colIdx = 0
       for (const cell of row.content || []) {
+        const colspan = Number(cell.attrs?.colspan) || 1
+        let cellWidthTwips = 0
+        for (let k = 0; k < colspan; k++) {
+          cellWidthTwips += finalColumnWidths[colIdx + k] || Math.round(9026 / totalCols)
+        }
+        colIdx += colspan
+
         cells.push(new TableCell({
           children: await nodesToChildren(cell.content || [{ type: 'paragraph' }]),
-          columnSpan: Number(cell.attrs?.colspan) || 1,
+          columnSpan: colspan,
           rowSpan: Number(cell.attrs?.rowspan) || 1,
+          width: { size: cellWidthTwips, type: WidthType.DXA },
           verticalAlign: tableVerticalAlign(cell.attrs?.verticalAlign),
           shading: normalizeColor(String(cell.attrs?.background || ''))
             ? { fill: normalizeColor(String(cell.attrs?.background || '')) }
@@ -1624,7 +1727,11 @@ async function nodeToChildren(node: JSONContent, list?: { kind: 'bullet' | 'numb
       }
       rows.push(new TableRow({ children: cells }))
     }
-    return [new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } })]
+    return [new Table({
+      rows,
+      columnWidths: finalColumnWidths,
+      width: { size: totalTableWidthTwips, type: WidthType.DXA },
+    })]
   }
   return nodesToChildren(node.content || [])
 }
@@ -1727,8 +1834,27 @@ export async function exportDocx(state: KindyDocumentState, options: DocxCodecOp
       evenAndOddHeaderAndFooters: configuredSections.some((section) => section.header?.differentOddEven || section.footer?.differentOddEven),
       sections,
     })
-    const blob = await Packer.toBlob(doc)
-    return { blob: new Blob([blob], { type: DOCX_MIME }), report: compatibility }
+    const generatedBlob = await Packer.toBlob(doc)
+    let finalBlob: Blob = new Blob([generatedBlob], { type: DOCX_MIME })
+    if (state.unsupportedParts && Object.keys(state.unsupportedParts).length > 0) {
+      const generatedEntries = unzipSync(new Uint8Array(await generatedBlob.arrayBuffer()))
+      const protectedParts = new Set([
+        'word/document.xml',
+        'word/styles.xml',
+        'word/numbering.xml',
+        'word/comments.xml',
+        'word/commentsExtended.xml',
+        'word/_rels/document.xml.rels',
+      ])
+      for (const [name, content] of Object.entries(state.unsupportedParts)) {
+        if (!protectedParts.has(name)) {
+          generatedEntries[name] = typeof content === 'string' ? strToU8(content) : (content as Uint8Array<ArrayBuffer>)
+        }
+      }
+      const zipped = zipSync(generatedEntries)
+      finalBlob = new Blob([zipped], { type: DOCX_MIME })
+    }
+    return { blob: finalBlob, report: compatibility }
   } catch (cause) {
     throw new DocumentLibraryError('EXPORT_FAILED', 'DOCX serialization failed.', { cause, details: compatibility })
   }

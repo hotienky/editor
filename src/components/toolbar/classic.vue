@@ -29,44 +29,46 @@
         <div class="kindy-virtual-group">
           <menus-toolbar-base-undo />
           <menus-toolbar-base-redo />
+          <menus-toolbar-base-print v-if="!disableMenu('print')" />
           <menus-toolbar-base-format-painter />
-          <menus-toolbar-base-clear-format />
+          <menus-toolbar-view-zoom v-if="!disableMenu('zoom')" />
         </div>
         <div class="kindy-virtual-group">
           <menus-toolbar-base-heading />
           <menus-toolbar-base-font-family borderless />
           <menus-toolbar-base-font-size borderless />
-          <menus-toolbar-base-word-wrap />
+        </div>
+        <div class="kindy-virtual-group">
           <menus-toolbar-base-bold />
           <menus-toolbar-base-italic />
           <menus-toolbar-base-underline />
           <menus-toolbar-base-strike />
-          <menus-toolbar-base-subscript />
-          <menus-toolbar-base-superscript />
           <menus-toolbar-base-color />
-          <menus-toolbar-base-background-color />
           <menus-toolbar-base-highlight v-if="!disableMenu('highlight')" />
-          <menus-toolbar-base-letter-spacing />
+        </div>
+        <div class="kindy-virtual-group">
+          <menus-toolbar-insert-link v-if="!disableMenu('link')" />
+          <menus-toolbar-insert-comment v-if="!disableMenu('comment')" />
+          <menus-toolbar-insert-image v-if="!disableMenu('image')" />
+          <menus-toolbar-table-insert v-if="!disableMenu('table')" />
+        </div>
+        <div class="kindy-virtual-group">
+          <menus-toolbar-base-align-left />
+          <menus-toolbar-base-align-center />
+          <menus-toolbar-base-align-right />
+          <menus-toolbar-base-align-justify />
+          <menus-toolbar-base-line-height v-if="!disableMenu('line-height')" />
         </div>
         <div class="kindy-virtual-group">
           <menus-toolbar-base-ordered-list />
           <menus-toolbar-base-bullet-list />
-          <menus-toolbar-base-task-list v-if="!disableMenu('task-list')" />
-          <menus-toolbar-base-indent />
           <menus-toolbar-base-outdent />
-          <menus-toolbar-base-line-height v-if="!disableMenu('line-height')" />
-          <menus-toolbar-base-margin v-if="!disableMenu('margin')" />
-          <menus-toolbar-base-align-dropdown />
-          <menus-toolbar-base-code v-if="!disableMenu('code')" />
-          <menus-toolbar-base-quote v-if="!disableMenu('quote')" />
-          <menus-toolbar-base-select-all v-if="!disableMenu('select-all')" />
+          <menus-toolbar-base-indent />
         </div>
         <div class="kindy-virtual-group">
-          <menus-toolbar-base-markdown v-if="!disableMenu('markdown')" />
+          <menus-toolbar-base-task-list v-if="!disableMenu('task-list')" />
+          <menus-toolbar-base-clear-format />
           <menus-toolbar-base-search-replace />
-        </div>
-        <div class="kindy-virtual-group">
-          <menus-toolbar-base-print v-if="!disableMenu('print')" />
         </div>
         <div class="kindy-virtual-group is-slot">
           <slot name="toolbar_base" toolbar-mode="classic" />
@@ -297,19 +299,21 @@ const toggoleMenu = async (menu) => {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding: 6px 10px;
+  padding: 3px 8px;
 }
 .kindy-classic-menu {
   display: inline-flex;
   width: max-content;
   min-width: max-content;
   align-items: center;
+  gap: 2px;
   &:last-child {
-    margin-right: 10px;
+    margin-right: 8px;
   }
   .kindy-virtual-group {
     display: flex;
     align-items: center;
+    gap: 1px;
     &:empty {
       display: none;
     }
@@ -320,16 +324,25 @@ const toggoleMenu = async (menu) => {
         display: block;
         height: 18px;
         width: 1px;
-        background-color: var(--kindy-border-color-light);
-        margin: 0 10px;
+        background-color: #cbd5e1;
+        margin: 0 6px;
       }
     }
     &:first-child::before {
       display: none;
     }
-    :deep(.kindy-menu-button .kindy-button--shape-square) {
-      .kindy-icon {
-        font-size: 14px;
+    :deep(.kindy-menu-button) {
+      border-radius: 4px;
+      transition: background-color 0.15s ease;
+      &:hover {
+        background-color: #e2e8f0;
+      }
+      &.active, &.is-active {
+        background-color: #d3e3fd !important;
+        color: #041e49 !important;
+      }
+      .kindy-button--shape-square .kindy-icon {
+        font-size: 15px;
       }
     }
     &-row {

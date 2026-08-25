@@ -114,23 +114,26 @@ export class MemoryDocumentAdapter implements DocumentApiAdapter {
     const document = await this.createDocument({ ...input, state: input.state }, signal)
     const versions = this.versions.get(document.id) || []
     if (versions[0]) versions[0].reason = 'import'
-    const original: StoreArtifactInput = {
-      format: 'original-docx',
-      blob: input.file,
-      fileName: input.fileName || document.fileName,
-      versionId: document.currentVersionId,
-      compatibilityReport: input.compatibilityReport,
-    }
-    const artifact = await this.storeArtifact(document.id, original, signal)
-    return this.updateDocument(document.id, {
-      originalSource: {
-        artifactId: artifact.id,
-        revisionId: document.currentRevisionId!,
+    if (input.file) {
+      const original: StoreArtifactInput = {
         format: 'original-docx',
-        fileName: artifact.fileName,
+        blob: input.file,
+        fileName: input.fileName || document.fileName,
+        versionId: document.currentVersionId,
         compatibilityReport: input.compatibilityReport,
-      },
-    }, signal)
+      }
+      const artifact = await this.storeArtifact(document.id, original, signal)
+      return this.updateDocument(document.id, {
+        originalSource: {
+          artifactId: artifact.id,
+          revisionId: document.currentRevisionId!,
+          format: 'original-docx',
+          fileName: artifact.fileName,
+          compatibilityReport: input.compatibilityReport,
+        },
+      }, signal)
+    }
+    return document
   }
 
   async updateDocument(documentId: string, patch: Partial<DocumentRecord>, signal?: AbortSignal) {
@@ -213,8 +216,8 @@ export class MemoryDocumentAdapter implements DocumentApiAdapter {
     this.requireDocument(documentId)
     const artifact: DocumentArtifact = {
       id: id('artifact'), documentId, versionId: input.versionId, format: input.format,
-      fileName: input.fileName, mimeType: input.blob.type || 'application/octet-stream',
-      size: input.blob.size, blob: input.blob, createdAt: now(),
+      fileName: input.fileName, mimeType: input.blob?.type || 'application/octet-stream',
+      size: input.blob?.size || 0, blob: input.blob, createdAt: now(),
     }
     this.artifacts.set(artifact.id, artifact)
     return cloneArtifact(artifact)

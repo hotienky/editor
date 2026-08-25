@@ -163,8 +163,6 @@ export interface KindyDocumentLibraryHandle {
 export const KindyEditor: DefineComponent<KindyEditorOptions, KindyEditorHandle, object>
 export const KindyDocumentLibrary: DefineComponent<KindyDocumentLibraryProps, KindyDocumentLibraryHandle, object>
 export const KindyDocumentLibraryShell: Component
-export const KindyDocumentExplorer: Component
-export const KindyVersionPanel: Component
 export const KindyMenuButton: Component
 export const KindyDialog: Component
 export const KindyTooltip: Component

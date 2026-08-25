@@ -27,13 +27,13 @@ Chỉ đánh dấu “Supported” khi có automated fixture/test tương ứng.
 | Track Changes DOCX round-trip | Supported v2.2 | `w:ins`/`w:del`, author/timestamp, insert/delete/replace transaction, accept/reject, undo/redo và table text có test |
 | Yjs realtime | Adapter available | Ứng dụng chủ cung cấp provider/server |
 | Floating image | Best effort | Chuyển thành inline image và báo `FLOATING_IMAGE_FLATTENED` |
-| EMF/WMF/TIFF, SmartArt, macros, equations | Not supported | Báo compatibility warning/best-effort |
+| EMF/WMF/TIFF, SmartArt, macros, equations | Lossless preservation | Báo compatibility warning; các raw OOXML parts/custom properties được lưu giữ và nhúng nguyên vẹn khi re-export |
 
 Automatic pagination là browser preview và có thể khác Word do font metrics, printer driver và Word layout rules. v2.0 không chèn page gap vào giữa một top-level node quá cao (ví dụ một bảng cao hơn một trang); node đó được hiển thị liên tục để không phá cấu trúc/selection. Print CSS cho phép browser ngắt theo hàng, nhưng vị trí có thể khác Word.
 
 Các profile v2.1/v2.2 là opt-in qua `profile` của codec hoặc `docxProfile` của workspace; mặc định vẫn là v2.0. Import có thể nhúng `PNG`, `JPEG`, `GIF`, `SVG`, `WebP`, `BMP` vào state. Serializer strict ghi trực tiếp `PNG`, `JPEG`, `GIF`, `BMP`; `SVG`, `WebP`, `EMF`, `WMF`, `TIFF` hoặc URL không xác định được liệt kê trong `CompatibilityReport` và cần chuyển đổi trước khi export.
 
-File vừa import, chưa chỉnh sửa có một đường tải riêng qua `DocumentRecord.originalSource`; SDK trả lại artifact `original-docx` nên giữ nguyên byte và mọi feature Word chưa hiểu. Sau revision chỉnh sửa đầu tiên, tài liệu được serialize từ JSON và bảng capability phía trên là giới hạn cam kết—không có bảo đảm 100% với toàn bộ OOXML.
+File vừa import, chưa chỉnh sửa có một đường tải riêng qua `DocumentRecord.originalSource` (artifact `original-docx` giữ nguyên 100% byte gốc). Khi tài liệu được chỉnh sửa và xuất mới, hệ thống tự động bảo toàn các part chưa nhận diện (`unsupportedParts` như Charts, VBA, Custom Properties) để đóng gói lại vào file `.docx` mới.
 
 ## Giới hạn hiệu năng v2.0
 

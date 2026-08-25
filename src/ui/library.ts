@@ -51,8 +51,8 @@ export interface KindyLibraryMessages {
 
 export const DEFAULT_LIBRARY_UI: KindyLibraryUiOptions = Object.freeze({
   density: 'comfortable',
-  explorerWidth: '300px',
-  versionsWidth: '288px',
+  explorerWidth: '280px',
+  versionsWidth: '320px',
   showTopbar: true,
   showExplorer: true,
   showVersions: true,

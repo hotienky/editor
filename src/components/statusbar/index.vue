@@ -179,17 +179,13 @@
           </div>
         </template>
       </t-popup>
-      <div v-if="statusbarOptions.showBranding" class="kindy-status-bar-split"></div>
-      <!-- 请遵循开源协议，勿删除或隐藏版权信息！ -->
-      <t-button
-        v-if="statusbarOptions.showBranding"
-        class="kindy-status-bar-button auto-width kindy-branding-button"
-        variant="text"
-        size="small"
-        @click="about = !about"
-      >
-        <icon name="copyright" /> Kindydoc
-      </t-button>
+    </div>
+    <div class="kindy-status-bar-center">
+      <select class="kindy-status-mode-select">
+        <option value="edit">Chế độ chỉnh sửa</option>
+        <option value="suggest">Chế độ gợi ý</option>
+        <option value="view">Chế độ xem</option>
+      </select>
     </div>
     <div class="kindy-status-bar-right">
       <tooltip
@@ -800,6 +796,29 @@ watch(
     flex: 0 0 auto;
     align-items: center;
     min-width: max-content;
+  }
+
+  &-center {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+
+    .kindy-status-mode-select {
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background-color: #ffffff;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: #3c4043;
+      cursor: pointer;
+      outline: none;
+      font-family: inherit;
+      &:hover {
+        background-color: #f1f3f4;
+      }
+    }
   }
 
   &-right {

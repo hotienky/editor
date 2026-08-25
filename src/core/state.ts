@@ -45,6 +45,7 @@ export function createEmptyDocumentState(overrides: Partial<KindyDocumentState> 
       },
     },
     assets: cloneDocumentState(overrides.assets || []),
+    ...(overrides.unsupportedParts ? { unsupportedParts: cloneDocumentState(overrides.unsupportedParts) } : {}),
   }
 }
 
@@ -72,6 +73,7 @@ export function migrateDocumentState(input: unknown): KindyDocumentState {
     content,
     page: (value.page || {}) as KindyPageState,
     assets: Array.isArray(value.assets) ? value.assets as KindyDocumentState['assets'] : [],
+    unsupportedParts: value.unsupportedParts as KindyDocumentState['unsupportedParts'],
   })
 }
 

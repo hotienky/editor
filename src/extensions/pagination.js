@@ -120,6 +120,78 @@ const appendRepeatedHeaderFooter = (container, config, type, pageNumber) => {
   if (element.childNodes.length) container.append(element)
 }
 
+const buildPaginationDecorations = (doc, storage) => {
+  const { layoutTree, visualBreaks, manualBreaks } = storage
+  if (!layoutTree?.pages || layoutTree.pages.length <= 1) {
+    return DecorationSet.empty
+  }
+
+  const breakAtBlock = new Map((visualBreaks || []).map((item) => [item.blockIndex, item]))
+  const manualAtBlock = new Map((manualBreaks || []).map((item) => [item.blockIndex, item]))
+
+  const decos = []
+  let blockIndex = 0
+
+  doc.forEach((node, offset) => {
+    const visualBreak = breakAtBlock.get(blockIndex)
+    if (visualBreak) {
+      decos.push(
+        Decoration.widget(
+          offset,
+          () => {
+            const div = document.createElement('div')
+            div.className = 'kindy-page-break-decoration'
+            div.setAttribute('data-page-number', String(visualBreak.pageNumber))
+            div.setAttribute('aria-label', `Trang ${visualBreak.pageNumber}`)
+            div.setAttribute('data-section', visualBreak.sectionId || '')
+            div.setAttribute('data-decoration', 'true')
+            div.setAttribute('contenteditable', 'false')
+            div.style.setProperty('--kindy-page-spacer-height', `${visualBreak.spacerHeight}px`)
+            div.style.setProperty('--kindy-page-separator-offset', `${visualBreak.separatorOffset}px`)
+            div.style.setProperty('--kindy-page-gap', `${visualBreak.pageGap}px`)
+            if (visualBreak.geometry?.pageWidthCm) div.style.setProperty('--kindy-next-page-width', `${visualBreak.geometry.pageWidthCm}cm`)
+            if (visualBreak.geometry?.pageHeightCm) div.style.setProperty('--kindy-next-page-height', `${visualBreak.geometry.pageHeightCm}cm`)
+            appendRepeatedHeaderFooter(div, visualBreak.footer, 'footer', visualBreak.pageNumber - 1)
+            appendRepeatedHeaderFooter(div, visualBreak.header, 'header', visualBreak.pageNumber)
+            return div
+          },
+          { side: -1, key: `page-sep-${visualBreak.pageNumber}-${blockIndex}`, ignoreSelection: true },
+        ),
+      )
+    }
+    const manualBreak = manualAtBlock.get(blockIndex)
+    if (manualBreak && (node.type.name === 'pageBreak' || node.type.name === 'sectionBreak')) {
+      decos.push(
+        Decoration.widget(
+          offset,
+          () => {
+            const div = document.createElement('div')
+            div.className = 'kindy-page-break-decoration kindy-manual-page-break-decoration'
+            div.setAttribute('data-page-number', String(manualBreak.pageNumber))
+            div.setAttribute('aria-label', `Trang ${manualBreak.pageNumber}`)
+            div.setAttribute('data-section', manualBreak.sectionId || '')
+            div.setAttribute('data-decoration', 'true')
+            div.setAttribute('contenteditable', 'false')
+            div.style.setProperty('--kindy-page-spacer-height', `${manualBreak.spacerHeight}px`)
+            div.style.setProperty('--kindy-page-separator-offset', `${manualBreak.separatorOffset}px`)
+            div.style.setProperty('--kindy-page-gap', `${manualBreak.pageGap}px`)
+            if (manualBreak.geometry?.pageWidthCm) div.style.setProperty('--kindy-next-page-width', `${manualBreak.geometry.pageWidthCm}cm`)
+            if (manualBreak.geometry?.pageHeightCm) div.style.setProperty('--kindy-next-page-height', `${manualBreak.geometry.pageHeightCm}cm`)
+            appendRepeatedHeaderFooter(div, manualBreak.footer, 'footer', manualBreak.pageNumber - 1)
+            appendRepeatedHeaderFooter(div, manualBreak.header, 'header', manualBreak.pageNumber)
+            return div
+          },
+          { side: -1, key: `manual-page-sep-${manualBreak.pageNumber}-${blockIndex}`, ignoreSelection: true },
+        ),
+      )
+    }
+    blockIndex++
+  })
+
+  if (decos.length === 0) return DecorationSet.empty
+  return DecorationSet.create(doc, decos)
+}
+
 export const Pagination = Extension.create({
   name: 'pagination',
 
@@ -171,12 +243,8 @@ export const Pagination = Extension.create({
       repaginate:
         (reason = 'manual') =>
         ({ editor }) => {
-          if (!editor || !editor.view || !editor.state) return false
-
-          // Prevent re-entrant computation
-          if (this.storage.isComputing) return true
+          if (this.storage.isComputing) return false
           this.storage.isComputing = true
-          this.storage.lastTelemetry = null
           const startedAt = performance.now()
 
           try {
@@ -198,7 +266,6 @@ export const Pagination = Extension.create({
             const { totalPages } = layoutTree
             const layoutPages = layoutTree.pages
 
-            // Update storage
             this.storage.totalPages = totalPages
             this.storage.layoutTree = layoutTree
             this.storage.visualBreaks = visualBreaks
@@ -206,7 +273,6 @@ export const Pagination = Extension.create({
             this.storage.lastTelemetry = telemetry
             this.storage.lastDurationMs = telemetry.totalMs
 
-            // Flat pages metadata
             this.storage.pages = layoutPages.map((page) => ({
               index: page.pageNumber - 1,
               pageNumber: page.pageNumber,
@@ -225,7 +291,6 @@ export const Pagination = Extension.create({
               geometry: page.geometry,
             }))
 
-            // Notify callbacks
             if (this.options.onPageCountChange) {
               this.options.onPageCountChange(totalPages)
             }
@@ -233,7 +298,6 @@ export const Pagination = Extension.create({
               this.options.onLayoutChange(layoutTree)
             }
 
-            // Dispatch meta transaction to re-render decorations cleanly
             if (editor.view && editor.state) {
               const tr = editor.state.tr.setMeta(PaginationPluginKey, { repaginated: true })
               editor.view.dispatch(tr)
@@ -252,15 +316,12 @@ export const Pagination = Extension.create({
           }
         },
 
-      /** Get the current page from the canonical layout registry. */
       getCurrentPage:
         () =>
         ({ editor }) => {
           if (!editor?.state) return 1
-
           const { from } = editor.state.selection
           const blockIndex = editor.state.doc.resolve(from).index(0)
-
           const { layoutTree } = this.storage
           if (!layoutTree?.pages) return 1
 
@@ -270,14 +331,10 @@ export const Pagination = Extension.create({
           )?.pageNumber || 1
         },
 
-      /**
-       * Navigate cursor to a specific page
-       */
       goToPage:
         (pageNumber) =>
         ({ editor }) => {
           if (!editor?.state) return false
-
           const { layoutTree } = this.storage
           if (!layoutTree?.pages) return false
 
@@ -306,9 +363,6 @@ export const Pagination = Extension.create({
           return true
         },
 
-      /**
-       * Get layout tree for a specific page
-       */
       getPageLayout:
         (pageNumber) =>
         () => {
@@ -317,14 +371,10 @@ export const Pagination = Extension.create({
           return this.storage.layoutService.getPage(pageNumber, layoutTree)
         },
 
-      /**
-       * Scroll smoothly to a specific page
-       */
       scrollToPage:
         (pageNumber) =>
         ({ editor }) => {
           if (!editor?.view) return false
-
           const { layoutTree } = this.storage
           if (!layoutTree?.pages) return false
 
@@ -345,9 +395,6 @@ export const Pagination = Extension.create({
   },
 
   onDestroy() {
-    // ProseMirror plugin views may be recreated during editor reconfiguration.
-    // The layout service belongs to the Tiptap extension/editor lifecycle, not
-    // to an individual plugin view.
     this.storage.layoutService.destroy()
   },
 
@@ -355,24 +402,9 @@ export const Pagination = Extension.create({
     const extension = this
     let repaginateTimer = null
     let rafId = null
-    let resizeObserver = null
-    let observedBlocks = new Set()
+    let rootResizeObserver = null
     let pendingReason = 'manual'
 
-    const syncObservedBlocks = (view) => {
-      if (!resizeObserver || !view?.dom) return
-      const nextBlocks = new Set(getTopLevelBlockElements(view.dom))
-      for (const block of observedBlocks) {
-        if (!nextBlocks.has(block)) resizeObserver.unobserve(block)
-      }
-      for (const block of nextBlocks) {
-        if (!observedBlocks.has(block)) resizeObserver.observe(block)
-      }
-      observedBlocks = nextBlocks
-    }
-
-    // ProseMirror structurally shares untouched nodes. Comparing the common
-    // prefix and suffix keeps a normal keystroke to one invalidated DOM block.
     const invalidateChangedBlocks = (view, previousState) => {
       if (!view?.dom || !previousState || previousState.doc === view.state.doc) return
       extension.storage.documentRevision += 1
@@ -402,8 +434,7 @@ export const Pagination = Extension.create({
       }
     }
 
-    // Debounced and RAF-batched repaginate for buttery-smooth typing
-    const scheduleRepaginate = (delay = 200, reason = 'transaction') => {
+    const scheduleRepaginate = (delay = 250, reason = 'transaction') => {
       pendingReason = reason
       if (repaginateTimer) clearTimeout(repaginateTimer)
       repaginateTimer = setTimeout(() => {
@@ -426,18 +457,12 @@ export const Pagination = Extension.create({
 
         view(view) {
           let initialDone = false
-          if (typeof ResizeObserver !== 'undefined') {
-            resizeObserver = new ResizeObserver((entries) => {
-              for (const entry of entries) {
-                extension.storage.layoutService.invalidate({
-                  scope: 'block',
-                  element: entry.target,
-                  reason: 'resize',
-                })
-              }
-              scheduleRepaginate(80, 'resize')
+          if (typeof ResizeObserver !== 'undefined' && view.dom) {
+            rootResizeObserver = new ResizeObserver(() => {
+              extension.storage.layoutService.invalidate({ scope: 'all', reason: 'resize' })
+              scheduleRepaginate(150, 'resize')
             })
-            syncObservedBlocks(view)
+            rootResizeObserver.observe(view.dom)
           }
 
           const onFontsLoaded = () => {
@@ -449,25 +474,21 @@ export const Pagination = Extension.create({
           return {
             update(nextView, previousState) {
               invalidateChangedBlocks(nextView, previousState)
-              syncObservedBlocks(nextView)
               if (!initialDone) {
                 initialDone = true
-                // Initial pagination once DOM is fully rendered
-                scheduleRepaginate(300, 'open')
+                scheduleRepaginate(120, 'open')
               }
             },
             destroy() {
               if (repaginateTimer) clearTimeout(repaginateTimer)
               if (rafId) cancelAnimationFrame(rafId)
-              resizeObserver?.disconnect()
-              resizeObserver = null
-              observedBlocks.clear()
+              rootResizeObserver?.disconnect()
+              rootResizeObserver = null
               document.fonts?.removeEventListener?.('loadingdone', onFontsLoaded)
             },
           }
         },
 
-        // Trigger layout recalculation on document content edits
         appendTransaction(transactions, _oldState, _newState) {
           const hasMeta = transactions.some(
             (tr) => tr.getMeta(PaginationPluginKey)?.repaginated,
@@ -475,17 +496,24 @@ export const Pagination = Extension.create({
           if (hasMeta) return null
 
           if (transactions.some((tr) => tr.docChanged)) {
-            scheduleRepaginate(200, 'transaction')
+            scheduleRepaginate(300, 'transaction')
           }
           return null
         },
 
-        // Cursor page tracking through the canonical layout registry.
         state: {
           init() {
-            return { page: 1 }
+            return { page: 1, decorations: DecorationSet.empty }
           },
           apply(tr, value) {
+            let nextDecorations = value.decorations || DecorationSet.empty
+            if (tr.getMeta(PaginationPluginKey)?.repaginated) {
+              nextDecorations = buildPaginationDecorations(tr.doc, extension.storage)
+            } else if (tr.docChanged && nextDecorations) {
+              nextDecorations = nextDecorations.map(tr.mapping, tr.doc)
+            }
+
+            let currentPage = value.page
             if (tr.selectionSet || tr.getMeta(PaginationPluginKey)?.repaginated) {
               try {
                 const { from } = tr.selection
@@ -497,100 +525,23 @@ export const Pagination = Extension.create({
                     { blockIndex },
                     layoutTree,
                   )
-                  if (page) {
-                    if (page.pageNumber !== value.page) {
-                      extension.storage.currentPage = page.pageNumber
-                      if (extension.options.onCurrentPageChange) {
-                        extension.options.onCurrentPageChange(page.pageNumber)
-                      }
-                      return { page: page.pageNumber }
+                  if (page && page.pageNumber !== value.page) {
+                    currentPage = page.pageNumber
+                    extension.storage.currentPage = page.pageNumber
+                    if (extension.options.onCurrentPageChange) {
+                      extension.options.onCurrentPageChange(page.pageNumber)
                     }
-                    return value
                   }
                 }
-              } catch (e) {
-                // Ignore transient selection resolve errors during transactions
-              }
+              } catch (e) {}
             }
-            return value
+            return { page: currentPage, decorations: nextDecorations }
           },
         },
 
-        // Provide layout decorations (subtle page separators between pages)
         props: {
           decorations(state) {
-            const { layoutTree, visualBreaks, manualBreaks } = extension.storage
-            if (!layoutTree?.pages || layoutTree.pages.length <= 1) {
-              return DecorationSet.empty
-            }
-
-            const breakAtBlock = new Map((visualBreaks || []).map((item) => [item.blockIndex, item]))
-            const manualAtBlock = new Map((manualBreaks || []).map((item) => [item.blockIndex, item]))
-
-            const decos = []
-            const { doc } = state
-            let blockIndex = 0
-
-            doc.forEach((node, offset) => {
-              const visualBreak = breakAtBlock.get(blockIndex)
-              if (visualBreak) {
-                decos.push(
-                  Decoration.widget(
-                    offset,
-                    () => {
-                      const div = document.createElement('div')
-                      div.className = 'kindy-page-break-decoration'
-                      div.setAttribute('data-page-number', String(visualBreak.pageNumber))
-                      div.setAttribute('aria-label', `Trang ${visualBreak.pageNumber}`)
-                      div.setAttribute('data-section', visualBreak.sectionId || '')
-                      div.setAttribute('data-decoration', 'true')
-                      div.setAttribute('contenteditable', 'false')
-                      div.style.setProperty('--kindy-page-spacer-height', `${visualBreak.spacerHeight}px`)
-                      div.style.setProperty('--kindy-page-separator-offset', `${visualBreak.separatorOffset}px`)
-                      div.style.setProperty('--kindy-page-gap', `${visualBreak.pageGap}px`)
-                      if (visualBreak.geometry?.pageWidthCm) div.style.setProperty('--kindy-next-page-width', `${visualBreak.geometry.pageWidthCm}cm`)
-                      if (visualBreak.geometry?.pageHeightCm) div.style.setProperty('--kindy-next-page-height', `${visualBreak.geometry.pageHeightCm}cm`)
-                      appendRepeatedHeaderFooter(div, visualBreak.footer, 'footer', visualBreak.pageNumber - 1)
-                      appendRepeatedHeaderFooter(div, visualBreak.header, 'header', visualBreak.pageNumber)
-                      return div
-                    },
-                    { side: -1, key: `page-sep-${visualBreak.pageNumber}-${blockIndex}`, ignoreSelection: true },
-                  ),
-                )
-              }
-              const manualBreak = manualAtBlock.get(blockIndex)
-              if (manualBreak && (node.type.name === 'pageBreak' || node.type.name === 'sectionBreak')) {
-                // Keep the canonical pageBreak node as a zero-height document
-                // boundary and render the physical sheet transition as a widget.
-                // This avoids exposing the page break as a grey editable block
-                // while still reserving the exact remaining paper height.
-                decos.push(Decoration.widget(
-                  offset,
-                  () => {
-                    const div = document.createElement('div')
-                    div.className = 'kindy-page-break-decoration kindy-manual-page-break-decoration'
-                    div.setAttribute('data-page-number', String(manualBreak.pageNumber))
-                    div.setAttribute('aria-label', `Trang ${manualBreak.pageNumber}`)
-                    div.setAttribute('data-section', manualBreak.sectionId || '')
-                    div.setAttribute('data-decoration', 'true')
-                    div.setAttribute('contenteditable', 'false')
-                    div.style.setProperty('--kindy-page-spacer-height', `${manualBreak.spacerHeight}px`)
-                    div.style.setProperty('--kindy-page-separator-offset', `${manualBreak.separatorOffset}px`)
-                    div.style.setProperty('--kindy-page-gap', `${manualBreak.pageGap}px`)
-                    if (manualBreak.geometry?.pageWidthCm) div.style.setProperty('--kindy-next-page-width', `${manualBreak.geometry.pageWidthCm}cm`)
-                    if (manualBreak.geometry?.pageHeightCm) div.style.setProperty('--kindy-next-page-height', `${manualBreak.geometry.pageHeightCm}cm`)
-                    appendRepeatedHeaderFooter(div, manualBreak.footer, 'footer', manualBreak.pageNumber - 1)
-                    appendRepeatedHeaderFooter(div, manualBreak.header, 'header', manualBreak.pageNumber)
-                    return div
-                  },
-                  { side: -1, key: `manual-page-sep-${manualBreak.pageNumber}-${blockIndex}`, ignoreSelection: true },
-                ))
-              }
-              blockIndex++
-            })
-
-            if (decos.length === 0) return DecorationSet.empty
-            return DecorationSet.create(doc, decos)
+            return PaginationPluginKey.getState(state)?.decorations || DecorationSet.empty
           },
         },
       }),

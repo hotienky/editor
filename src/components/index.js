@@ -5,10 +5,8 @@ import KindyEditor from './index.vue'
 import KindyMenuButton from './menus/button.vue'
 import KindyDialog from './modal.vue'
 import KindyTooltip from './tooltip.vue'
-import KindyDocumentExplorer from './library/DocumentExplorer.vue'
 import KindyDocumentLibrary from './library/DocumentLibrary.vue'
 import KindyDocumentLibraryShell from './library/DocumentLibraryShell.vue'
-import KindyVersionPanel from './library/VersionPanel.vue'
 
 export * from '../core'
 export * from '../codecs'
@@ -49,13 +47,11 @@ const mountKindyEditor = (container, props = {}) => {
 export {
   KindyEditor as default,
   KindyDialog,
-  KindyDocumentExplorer,
   KindyDocumentLibrary,
   KindyDocumentLibraryShell,
   KindyEditor,
   KindyMenuButton,
   KindyTooltip,
-  KindyVersionPanel,
   mountKindyEditor,
   useKindyEditor,
 }

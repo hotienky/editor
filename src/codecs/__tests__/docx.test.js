@@ -133,6 +133,8 @@ describe('DOCX codec', () => {
     expect(documentXml).toContain('w:fill="D9EAF7"')
     expect(documentXml).toContain('w:vAlign w:val="top"')
     expect(documentXml).toContain('w:vAlign w:val="bottom"')
+    expect(documentXml).toContain('w:tblGrid')
+    expect(documentXml).toContain('w:tcW')
 
     const imported = await importDocx(exported.blob, { mode: 'strict' })
     const [paragraph, table] = imported.state.content.content
@@ -448,5 +450,33 @@ describe('DOCX codec', () => {
       user: 'Lê Pháp chế', text: 'Kiểm tra lại thời hạn thanh toán.', resolved: true,
       replies: [expect.objectContaining({ user: 'Nguyễn Kinh doanh', text: 'Đã cập nhật theo phụ lục.' })],
     })
+  })
+
+  it('preserves unrecognized and raw OOXML package parts losslessly across round-trip', async () => {
+    const baseState = createEmptyDocumentState({
+      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Tài liệu chứa chart và macro.' }] }] },
+    })
+    const initialExport = await exportDocx(baseState)
+    const entries = unzipSync(new Uint8Array(await initialExport.blob.arrayBuffer()))
+
+    // Simulate an incoming complex document containing a chart XML and a custom docProp
+    entries['word/charts/chart1.xml'] = strToU8('<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"><c:chart/></c:chartSpace>')
+    entries['docProps/custom.xml'] = strToU8('<op:Properties xmlns:op="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"/>')
+
+    const complexBlob = new Blob([zipSync(entries)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+    const imported = await importDocx(complexBlob)
+
+    expect(imported.state.unsupportedParts).toBeDefined()
+    expect(imported.state.unsupportedParts['word/charts/chart1.xml']).toBeDefined()
+    expect(imported.state.unsupportedParts['docProps/custom.xml']).toBeDefined()
+
+    // Export again after user edits
+    const reExported = await exportDocx(imported.state)
+    const reArchive = unzipSync(new Uint8Array(await reExported.blob.arrayBuffer()))
+
+    expect(reArchive['word/charts/chart1.xml']).toBeDefined()
+    expect(strFromU8(reArchive['word/charts/chart1.xml'])).toContain('<c:chartSpace')
+    expect(reArchive['docProps/custom.xml']).toBeDefined()
+    expect(strFromU8(reArchive['docProps/custom.xml'])).toContain('<op:Properties')
   })
 })

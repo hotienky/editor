@@ -2,21 +2,10 @@
   <section
     ref="shellElement"
     class="kindy-library-shell"
-    :class="[
-      `kindy-library-shell--${density}`,
-      {
-        'has-explorer': showExplorer && explorerOpen,
-        'has-versions': showVersions && versionsOpen,
-        'is-narrow': narrow,
-      },
-    ]"
+    :class="`kindy-library-shell--${density}`"
     :style="shellStyle"
     aria-label="Document library workspace"
   >
-    <aside v-if="showExplorer" class="kindy-library-shell__explorer" :class="{ 'is-open': explorerOpen }">
-      <slot name="explorer" />
-    </aside>
-
     <section class="kindy-library-shell__workspace">
       <header v-if="showTopbar && $slots.topbar" class="kindy-library-shell__topbar">
         <slot name="topbar" />
@@ -25,186 +14,69 @@
         <slot />
       </div>
     </section>
-
-    <aside v-if="showVersions" class="kindy-library-shell__versions" :class="{ 'is-open': versionsOpen }">
-      <slot name="versions" />
-    </aside>
-
-    <button
-      v-if="explorerOpen || versionsOpen"
-      class="kindy-library-shell__scrim"
-      type="button"
-      aria-label="Close side panel"
-      @click="$emit('close-panels')"
-    />
   </section>
 </template>
 
 <script setup lang="ts">
-import { useResizeObserver } from '@vueuse/core'
 import { computed, ref } from 'vue'
 import type { KindyLibraryDensity } from '../../ui'
 
 const props = withDefaults(defineProps<{
   density?: KindyLibraryDensity
-  explorerWidth?: string
-  versionsWidth?: string
-  explorerOpen?: boolean
-  versionsOpen?: boolean
-  showExplorer?: boolean
-  showVersions?: boolean
   showTopbar?: boolean
   theme?: Record<string, string>
 }>(), {
   density: 'comfortable',
-  explorerWidth: '300px',
-  versionsWidth: '288px',
-  explorerOpen: true,
-  versionsOpen: true,
-  showExplorer: true,
-  showVersions: true,
   showTopbar: true,
   theme: () => ({}),
 })
 
-const emit = defineEmits<{
-  'close-panels': []
-  'viewport-change': [wide: boolean]
-}>()
-
 const shellElement = ref<HTMLElement | null>(null)
-const narrow = ref(false)
-useResizeObserver(shellElement, ([entry]) => {
-  const nextNarrow = (entry?.contentRect.width || 0) <= 1024
-  if (nextNarrow === narrow.value) return
-  narrow.value = nextNarrow
-  emit('viewport-change', !nextNarrow)
-})
 
 const shellStyle = computed(() => ({
   ...props.theme,
-  '--kindy-library-explorer-width': props.explorerWidth,
-  '--kindy-library-versions-width': props.versionsWidth,
 }))
 </script>
 
 <style scoped>
-/* Shell owns layout only; child components own their visual details. */
 .kindy-library-shell {
   position: relative;
-  display: grid;
-  grid-template-columns: 0 minmax(0, 1fr) 0;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-width: 0;
-  min-height: 520px;
   overflow: hidden;
-  container-type: inline-size;
-  background: var(--kindy-library-bg);
-  color: var(--kindy-library-text);
+  background: var(--kindy-library-bg, #f8f9fa);
+  color: var(--kindy-library-text, #1f2937);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.kindy-library-shell.has-explorer { grid-template-columns: var(--kindy-library-explorer-width) minmax(0, 1fr) 0; }
-.kindy-library-shell.has-versions { grid-template-columns: 0 minmax(0, 1fr) var(--kindy-library-versions-width); }
-.kindy-library-shell.has-explorer.has-versions { grid-template-columns: var(--kindy-library-explorer-width) minmax(0, 1fr) var(--kindy-library-versions-width); }
-.kindy-library-shell__explorer,
-.kindy-library-shell__versions,
-.kindy-library-shell__workspace,
-.kindy-library-shell__content { min-width: 0; min-height: 0; }
-.kindy-library-shell__explorer,
-.kindy-library-shell__versions { position: relative; z-index: 30; overflow: hidden; background: var(--kindy-library-sidebar-bg); }
-.kindy-library-shell__workspace { container-type: inline-size; display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
-.kindy-library-shell__topbar { position: relative; z-index: 10; min-height: 58px; border-bottom: 1px solid var(--kindy-library-border); background: var(--kindy-library-surface); }
-.kindy-library-shell__content { position: relative; z-index: 1; overflow: hidden; }
-.kindy-library-shell__scrim { display: none; }
-
-.kindy-library-shell--compact .kindy-library-shell__topbar { min-height: 48px; }
-
-.kindy-library-shell.is-narrow,
-.kindy-library-shell.is-narrow.has-explorer,
-.kindy-library-shell.is-narrow.has-versions,
-.kindy-library-shell.is-narrow.has-explorer.has-versions { grid-template-columns: minmax(0, 1fr); }
-
-.kindy-library-shell.is-narrow .kindy-library-shell__explorer,
-.kindy-library-shell.is-narrow .kindy-library-shell__versions {
-  position: absolute;
-  inset-block: 0;
-  width: min(88cqw, var(--kindy-library-explorer-width));
-  max-width: 100%;
-  box-shadow: var(--kindy-library-shadow);
-  transition: transform 160ms ease;
-}
-.kindy-library-shell.is-narrow .kindy-library-shell__explorer { inset-inline-start: 0; transform: translateX(-105%); }
-.kindy-library-shell.is-narrow .kindy-library-shell__versions { inset-inline-end: 0; width: min(88cqw, var(--kindy-library-versions-width)); transform: translateX(105%); }
-.kindy-library-shell.is-narrow .kindy-library-shell__explorer.is-open,
-.kindy-library-shell.is-narrow .kindy-library-shell__versions.is-open { transform: translateX(0); }
-.kindy-library-shell.is-narrow .kindy-library-shell__scrim {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  display: block;
-  border: 0;
-  background: rgb(15 23 42 / 32%);
+.kindy-library-shell__workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
-@media (max-width: 1024px) {
-  .kindy-library-shell,
-  .kindy-library-shell.has-explorer,
-  .kindy-library-shell.has-versions,
-  .kindy-library-shell.has-explorer.has-versions { grid-template-columns: minmax(0, 1fr); }
-
-  .kindy-library-shell__explorer,
-  .kindy-library-shell__versions {
-    position: absolute;
-    inset-block: 0;
-    width: min(88vw, var(--kindy-library-explorer-width));
-    max-width: 100%;
-    box-shadow: var(--kindy-library-shadow);
-    transition: transform 160ms ease;
-  }
-  .kindy-library-shell__explorer { inset-inline-start: 0; transform: translateX(-105%); }
-  .kindy-library-shell__versions { inset-inline-end: 0; width: min(88vw, var(--kindy-library-versions-width)); transform: translateX(105%); }
-  .kindy-library-shell__explorer.is-open,
-  .kindy-library-shell__versions.is-open { transform: translateX(0); }
-  .kindy-library-shell__scrim {
-    position: absolute;
-    z-index: 20;
-    inset: 0;
-    display: block;
-    border: 0;
-    background: rgb(15 23 42 / 32%);
-  }
+.kindy-library-shell__topbar {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid var(--kindy-library-border, #e2e8f0);
+  background: var(--kindy-library-surface, #ffffff);
 }
 
-@media (max-width: 640px) {
-  .kindy-library-shell { min-height: 360px; }
-
-  .kindy-library-shell__explorer,
-  .kindy-library-shell__versions {
-    width: 100%;
-    border: 0;
-    box-shadow: none;
-  }
-
-  .kindy-library-shell__topbar {
-    min-height: 52px;
-  }
-}
-
-@container (max-width: 640px) {
-  .kindy-library-shell__explorer,
-  .kindy-library-shell__versions {
-    width: 100cqw !important;
-    border: 0;
-    box-shadow: none !important;
-  }
-
-  .kindy-library-shell__topbar { min-height: 52px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .kindy-library-shell__explorer,
-  .kindy-library-shell__versions { transition: none; }
+.kindy-library-shell__content {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
 }
 </style>

@@ -62,6 +62,7 @@ export interface KindyDocumentState {
   content: JSONContent
   page: KindyPageState
   assets: AssetReference[]
+  unsupportedParts?: Record<string, Uint8Array | string>
 }
 
 export interface DocumentCapabilities {

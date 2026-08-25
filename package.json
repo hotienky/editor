@@ -90,6 +90,7 @@
     "benchmark:long-doc": "node scripts/benchmark-long-document.mjs",
     "benchmark:ci": "node scripts/benchmark-long-document.mjs --assert --output=.artifacts/long-document.json",
     "typecheck": "tsc --noEmit",
+    "type:check": "tsc --noEmit",
     "format": "oxfmt --write .",
     "lint": "oxlint --fix src",
     "lint:check": "oxlint src",

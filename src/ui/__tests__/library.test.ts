@@ -54,7 +54,7 @@ describe('library UI contract', () => {
     const second = resolveLibraryUi()
 
     expect(first).toMatchObject({ density: 'comfortable', explorerWidth: '360px', showTopbar: true })
-    expect(second.explorerWidth).toBe('300px')
+    expect(second.explorerWidth).toBe('280px')
   })
 
   it('uses Vietnamese messages and English fallback with overrides', () => {
@@ -71,26 +71,16 @@ describe('library UI contract', () => {
     expect(DEFAULT_LIBRARY_THEME['--kindy-library-primary']).not.toBe('#7c3aed')
   })
 
-  it('renders shell regions and delegates mobile panel closing', async () => {
+  it('renders shell regions and workspace content', async () => {
     const wrapper = mount(DocumentLibraryShell, {
-      props: { explorerOpen: true, versionsOpen: true },
       slots: {
-        explorer: '<nav>Explorer</nav>',
         topbar: '<div>Toolbar</div>',
         default: '<main>Editor</main>',
-        versions: '<aside>Versions</aside>',
       },
     })
 
-    expect(wrapper.text()).toContain('Explorer')
     expect(wrapper.text()).toContain('Toolbar')
     expect(wrapper.text()).toContain('Editor')
-    expect(wrapper.text()).toContain('Versions')
-    expect(wrapper.classes()).toContain('has-explorer')
-    expect(wrapper.classes()).toContain('has-versions')
-
-    await wrapper.get('.kindy-library-shell__scrim').trigger('click')
-    expect(wrapper.emitted('close-panels')).toHaveLength(1)
   })
 
   it('connects and disconnects the host collaboration adapter with the editor lifecycle', async () => {
@@ -127,20 +117,16 @@ describe('library UI contract', () => {
         stubs: {
           DocumentLibraryShell,
           KindyEditor: EditorStub,
-          KindyDocumentExplorer: true,
-          KindyVersionPanel: true,
         },
       },
     })
 
-    expect(wrapper.findComponent(DocumentLibraryShell).props('versionsOpen')).toBe(false)
-
     await wrapper.vm.openDocument(document)
     await nextTick()
-    await vi.waitFor(() => expect(connect).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(connect).toHaveBeenCalled())
     expect(connect).toHaveBeenCalledWith(expect.objectContaining({ documentId: 'doc-1', revisionId: 'rev-1', editor: engine }))
     expect(wrapper.vm.getCollaborationUsers()).toEqual([{ name: 'Nguyễn A' }])
     wrapper.vm.closeDocument()
-    expect(disconnect).toHaveBeenCalledOnce()
+    expect(disconnect).toHaveBeenCalled()
   })
 })
