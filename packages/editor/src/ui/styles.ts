@@ -1,18 +1,18 @@
 // Component CSS for the editor chrome (ribbon, ruler, outline, status bar,
 // popovers). Injected once by KindyEditor so the package is self-contained — the
 // host page needs no stylesheet. The only change from the original index.html
-// <style> is that the page-level `html, body` rules become a `.wordcanvas-root`
+// <style> is that the page-level `html, body` rules become a `.kindy-editor-root`
 // container rule, so embedding doesn't restyle the host's body.
 //
 // Structural selectors are CLASS-based (.cw-toolbar/.cw-app/.cw-ruler/
-// .cw-outline/.cw-statusbar), scoped by the per-instance .wordcanvas-root, so
+// .cw-outline/.cw-statusbar), scoped by the per-instance .kindy-editor-root, so
 // multiple editors can coexist on one page without id collisions. The stylesheet
 // itself is shared (injected once, keyed by STYLE_ID) — it styles every instance.
 
-const STYLE_ID = "wordcanvas-styles";
+const STYLE_ID = "kindy-editor-styles";
 
 const CSS = `
-.wordcanvas-root {
+.kindy-editor-root {
   display: flex; flex-direction: column; height: 100%; min-height: 0; overflow-x: hidden;
   font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: #323130;

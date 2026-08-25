@@ -242,7 +242,7 @@ const t1 = performance.now();
 engine.layout(doc); // warm: 100% prepare-cache hits, pure line-walk + pagination
 const t2 = performance.now();
 console.log(
-  `[canvas-word] blocks=${doc.blocks.length} pages=${tree.pages.length} ` +
+  `[kindy-editor] blocks=${doc.blocks.length} pages=${tree.pages.length} ` +
     `layout cold=${(t1 - t0).toFixed(1)}ms warm=${(t2 - t1).toFixed(1)}ms`,
 );
 
@@ -2489,7 +2489,7 @@ if (toolbar) {
   // ===== customizeRibbon: reorder/remove built-ins + add custom tabs/buttons ===
   if (runtime.customizeRibbon) {
     const warn = (what: string, id: string): void =>
-      console.warn(`[canvas-word] customizeRibbon: ${what} "${id}" not found`);
+      console.warn(`[kindy-editor] customizeRibbon: ${what} "${id}" not found`);
     // DOM is the source of truth for order; these read current ids in order.
     const tabOrder = (): string[] =>
       [...tabScroll.children].map((c) => (c as HTMLElement).dataset?.["ribbonTab"]).filter((x): x is string => !!x);
@@ -2528,7 +2528,7 @@ if (toolbar) {
         try {
           if (ribbonCtx) spec.onClick(ribbonCtx);
         } catch (err) {
-          console.error("[canvas-word] custom ribbon button onClick threw", err);
+          console.error("[kindy-editor] custom ribbon button onClick threw", err);
         }
       });
       if (spec.active) toggleButtons.push({ el: b, active: spec.active });
@@ -2630,7 +2630,7 @@ if (toolbar) {
     try {
       runtime.customizeRibbon(api);
     } catch (err) {
-      console.error("[canvas-word] customizeRibbon threw", err);
+      console.error("[kindy-editor] customizeRibbon threw", err);
     }
     // Custom buttons' active/enabled predicates sync on the next syncToolbar()
     // (wired to editor onChange + the initial sync below).
@@ -3344,6 +3344,6 @@ if (runtime.agentTools) {
         cfg,
       );
     })
-    .catch((e) => console.error("[wordcanvas] failed to enable agent tools:", e));
+    .catch((e) => console.error("[kindy-editor] failed to enable agent tools:", e));
 }
 }

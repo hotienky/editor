@@ -46,7 +46,7 @@ export function installMeasureHost(): Promise<void> {
         // Math font missing — equations fall back to the default clone (tofu for
         // math-alphanumeric glyphs), but the rest of the document is unaffected.
         // Surfaced (not silent) so a broken bundle is diagnosable.
-        console.warn(`[wordcanvas] math font ${MATH_FONT_FILE} failed to load; equations will not typeset correctly`, e);
+        console.warn(`[kindy-editor] math font ${MATH_FONT_FILE} failed to load; equations will not typeset correctly`, e);
       }
       // The bundled CJK fallback (subset of Noto Sans SC) — registered alongside the
       // clones so script-split CJK runs measure + embed identically across editor/
@@ -56,7 +56,7 @@ export function installMeasureHost(): Promise<void> {
       } catch (e) {
         // CJK font missing — CJK text falls back to a Latin clone (tofu), but the
         // rest of the document is unaffected. Surfaced so a broken bundle is visible.
-        console.warn(`[wordcanvas] CJK font ${CJK_FONT_FILE} failed to load; Chinese text will not render correctly`, e);
+        console.warn(`[kindy-editor] CJK font ${CJK_FONT_FILE} failed to load; Chinese text will not render correctly`, e);
       }
       // The bundled Arabic fallback (Noto Sans Arabic) — registered so script-split
       // Arabic runs measure + embed identically, with correct joining-form shaping
@@ -64,14 +64,14 @@ export function installMeasureHost(): Promise<void> {
       try {
         registerFont(ARABIC_FONT_FILE, await readFontBytes(ARABIC_FONT_FILE));
       } catch (e) {
-        console.warn(`[wordcanvas] Arabic font ${ARABIC_FONT_FILE} failed to load; Arabic text will not render correctly`, e);
+        console.warn(`[kindy-editor] Arabic font ${ARABIC_FONT_FILE} failed to load; Arabic text will not render correctly`, e);
       }
       // The bundled Hebrew fallback (Noto Sans Hebrew) — registered so script-split
       // Hebrew runs measure + embed identically instead of rendering as .notdef/tofu.
       try {
         registerFont(HEBREW_FONT_FILE, await readFontBytes(HEBREW_FONT_FILE));
       } catch (e) {
-        console.warn(`[wordcanvas] Hebrew font ${HEBREW_FONT_FILE} failed to load; Hebrew text will not render correctly`, e);
+        console.warn(`[kindy-editor] Hebrew font ${HEBREW_FONT_FILE} failed to load; Hebrew text will not render correctly`, e);
       }
     }
     // Route pretext + metrics through the fontkit shim over the bundled clones.

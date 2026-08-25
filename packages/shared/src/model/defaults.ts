@@ -7,7 +7,7 @@
 // (stylesheet.ts), which is the same look expressed as a style delta.
 //
 // Embedders can OVERRIDE the library's built-in defaults (see EditorTypography
-// + the WordCanvas `overrideDefaultStyles` option). This only affects NEW/blank
+// + the KindyEditor `overrideDefaultStyles` option). This only affects NEW/blank
 // documents and the fallback stylesheet — a loaded .docx keeps its own
 // w:docDefaults / Normal style (the importer bakes those in at import time).
 

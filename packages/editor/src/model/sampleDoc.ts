@@ -1,7 +1,7 @@
 // Flagship showcase document — the editor's initial state when no docId is opened.
 // It exercises nearly the full Word feature surface (TOC, fields, content controls,
 // complex/merged + cross-page tables, images, lists, footnotes, bookmarks, hidden
-// text, headers/footers) so a first-time visitor sees how much canvas-word supports.
+// text, headers/footers) so a first-time visitor sees how much kindy-editor supports.
 // Built as plain model data (the same Document the editor/exporter/collab consume).
 
 import type {
@@ -580,7 +580,7 @@ export function sampleDoc(): Document {
     para([run("עברית נכתבת מימין לשמאל. העורך מסדר מחדש את הרצף החזותי, מיישר את הפסקה לימין כברירת מחדל, וממשיך לתמוך בעימוד מרובה עמודים.")], { direction: "rtl" }),
 
     para([run("Nested bidi — numbers & Latin inside RTL", { bold: true, color: "#1a1a2e" })], { spaceBeforePx: 8, spaceAfterPx: 2 }),
-    para([run("المنتج «canvas-word» متوفر بسعر 1,299 درهمًا منذ عام 2026 — تبقى الأرقام والكلمات اللاتينية بترتيبها الصحيح من اليسار إلى اليمين داخل النص العربي.")], { direction: "rtl" }),
+    para([run("المنتج «kindy-editor» متوفر بسعر 1,299 درهمًا منذ عام 2026 — تبقى الأرقام والكلمات اللاتينية بترتيبها الصحيح من اليسار إلى اليمين داخل النص العربي.")], { direction: "rtl" }),
     para([
       run("And the reverse, inside this left-to-right line: an embedded Hebrew phrase "),
       run("שלום עולם"),
@@ -694,7 +694,7 @@ export function sampleDoc(): Document {
       sectionBreak: { type: "oddPage", props: { lineNumbering: { countBy: 1, restart: "newPage" } } },
     }),
 
-    para([run("— a tour of canvas-word —", { italic: true, color: "#5f6368" })], { align: "center", spaceBeforePx: 20 }),
+    para([run("— a tour of kindy-editor —", { italic: true, color: "#5f6368" })], { align: "center", spaceBeforePx: 20 }),
   ];
 
   // Bookmark the literal "bookmarked text" run inside the footnotes/formatting
@@ -707,7 +707,7 @@ export function sampleDoc(): Document {
   const tocEntries = buildTocParagraphs(tocHostDoc, { title: null, maxLevel: 3, leader: "dot" });
 
   const blocks: Document["blocks"] = [
-    para([run("canvas-word", { fontFamily: "Arial, sans-serif", fontSizePx: 32, bold: true, color: "#1a1a2e" })], { align: "center", spaceAfterPx: 4, namedStyle: "Title" }),
+    para([run("kindy-editor", { fontFamily: "Arial, sans-serif", fontSizePx: 32, bold: true, color: "#1a1a2e" })], { align: "center", spaceAfterPx: 4, namedStyle: "Title" }),
     para([run("a canvas-rendered, page-accurate Word editor — feature showcase", { italic: true, color: "#5f6368" })], { align: "center", spaceAfterPx: 24, namedStyle: "Subtitle" }),
     para([run("Table of Contents", { bold: true, fontSizePx: 20, color: "#1a1a2e" })], { spaceAfterPx: 8 }),
     ...tocEntries,
@@ -719,7 +719,7 @@ export function sampleDoc(): Document {
     lists: { [DEFAULT_BULLET_LIST_ID]: defaultListDefinition("bullet"), [DEFAULT_NUMBER_LIST_ID]: defaultListDefinition("decimal") },
     section: {
       pageWidthPx: 816, pageHeightPx: 1056, marginPx: { top: 96, right: 96, bottom: 96, left: 96 },
-      header: [para([run("canvas-word", { fontFamily: "Arial, sans-serif", fontSizePx: 11, bold: true, color: "#5f6368" }), run("  ·  feature showcase", { fontFamily: "Arial, sans-serif", fontSizePx: 11, color: "#9aa0a6" })], { spaceAfterPx: 0 })],
+      header: [para([run("kindy-editor", { fontFamily: "Arial, sans-serif", fontSizePx: 11, bold: true, color: "#5f6368" }), run("  ·  feature showcase", { fontFamily: "Arial, sans-serif", fontSizePx: 11, color: "#9aa0a6" })], { spaceAfterPx: 0 })],
       footer: [para([run("Page {page} of {pages}", { fontFamily: "Arial, sans-serif", fontSizePx: 11, color: "#9aa0a6" })], { align: "center", spaceAfterPx: 0 })],
     },
     blocks,

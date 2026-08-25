@@ -20,14 +20,14 @@ export interface EditorShell {
 export function buildShell(container: HTMLElement): EditorShell {
   // Class-based (not id-based) so multiple editors can share one page — see
   // ui/styles.ts. Every structural node is keyed by a `cw-*` class the shared
-  // stylesheet targets under `.wordcanvas-root`.
+  // stylesheet targets under `.kindy-editor-root`.
   const div = (cls?: string, tag: keyof HTMLElementTagNameMap = "div"): HTMLElement => {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
     return e;
   };
 
-  const root = div("wordcanvas-root") as HTMLDivElement;
+  const root = div("kindy-editor-root") as HTMLDivElement;
 
   const toolbar = div("cw-toolbar") as HTMLDivElement;
   const workarea = div("cw-workarea") as HTMLDivElement;

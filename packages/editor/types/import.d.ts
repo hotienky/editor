@@ -1,5 +1,5 @@
 // Public types for kindy-editor/import — the headless .docx → Document
-// import pipeline. Hand-written (like wordcanvas.d.ts) so the published surface
+// import pipeline. Hand-written (like kindy-editor.d.ts) so the published surface
 // stays self-contained: the model types come from ./model, never from the private
 // @kindy/shared workspace package. Runs in the browser (the `default` build) and on
 // Node (the `node` build, used by a server to parse uploads).

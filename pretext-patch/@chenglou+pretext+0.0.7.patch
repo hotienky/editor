@@ -35,7 +35,7 @@ index f1b9d19..4beb059 100644
 -        if (t === 'R' || t === 'AL') {
 -            startLevel = 1;
 -            break;
-+    // Base direction: an explicit override (canvas-word /pretext-patch: Word's
++    // Base direction: an explicit override (Kindy-editor /pretext-patch: Word's
 +    // w:bidi forces the paragraph base regardless of the first strong char) takes
 +    // precedence; otherwise use the first strong character (the common UBA P2/P3
 +    // paragraph rule). Rich-path bidi metadata is only an approximation.

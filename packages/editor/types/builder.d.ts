@@ -1,6 +1,6 @@
 // Public type surface for kindy-editor/builder — the fluent
 // programmatic document composer. Hand-written, self-contained (model types
-// come from ./model, shared with wordcanvas.d.ts).
+// come from ./model, shared with kindy-editor.d.ts).
 //
 //   import { DocumentBuilder } from "kindy-editor/builder";
 //   const b = await DocumentBuilder.fromTemplate(templateBytes);

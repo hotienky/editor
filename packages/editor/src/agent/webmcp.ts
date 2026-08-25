@@ -132,7 +132,7 @@ export function registerAgentTools(
 ): () => void {
   const mc = config.modelContext ?? resolveModelContext();
   if (!mc) {
-    console.warn("[wordcanvas] agentTools enabled but no navigator.modelContext is available; tools not registered.");
+    console.warn("[kindy-editor] agentTools enabled but no navigator.modelContext is available; tools not registered.");
     return () => {};
   }
 

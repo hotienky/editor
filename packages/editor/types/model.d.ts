@@ -1,5 +1,5 @@
 // Public document-model types for kindy-editor. Hand-written (like
-// wordcanvas.d.ts) so the published surface stays self-contained and stable;
+// kindy-editor.d.ts) so the published surface stays self-contained and stable;
 // mirrors shared/src/model — the editor, builder, and exporters all consume
 // this same plain-data shape.
 

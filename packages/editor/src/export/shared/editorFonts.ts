@@ -61,7 +61,7 @@ function loadMathFont(): Promise<void> {
       await face.load();
       (document as Document & { fonts: FontFaceSet }).fonts.add(face);
     } catch (e) {
-      console.warn("[wordcanvas] failed to load the math font (StixTwoMath); equations fall back to a clone", e);
+      console.warn("[kindy-editor] failed to load the math font (StixTwoMath); equations fall back to a clone", e);
     }
   })();
   return mathStarted;
@@ -93,7 +93,7 @@ export function loadCjkFallbackFont(): Promise<boolean> {
     } catch (e) {
       // The browser still falls back to a system CJK face on screen; only export
       // parity (and re-measurement) is lost. Surfaced, not fatal.
-      console.warn(`[wordcanvas] failed to load the bundled CJK fallback font (${CJK_FONT_FAMILY})`, e);
+      console.warn(`[kindy-editor] failed to load the bundled CJK fallback font (${CJK_FONT_FAMILY})`, e);
       return false;
     }
   })();
@@ -124,7 +124,7 @@ export function loadArabicFallbackFont(): Promise<boolean> {
       for (const f of faces) (document as Document & { fonts: FontFaceSet }).fonts.add(f);
       return true;
     } catch (e) {
-      console.warn(`[wordcanvas] failed to load the bundled Arabic fallback font (${ARABIC_FONT_FAMILY})`, e);
+      console.warn(`[kindy-editor] failed to load the bundled Arabic fallback font (${ARABIC_FONT_FAMILY})`, e);
       return false;
     }
   })();
@@ -154,7 +154,7 @@ export function loadHebrewFallbackFont(): Promise<boolean> {
       for (const f of faces) (document as Document & { fonts: FontFaceSet }).fonts.add(f);
       return true;
     } catch (e) {
-      console.warn(`[wordcanvas] failed to load the bundled Hebrew fallback font (${HEBREW_FONT_FAMILY})`, e);
+      console.warn(`[kindy-editor] failed to load the bundled Hebrew fallback font (${HEBREW_FONT_FAMILY})`, e);
       return false;
     }
   })();
@@ -248,7 +248,7 @@ function loadCustomFace(family: string, style: FontStyleName, url: string): Prom
       } catch (e) {
         // Don't hard-fail the editor for one bad URL — the canvas falls back to the
         // browser's default and resolveFont falls back to a clone in export.
-        console.warn(`[wordcanvas] failed to load custom font "${family}" ${style} from ${url}`, e);
+        console.warn(`[kindy-editor] failed to load custom font "${family}" ${style} from ${url}`, e);
         return false;
       }
     })();

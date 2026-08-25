@@ -132,11 +132,11 @@ export function isRegistrableFontDef(def: CustomFontDef, warn = false): boolean 
   if (!normalizeFamily(def.family)) return false;
   const { ascent, descent } = def.sizing ?? ({} as CustomFontDef["sizing"]);
   if (!(typeof ascent === "number" && ascent > 0 && typeof descent === "number" && descent >= 0)) {
-    if (warn) console.warn(`[wordcanvas] custom font "${def.family}" has invalid sizing (need ascent > 0, descent >= 0); skipped`);
+    if (warn) console.warn(`[kindy-editor] custom font "${def.family}" has invalid sizing (need ascent > 0, descent >= 0); skipped`);
     return false;
   }
   if (!def.faces?.regular) {
-    if (warn) console.warn(`[wordcanvas] custom font "${def.family}" is missing the required regular face; skipped`);
+    if (warn) console.warn(`[kindy-editor] custom font "${def.family}" is missing the required regular face; skipped`);
     return false;
   }
   if (
@@ -145,7 +145,7 @@ export function isRegistrableFontDef(def: CustomFontDef, warn = false): boolean 
     (def.faces.italic && isWoffUrl(def.faces.italic)) ||
     (def.faces.boldItalic && isWoffUrl(def.faces.boldItalic))
   ) {
-    if (warn) console.warn(`[wordcanvas] custom font "${def.family}": WOFF/WOFF2 is not supported — use TTF/OTF; skipped`);
+    if (warn) console.warn(`[kindy-editor] custom font "${def.family}": WOFF/WOFF2 is not supported — use TTF/OTF; skipped`);
     return false;
   }
   return true;
@@ -180,7 +180,7 @@ export class CustomFontRegistry {
       const key = normalizeFamily(def.family);
       const existing = this.fonts.get(key);
       if (existing && !sameDef(existing, def)) {
-        console.warn(`[wordcanvas] custom font "${def.family}" redefined with different faces/sizing; using the latest`);
+        console.warn(`[kindy-editor] custom font "${def.family}" redefined with different faces/sizing; using the latest`);
         this.metricsCache.clear();
       }
       this.fonts.set(key, def);

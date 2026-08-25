@@ -1,4 +1,4 @@
-// IR → canvas-word model. This is the lossy stage: everything the model
+// IR → kindy-editor model. This is the lossy stage: everything the model
 // can't hold is decided HERE (with a warning), never silently in the parser.
 //
 // Policies (see IMPORT.md "Lossy mappings"):
