@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none">
-  <rect x="2" y="4" width="32" height="32" rx="6" fill="#4F46E5"/>
-  <path d="M10 14h20M10 20h20M10 26h14" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-  <text x="44" y="28" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1F2937">Kindy Editor</text>
-</svg>

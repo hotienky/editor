@@ -1,0 +1,155 @@
+import { describe, expect, it } from "vitest";
+import type { Document, ImageBlock, Paragraph, SectionProps, TableBlock } from "@kindy/shared";
+import { applyOp } from "@kindy/shared";
+import { setImageLayer, bringImageToFront, sendImageToBack, moveAnchoredImage, setImageProps, wrapImageInContentControl, removeContentControl } from "./commands";
+import type { Command } from "./state";
+import type { EditorState } from "./state";
+
+const SECTION: SectionProps = { pageWidthPx: 816, pageHeightPx: 1056, marginPx: { top: 96, right: 96, bottom: 96, left: 96 } };
+
+const img = (id: string, anchor?: ImageBlock["anchor"], wrap?: ImageBlock["wrap"]): ImageBlock => ({
+  kind: "image", id, revision: 0, src: "blob:x", widthPx: 100, heightPx: 100, align: "center",
+  ...(anchor ? { anchor } : {}),
+  ...(wrap ? { wrap } : {}),
+});
+const docOf = (...blocks: ImageBlock[] | Paragraph[]): Document => ({ section: SECTION, blocks });
+
+const apply = (state: EditorState, cmd: Command): Document => {
+  const trn = cmd(state);
+  if (!trn) throw new Error("no transaction");
+  let doc = state.doc;
+  for (const op of trn.ops) doc = applyOp(doc, op).doc;
+  return doc;
+};
+const imageOf = (doc: Document, id: string): ImageBlock => doc.blocks.find((b) => b.id === id) as ImageBlock;
+
+describe("image layer / z-order commands", () => {
+  it("setImageLayer lifts an in-line image into the behind layer and clears wrap", () => {
+    const a = img("a", undefined, "square");
+    const doc = apply({ doc: docOf(a), selection: null }, setImageLayer("a", true));
+    const out = imageOf(doc, "a");
+    expect(out.anchor?.behind).toBe(true);
+    expect(out.wrap).toBeUndefined(); // exclusive — wrap cleared
+  });
+
+  it("setImageLayer keeps an existing anchor's offsets, only flipping the layer", () => {
+    const a = img("a", { behind: true, offsetXPx: -98, offsetYPx: -238, relFromH: "margin", relFromV: "paragraph" });
+    const doc = apply({ doc: docOf(a), selection: null }, setImageLayer("a", false));
+    expect(imageOf(doc, "a").anchor).toMatchObject({ behind: false, offsetXPx: -98, offsetYPx: -238 });
+  });
+
+  it("bringImageToFront sets the front layer with the highest z", () => {
+    const a = img("a", { behind: true, offsetXPx: 0, offsetYPx: 0, relFromH: "page", relFromV: "page", z: 3 });
+    const b = img("b", { behind: false, offsetXPx: 0, offsetYPx: 0, relFromH: "page", relFromV: "page", z: 7 });
+    const doc = apply({ doc: docOf(a, b), selection: null }, bringImageToFront("a"));
+    const out = imageOf(doc, "a");
+    expect(out.anchor?.behind).toBe(false);
+    expect(out.anchor?.z).toBe(8); // max(3,7) + 1
+  });
+
+  it("sendImageToBack sets the behind layer with the lowest z", () => {
+    const a = img("a", { behind: false, offsetXPx: 0, offsetYPx: 0, relFromH: "page", relFromV: "page", z: 2 });
+    const b = img("b", { behind: true, offsetXPx: 0, offsetYPx: 0, relFromH: "page", relFromV: "page", z: -1 });
+    const doc = apply({ doc: docOf(a, b), selection: null }, sendImageToBack("a"));
+    const out = imageOf(doc, "a");
+    expect(out.anchor?.behind).toBe(true);
+    expect(out.anchor?.z).toBe(-2); // min(2,-1) - 1
+  });
+
+  it("moveAnchoredImage sets new absolute offsets, preserving the rest of the anchor", () => {
+    const a = img("a", { behind: true, offsetXPx: 0, offsetYPx: 0, relFromH: "margin", relFromV: "paragraph", z: 5 });
+    const doc = apply({ doc: docOf(a), selection: null }, moveAnchoredImage("a", -120, 40));
+    expect(imageOf(doc, "a").anchor).toMatchObject({ offsetXPx: -120, offsetYPx: 40, behind: true, relFromH: "margin", z: 5 });
+  });
+
+  it("moveAnchoredImage is a no-op on an in-flow (non-anchored) image", () => {
+    const a = img("a", undefined, "square");
+    expect(moveAnchoredImage("a", 10, 10)({ doc: docOf(a), selection: null })).toBeNull();
+  });
+
+  it("setImageProps resizes/aligns an image inside a table cell (content-control templates)", () => {
+    // Reports wrap a table in a content control and drop the image in a cell; the
+    // image must still resize & align. Regression: the command's old top-level-only
+    // guard made cell images inert (frame showed, handles/align did nothing).
+    const cellImg = img("ci");
+    const para: Paragraph = { kind: "paragraph", id: "p", revision: 0, runs: [{ text: "", style: {} as never }], style: {} as never };
+    const table: TableBlock = {
+      kind: "table", id: "t", revision: 0,
+      rows: [{ cells: [{ id: "c", blocks: [cellImg, para] }] }],
+    };
+    const doc: Document = { section: SECTION, blocks: [table] };
+
+    const cmd = setImageProps("ci", { widthPx: 200, heightPx: 150, align: "right" });
+    const trn = cmd({ doc, selection: null });
+    expect(trn).not.toBeNull(); // command no longer bails on a cell image
+
+    let out = doc;
+    for (const op of trn!.ops) out = applyOp(out, op).doc;
+    const updated = (out.blocks[0] as TableBlock).rows[0]!.cells[0]!.blocks[0] as ImageBlock;
+    expect(updated.widthPx).toBe(200);
+    expect(updated.heightPx).toBe(150);
+    expect(updated.align).toBe("right");
+  });
+
+  it("clearing the anchor (wrap toggle) is undoable back to the anchored state", () => {
+    const a = img("a", { behind: true, offsetXPx: -98, offsetYPx: -238, relFromH: "margin", relFromV: "paragraph" });
+    const base = docOf(a);
+    const res = applyOp(base, { type: "setImageProps", blockId: "a", patch: { wrap: "block", anchor: null } });
+    expect((res.doc.blocks[0] as ImageBlock).anchor).toBeUndefined();
+    expect((res.doc.blocks[0] as ImageBlock).wrap).toBe("block");
+    // Inverse restores the anchor and clears the wrap.
+    const undone = applyOp(res.doc, res.inverse).doc;
+    expect((undone.blocks[0] as ImageBlock).anchor).toMatchObject({ behind: true, offsetXPx: -98 });
+    expect((undone.blocks[0] as ImageBlock).wrap).toBeUndefined();
+  });
+});
+
+describe("wrap image in a content control", () => {
+  const para = (id: string): Paragraph =>
+    ({ kind: "paragraph", id, revision: 0, runs: [{ text: "", style: {} as never }], style: {} as never });
+  const cellImageDoc = (): Document => ({
+    section: SECTION,
+    blocks: [{ kind: "table", id: "t", revision: 0, rows: [{ cells: [{ id: "c", blocks: [img("ci"), para("p")] }] }] } as TableBlock],
+  });
+
+  it("tags a top-level image with a fresh control id and registers its props", () => {
+    const out = apply({ doc: docOf(img("a")), selection: null }, wrapImageInContentControl("a", "richText", { alias: "Pic" }));
+    const image = imageOf(out, "a");
+    expect(image.sdtPath?.length).toBe(1);
+    const id = image.sdtPath![0]!;
+    expect(out.sdts?.[id]).toMatchObject({ type: "richText", alias: "Pic" });
+  });
+
+  it("nests: wrapping an already-wrapped image appends to its existing ancestry", () => {
+    const once = apply({ doc: docOf(img("a")), selection: null }, wrapImageInContentControl("a"));
+    const outer = imageOf(once, "a").sdtPath![0]!;
+    const twice = apply({ doc: once, selection: null }, wrapImageInContentControl("a"));
+    const path = imageOf(twice, "a").sdtPath!;
+    expect(path.length).toBe(2);
+    expect(path[0]).toBe(outer); // outer ancestry preserved, new id appended inside
+  });
+
+  it("wraps an image that lives in a table cell", () => {
+    const out = apply({ doc: cellImageDoc(), selection: null }, wrapImageInContentControl("ci"));
+    const cellImg = (out.blocks[0] as TableBlock).rows[0]!.cells[0]!.blocks[0] as ImageBlock;
+    expect(cellImg.sdtPath?.length).toBe(1);
+    expect(out.sdts?.[cellImg.sdtPath![0]!]).toMatchObject({ type: "richText" });
+  });
+
+  it("round-trips: removeContentControl strips the id off a top-level image and drops its props", () => {
+    const wrapped = apply({ doc: docOf(img("a")), selection: null }, wrapImageInContentControl("a"));
+    const id = imageOf(wrapped, "a").sdtPath![0]!;
+    const out = apply({ doc: wrapped, selection: null }, removeContentControl(id, false));
+    expect(imageOf(out, "a").sdtPath).toBeUndefined();
+    expect(out.sdts?.[id]).toBeUndefined();
+  });
+
+  it("round-trips a cell image: removeContentControl clears the cell image's sdtPath", () => {
+    const wrapped = apply({ doc: cellImageDoc(), selection: null }, wrapImageInContentControl("ci"));
+    const id = ((wrapped.blocks[0] as TableBlock).rows[0]!.cells[0]!.blocks[0] as ImageBlock).sdtPath![0]!;
+    const out = apply({ doc: wrapped, selection: null }, removeContentControl(id, false));
+    const cellImg = (out.blocks[0] as TableBlock).rows[0]!.cells[0]!.blocks[0] as ImageBlock;
+    expect(cellImg.sdtPath).toBeUndefined();
+    expect(out.sdts?.[id]).toBeUndefined();
+  });
+});
