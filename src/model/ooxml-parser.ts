@@ -705,20 +705,34 @@ export class OoxmlParser {
       blip = { rId: blipEl.getAttribute('r:embed') || undefined }
     }
 
-    // Position H
+    // Position H (ISO/IEC 29500 §20.4.3: <wp:posOffset> contains EMU integer text)
     const posH = xmlFirst(el, 'positionH')
+    let offsetH = wordInt(xmlFirst(posH, 'offset'), 'val')
+    if (offsetH === undefined && posH) {
+      const posOffsetEl = xmlFirst(posH, 'posOffset')
+      if (posOffsetEl && posOffsetEl.textContent) {
+        offsetH = Number(posOffsetEl.textContent.trim())
+      }
+    }
     const positionH = posH ? {
       relativeFrom: posH.getAttribute('relativeFrom') || 'column',
       align: xmlFirst(posH, 'align')?.textContent || undefined,
-      offset: wordInt(xmlFirst(posH, 'offset'), 'val'),
+      offset: offsetH,
     } : { relativeFrom: 'column' }
 
-    // Position V
+    // Position V (ISO/IEC 29500 §20.4.3: <wp:posOffset> contains EMU integer text)
     const posV = xmlFirst(el, 'positionV')
+    let offsetV = wordInt(xmlFirst(posV, 'offset'), 'val')
+    if (offsetV === undefined && posV) {
+      const posOffsetEl = xmlFirst(posV, 'posOffset')
+      if (posOffsetEl && posOffsetEl.textContent) {
+        offsetV = Number(posOffsetEl.textContent.trim())
+      }
+    }
     const positionV = posV ? {
       relativeFrom: posV.getAttribute('relativeFrom') || 'paragraph',
       align: xmlFirst(posV, 'align')?.textContent || undefined,
-      offset: wordInt(xmlFirst(posV, 'offset'), 'val'),
+      offset: offsetV,
     } : { relativeFrom: 'paragraph' }
 
     // Wrap

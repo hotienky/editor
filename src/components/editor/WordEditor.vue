@@ -650,7 +650,7 @@ const copyCompatibilityIssues = async () => {
   }
 }
 
-export interface CommentItem {
+interface CommentItem {
   id: string
   author: string
   userId?: string
@@ -689,7 +689,7 @@ const props = withDefaults(defineProps<{
   document: () => ({}),
   page: () => ({}),
   dicts: () => ({}),
-  ooxmlNative: false,
+  ooxmlNative: true,
 })
 
 const emits = defineEmits([

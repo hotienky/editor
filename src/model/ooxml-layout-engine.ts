@@ -48,6 +48,7 @@ import { OoxmlTextMeasurer } from './ooxml-text-measurer'
 import { breakIntoLines } from './ooxml-line-breaker'
 import { NumberingEngine } from './numbering-engine'
 import { StyleResolver } from './style-resolver'
+import { FontLoader } from './font-loader'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -104,9 +105,11 @@ export class OoxmlLayoutEngine {
   private _options: Required<LayoutOptions>
   private _resolver: StyleResolver | null = null
   private _numbering: NumberingEngine | null = null
+  private _fontLoader: FontLoader | null = null
 
   constructor(options?: LayoutOptions) {
-    this._measurer = new OoxmlTextMeasurer()
+    this._fontLoader = new FontLoader()
+    this._measurer = new OoxmlTextMeasurer(this._fontLoader)
     this._options = {
       defaultSz: options?.defaultSz ?? 24,
       defaultFontFamily: options?.defaultFontFamily ?? 'Times New Roman',
@@ -122,6 +125,9 @@ export class OoxmlLayoutEngine {
     // Create StyleResolver from package styles and theme
     this._resolver = new StyleResolver(pkg.styles, pkg.theme)
     this._numbering = new NumberingEngine(pkg.numbering)
+
+    // Load fonts before layout (non-blocking — uses available system fonts)
+    this._fontLoader?.loadFonts(pkg.fontTable, pkg.theme)
 
     const sections = this._extractSections(pkg.document.body)
     const allBlocks: LayoutBlock[] = []
@@ -147,7 +153,38 @@ export class OoxmlLayoutEngine {
         section.isFirst,
       )
 
+      // Resolve section headers and footers (ISO/IEC 29500 §17.10)
+      let headerLayout: { blocks: LayoutBlock[]; height: number } | undefined
+      if (pkg.headers && pkg.headers.size > 0) {
+        const headerPart = Array.from(pkg.headers.values())[0]
+        if (headerPart && headerPart.content.length > 0) {
+          const hBlocks = this._layoutSectionBlocks(
+            headerPart.content.map(c => ({ type: c.type, data: c })),
+            pkg,
+            geometry
+          )
+          const hHeight = hBlocks.reduce((s, b) => s + this._getBlockHeight(b), 0)
+          headerLayout = { blocks: hBlocks, height: hHeight }
+        }
+      }
+
+      let footerLayout: { blocks: LayoutBlock[]; height: number } | undefined
+      if (pkg.footers && pkg.footers.size > 0) {
+        const footerPart = Array.from(pkg.footers.values())[0]
+        if (footerPart && footerPart.content.length > 0) {
+          const fBlocks = this._layoutSectionBlocks(
+            footerPart.content.map(c => ({ type: c.type, data: c })),
+            pkg,
+            geometry
+          )
+          const fHeight = fBlocks.reduce((s, b) => s + this._getBlockHeight(b), 0)
+          footerLayout = { blocks: fBlocks, height: fHeight }
+        }
+      }
+
       for (const page of sectionPages) {
+        if (headerLayout) page.header = headerLayout
+        if (footerLayout) page.footer = footerLayout
         allBlocks.push(...page.blocks)
         pages.push(page)
       }
@@ -335,6 +372,11 @@ export class OoxmlLayoutEngine {
       numbering,
       styleId: rawPPr?.pStyle,
       pPr: pPr as Record<string, unknown>,
+      keepNext: pPr?.keepNext,
+      keepLines: pPr?.keepLines,
+      widowControl: pPr?.widowControl !== false,
+      pageBreakBefore: pPr?.pageBreakBefore,
+      tabs: pPr?.tabs as LayoutParagraph['tabs'],
     }
   }
 
@@ -370,8 +412,11 @@ export class OoxmlLayoutEngine {
               rPr: mergedRPr as Record<string, unknown>,
             })
           } else if (node.type === 'tab') {
-            // Calculate tab stop position
-            const tabWidth = this._calculateTabWidth(result, pPr)
+            // Measure following text segment width for Center/Right tab stops (ISO §17.3.1.37)
+            const itemIdx = content.indexOf(item)
+            const nodeIdx = run.content.indexOf(node)
+            const followingWidth = this._measureFollowingSegmentWidth(content, itemIdx, nodeIdx, defaultRPr, pkg)
+            const tabWidth = this._calculateTabWidth(result, followingWidth, pPr)
             result.push({
               kind: 'tab',
               text: '',
@@ -400,12 +445,14 @@ export class OoxmlLayoutEngine {
               ref.id,
             ))
           } else if (node.type === 'drawing') {
-            // Inline image placeholder: use emuWidth from drawing
-            const drawing = node as unknown as { type: string; [key: string]: unknown }
-            const extent = (drawing as any).inline?.extent
+            // Support both inline drawings and floating anchor drawings (ISO/IEC 29500 §19)
+            const drawing = node as unknown as { type: string; inline?: any; anchor?: any }
+            const extent = drawing.inline?.extent || drawing.anchor?.extent
             if (extent) {
               const emuW = extent.cx || 0
+              const emuH = extent.cy || 0
               const widthTwips = Math.round(emuW / 914400 * 1440)
+              const heightTwips = Math.round(emuH / 914400 * 1440)
               result.push({
                 kind: 'drawing',
                 text: '',
@@ -413,7 +460,13 @@ export class OoxmlLayoutEngine {
                 widthPx: twipsToPx(widthTwips),
                 sz: 0,
                 fontFamily: '',
-                rPr: mergedRPr as Record<string, unknown>,
+                rPr: {
+                  ...mergedRPr,
+                  drawingExtent: extent,
+                  drawingBlip: drawing.inline?.blip || drawing.anchor?.blip,
+                  drawingAnchor: drawing.anchor,
+                  heightTwips,
+                } as any,
               })
             }
           }
@@ -494,28 +547,89 @@ export class OoxmlLayoutEngine {
    * Calculate the width to the next tab stop.
    * Falls back to a default 720 twips (0.5 inch) if no tab stops defined.
    */
-  private _calculateTabWidth(fragments: TextFragment[], pPr?: ParagraphProperties): number {
-    const tabStops = pPr?.tabs
-    if (!tabStops || tabStops.length === 0) {
-      return 720 // default 0.5 inch
+  /**
+   * Measure the width of following text runs in the current segment (until next tab or break).
+   * Needed for ISO/IEC 29500 §17.3.1.37 Center and Right Tab Stop positioning.
+   */
+  private _measureFollowingSegmentWidth(
+    content: Array<{ type: string; content?: any[] }>,
+    startItemIdx: number,
+    startNodeIdx: number,
+    defaultRPr: RunProperties | undefined,
+    pkg: OoxmlPackage,
+  ): number {
+    let width = 0
+    for (let i = startItemIdx; i < content.length; i++) {
+      const item = content[i]
+      if (item.type === 'run') {
+        const run = item as unknown as Run
+        const mergedRPr = this._mergeRunPropertiesForRun(defaultRPr, run.rPr)
+        const nodes = run.content || []
+        const startN = (i === startItemIdx) ? startNodeIdx + 1 : 0
+        for (let j = startN; j < nodes.length; j++) {
+          const node = nodes[j]
+          if (node.type === 'tab' || node.type === 'break') {
+            return width
+          }
+          if (node.type === 'text') {
+            const t = (node as Text).text
+            if (t) {
+              const frag = this._measurer.measureRun(t, mergedRPr, pkg.theme ?? undefined)
+              width += frag.width
+            }
+          }
+        }
+      }
     }
+    return width
+  }
 
-    // Calculate current X position from existing fragments
-    let currentX = 0
+  /**
+   * Calculate the width to the next tab stop with ISO/IEC 29500 §17.3.1.37 compliance.
+   * Supports left, center, right tab alignments.
+   */
+  private _calculateTabWidth(
+    fragments: TextFragment[],
+    followingWidth: number,
+    pPr?: ParagraphProperties,
+  ): number {
+    // Calculate current X position including paragraph indentation (ISO §17.3.1.37)
+    let startIndent = 0
+    if (pPr?.ind) {
+      const left = pPr.ind.left ?? 0
+      const firstLine = pPr.ind.hanging ? -pPr.ind.hanging : (pPr.ind.firstLine ?? 0)
+      startIndent = left + firstLine
+    }
+    let currentX = startIndent
     for (const f of fragments) {
       currentX += f.width
     }
 
-    // Find the next tab stop after current position
-    const sorted = [...tabStops].sort((a, b) => a.pos - b.pos)
-    for (const ts of sorted) {
-      if (ts.pos > currentX) {
-        return ts.pos - currentX
+    const defaultInterval = 720 // 0.5 inch in twips
+    const tabStops = pPr?.tabs
+
+    if (tabStops && tabStops.length > 0) {
+      const sorted = [...tabStops].sort((a, b) => a.pos - b.pos)
+      for (const ts of sorted) {
+        // ISO §17.3.1.37: Center tab centers following text around ts.pos
+        // Right tab aligns right edge of following text at ts.pos
+        // Left tab aligns left edge of following text at ts.pos
+        let targetStartX = ts.pos
+        if (ts.val === 'center') {
+          targetStartX = ts.pos - Math.round(followingWidth / 2)
+        } else if (ts.val === 'right') {
+          targetStartX = ts.pos - followingWidth
+        }
+
+        if (targetStartX > currentX || ts.pos > currentX) {
+          return Math.max(50, targetStartX - currentX)
+        }
       }
     }
 
-    // Wrap around to first tab stop
-    return sorted[0].pos + (sorted[sorted.length - 1].pos - currentX)
+    // Snap to the next default tab stop boundary (Left tab)
+    const nextTabStop = Math.ceil((currentX + 1) / defaultInterval) * defaultInterval
+    return Math.max(50, nextTabStop - currentX)
   }
 
   private _resolveIndentation(
@@ -683,11 +797,35 @@ export class OoxmlLayoutEngine {
     const bandSize = tblPr?.tblStyleRowBandSize ?? 1
     const bandIndex = Math.floor((rowIndex ?? 0) / bandSize)
 
+    let colIdx = 0
     for (let i = 0; i < row.content.length; i++) {
       const cell = row.content[i]
-      const cellWidth = gridCols[i]?.width ?? 0
-      const layoutCell = this._layoutTableCell(cell, cellWidth, pkg, tblPr, isFirstRow, isLastRow, i === 0, i === row.content.length - 1)
+      const tcPr = cell.tcPr as any
+      const gridSpan = Number(tcPr?.gridSpan ?? 1)
+
+      // Accumulate widths of all spanned columns (ISO/IEC 29500 §17.4.17)
+      let cellWidth = 0
+      for (let k = 0; k < gridSpan; k++) {
+        cellWidth += gridCols[colIdx + k]?.width ?? 0
+      }
+      if (cellWidth === 0) {
+        cellWidth = gridCols[colIdx]?.width ?? 0
+      }
+
+      const isFirstCol = colIdx === 0
+      const isLastCol = colIdx + gridSpan >= gridCols.length
+      const layoutCell = this._layoutTableCell(
+        cell,
+        cellWidth,
+        pkg,
+        tblPr,
+        isFirstRow,
+        isLastRow,
+        isFirstCol,
+        isLastCol,
+      )
       cells.push(layoutCell)
+      colIdx += gridSpan
     }
 
     return {
@@ -708,18 +846,24 @@ export class OoxmlLayoutEngine {
   ): LayoutTableCell {
     const content: LayoutBlock[] = []
 
+    // Subtract cell margins / padding so text inside cell does not overflow or wrap unnecessarily
+    const tcPr = cell.tcPr as any
+    const marLeft = tcPr?.tcMar?.left?.w ?? tblPr?.tblCellMar?.left?.w ?? 108 // ~5.4pt default
+    const marRight = tcPr?.tcMar?.right?.w ?? tblPr?.tblCellMar?.right?.w ?? 108
+    const cellContentWidth = Math.max(100, width - marLeft - marRight)
+
     for (const child of cell.content) {
       if (child.type === 'paragraph') {
         const layoutPara = this._layoutParagraph(
           child as Paragraph,
-          width,
+          cellContentWidth,
           pkg,
         )
         content.push({ type: 'paragraph', data: layoutPara })
       } else if (child.type === 'table') {
         const layoutTable = this._layoutTable(
           child as Table,
-          width,
+          cellContentWidth,
           pkg,
         )
         content.push({ type: 'table', data: layoutTable })
@@ -751,17 +895,143 @@ export class OoxmlLayoutEngine {
     )
     let remainingHeight = geometry.contentH
 
+    // Pre-compute keepNext chains: find groups of blocks that must stay together
+    const keepGroups = this._computeKeepGroups(blocks)
+
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i]
       const blockHeight = this._getBlockHeight(block)
 
-      // Check if block fits on current page
+      // pageBreakBefore: force new page
+      if (block.type === 'paragraph' && block.data.pageBreakBefore) {
+        if (currentPage.blocks.length > 0) {
+          pages.push(currentPage)
+        }
+        currentPage = this._createPage(
+          startPageNumber + pages.length,
+          geometry,
+          sectionIndex,
+          false,
+        )
+        remainingHeight = geometry.contentH
+      }
+
+      // Check if this block is part of a keepNext group
+      const groupId = keepGroups.get(i)
+      if (groupId !== undefined) {
+        // Find the full group
+        const groupStart = keepGroups.get(i) ?? i
+        let groupEnd = i
+        while (groupEnd + 1 < blocks.length && keepGroups.get(groupEnd + 1) === groupId) {
+          groupEnd++
+        }
+
+        // Calculate total group height
+        let groupHeight = 0
+        for (let g = groupStart; g <= groupEnd; g++) {
+          groupHeight += this._getBlockHeight(blocks[g])
+        }
+
+        // If the whole group doesn't fit, move it to next page
+        if (groupHeight > remainingHeight && currentPage.blocks.length > 0) {
+          pages.push(currentPage)
+          currentPage = this._createPage(
+            startPageNumber + pages.length,
+            geometry,
+            sectionIndex,
+            false,
+          )
+          remainingHeight = geometry.contentH
+        }
+
+        // Add blocks from groupStart to groupEnd
+        for (let g = groupStart; g <= groupEnd; g++) {
+          if (g < i) continue // already processed
+          const gBlock = blocks[g]
+          const gHeight = this._getBlockHeight(gBlock)
+
+          if (gBlock.type === 'paragraph' && gBlock.data.keepLines) {
+            // keepLines: try to fit entire paragraph, or move to next page
+            if (gHeight > remainingHeight && currentPage.blocks.length > 0) {
+              pages.push(currentPage)
+              currentPage = this._createPage(
+                startPageNumber + pages.length,
+                geometry,
+                sectionIndex,
+                false,
+              )
+              remainingHeight = geometry.contentH
+            }
+          }
+
+          currentPage.blocks.push(gBlock)
+          currentPage.usedHeight += gHeight
+          remainingHeight -= gHeight
+        }
+
+        i = groupEnd // skip processed group
+        continue
+      }
+
+      // Standard block fitting
       if (blockHeight <= remainingHeight) {
         currentPage.blocks.push(block)
         currentPage.usedHeight += blockHeight
         remainingHeight -= blockHeight
+      } else if (block.type === 'paragraph' && block.data.lines.length > 1) {
+        // Paragraph splitting: split at line boundary
+        const splitResult = this._splitParagraph(block, remainingHeight)
+        if (splitResult.first !== null) {
+          currentPage.blocks.push(splitResult.first)
+          currentPage.usedHeight += splitResult.firstHeight
+        }
+        // Start new page with remaining lines
+        pages.push(currentPage)
+        currentPage = this._createPage(
+          startPageNumber + pages.length,
+          geometry,
+          sectionIndex,
+          false,
+        )
+        remainingHeight = geometry.contentH
+
+        if (splitResult.rest !== null) {
+          // Apply widow/orphan control on the continuation
+          const restHeight = splitResult.restHeight
+          if (restHeight > remainingHeight) {
+            // Rest doesn't fit — recurse
+            currentPage.blocks.push(splitResult.rest)
+            currentPage.usedHeight += restHeight
+            remainingHeight -= restHeight
+          } else {
+            currentPage.blocks.push(splitResult.rest)
+            currentPage.usedHeight += restHeight
+            remainingHeight -= restHeight
+          }
+        }
+      } else if (block.type === 'table') {
+        // Table: try row-level splitting
+        const splitResult = this._splitTable(block, remainingHeight)
+        if (splitResult.first !== null) {
+          currentPage.blocks.push(splitResult.first)
+          currentPage.usedHeight += splitResult.firstHeight
+        }
+        pages.push(currentPage)
+        currentPage = this._createPage(
+          startPageNumber + pages.length,
+          geometry,
+          sectionIndex,
+          false,
+        )
+        remainingHeight = geometry.contentH
+
+        if (splitResult.rest !== null) {
+          currentPage.blocks.push(splitResult.rest)
+          currentPage.usedHeight += splitResult.restHeight
+          remainingHeight -= splitResult.restHeight
+        }
       } else {
-        // Block doesn't fit — start new page
+        // Block doesn't fit — move to new page
         if (currentPage.blocks.length > 0) {
           pages.push(currentPage)
         }
@@ -787,6 +1057,195 @@ export class OoxmlLayoutEngine {
     }
 
     return pages
+  }
+
+  /**
+   * Compute keepNext groups: blocks that must stay together.
+   * A keepNext group includes a block and all following blocks until one without keepNext.
+   */
+  private _computeKeepGroups(blocks: LayoutBlock[]): Map<number, number> {
+    const groups = new Map<number, number>()
+    let groupId = 0
+
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]
+      if (block.type === 'paragraph' && block.data.keepNext) {
+        // Start or extend a group
+        const existingGroup = groups.get(i - 1)
+        const gid = existingGroup !== undefined ? existingGroup : groupId++
+        groups.set(i, gid)
+        // Also mark the next block as part of this group
+        if (i + 1 < blocks.length) {
+          groups.set(i + 1, gid)
+        }
+      } else if (groups.has(i)) {
+        // Already marked as part of a group (continuation)
+        // Mark next block too if current has keepNext
+        if (block.type === 'paragraph' && block.data.keepNext && i + 1 < blocks.length) {
+          groups.set(i + 1, groups.get(i)!)
+        }
+      }
+    }
+
+    return groups
+  }
+
+  /**
+   * Split a paragraph at a line boundary.
+   * Returns first part (fits on current page) and rest (goes to next page).
+   */
+  private _splitParagraph(
+    block: LayoutBlock & { type: 'paragraph' },
+    availableHeight: number,
+  ): {
+    first: LayoutBlock | null
+    firstHeight: number
+    rest: LayoutBlock | null
+    restHeight: number
+  } {
+    const para = block.data
+    if (para.lines.length <= 1) {
+      // Single line — can't split
+      return { first: null, firstHeight: 0, rest: block, restHeight: para.height }
+    }
+
+    // Find the best split point
+    let splitLine = 0
+    let accumulatedHeight = 0
+
+    for (let i = 0; i < para.lines.length; i++) {
+      const lineHeight = para.lines[i].height
+      if (accumulatedHeight + lineHeight > availableHeight) {
+        break
+      }
+      accumulatedHeight += lineHeight
+      splitLine = i + 1
+    }
+
+    // Ensure minimum lines for widow/orphan control
+    const minTopLines = WIDOW_LINES
+    const minBottomLines = ORPHAN_LINES
+
+    if (para.widowControl !== false) {
+      // Don't leave fewer than minBottomLines at the bottom
+      if (para.lines.length - splitLine < minBottomLines && splitLine > 0) {
+        splitLine = Math.max(minTopLines, para.lines.length - minBottomLines)
+      }
+      // Don't leave fewer than minTopLines at the top
+      if (splitLine < minTopLines && para.lines.length > minTopLines) {
+        splitLine = minTopLines
+      }
+    }
+
+    // Clamp
+    splitLine = Math.max(1, Math.min(splitLine, para.lines.length - 1))
+
+    const firstLines = para.lines.slice(0, splitLine)
+    const restLines = para.lines.slice(splitLine)
+
+    const firstHeight = firstLines.reduce((sum, l) => sum + l.height, 0) +
+      para.spacingBefore + para.spacingAfter
+    const restHeight = restLines.reduce((sum, l) => sum + l.height, 0) +
+      para.spacingBefore + para.spacingAfter
+
+    const first: LayoutParagraph = {
+      ...para,
+      lines: firstLines,
+      height: firstHeight,
+      // No spacing after on the split (continuation has it)
+      spacingAfter: 0,
+    }
+
+    const rest: LayoutParagraph = {
+      ...para,
+      lines: restLines,
+      height: restHeight,
+      // No spacing before on the continuation
+      spacingBefore: 0,
+    }
+
+    return {
+      first: { type: 'paragraph', data: first },
+      firstHeight,
+      rest: { type: 'paragraph', data: rest },
+      restHeight,
+    }
+  }
+
+  /**
+   * Split a table at row boundaries.
+   * Returns rows that fit and rows that go to next page.
+   */
+  private _splitTable(
+    block: LayoutBlock & { type: 'table' },
+    availableHeight: number,
+  ): {
+    first: LayoutBlock | null
+    firstHeight: number
+    rest: LayoutBlock | null
+    restHeight: number
+  } {
+    const table = block.data
+    if (!table.rows || table.rows.length === 0) {
+      return { first: null, firstHeight: 0, rest: block, restHeight: 0 }
+    }
+
+    let accumulatedHeight = 0
+    let splitRow = 0
+
+    for (let i = 0; i < table.rows.length; i++) {
+      const rowHeight = this._getRowHeight(table.rows[i])
+      if (accumulatedHeight + rowHeight > availableHeight) {
+        break
+      }
+      accumulatedHeight += rowHeight
+      splitRow = i + 1
+    }
+
+    // Must split at least one row
+    if (splitRow === 0) splitRow = 1
+
+    const firstRows = table.rows.slice(0, splitRow)
+    const restRows = table.rows.slice(splitRow)
+
+    const firstHeight = firstRows.reduce((sum, r) => sum + this._getRowHeight(r), 0)
+    const restHeight = restRows.reduce((sum, r) => sum + this._getRowHeight(r), 0)
+
+    const first: LayoutTable = {
+      ...table,
+      rows: firstRows,
+      width: table.width,
+    }
+
+    const rest: LayoutTable = {
+      ...table,
+      rows: restRows,
+      width: table.width,
+    }
+
+    return {
+      first: { type: 'table', data: first },
+      firstHeight,
+      rest: restRows.length > 0 ? { type: 'table', data: rest } : null,
+      restHeight,
+    }
+  }
+
+  /**
+   * Get the height of a single table row.
+   */
+  private _getRowHeight(row: LayoutTableRow): number {
+    if (!row.cells || row.cells.length === 0) return row.height || 0
+    return Math.max(
+      ...row.cells.map((cell) => {
+        if (!cell.content || cell.content.length === 0) return 0
+        return cell.content.reduce((s, child) => {
+          if (child.type === 'paragraph') return s + child.data.height
+          return s + this._getTableHeight(child.data)
+        }, 0)
+      }),
+      row.height,
+    )
   }
 
   private _createPage(
@@ -821,18 +1280,7 @@ export class OoxmlLayoutEngine {
   private _getTableHeight(table: LayoutTable): number {
     if (!table.rows || table.rows.length === 0) return 0
     return table.rows.reduce((sum, row) => {
-      if (!row.cells || row.cells.length === 0) return sum + (row.height || 0)
-      const rowHeight = Math.max(
-        ...row.cells.map((cell) => {
-          if (!cell.content || cell.content.length === 0) return 0
-          return cell.content.reduce((s, child) => {
-            if (child.type === 'paragraph') return s + child.data.height
-            return s + this._getTableHeight(child.data)
-          }, 0)
-        }),
-        row.height,
-      )
-      return sum + rowHeight
+      return sum + this._getRowHeight(row)
     }, 0)
   }
 

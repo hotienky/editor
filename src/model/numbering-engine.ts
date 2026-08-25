@@ -68,24 +68,33 @@ function toRoman(num: number, upper: boolean): string {
 
 function formatNumber(num: number, numFmt: string): string {
   switch (numFmt) {
-    case 'decimal':
+    case "decimal":
       return String(num)
-    case 'decimalZero':
-      return num < 10 ? `0${num}` : String(num)
-    case 'lowerLetter':
-    case 'lowerAlpha':
+    case "decimalZero":
+      return num < 10 ? "0" + num : String(num)
+    case "lowerLetter":
+    case "lowerAlpha":
       return String.fromCharCode(96 + ((num - 1) % 26) + 1) // a-z
-    case 'upperLetter':
-    case 'upperAlpha':
+    case "upperLetter":
+    case "upperAlpha":
       return String.fromCharCode(64 + ((num - 1) % 26) + 1) // A-Z
-    case 'lowerRoman':
+    case "lowerRoman":
       return toRoman(num, false)
-    case 'upperRoman':
+    case "upperRoman":
       return toRoman(num, true)
-    case 'bullet':
-      return '\u2022' // •
-    case 'none':
-      return ''
+    case "bullet":
+      return "\u2022" // •
+    case "decimalEnclosedCircle":
+      return num >= 1 && num <= 20 ? String.fromCharCode(0x2460 + num - 1) : String(num)
+    case "decimalEnclosedParen":
+      return "(" + num + ")"
+    case "ordinal": {
+      const s = ["th", "st", "nd", "rd"]
+      const v = num % 100
+      return num + (s[(v - 20) % 10] || s[v] || s[0])
+    }
+    case "none":
+      return ""
     default:
       return String(num)
   }

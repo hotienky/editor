@@ -48,12 +48,12 @@ class TextBatcher {
   private _font = ''
   private _color = ''
 
-  record(ctx: CanvasRenderingContext2D, char: string, x: number, y: number, font: string, color: string): void {
+  record(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, font: string, color: string): void {
     if (this._text.length > 0 && Math.abs(y - this._y) < 0.5 && this._font === font && this._color === color) {
-      this._text += char
+      this._text += text
     } else {
       this.complete(ctx)
-      this._text = char
+      this._text = text
       this._x = x
       this._y = y
       this._font = font
@@ -101,6 +101,12 @@ export class OoxmlPainter {
   private _opts: Required<PainterOptions>
   private _positions: BlockPosition[] = []
   private _pageOffsets: number[] = []
+  private _mediaCache = new Map<string, HTMLImageElement>()
+  private _mediaMap: Map<string, Uint8Array> | null = null
+
+  setMedia(media: Map<string, Uint8Array> | null): void {
+    this._mediaMap = media
+  }
 
   constructor(options?: PainterOptions) {
     this._opts = { ...DEFAULTS, ...options }
@@ -170,15 +176,31 @@ export class OoxmlPainter {
     const g = page.geometry
     const marginLeft = this._twipToPx(g.marginLeft)
     const marginTop = this._twipToPx(g.marginTop)
-    let cursorY = yOffset + marginTop
-
     const textBatcher = new TextBatcher()
 
+    // Draw Header (if present on page)
+    if (page.header && page.header.blocks.length > 0) {
+      const headerTop = yOffset + this._twipToPx(g.headerMargin || 720)
+      let hCursorY = headerTop
+      for (let hi = 0; hi < page.header.blocks.length; hi++) {
+        const hb = page.header.blocks[hi]
+        if (hb.type === "paragraph") {
+          const r = this._drawParagraph(ctx, hb.data, marginLeft, hCursorY, pageIndex, -1, textBatcher)
+          hCursorY += r.height
+        } else if (hb.type === "table") {
+          const r = this._drawTable(ctx, hb.data, marginLeft, hCursorY, pageIndex, -1, textBatcher)
+          hCursorY += r
+        }
+      }
+    }
+
+    // Draw Main Body Blocks
+    let cursorY = yOffset + marginTop
     for (let bi = 0; bi < page.blocks.length; bi++) {
       const block = page.blocks[bi]
       const bx = marginLeft
 
-      if (block.type === 'paragraph') {
+      if (block.type === "paragraph") {
         const result = this._drawParagraph(ctx, block.data, bx, cursorY, pageIndex, bi, textBatcher)
         cursorY += result.height
         this._positions.push({
@@ -187,7 +209,7 @@ export class OoxmlPainter {
           width: this._twipToPx(block.data.rightIndent ? g.contentW - block.data.leftIndent - block.data.rightIndent : g.contentW),
           height: result.height,
         })
-      } else if (block.type === 'table') {
+      } else if (block.type === "table") {
         const tableH = this._drawTable(ctx, block.data, bx, cursorY, pageIndex, bi, textBatcher)
         cursorY += tableH
         this._positions.push({
@@ -196,6 +218,20 @@ export class OoxmlPainter {
           width: this._twipToPx(block.data.width),
           height: tableH,
         })
+      }
+    }
+
+    // Draw Footer (if present on page)
+    if (page.footer && page.footer.blocks.length > 0) {
+      const pageHPx = this._twipToPx(g.pageH)
+      const footerBottom = yOffset + pageHPx - this._twipToPx(g.footerMargin || 720)
+      let fCursorY = footerBottom
+      for (let fi = 0; fi < page.footer.blocks.length; fi++) {
+        const fb = page.footer.blocks[fi]
+        if (fb.type === "paragraph") {
+          const r = this._drawParagraph(ctx, fb.data, marginLeft, fCursorY, pageIndex, -2, textBatcher)
+          fCursorY += r.height
+        }
       }
     }
 
@@ -212,49 +248,179 @@ export class OoxmlPainter {
     batcher: TextBatcher,
   ): { height: number } {
     let cursorY = y + this._twipToPx(para.spacingBefore)
-    const indent = this._twipToPx(para.leftIndent + para.firstLineIndent)
 
-    for (const line of para.lines) {
-      let cursorX = x + indent
+    // Draw paragraph shading (background)
+    const pPr = para.pPr as any
+    if (pPr?.shd?.fill && pPr.shd.fill !== "auto" && pPr.shd.fill !== "FFFFFF") {
+      ctx.save()
+      ctx.fillStyle = "#" + pPr.shd.fill
+      const totalHeightPx = this._twipToPx(para.lines.reduce((s, l) => s + l.height, 0))
+      const totalWidthPx = this._twipToPx(para.lines.reduce((max, l) => Math.max(max, l.width), 0))
+      ctx.fillRect(x, cursorY, totalWidthPx, totalHeightPx)
+      ctx.restore()
+    }
+
+    for (let lineIdx = 0; lineIdx < para.lines.length; lineIdx++) {
+      const line = para.lines[lineIdx]
+      const lineHeightPx = this._twipToPx(line.height)
+      const lineAscentPx = this._twipToPx(line.ascent)
+      const lineTop = cursorY
+      const lineBaseline = cursorY + lineAscentPx
+
+      // Apply firstLineIndent ONLY on the first line (lineIdx === 0)
+      const lineIndent = lineIdx === 0
+        ? para.leftIndent + para.firstLineIndent
+        : para.leftIndent
+      let cursorX = x + this._twipToPx(lineIndent)
 
       for (const frag of line.fragments) {
-        // Skip non-text fragments (breaks are handled by line wrapping, tabs by width)
-        if (frag.kind === 'break' || frag.kind === 'drawing') continue
+        if (frag.kind === "break") continue
+
+        if (frag.kind === "drawing") {
+          const blip = (frag.rPr as any)?.drawingBlip
+          const embedId = blip?.embed || blip?.link || "image1.png"
+          const wPx = this._twipToPx(frag.width)
+          const hPx = this._twipToPx((frag.rPr as any)?.heightTwips || frag.width)
+
+          if (this._mediaMap && typeof document !== "undefined") {
+            let img = this._mediaCache.get(embedId)
+            if (!img) {
+              let mediaData = this._mediaMap.get(embedId)
+              if (!mediaData) {
+                for (const [k, v] of this._mediaMap) {
+                  if (k.includes(embedId) || embedId.includes(k) || k.endsWith(".png") || k.endsWith(".jpg") || k.endsWith(".jpeg")) {
+                    mediaData = v
+                    break
+                  }
+                }
+              }
+              if (mediaData) {
+                const blob = new Blob([mediaData], { type: "image/png" })
+                img = new Image()
+                img.src = URL.createObjectURL(blob)
+                this._mediaCache.set(embedId, img)
+              }
+            }
+            if (img && img.complete && img.naturalWidth > 0) {
+              ctx.drawImage(img, cursorX, lineTop, wPx, hPx)
+            }
+          }
+          cursorX += wPx
+          continue
+        }
 
         const font = this._buildFont(frag)
         const color = frag.color || this._opts.defaultColor
 
-        if (frag.kind === 'tab') {
-          // Tab: advance cursor by fragment width (already calculated by layout engine)
+        if (frag.kind === "tab") {
           cursorX += this._twipToPx(frag.width)
           continue
         }
 
-        // Footnote/endnote reference: render as superscript bracket text
-        if (frag.kind === 'footnoteRef' || frag.kind === 'endnoteRef') {
-          for (const char of frag.text) {
-            const charW = this._measureCharWidth(char, font)
-            batcher.record(ctx, char, cursorX, cursorY, font, color)
-            cursorX += charW
-          }
-          continue
-        }
+        // Render full text fragment preserving Unicode combining marks
+        if (frag.text) {
+          const textW = this._twipToPx(frag.width)
 
-        for (const char of frag.text) {
-          const charW = this._measureCharWidth(char, font)
-          batcher.record(ctx, char, cursorX, cursorY, font, color)
-          cursorX += charW
+          // Highlight
+          if (frag.highlight) {
+            ctx.save()
+            ctx.fillStyle = this._resolveHighlightColor(frag.highlight)
+            ctx.fillRect(cursorX, lineTop, textW, lineHeightPx)
+            ctx.restore()
+          }
+
+          // Text shading (run-level background)
+          if (frag.shd?.fill && frag.shd.fill !== "auto" && frag.shd.fill !== "FFFFFF") {
+            ctx.save()
+            ctx.fillStyle = "#" + frag.shd.fill
+            ctx.fillRect(cursorX, lineTop, textW, lineHeightPx)
+            ctx.restore()
+          }
+
+          batcher.record(ctx, frag.text, cursorX, lineBaseline, font, color)
+
+          // Strikethrough
+          if (frag.strike || frag.dstrike) {
+            ctx.save()
+            ctx.strokeStyle = color
+            ctx.lineWidth = 1
+            const strikeY = lineBaseline - lineAscentPx * 0.35
+            ctx.beginPath()
+            ctx.moveTo(cursorX, strikeY)
+            ctx.lineTo(cursorX + textW, strikeY)
+            ctx.stroke()
+            if (frag.dstrike) {
+              const doubleY = strikeY + 3
+              ctx.beginPath()
+              ctx.moveTo(cursorX, doubleY)
+              ctx.lineTo(cursorX + textW, doubleY)
+              ctx.stroke()
+            }
+            ctx.restore()
+          }
+
+          // Underline
+          if (frag.underline && frag.underline !== "none") {
+            ctx.save()
+            ctx.strokeStyle = frag.underlineColor || color
+            ctx.lineWidth = 1
+            const underlineY = lineBaseline + 2
+            ctx.beginPath()
+            ctx.moveTo(cursorX, underlineY)
+            ctx.lineTo(cursorX + textW, underlineY)
+            ctx.stroke()
+            ctx.restore()
+          }
+
+          cursorX += textW
         }
       }
 
-      cursorY += line.height
+      cursorY += lineHeightPx
     }
 
     cursorY += this._twipToPx(para.spacingAfter)
+
+    // Draw paragraph borders (bottom/top)
+    if (pPr?.pBdr) {
+      const pBdr = pPr.pBdr
+      const paraWidth = this._twipToPx(para.lines.reduce((max, l) => Math.max(max, l.width), 0))
+
+      if (pBdr.top && pBdr.top.val !== "none") {
+        ctx.save()
+        ctx.strokeStyle = "#" + (pBdr.top.color || "000000")
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(x, y)
+        ctx.lineTo(x + paraWidth, y)
+        ctx.stroke()
+        ctx.restore()
+      }
+
+      if (pBdr.bottom && pBdr.bottom.val !== "none") {
+        ctx.save()
+        ctx.strokeStyle = "#" + (pBdr.bottom.color || "000000")
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(x, cursorY)
+        ctx.lineTo(x + paraWidth, cursorY)
+        ctx.stroke()
+        ctx.restore()
+      }
+    }
+
     return { height: cursorY - y }
   }
 
   // ─── Table ───────────────────────────────────────────────────────────────
+
+  private _measureParagraphHeightPx(para: LayoutParagraph): number {
+    let totalTwips = (para.spacingBefore || 0) + (para.spacingAfter || 0)
+    for (const line of para.lines) {
+      totalTwips += line.height
+    }
+    return this._twipToPx(totalTwips)
+  }
 
   private _drawTable(
     ctx: CanvasRenderingContext2D,
@@ -269,86 +435,91 @@ export class OoxmlPainter {
     const tblCellMar = tblPr?.tblCellMar
 
     for (const row of table.rows) {
-      let cursorX = x
+      // Step 1: Pre-calculate maxRowH for this row
       let maxRowH = 0
+      for (const cell of row.cells) {
+        const cellData = cell as any
+        const cellMar = cellData.cellMar || tblCellMar
+        const padTop = this._twipToPx(cellMar?.top ?? 0) + 4
+        const padBottom = this._twipToPx(cellMar?.bottom ?? 0) + 4
+        let cellH = 0
+        for (const child of cell.content) {
+          if (child.type === "paragraph") {
+            cellH += this._measureParagraphHeightPx(child.data)
+          }
+        }
+        maxRowH = Math.max(maxRowH, cellH + padTop + padBottom)
+      }
 
+      // Step 2: Draw cell background, borders, and content
+      let cursorX = x
       for (const cell of row.cells) {
         const cellW = this._twipToPx(cell.width)
         const cellData = cell as any
-        let cellH = 0
-
-        // Cell margins
         const cellMar = cellData.cellMar || tblCellMar
         const padTop = this._twipToPx(cellMar?.top ?? 0) + 4
         const padLeft = this._twipToPx(cellMar?.start ?? cellMar?.left ?? 0) + 4
-        const padBottom = this._twipToPx(cellMar?.bottom ?? 0) + 4
-        const padRight = this._twipToPx(cellMar?.end ?? cellMar?.right ?? 0) + 4
 
-        // Cell shading
+        // Shading
         const shd = cellData.shd
-        if (shd?.fill && shd.fill !== 'auto' && shd.fill !== 'FFFFFF') {
+        if (shd?.fill && shd.fill !== "auto" && shd.fill !== "FFFFFF") {
           ctx.save()
-          ctx.fillStyle = `#${shd.fill}`
-          ctx.fillRect(cursorX, cursorY, cellW, 0)
+          ctx.fillStyle = "#" + shd.fill
+          ctx.fillRect(cursorX, cursorY, cellW, maxRowH)
           ctx.restore()
         }
 
-        // Draw cell borders
+        // Cell borders with exact maxRowH
         const cellBorders = cellData.tcBorders
         ctx.save()
         ctx.lineWidth = 1
 
-        // Top border
         const topBorder = cellBorders?.top || tblBorders?.top
-        if (topBorder && topBorder.val !== 'none') {
-          ctx.strokeStyle = `#${topBorder.color || '000000'}`
+        if (topBorder && topBorder.val !== "none") {
+          ctx.strokeStyle = "#" + (topBorder.color || "000000")
           ctx.beginPath()
           ctx.moveTo(cursorX, cursorY)
           ctx.lineTo(cursorX + cellW, cursorY)
           ctx.stroke()
         }
 
-        // Bottom border
         const bottomBorder = cellBorders?.bottom || tblBorders?.bottom
-        if (bottomBorder && bottomBorder.val !== 'none') {
-          ctx.strokeStyle = `#${bottomBorder.color || '000000'}`
+        if (bottomBorder && bottomBorder.val !== "none") {
+          ctx.strokeStyle = "#" + (bottomBorder.color || "000000")
           ctx.beginPath()
           ctx.moveTo(cursorX, cursorY + maxRowH)
           ctx.lineTo(cursorX + cellW, cursorY + maxRowH)
           ctx.stroke()
         }
 
-        // Left border
         const leftBorder = cellBorders?.left || tblBorders?.left
-        if (leftBorder && leftBorder.val !== 'none') {
-          ctx.strokeStyle = `#${leftBorder.color || '000000'}`
+        if (leftBorder && leftBorder.val !== "none") {
+          ctx.strokeStyle = "#" + (leftBorder.color || "000000")
           ctx.beginPath()
           ctx.moveTo(cursorX, cursorY)
           ctx.lineTo(cursorX, cursorY + maxRowH)
           ctx.stroke()
         }
 
-        // Right border
         const rightBorder = cellBorders?.right || tblBorders?.right
-        if (rightBorder && rightBorder.val !== 'none') {
-          ctx.strokeStyle = `#${rightBorder.color || '000000'}`
+        if (rightBorder && rightBorder.val !== "none") {
+          ctx.strokeStyle = "#" + (rightBorder.color || "000000")
           ctx.beginPath()
           ctx.moveTo(cursorX + cellW, cursorY)
           ctx.lineTo(cursorX + cellW, cursorY + maxRowH)
           ctx.stroke()
         }
-
         ctx.restore()
 
-        // Draw cell content
+        // Cell content
+        let cellH = 0
         for (const child of cell.content) {
-          if (child.type === 'paragraph') {
+          if (child.type === "paragraph") {
             const r = this._drawParagraph(ctx, child.data, cursorX + padLeft, cursorY + cellH + padTop, pageIndex, blockIndex, batcher)
             cellH += r.height
           }
         }
 
-        maxRowH = Math.max(maxRowH, cellH + padTop + padBottom)
         cursorX += cellW
       }
 
@@ -417,6 +588,27 @@ export class OoxmlPainter {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  private _resolveHighlightColor(hl: string): string {
+    const map: Record<string, string> = {
+      yellow: "#FFFF00",
+      green: "#00FF00",
+      cyan: "#00FFFF",
+      magenta: "#FF00FF",
+      blue: "#0000FF",
+      red: "#FF0000",
+      darkBlue: "#000080",
+      darkCyan: "#008080",
+      darkGreen: "#008000",
+      darkMagenta: "#800080",
+      darkRed: "#800000",
+      darkYellow: "#808000",
+      darkGray: "#808080",
+      lightGray: "#C0C0C0",
+      black: "#000000",
+    }
+    return map[hl] || hl || "#FFFF00"
+  }
 
   private _pageHeightPx(page: LayoutPage): number {
     return this._twipToPx(page.geometry.pageH)

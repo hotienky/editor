@@ -49,10 +49,26 @@ export interface TextFragment {
   italic?: boolean
   /** Color (hex) */
   color?: string
-  /** Underline */
+  /** Underline style */
   underline?: string
+  /** Underline color (hex) — separate from text color */
+  underlineColor?: string
   /** Vertical align (superscript/subscript) */
   vertAlign?: 'superscript' | 'subscript'
+  /** Vertical offset for superscript/subscript in twips */
+  baselineOffset?: number
+  /** Strikethrough */
+  strike?: boolean
+  /** Double strikethrough */
+  dstrike?: boolean
+  /** Highlight color (hex) */
+  highlight?: string
+  /** Shading/background */
+  shd?: { val: string; color: string; fill: string }
+  /** All caps / small caps */
+  caps?: boolean
+  /** Character spacing adjustment in hundredths of a point */
+  charSpacing?: number
   /** Run properties reference for rendering */
   rPr?: Record<string, unknown>
   /** Reference ID for footnote/endnote */
@@ -109,6 +125,16 @@ export interface LayoutParagraph {
   styleId?: string
   /** Raw paragraph properties for rendering */
   pPr?: Record<string, unknown>
+  /** Keep with next paragraph */
+  keepNext?: boolean
+  /** Keep all lines together on one page */
+  keepLines?: boolean
+  /** Widow/orphan control enabled */
+  widowControl?: boolean
+  /** Force page break before this paragraph */
+  pageBreakBefore?: boolean
+  /** Tab stops from paragraph properties */
+  tabs?: Array<{ val: string; pos: number; leader?: string }>
 }
 
 // ─── Layout Table ──────────────────────────────────────────────────────────────

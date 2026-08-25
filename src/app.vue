@@ -1,5 +1,5 @@
 <template>
-  <WordEditor ref="editor" />
+  <WordEditor ref="editor" :ooxmlNative="true" />
 </template>
 
 <script setup>

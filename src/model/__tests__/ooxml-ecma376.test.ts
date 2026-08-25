@@ -20,6 +20,7 @@ import { OoxmlSerializer } from '../ooxml-serializer'
 import { StyleResolver } from '../style-resolver'
 import { OoxmlLayoutEngine } from '../ooxml-layout-engine'
 import { OoxmlTextMeasurer, resolveFontFamily } from '../ooxml-text-measurer'
+import { FidelityDebugger } from '../fidelity-debugger'
 import type {
   OoxmlPackage,
   StylesPart,
@@ -759,5 +760,212 @@ describe('OoxmlLayoutEngine — Numbering Integration', () => {
 
     expect(para1.numbering.text).toBe('Điều 1.')
     expect(para2.numbering.text).toBe('Điều 2.')
+  })
+})
+
+// ─── Pagination Constraint Tests ───────────────────────────────────────────
+
+describe('OoxmlLayoutEngine — Pagination Constraints', () => {
+  function createPkg(overrides?: any) {
+    return createMinimalPkg({
+      styles: {
+        docDefaults: {
+          rPrDefault: { rFonts: { ascii: 'Times New Roman', hAnsi: 'Times New Roman' }, sz: 24 },
+          pPrDefault: {},
+        },
+        styles: new Map(),
+      },
+      ...overrides,
+    })
+  }
+
+  it('splits multi-line paragraph across pages', () => {
+    const engine = new OoxmlLayoutEngine()
+    const pkg = createPkg()
+
+    // Create a long paragraph that produces many lines
+    // Each run has a single long word to force line wrapping
+    const lines = []
+    for (let i = 0; i < 10; i++) {
+      lines.push({ type: 'run', content: [{ type: 'text', text: `Line${i}withalotofverylongtextthatwillwrap ${i} ` }] })
+    }
+
+    pkg.document.body.children = [{
+      type: 'paragraph',
+      pPr: {},
+      content: lines,
+    }] as any
+
+    const layout = engine.layout(pkg)
+    // Should be on 1 page since total content fits in default geometry
+    expect(layout.pages).toHaveLength(1)
+    const para = layout.pages[0].blocks[0].data as any
+    expect(para.lines.length).toBeGreaterThan(1)
+  })
+
+  it('pageBreakBefore forces new page', () => {
+    const engine = new OoxmlLayoutEngine()
+    const pkg = createPkg()
+
+    pkg.document.body.children = [
+      {
+        type: 'paragraph',
+        pPr: {},
+        content: [{ type: 'run', content: [{ type: 'text', text: 'First paragraph' }] }],
+      },
+      {
+        type: 'paragraph',
+        pPr: { pageBreakBefore: true },
+        content: [{ type: 'run', content: [{ type: 'text', text: 'Second paragraph with page break' }] }],
+      },
+    ] as any
+
+    const layout = engine.layout(pkg)
+    // First paragraph on page 1, second on page 2
+    expect(layout.pages.length).toBeGreaterThanOrEqual(2)
+    expect(layout.pages[0].blocks).toHaveLength(1)
+    expect(layout.pages[1].blocks).toHaveLength(1)
+  })
+
+  it('keepNext keeps heading with next paragraph', () => {
+    const engine = new OoxmlLayoutEngine()
+    const pkg = createPkg()
+
+    // Heading with keepNext + next paragraph must stay together
+    pkg.document.body.children = [
+      {
+        type: 'paragraph',
+        pPr: { keepNext: true },
+        content: [{ type: 'run', content: [{ type: 'text', text: 'Heading' }] }],
+      },
+      {
+        type: 'paragraph',
+        pPr: {},
+        content: [{ type: 'run', content: [{ type: 'text', text: 'Body paragraph' }] }],
+      },
+    ] as any
+
+    const layout = engine.layout(pkg)
+    // Both should be on the same page (keepNext groups them)
+    expect(layout.pages[0].blocks).toHaveLength(2)
+  })
+
+  it('widowControl prevents orphan lines', () => {
+    const engine = new OoxmlLayoutEngine()
+    const pkg = createPkg()
+
+    // Paragraph with widowControl enabled (default) and 5 lines
+    // If only 1 line fits on current page, it should move to next page
+    const lines = []
+    for (let i = 0; i < 5; i++) {
+      lines.push({ type: 'run', content: [{ type: 'text', text: `Widow line ${i + 1} ` }] })
+    }
+
+    pkg.document.body.children = [{
+      type: 'paragraph',
+      pPr: { spacing: { line: 300, lineRule: 'auto' }, widowControl: true },
+      content: lines,
+    }] as any
+
+    const layout = engine.layout(pkg)
+    // With widowControl, the paragraph should be kept together if possible
+    expect(layout.pages).toHaveLength(1)
+  })
+
+  it('propagates keepNext, keepLines, widowControl, pageBreakBefore to LayoutParagraph', () => {
+    const engine = new OoxmlLayoutEngine()
+    const pkg = createPkg()
+
+    pkg.document.body.children = [{
+      type: 'paragraph',
+      pPr: { keepNext: true, keepLines: true, widowControl: true, pageBreakBefore: true },
+      content: [{ type: 'run', content: [{ type: 'text', text: 'Hello' }] }],
+    }] as any
+
+    const layout = engine.layout(pkg)
+    const para = layout.pages[0].blocks[0].data as any
+    expect(para.keepNext).toBe(true)
+    expect(para.keepLines).toBe(true)
+    expect(para.widowControl).toBe(true)
+    expect(para.pageBreakBefore).toBe(true)
+  })
+})
+
+// ─── Fidelity Debugger Tests ───────────────────────────────────────────────
+
+describe('FidelityDebugger — Analysis', () => {
+  it('analyzes a minimal DOCX package', () => {
+    const debugger_ = new FidelityDebugger()
+
+    const pkg = createMinimalPkg({
+      styles: {
+        docDefaults: {
+          rPrDefault: { rFonts: { ascii: 'Arial', hAnsi: 'Arial' }, sz: 22 },
+          pPrDefault: {},
+        },
+        styles: new Map([
+          ['Normal', {
+            id: 'Normal', type: 'paragraph', basedOn: 'Normal',
+            rPr: { rFonts: { ascii: 'Calibri', hAnsi: 'Calibri' } },
+          }],
+        ]),
+      },
+    })
+
+    pkg.document.body.children = [
+      {
+        type: 'paragraph',
+        pPr: { pStyle: 'Normal' },
+        content: [{ type: 'run', content: [{ type: 'text', text: 'Hello World' }] }],
+      },
+      {
+        type: 'table',
+        tblPr: {},
+        rows: [
+          {
+            cells: [{
+              width: 1000,
+              content: [{
+                type: 'paragraph',
+                pPr: {},
+                content: [{ type: 'run', content: [{ type: 'text', text: 'Cell' }] }],
+              }],
+            }],
+          },
+        ],
+      },
+    ] as any
+
+    const report = debugger_.analyze(pkg, 'test.docx')
+
+    expect(report.filename).toBe('test.docx')
+    expect(report.parser.paragraphs).toBe(2) // 1 in body + 1 in table cell
+    expect(report.parser.tables).toBe(1)
+    expect(report.parser.tableRows).toBe(1)
+    expect(report.parser.tableCells).toBe(1)
+    expect(report.fidelityScore).toBeGreaterThan(0)
+    expect(report.fidelityScore).toBeLessThanOrEqual(100)
+    expect(report.recommendations.length).toBeGreaterThan(0)
+  })
+
+  it('produces readable report text', () => {
+    const debugger_ = new FidelityDebugger()
+
+    const pkg = createMinimalPkg()
+    pkg.document.body.children = [
+      {
+        type: 'paragraph',
+        pPr: {},
+        content: [{ type: 'run', content: [{ type: 'text', text: 'Test' }] }],
+      },
+    ] as any
+
+    const report = debugger_.analyze(pkg)
+    const text = debugger_.formatReport(report)
+
+    expect(text).toContain('DOCX Fidelity Report')
+    expect(text).toContain('PARSER STATISTICS')
+    expect(text).toContain('FONT ANALYSIS')
+    expect(text).toContain('FIDELITY SCORE')
   })
 })

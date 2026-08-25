@@ -58,7 +58,7 @@ export function getCmToPx() {
   test.style.visibility = 'hidden'
   document.body.appendChild(test)
   _cmToPx = test.getBoundingClientRect().width || CM_TO_PX
-  document.body.removeChild(test)
+  try { document.body.removeChild(test) } catch (_e) { /* already removed by HMR */ }
   return _cmToPx
 }
 

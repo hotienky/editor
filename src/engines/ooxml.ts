@@ -80,13 +80,18 @@ function mountOoxmlEngine(
   // ── Painting ──
   function repaint() {
     if (!editor || !backingCanvas.width) return
-    const ctx = backingCanvas.getContext('2d')
+    const ctx = backingCanvas.getContext("2d")
     if (!ctx) return
 
+    const dpr = window.devicePixelRatio || 1
     const viewTop = scrollTop
     const viewBottom = scrollTop + surface.clientHeight
+
+    ctx.save()
     ctx.clearRect(0, 0, backingCanvas.width, backingCanvas.height)
+    ctx.scale(dpr, dpr)
     painter.paint(ctx, editor.tree, viewTop, viewBottom)
+    ctx.restore()
   }
 
   function setupPages() {
@@ -94,19 +99,18 @@ function mountOoxmlEngine(
     const tree = editor.tree
     const dpr = window.devicePixelRatio || 1
 
-    // Resize backing canvas to full document size
-    const totalHeight = painter.measureDocumentHeight(tree)
+    // Convert page geometry from Twips to Pixels (ISO §17.6)
     const firstPage = tree.pages[0]
-    const pageW = firstPage?.geometry.contentW ?? 9360
-    const pageH = totalHeight
+    const pageWPx = firstPage ? Math.round((firstPage.geometry.pageW / 1440) * 96) : 794
+    const totalHeightPx = painter.measureDocumentHeight(tree)
 
-    backingCanvas.width = Math.ceil(pageW * dpr)
-    backingCanvas.height = Math.ceil(pageH * dpr)
-    backingCanvas.style.width = `${pageW}px`
-    backingCanvas.style.height = `${pageH}px`
-    backingCanvas.style.display = 'block'
-    backingCanvas.style.transform = `scale(${dpr})`
-    backingCanvas.style.transformOrigin = 'top left'
+    backingCanvas.width = Math.ceil(pageWPx * dpr)
+    backingCanvas.height = Math.ceil(totalHeightPx * dpr)
+    backingCanvas.style.width = pageWPx + "px"
+    backingCanvas.style.height = totalHeightPx + "px"
+    backingCanvas.style.display = "block"
+    backingCanvas.style.margin = "0 auto"
+    backingCanvas.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)"
 
     // Setup input handler
     if (!inputHandler) {
@@ -146,6 +150,7 @@ function mountOoxmlEngine(
     isApplying = true
     try {
       currentPkg = await parser.parse(buffer)
+      painter.setMedia(currentPkg.media)
       editor = new OoxmlEditor(currentPkg)
       setupPages()
     } finally {
