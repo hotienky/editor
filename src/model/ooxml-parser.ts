@@ -69,6 +69,10 @@ import type {
   CommentsPart,
   CommentThread,
   CommentItem,
+  FootnotesPart,
+  EndnotesPart,
+  Footnote,
+  Endnote,
   ContentTypes,
   Relationship,
   MediaPart,
@@ -90,6 +94,13 @@ import type {
   Shading,
   CellMargins,
   RevisionMark,
+  TrackedRun,
+  CommentRangeStart,
+  CommentRangeEnd,
+  CommentReference,
+  DeletedText,
+  FieldChar,
+  InstrText,
 } from './ooxml-types'
 
 // ─── XML Helpers ────────────────────────────────────────────────────────────
@@ -180,6 +191,8 @@ export class OoxmlParser {
     const headers = this._parseHeaders(unzipped)
     const footers = this._parseFooters(unzipped)
     const comments = this._parseComments(unzipped['word/comments.xml'])
+    const footnotes = this._parseFootnotes(unzipped['word/footnotes.xml'])
+    const endnotes = this._parseEndnotes(unzipped['word/endnotes.xml'])
 
     return {
       document,
@@ -191,8 +204,8 @@ export class OoxmlParser {
       headers,
       footers,
       comments,
-      footnotes: null,
-      endnotes: null,
+      footnotes,
+      endnotes,
       contentTypes,
       relationships,
       media: this._parts.media,
@@ -336,6 +349,27 @@ export class OoxmlParser {
         content.push(this._parseSmartTag(child))
       } else if (ln === 'customXml') {
         content.push(this._parseCustomXml(child))
+      } else if (ln === 'ins' || ln === 'del') {
+        const tracked = this._parseTrackedRun(child, ln as 'ins' | 'del')
+        if (tracked) content.push(tracked)
+      } else if (ln === 'commentRangeStart') {
+        const id = parseInt(child.getAttribute('w:id') || '0', 10)
+        content.push({ type: 'commentRangeStart', id })
+      } else if (ln === 'commentRangeEnd') {
+        const id = parseInt(child.getAttribute('w:id') || '0', 10)
+        content.push({ type: 'commentRangeEnd', id })
+      } else if (ln === 'bookmarkStart') {
+        const id = parseInt(child.getAttribute('w:id') || '0', 10)
+        content.push({
+          type: 'bookmarkStart',
+          id,
+          name: child.getAttribute('w:name') || undefined,
+          colFirst: wordInt(child, 'colFirst'),
+          colLast: wordInt(child, 'colLast'),
+        })
+      } else if (ln === 'bookmarkEnd') {
+        const id = parseInt(child.getAttribute('w:id') || '0', 10)
+        content.push({ type: 'bookmarkEnd', id })
       }
     }
 
@@ -376,6 +410,8 @@ export class OoxmlParser {
         after: wordInt(spacing, 'after'),
         line: wordInt(spacing, 'line'),
         lineRule: wordAttr(spacing, 'lineRule') as Spacing['lineRule'],
+        beforeAutoSpacing: wordBoolean(xmlFirst(spacing, 'beforeAutoSpacing')),
+        afterAutoSpacing: wordBoolean(xmlFirst(spacing, 'afterAutoSpacing')),
       }
     }
 
@@ -423,11 +459,46 @@ export class OoxmlParser {
     const shd = xmlFirst(el, 'shd')
     if (shd) pPr.shd = this._parseShading(shd)
 
+    // cnfStyle (conditional formatting identifier)
+    const cnfStyle = xmlFirst(el, 'cnfStyle')
+    if (cnfStyle) pPr.cnfStyle = wordAttr(cnfStyle, 'val')
+
     // Run properties (default for paragraph)
     const rPr = xmlFirst(el, 'rPr')
     if (rPr) pPr.rPr = this._parseRunProperties(rPr)
 
+    // Track changes: pPrChange
+    const pPrChange = xmlFirst(el, 'pPrChange')
+    if (pPrChange) {
+      const id = parseInt(pPrChange.getAttribute('w:id') || '0', 10)
+      const author = pPrChange.getAttribute('w:author') || ''
+      const date = pPrChange.getAttribute('w:date') || ''
+      // Parse the original pPr inside the change element
+      const origPPrEl = xmlFirst(pPrChange, 'pPr')
+      const originalPPr = origPPrEl ? this._parseParagraphProperties(origPPrEl) : undefined
+      pPr.pPrChange = { id, author, date, originalPPr }
+    }
+
     return pPr
+  }
+
+  // ─── Track Changes (w:ins / w:del) ───────────────────────────────────────
+
+  private _parseTrackedRun(el: Element, kind: 'ins' | 'del'): TrackedRun | null {
+    const id = parseInt(el.getAttribute('w:id') || '0', 10)
+    const author = el.getAttribute('w:author') || ''
+    const date = el.getAttribute('w:date') || ''
+
+    const runs: Run[] = []
+    for (const child of Array.from(el.children)) {
+      const ln = child.localName || child.tagName.split(':').pop()
+      if (ln === 'r') {
+        runs.push(this._parseRun(child))
+      }
+    }
+
+    if (runs.length === 0) return null
+    return { type: kind, id, author, date, content: runs, _raw: el }
   }
 
   // ─── Run ────────────────────────────────────────────────────────────────
@@ -447,9 +518,20 @@ export class OoxmlParser {
           space: child.getAttribute('xml:space') as 'preserve' | 'default' || undefined,
         })
       } else if (ln === 'delText') {
-        // Deleted text in track changes
+        // Deleted text in track changes — use DeletedText type
         content.push({
-          type: 'text',
+          type: 'delText',
+          text: child.textContent || '',
+          space: child.getAttribute('xml:space') as 'preserve' | 'default' || undefined,
+        })
+      } else if (ln === 'fldChar') {
+        const fldCharType = wordAttr(child, 'fldCharType') as FieldChar['fldCharType']
+        if (fldCharType) {
+          content.push({ type: 'fieldChar', fldCharType })
+        }
+      } else if (ln === 'instrText') {
+        content.push({
+          type: 'instrText',
           text: child.textContent || '',
           space: child.getAttribute('xml:space') as 'preserve' | 'default' || undefined,
         })
@@ -470,6 +552,15 @@ export class OoxmlParser {
       } else if (ln === 'pict') {
         // Legacy VML picture
         content.push({ type: 'picture', content: Array.from(child.children) })
+      } else if (ln === 'footnoteReference') {
+        const id = parseInt(wordAttr(child, 'id') || '0', 10)
+        content.push({ type: 'footnoteReference', id })
+      } else if (ln === 'endnoteReference') {
+        const id = parseInt(wordAttr(child, 'id') || '0', 10)
+        content.push({ type: 'endnoteReference', id })
+      } else if (ln === 'commentReference') {
+        const id = parseInt(wordAttr(child, 'id') || '0', 10)
+        content.push({ type: 'commentReference', id })
       }
     }
 
@@ -551,6 +642,18 @@ export class OoxmlParser {
     // Language
     const lang = xmlFirst(el, 'lang')
     if (lang) rPr.lang = wordAttr(lang, 'val')
+
+    // Track changes: rPrChange
+    const rPrChange = xmlFirst(el, 'rPrChange')
+    if (rPrChange) {
+      const id = parseInt(rPrChange.getAttribute('w:id') || '0', 10)
+      const author = rPrChange.getAttribute('w:author') || ''
+      const date = rPrChange.getAttribute('w:date') || ''
+      // Parse the original rPr inside the change element
+      const origRPrEl = xmlFirst(rPrChange, 'rPr')
+      const originalRPr = origRPrEl ? this._parseRunProperties(origRPrEl) : undefined
+      rPr.rPrChange = { id, author, date, originalRPr }
+    }
 
     return rPr
   }
@@ -696,6 +799,12 @@ export class OoxmlParser {
     const tblStyle = xmlFirst(el, 'tblStyle')
     if (tblStyle) tblPr.tblStyle = wordAttr(tblStyle, 'val')
 
+    // Row/column band sizes for conditional formatting
+    const tblStyleRowBandSize = xmlFirst(el, 'tblStyleRowBandSize')
+    if (tblStyleRowBandSize) tblPr.tblStyleRowBandSize = wordInt(tblStyleRowBandSize, 'val')
+    const tblStyleColBandSize = xmlFirst(el, 'tblStyleColBandSize')
+    if (tblStyleColBandSize) tblPr.tblStyleColBandSize = wordInt(tblStyleColBandSize, 'val')
+
     // Table width
     const tblW = xmlFirst(el, 'tblW')
     if (tblW) {
@@ -732,6 +841,15 @@ export class OoxmlParser {
         noHBand: wordBoolean(xmlFirst(tblLook, 'noHBand')),
         noVBand: wordBoolean(xmlFirst(tblLook, 'noVBand')),
       }
+    }
+
+    // Track changes: tblPrChange
+    const tblPrChange = xmlFirst(el, 'tblPrChange')
+    if (tblPrChange) {
+      const id = parseInt(tblPrChange.getAttribute('w:id') || '0', 10)
+      const author = tblPrChange.getAttribute('w:author') || ''
+      const date = tblPrChange.getAttribute('w:date') || ''
+      tblPr.tblPrChange = { id, author, date }
     }
 
     return tblPr
@@ -777,6 +895,10 @@ export class OoxmlParser {
 
     const trPr: TableRowProperties = {}
 
+    // cnfStyle (conditional formatting identifier)
+    const cnfStyle = xmlFirst(el, 'cnfStyle')
+    if (cnfStyle) trPr.cnfStyle = wordAttr(cnfStyle, 'val')
+
     if (xmlFirst(el, 'cantSplit')) trPr.cantSplit = wordBoolean(xmlFirst(el, 'cantSplit'))
     if (xmlFirst(el, 'tblHeader')) trPr.tblHeader = wordBoolean(xmlFirst(el, 'tblHeader'))
 
@@ -786,6 +908,15 @@ export class OoxmlParser {
         val: wordInt(trHeight, 'val'),
         heightRule: wordAttr(trHeight, 'hRule') as TableRowHeight['heightRule'],
       }
+    }
+
+    // Track changes: trPrChange
+    const trPrChange = xmlFirst(el, 'trPrChange')
+    if (trPrChange) {
+      const id = parseInt(trPrChange.getAttribute('w:id') || '0', 10)
+      const author = trPrChange.getAttribute('w:author') || ''
+      const date = trPrChange.getAttribute('w:date') || ''
+      trPr.trPrChange = { id, author, date }
     }
 
     return trPr
@@ -815,6 +946,10 @@ export class OoxmlParser {
 
     const tcPr: TableCellProperties = {}
 
+    // cnfStyle (conditional formatting identifier)
+    const cnfStyle = xmlFirst(el, 'cnfStyle')
+    if (cnfStyle) tcPr.cnfStyle = wordAttr(cnfStyle, 'val')
+
     const tcW = xmlFirst(el, 'tcW')
     if (tcW) tcPr.tcW = wordInt(tcW, 'w')
 
@@ -825,6 +960,12 @@ export class OoxmlParser {
     if (vMerge) {
       const val = wordAttr(vMerge, 'val')
       tcPr.vMerge = (!val || val === 'restart') ? 'restart' : 'continue'
+    }
+
+    const hMerge = xmlFirst(el, 'hMerge')
+    if (hMerge) {
+      const val = wordAttr(hMerge, 'val')
+      tcPr.hMerge = (!val || val === 'restart') ? 'restart' : 'continue'
     }
 
     const shd = xmlFirst(el, 'shd')
@@ -853,6 +994,15 @@ export class OoxmlParser {
         bottom: this._parseBorder(xmlFirst(tcBorders, 'bottom')),
         right: this._parseBorder(xmlFirst(tcBorders, 'right')),
       }
+    }
+
+    // Track changes: tcPrChange
+    const tcPrChange = xmlFirst(el, 'tcPrChange')
+    if (tcPrChange) {
+      const id = parseInt(tcPrChange.getAttribute('w:id') || '0', 10)
+      const author = tcPrChange.getAttribute('w:author') || ''
+      const date = tcPrChange.getAttribute('w:date') || ''
+      tcPr.tcPrChange = { id, author, date }
     }
 
     return tcPr
@@ -1034,12 +1184,16 @@ export class OoxmlParser {
       const type = wordAttr(styleEl, 'type') as StyleType || 'paragraph'
       const name = xmlFirst(styleEl, 'name') ? wordAttr(xmlFirst(styleEl, 'name'), 'val') : undefined
       const basedOn = xmlFirst(styleEl, 'basedOn') ? wordAttr(xmlFirst(styleEl, 'basedOn'), 'val') : undefined
+      const next = xmlFirst(styleEl, 'next') ? wordAttr(xmlFirst(styleEl, 'next'), 'val') : undefined
+      const link = xmlFirst(styleEl, 'link') ? wordAttr(xmlFirst(styleEl, 'link'), 'val') : undefined
 
       const styleDef: StyleDefinition = {
         id,
         type,
         name,
         basedOn,
+        next,
+        link,
       }
 
       // Parse properties based on type
@@ -1051,6 +1205,12 @@ export class OoxmlParser {
 
       const tblPr = xmlFirst(styleEl, 'tblPr')
       if (tblPr) styleDef.tblPr = this._parseTableProperties(tblPr)
+
+      const trPr = xmlFirst(styleEl, 'trPr')
+      if (trPr) styleDef.trPr = this._parseTableRowProperties(trPr)
+
+      const tcPr = xmlFirst(styleEl, 'tcPr')
+      if (tcPr) styleDef.tcPr = this._parseTableCellProperties(tcPr)
 
       styles.set(id, styleDef)
     }
@@ -1295,6 +1455,62 @@ export class OoxmlParser {
   }
 
   // ─── Comments ───────────────────────────────────────────────────────────
+
+  private _parseFootnotes(data: Uint8Array | undefined): FootnotesPart | null {
+    if (!data) return null
+
+    const xml = fflate.strFromU8(data)
+    const doc = new DOMParser().parseFromString(xml, 'application/xml')
+    if (doc.querySelector('parsererror')) return null
+
+    const footnotes = new Map<number, Footnote>()
+    for (const el of xmlElements(doc, 'footnote')) {
+      const id = parseInt(el.getAttribute('w:id') || '0', 10)
+      const noteType = el.getAttribute('w:type') || undefined
+
+      const content: (Paragraph | Table)[] = []
+      for (const child of Array.from(el.children)) {
+        const ln = child.localName || child.tagName.split(':').pop()
+        if (ln === 'p') {
+          content.push(this._parseParagraph(child))
+        } else if (ln === 'tbl') {
+          content.push(this._parseTable(child))
+        }
+      }
+
+      footnotes.set(id, { id, type: noteType as any, content })
+    }
+
+    return { footnotes }
+  }
+
+  private _parseEndnotes(data: Uint8Array | undefined): EndnotesPart | null {
+    if (!data) return null
+
+    const xml = fflate.strFromU8(data)
+    const doc = new DOMParser().parseFromString(xml, 'application/xml')
+    if (doc.querySelector('parsererror')) return null
+
+    const endnotes = new Map<number, Endnote>()
+    for (const el of xmlElements(doc, 'endnote')) {
+      const id = parseInt(el.getAttribute('w:id') || '0', 10)
+      const noteType = el.getAttribute('w:type') || undefined
+
+      const content: (Paragraph | Table)[] = []
+      for (const child of Array.from(el.children)) {
+        const ln = child.localName || child.tagName.split(':').pop()
+        if (ln === 'p') {
+          content.push(this._parseParagraph(child))
+        } else if (ln === 'tbl') {
+          content.push(this._parseTable(child))
+        }
+      }
+
+      endnotes.set(id, { id, type: noteType as any, content })
+    }
+
+    return { endnotes }
+  }
 
   private _parseComments(data: Uint8Array | undefined): CommentsPart | null {
     if (!data) return null

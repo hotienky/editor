@@ -62,16 +62,36 @@ function flattenFragments(fragments: TextFragment[]): CharInfo[] {
   const chars: CharInfo[] = []
   for (let ri = 0; ri < fragments.length; ri++) {
     const frag = fragments[ri]
-    const charWidth = frag.text.length > 0 ? frag.width / frag.text.length : 0
-    for (let ci = 0; ci < frag.text.length; ci++) {
-      const char = frag.text[ci]
+    if (frag.kind === 'tab') {
+      // Tab: use \t with full width
       chars.push({
-        char,
-        code: char.charCodeAt(0),
-        width: Math.round(charWidth),
+        char: '\t',
+        code: 9,
+        width: frag.width,
         runIndex: ri,
-        charIndex: ci,
+        charIndex: 0,
       })
+    } else if (frag.kind === 'footnoteRef' || frag.kind === 'endnoteRef') {
+      // Reference marker: use special char with width
+      chars.push({
+        char: '\u200B', // zero-width space as marker
+        code: 0x200B,
+        width: frag.width,
+        runIndex: ri,
+        charIndex: 0,
+      })
+    } else if (frag.text.length > 0) {
+      const charWidth = frag.width / frag.text.length
+      for (let ci = 0; ci < frag.text.length; ci++) {
+        const char = frag.text[ci]
+        chars.push({
+          char,
+          code: char.charCodeAt(0),
+          width: Math.round(charWidth),
+          runIndex: ri,
+          charIndex: ci,
+        })
+      }
     }
   }
   return chars
@@ -147,7 +167,7 @@ export function breakIntoLines(input: LineBreakInput): LineBreakResult {
   }
 
   // Handle single empty fragment
-  if (fragments.length === 1 && fragments[0].text === '') {
+  if (fragments.length === 1 && fragments[0].text === '' && !fragments[0].kind) {
     return {
       lines: [{
         fragments: [{ ...fragments[0], width: 0, widthPx: 0 }],
@@ -163,99 +183,143 @@ export function breakIntoLines(input: LineBreakInput): LineBreakResult {
     }
   }
 
-  const chars = flattenFragments(fragments)
-  const breakOps = findBreakOpportunities(chars)
+  // Split on explicit breaks (page, column, line)
+  const segments: TextFragment[][] = []
+  let currentSeg: TextFragment[] = []
+  for (const frag of fragments) {
+    if (frag.kind === 'break') {
+      // End current segment (even if empty)
+      segments.push(currentSeg)
+      // The break fragment itself doesn't produce text on a line
+      currentSeg = []
+    } else if (frag.kind === 'tab') {
+      // Tab is a single fragment with width — include in current segment
+      currentSeg.push(frag)
+    } else {
+      currentSeg.push(frag)
+    }
+  }
+  segments.push(currentSeg)
 
-  const lines: LayoutLine[] = []
-  let pos = 0 // current position in char stream
+  const allLines: LayoutLine[] = []
   let totalWidth = 0
 
-  while (pos < chars.length) {
-    // Find the best break point that fits within availableWidth
-    let breakPos = -1
-    let breakType: BreakOpportunity['type'] = 'cjk'
-    let lineWidth = 0
+  for (const seg of segments) {
+    if (seg.length === 0) {
+      // Empty line from a break
+      const metrics = getLineMetrics(fragments)
+      allLines.push({
+        fragments: [],
+        width: 0,
+        height: metrics.height,
+        ascent: metrics.ascent,
+        descent: metrics.descent,
+        leading: metrics.leading,
+        justified: false,
+        justifyGap: 0,
+      })
+      continue
+    }
 
-    // Try to fit as much as possible
-    let testWidth = 0
-    let lastBreakPos = pos
-    let lastBreakWidth = 0
-    let lastBreakType: BreakOpportunity['type'] = 'cjk'
+    const chars = flattenFragments(seg)
+    const breakOps = findBreakOpportunities(chars)
 
-    for (let i = pos; i < chars.length; i++) {
-      testWidth += chars[i].width
+    let pos = 0
+    while (pos < chars.length) {
+      let breakPos = -1
+      let breakType: BreakOpportunity['type'] = 'cjk'
+      let lineWidth = 0
 
-      // Check for break opportunity at this position
-      const breakAt = breakOps.find((b) => b.index === i + 1)
-      if (breakAt) {
-        lastBreakPos = i + 1
-        lastBreakWidth = testWidth
-        lastBreakType = breakAt.type
-      }
+      let testWidth = 0
+      let lastBreakPos = pos
+      let lastBreakWidth = 0
+      let lastBreakType: BreakOpportunity['type'] = 'cjk'
 
-      if (testWidth > availableWidth) {
-        if (lastBreakPos > pos) {
-          // We've exceeded width and have a previous break — use it
-          breakPos = lastBreakPos
-          breakType = lastBreakType
-          lineWidth = lastBreakWidth
-          break
+      for (let i = pos; i < chars.length; i++) {
+        testWidth += chars[i].width
+
+        const breakAt = breakOps.find((b) => b.index === i + 1)
+        if (breakAt) {
+          lastBreakPos = i + 1
+          lastBreakWidth = testWidth
+          lastBreakType = breakAt.type
         }
 
-        // No break opportunity found — force break at current position
-        breakPos = i + 1
-        breakType = 'cjk'
+        if (testWidth > availableWidth) {
+          if (lastBreakPos > pos) {
+            breakPos = lastBreakPos
+            breakType = lastBreakType
+            lineWidth = lastBreakWidth
+            break
+          }
+          breakPos = i + 1
+          breakType = 'cjk'
+          lineWidth = testWidth
+          break
+        }
+      }
+
+      if (breakPos === -1) {
+        breakPos = chars.length
         lineWidth = testWidth
-        break
       }
-    }
 
-    // If no break found, take everything
-    if (breakPos === -1) {
-      breakPos = chars.length
-      lineWidth = testWidth
-    }
+      const lineChars = chars.slice(pos, breakPos)
+      const lineFragments = buildLineFragments(lineChars, seg)
 
-    // Extract characters for this line
-    const lineChars = chars.slice(pos, breakPos)
+      const metrics = getLineMetrics(fragments)
+      const isLastLine = breakPos >= chars.length
+      const shouldJustify = justify && !isLastLine && lineWidth < availableWidth
 
-    // Build line fragments by grouping consecutive characters from same run
-    const lineFragments = buildLineFragments(lineChars, fragments)
-
-    // Calculate line metrics
-    const lineHeight = fragments.reduce((max, f) => {
-      const sizePt = f.sz * 0.5
-      return Math.max(max, Math.round(sizePt * 20 * 1.15))
-    }, 0)
-
-    const isLastLine = breakPos >= chars.length
-    const shouldJustify = justify && !isLastLine && lineWidth < availableWidth
-
-    let justifyGap = 0
-    if (shouldJustify) {
-      const spaceCount = lineChars.filter((c) => isSpace(c.code)).length
-      if (spaceCount > 0) {
-        justifyGap = Math.round((availableWidth - lineWidth) / spaceCount)
+      let justifyGap = 0
+      if (shouldJustify) {
+        const spaceCount = lineChars.filter((c) => isSpace(c.code)).length
+        if (spaceCount > 0) {
+          justifyGap = Math.round((availableWidth - lineWidth) / spaceCount)
+        }
       }
-    }
 
-    const line: LayoutLine = {
-      fragments: lineFragments,
-      width: lineWidth,
-      height: lineHeight,
-      ascent: Math.round(lineHeight * 0.8),
-      descent: Math.round(lineHeight * 0.2),
-      leading: Math.round(lineHeight * 0.15),
-      justified: shouldJustify,
-      justifyGap,
-    }
+      allLines.push({
+        fragments: lineFragments,
+        width: lineWidth,
+        height: metrics.height,
+        ascent: metrics.ascent,
+        descent: metrics.descent,
+        leading: metrics.leading,
+        justified: shouldJustify,
+        justifyGap,
+      })
 
-    lines.push(line)
-    totalWidth += lineWidth
-    pos = breakPos
+      totalWidth += lineWidth
+      pos = breakPos
+    }
   }
 
-  return { lines, totalWidth }
+  return { lines: allLines, totalWidth }
+}
+
+function getLineMetrics(fragments: TextFragment[]): { height: number; ascent: number; descent: number; leading: number } {
+  let maxAscent = 0
+  let maxDescent = 0
+  let maxLeading = 0
+  for (const f of fragments) {
+    if (f.sz > 0) {
+      const sizePt = f.sz * 0.5
+      const lineH = Math.round(sizePt * 20 * 1.15)
+      const a = Math.round(lineH * 0.8)
+      const d = Math.round(lineH * 0.2)
+      const l = Math.round(lineH * 0.15)
+      if (a > maxAscent) maxAscent = a
+      if (d > maxDescent) maxDescent = d
+      if (l > maxLeading) maxLeading = l
+    }
+  }
+  return {
+    height: maxAscent + maxDescent + maxLeading,
+    ascent: maxAscent,
+    descent: maxDescent,
+    leading: maxLeading,
+  }
 }
 
 /**

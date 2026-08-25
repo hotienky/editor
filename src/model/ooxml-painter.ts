@@ -218,13 +218,29 @@ export class OoxmlPainter {
       let cursorX = x + indent
 
       for (const frag of line.fragments) {
+        // Skip non-text fragments (breaks are handled by line wrapping, tabs by width)
+        if (frag.kind === 'break' || frag.kind === 'drawing') continue
+
         const font = this._buildFont(frag)
         const color = frag.color || this._opts.defaultColor
 
+        if (frag.kind === 'tab') {
+          // Tab: advance cursor by fragment width (already calculated by layout engine)
+          cursorX += this._twipToPx(frag.width)
+          continue
+        }
+
+        // Footnote/endnote reference: render as superscript bracket text
+        if (frag.kind === 'footnoteRef' || frag.kind === 'endnoteRef') {
+          for (const char of frag.text) {
+            const charW = this._measureCharWidth(char, font)
+            batcher.record(ctx, char, cursorX, cursorY, font, color)
+            cursorX += charW
+          }
+          continue
+        }
+
         for (const char of frag.text) {
-          batcher.record(ctx, char, cursorX, cursorX = cursorX + this._measureCharWidth(char, font), font, color)
-          cursorX -= this._measureCharWidth(char, font)
-          // Advance
           const charW = this._measureCharWidth(char, font)
           batcher.record(ctx, char, cursorX, cursorY, font, color)
           cursorX += charW
@@ -248,6 +264,9 @@ export class OoxmlPainter {
     batcher: TextBatcher,
   ): number {
     let cursorY = y
+    const tblPr = table.tblPr as any
+    const tblBorders = tblPr?.tblBorders
+    const tblCellMar = tblPr?.tblCellMar
 
     for (const row of table.rows) {
       let cursorX = x
@@ -255,24 +274,81 @@ export class OoxmlPainter {
 
       for (const cell of row.cells) {
         const cellW = this._twipToPx(cell.width)
+        const cellData = cell as any
         let cellH = 0
 
-        // Draw cell border
+        // Cell margins
+        const cellMar = cellData.cellMar || tblCellMar
+        const padTop = this._twipToPx(cellMar?.top ?? 0) + 4
+        const padLeft = this._twipToPx(cellMar?.start ?? cellMar?.left ?? 0) + 4
+        const padBottom = this._twipToPx(cellMar?.bottom ?? 0) + 4
+        const padRight = this._twipToPx(cellMar?.end ?? cellMar?.right ?? 0) + 4
+
+        // Cell shading
+        const shd = cellData.shd
+        if (shd?.fill && shd.fill !== 'auto' && shd.fill !== 'FFFFFF') {
+          ctx.save()
+          ctx.fillStyle = `#${shd.fill}`
+          ctx.fillRect(cursorX, cursorY, cellW, 0)
+          ctx.restore()
+        }
+
+        // Draw cell borders
+        const cellBorders = cellData.tcBorders
         ctx.save()
-        ctx.strokeStyle = '#CCCCCC'
         ctx.lineWidth = 1
-        ctx.strokeRect(cursorX, cursorY, cellW, 1)
+
+        // Top border
+        const topBorder = cellBorders?.top || tblBorders?.top
+        if (topBorder && topBorder.val !== 'none') {
+          ctx.strokeStyle = `#${topBorder.color || '000000'}`
+          ctx.beginPath()
+          ctx.moveTo(cursorX, cursorY)
+          ctx.lineTo(cursorX + cellW, cursorY)
+          ctx.stroke()
+        }
+
+        // Bottom border
+        const bottomBorder = cellBorders?.bottom || tblBorders?.bottom
+        if (bottomBorder && bottomBorder.val !== 'none') {
+          ctx.strokeStyle = `#${bottomBorder.color || '000000'}`
+          ctx.beginPath()
+          ctx.moveTo(cursorX, cursorY + maxRowH)
+          ctx.lineTo(cursorX + cellW, cursorY + maxRowH)
+          ctx.stroke()
+        }
+
+        // Left border
+        const leftBorder = cellBorders?.left || tblBorders?.left
+        if (leftBorder && leftBorder.val !== 'none') {
+          ctx.strokeStyle = `#${leftBorder.color || '000000'}`
+          ctx.beginPath()
+          ctx.moveTo(cursorX, cursorY)
+          ctx.lineTo(cursorX, cursorY + maxRowH)
+          ctx.stroke()
+        }
+
+        // Right border
+        const rightBorder = cellBorders?.right || tblBorders?.right
+        if (rightBorder && rightBorder.val !== 'none') {
+          ctx.strokeStyle = `#${rightBorder.color || '000000'}`
+          ctx.beginPath()
+          ctx.moveTo(cursorX + cellW, cursorY)
+          ctx.lineTo(cursorX + cellW, cursorY + maxRowH)
+          ctx.stroke()
+        }
+
         ctx.restore()
 
         // Draw cell content
         for (const child of cell.content) {
           if (child.type === 'paragraph') {
-            const r = this._drawParagraph(ctx, child.data, cursorX + 4, cursorY + cellH + 4, pageIndex, blockIndex, batcher)
+            const r = this._drawParagraph(ctx, child.data, cursorX + padLeft, cursorY + cellH + padTop, pageIndex, blockIndex, batcher)
             cellH += r.height
           }
         }
 
-        maxRowH = Math.max(maxRowH, cellH + 8)
+        maxRowH = Math.max(maxRowH, cellH + padTop + padBottom)
         cursorX += cellW
       }
 

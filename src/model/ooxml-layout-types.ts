@@ -29,6 +29,10 @@ export interface LayoutGeometry {
 
 /** A single measured fragment of text with uniform styling */
 export interface TextFragment {
+  /** Fragment kind: text (default), break, tab, footnoteRef, endnoteRef, drawing */
+  kind?: 'text' | 'break' | 'tab' | 'footnoteRef' | 'endnoteRef' | 'drawing'
+  /** Break type (only when kind = 'break') */
+  breakType?: 'page' | 'column' | 'line'
   /** The text content */
   text: string
   /** Width in twips */
@@ -51,6 +55,8 @@ export interface TextFragment {
   vertAlign?: 'superscript' | 'subscript'
   /** Run properties reference for rendering */
   rPr?: Record<string, unknown>
+  /** Reference ID for footnote/endnote */
+  refId?: number
 }
 
 // ─── Layout Line ──────────────────────────────────────────────────────────────

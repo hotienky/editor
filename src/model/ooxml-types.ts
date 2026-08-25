@@ -76,7 +76,7 @@ export type BlockElement = Paragraph | Table | SdtBlock | AltChunk
 export interface Paragraph {
   type: 'paragraph'
   pPr?: ParagraphProperties
-  content: (Run | Hyperlink | SdtInline | SmartTag | CustomXml)[]
+  content: (Run | Hyperlink | SdtInline | SmartTag | CustomXml | TrackedRun | CommentRangeStart | CommentRangeEnd | BookmarkStart | BookmarkEnd)[]
   _raw?: Element
 }
 
@@ -168,7 +168,7 @@ export interface ParagraphBorders {
 export interface Run {
   type: 'run'
   rPr?: RunProperties
-  content: (Text | Break | Tab | Symbol | Drawing | Picture | Math)[]
+  content: (Text | Break | Tab | Symbol | Drawing | Picture | Math | FootnoteReference | EndnoteReference | DeletedText | CommentReference | FieldChar | InstrText)[]
   _raw?: Element
 }
 
@@ -416,6 +416,7 @@ export interface TableCellProperties {
   noWrap?: boolean
   tcW?: number           // twips
   gridSpan?: number
+  hMerge?: 'restart' | 'continue'
   vMerge?: 'restart' | 'continue'
   vAlign?: 'top' | 'center' | 'bottom'
   hideMark?: boolean
@@ -831,10 +832,87 @@ export interface Math {
   content: unknown[]     // Office MathML elements
 }
 
+export interface FootnoteReference {
+  type: 'footnoteReference'
+  id: number
+}
+
+export interface EndnoteReference {
+  type: 'endnoteReference'
+  id: number
+}
+
 // ─── Revision Marks ─────────────────────────────────────────────────────────
 
 export interface RevisionMark {
   id?: number
   author?: string
   date?: string
+  /** Original properties before change (for rPrChange/pPrChange/etc.) */
+  originalRPr?: RunProperties
+  originalPPr?: ParagraphProperties
+}
+
+// ─── Track Changes (w:ins / w:del) ──────────────────────────────────────────
+
+export interface TrackedRun {
+  type: 'ins' | 'del'
+  id: number
+  author: string
+  date: string
+  content: Run[]
+  _raw?: Element
+}
+
+// ─── Comment Range Markers ───────────────────────────────────────────────────
+
+export interface CommentRangeStart {
+  type: 'commentRangeStart'
+  id: number
+}
+
+export interface CommentRangeEnd {
+  type: 'commentRangeEnd'
+  id: number
+}
+
+export interface CommentReference {
+  type: 'commentReference'
+  id: number
+}
+
+// ─── Deleted Text (w:delText) ───────────────────────────────────────────────
+
+export interface DeletedText {
+  type: 'delText'
+  text: string
+  space?: 'preserve' | 'default'
+}
+
+// ─── Bookmarks (w:bookmarkStart / w:bookmarkEnd) ───────────────────────────
+
+export interface BookmarkStart {
+  type: 'bookmarkStart'
+  id: number
+  name?: string
+  colFirst?: number
+  colLast?: number
+}
+
+export interface BookmarkEnd {
+  type: 'bookmarkEnd'
+  id: number
+}
+
+// ─── Field Codes (w:fldChar / w:instrText) ──────────────────────────────────
+
+export interface FieldChar {
+  type: 'fieldChar'
+  fldCharType: 'begin' | 'separate' | 'end'
+}
+
+export interface InstrText {
+  type: 'instrText'
+  text: string
+  space?: 'preserve' | 'default'
 }

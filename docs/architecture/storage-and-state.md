@@ -1,70 +1,216 @@
-# Mô hình Lưu trữ & Concurrency
+# Lưu trữ & Concurrency — OOXML-Native
 
-Kindy Editor áp dụng mô hình dữ liệu **Canonical JSON State** kết hợp chiến lược lưu trữ **Dual-Artifact** và cơ chế kiểm soát đồng thời lạc quan (**Optimistic Concurrency Control**).
+> Version: 3.0
+> Date: 2026-08-24
+> Status: Active
 
 ---
 
-## 1. Cấu trúc Trạng thái Chuẩn (`KindyDocumentState`)
+## 1. OOXML Canonical State
 
-Dữ liệu lưu trữ chính của editor được cấu trúc dưới dạng JSON chuẩn:
+Kindy Editor dùng `OoxmlPackage` làm canonical state trong bộ nhớ:
 
 ```typescript
-export interface KindyDocumentState {
-  schemaVersion: '2.0'
-  content: JSONContent       // ProseMirror / Tiptap JSON Tree
-  page: KindyPageState       // Cấu hình trang in, khổ giấy, margin, header/footer
-  assets: AssetReference[]   // Danh sách tài nguyên đính kèm (ảnh, media)
+interface OoxmlPackage {
+  document: DocumentPart
+  styles: StylesPart
+  numbering: NumberingPart
+  settings: SettingsPart
+  headers: Map<string, HeaderPart>
+  footers: Map<string, FooterPart>
+  comments: CommentsPart
+  // ... other parts
 }
 ```
 
-> **Tại sao không lưu HTML?**
-> HTML không lưu giữ được đầy đủ thông tin trang in, cấu hình Header/Footer khác nhau giữa trang chẵn/lẻ, vị trí tab stop và layout Word. JSON State đảm bảo khả năng serialize 2 chiều chính xác với DOCX.
+- **Import**: DOCX → OoxmlPackage (parse trực tiếp, không convert)
+- **Editing**: Modify OoxmlPackage trực tiếp
+- **Export**: OoxmlPackage → DOCX (serialize trực tiếp, không reconstruct)
+- **Storage**: Save OoxmlPackage hoặc delta
 
 ---
 
-## 2. Chiến lược Dual-Artifact Storage
+## 2. Delta Storage
 
-Để giải quyết bài toán toàn vẹn dữ liệu khi người dùng tải lên tài liệu DOCX gốc có nhiều định dạng phức tạp:
+### 2.1 Problem
 
-```text
-[Người dùng Upload file.docx]
-       │
-       ├─► Backend lưu Blob gốc (document_artifacts: 'original-docx')
-       └─► Parse ra KindyDocumentState (document_revisions: 'rev-import-1')
+Serialize toàn bộ OoxmlPackage cho 500 trang rất chậm.
+
+### 2.2 Solution
+
+Chỉ serialize thay đổi (delta):
+
+```typescript
+interface OoxmlDelta {
+  operations: Operation[]
+  timestamp: number
+  baseHash: string
+}
+
+interface Operation {
+  type: 'insert' | 'delete' | 'replace' | 'move'
+  path: number[]              // Path in OOXML tree
+  content?: OoxmlNode         // New content
+  length?: number              // For delete
+}
 ```
 
-- **Trường hợp 1: Tải về khi CHƯA SỬA ĐỔI**
-  - Nếu `currentRevisionId` vẫn bằng `originalSource.revisionId`, hệ thống trả về đúng **file binary DOCX gốc**. Đảm bảo giữ nguyên vẹn 100% byte-for-byte mọi macro, SmartArt, đồ họa nâng cao của Microsoft Word.
-- **Trường hợp 2: Tải về khi ĐÃ CÓ CHỈNH SỬA**
-  - Khi người dùng đã gõ hoặc chỉnh sửa và lưu thành revision mới, hệ thống kích hoạt **DOCX Serializer** để dựng file OOXML DOCX mới từ `KindyDocumentState`.
+### 2.3 Delta Flow
+
+```
+User edit
+  │
+  ▼
+Transaction applied to OoxmlPackage
+  │
+  ├─ DeltaRecorder.record(operation)
+  │
+  ▼
+Debounced save (1000ms)
+  │
+  ├─ Create delta from recorded operations
+  ├─ Serialize delta (small)
+  ├─ Send to server
+  │
+  ▼
+Server stores: full state + delta history
+```
 
 ---
 
-## 3. Quản lý Phiên bản & Cơ chế Concurrency (409 Conflict)
+## 3. Optimistic Concurrency
 
-Khi nhiều người dùng cùng truy cập hoặc khi autosave chạy liên tục, Kindy Editor sử dụng kỹ thuật **Optimistic Locking**:
+### 3.1 Conflict Detection
+
+```typescript
+interface SaveRequest {
+  documentId: string
+  baseRevisionId: string       // Client's revision when editing started
+  delta: OoxmlDelta            // Changes since base revision
+  clientMutationId: string     // UUID for deduplication
+}
+```
+
+### 3.2 Conflict Resolution
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client as Kindy Editor (Client)
-    participant Server as Host Backend
+    actor Client as Kindy Editor
+    participant Server as Backend
 
-    Client->>Server: 1. GET /documents/123/state (revisionId: "rev-10")
-    Note over Client: Người dùng chỉnh sửa nội dung
-    Client->>Server: 2. PUT /documents/123/state { baseRevisionId: "rev-10", state: {...} }
+    Client->>Server: GET document (revisionId: "rev-10")
+    Note over Client: User edits document
+    Client->>Server: PUT state { baseRevision: "rev-10", delta }
     
-    alt Trường hợp hợp lệ
-        Server-->>Client: 200 OK { revisionId: "rev-11", versionId: "v-2" }
-        Note over Client: Trạng thái: "Saved"
-    else Trường hợp bị ghi đè (Người khác đã lưu rev-11 trước)
+    alt Success
+        Server-->>Client: 200 OK { revisionId: "rev-11" }
+    else Conflict
         Server-->>Client: 409 Conflict (VERSION_CONFLICT)
-        Note over Client: Dừng Autosave ngay lập tức!
-        Note over Client: Hiển thị cảnh báo: Tải lại hoặc Lưu bản sao
+        Note over Client: Stop autosave, show warning
     end
 ```
 
-### Quy trình xử lý xung đột:
-1. Mỗi lần lưu, client gửi kèm `baseRevisionId` và `clientMutationId` (UUID duy nhất tránh gửi lặp khi mạng chập chờn).
-2. Phía Server kiểm tra nếu `current_revision_id !== baseRevisionId`, Server trả về mã lỗi **HTTP 409 Conflict** với mã lỗi `VERSION_CONFLICT`.
-3. Client tự động ngắt timer Autosave để tránh làm mất dữ liệu của người dùng, đồng thời phát sinh sự kiện `save-failed` để giao diện hiển thị hộp thoại xử lý cho người dùng.
+---
+
+## 4. Version History
+
+### 4.1 Storage Model
+
+```
+Document: { id, title, createdAt, updatedAt }
+
+Revisions:
+  rev-1: { full OoxmlPackage, timestamp, author }
+  rev-2: { delta from rev-1, timestamp, author }
+  rev-3: { delta from rev-2, timestamp, author }
+  ...
+
+Snapshots:
+  Every N revisions → full snapshot (for fast restore)
+```
+
+### 4.2 Version Restore
+
+```typescript
+class VersionManager {
+  // Restore to specific revision
+  async restoreVersion(documentId: string, revisionId: string): Promise<OoxmlPackage> {
+    // 1. Find nearest snapshot before revisionId
+    // 2. Apply deltas from snapshot to revisionId
+    // 3. Return reconstructed OoxmlPackage
+  }
+}
+```
+
+---
+
+## 5. Import/Export
+
+### 5.1 Import Pipeline
+
+```
+DOCX file (from SharePoint)
+  │
+  ▼
+fflate.unzipSync(buffer)
+  │
+  ├─ [Content_Types].xml
+  ├─ word/document.xml → DOMParser
+  ├─ word/styles.xml → DOMParser
+  ├─ word/numbering.xml → DOMParser
+  ├─ word/settings.xml → DOMParser
+  ├─ word/_rels/document.xml.rels → Map<rId, target>
+  ├─ word/header1.xml → DOMParser
+  ├─ word/footer1.xml → DOMParser
+  ├─ word/comments.xml → DOMParser
+  └─ word/media/* → Blob data
+  │
+  ▼
+Build OoxmlPackage (canonical state)
+```
+
+### 5.2 Export Pipeline
+
+```
+OoxmlPackage
+  │
+  ├─ Serialize document.xml
+  ├─ Serialize styles.xml
+  ├─ Serialize numbering.xml
+  ├─ Serialize settings.xml
+  ├─ Serialize headers/*.xml
+  ├─ Serialize footers/*.xml
+  ├─ Serialize comments.xml
+  ├─ Build [Content_Types].xml
+  ├─ Build _rels/*.rels
+  ├─ Copy media/*
+  │
+  ▼
+fflate.zipSync(parts)
+  │
+  ▼
+DOCX Blob
+```
+
+### 5.3 Round-trip Validation
+
+```typescript
+async function validateRoundtrip(original: Blob): Promise<RoundtripReport> {
+  // 1. Parse original
+  const pkg1 = await parseDocx(original)
+
+  // 2. Serialize
+  const exported = await serializeDocx(pkg1)
+
+  // 3. Parse exported
+  const pkg2 = await parseDocx(exported)
+
+  // 4. Compare
+  return {
+    structuralMatch: compareStructure(pkg1, pkg2),
+    visualMatch: await compareVisual(original, exported),
+    fidelityScore: calculateFidelity(pkg1, pkg2)
+  }
+}
+```

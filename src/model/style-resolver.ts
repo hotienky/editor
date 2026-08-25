@@ -22,6 +22,7 @@ import type {
   RunFonts,
   TableProperties,
   ThemePart,
+  ColorScheme,
 } from './ooxml-types'
 
 // ─── Resolved Styles ────────────────────────────────────────────────────────
@@ -312,7 +313,7 @@ export class StyleResolver {
       const s = inheritanceChain[i]
       if (s.tblPr) {
         if (!resolved.tblPr) resolved.tblPr = {}
-        Object.assign(resolved.tblPr, s.tblPr)
+        this._mergeTableProperties(resolved.tblPr, s.tblPr)
       }
       if (s.pPr) {
         if (!resolved.pPr) resolved.pPr = {}
@@ -347,10 +348,12 @@ export class StyleResolver {
     // Resolve major font (headings)
     const majorLatin = fontScheme.majorFont?.latin?.typeface
     const majorEastAsia = fontScheme.majorFont?.eastAsia?.typeface
+    const majorCs = fontScheme.majorFont?.cs?.typeface
 
     // Resolve minor font (body text)
     const minorLatin = fontScheme.minorFont?.latin?.typeface
     const minorEastAsia = fontScheme.minorFont?.eastAsia?.typeface
+    const minorCs = fontScheme.minorFont?.cs?.typeface
 
     // Resolve ascii/hAnsi
     if (resolved.ascii) {
@@ -361,6 +364,9 @@ export class StyleResolver {
     }
     if (resolved.eastAsia) {
       resolved.eastAsia = this._resolveFontReference(resolved.eastAsia, majorEastAsia, minorEastAsia)
+    }
+    if (resolved.cs) {
+      resolved.cs = this._resolveFontReference(resolved.cs, majorCs, minorCs)
     }
 
     return resolved
@@ -408,6 +414,37 @@ export class StyleResolver {
     return value
   }
 
+  // ─── Internal: Theme Color Resolution ───────────────────────────────────
+
+  /**
+   * Resolve theme color references in a color value.
+   * Theme color values like "accent1", "hyperlink", "dark1" are replaced with actual hex values.
+   */
+  resolveThemeColor(colorValue: string | undefined): string | undefined {
+    if (!colorValue || !this._theme) return colorValue
+
+    const colorScheme = this._theme.themeElements?.clrScheme
+    if (!colorScheme) return colorValue
+
+    const lower = colorValue.toLowerCase()
+
+    switch (lower) {
+      case 'dark1': return colorScheme.dark1
+      case 'light1': return colorScheme.light1
+      case 'dark2': return colorScheme.dark2
+      case 'light2': return colorScheme.light2
+      case 'accent1': return colorScheme.accent1
+      case 'accent2': return colorScheme.accent2
+      case 'accent3': return colorScheme.accent3
+      case 'accent4': return colorScheme.accent4
+      case 'accent5': return colorScheme.accent5
+      case 'accent6': return colorScheme.accent6
+      case 'hyperlink': return colorScheme.hyperlink
+      case 'followedhyperlink': return colorScheme.followedHyperlink
+      default: return colorValue
+    }
+  }
+
   // ─── Internal: Property Merging ─────────────────────────────────────────
 
   /**
@@ -442,6 +479,49 @@ export class StyleResolver {
         }
       } else {
         // Simple override
+        ;(target as any)[key] = value
+      }
+    }
+  }
+
+  /**
+   * Merge table properties with deep merge for nested objects.
+   * Later values override earlier ones. For nested objects like tblBorders,
+   * tblCellMar, individual properties are merged rather than replaced.
+   */
+  private _mergeTableProperties(
+    target: TableProperties,
+    source: TableProperties,
+  ): void {
+    if (!source) return
+
+    for (const [key, value] of Object.entries(source)) {
+      if (value === undefined) continue
+
+      if (key === 'tblBorders' && typeof value === 'object' && value !== null) {
+        // Deep merge borders
+        if (!target.tblBorders) {
+          target.tblBorders = { ...value }
+        } else {
+          for (const [borderKey, borderVal] of Object.entries(value)) {
+            if (borderVal !== undefined) {
+              ;(target.tblBorders as any)[borderKey] = borderVal
+            }
+          }
+        }
+      } else if (key === 'tblCellMar' && typeof value === 'object' && value !== null) {
+        // Deep merge cell margins
+        if (!target.tblCellMar) {
+          target.tblCellMar = { ...value }
+        } else {
+          for (const [marKey, marVal] of Object.entries(value)) {
+            if (marVal !== undefined) {
+              ;(target.tblCellMar as any)[marKey] = marVal
+            }
+          }
+        }
+      } else {
+        // Simple override for scalars and other objects
         ;(target as any)[key] = value
       }
     }

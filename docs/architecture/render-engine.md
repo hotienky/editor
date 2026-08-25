@@ -1,579 +1,290 @@
-# Render Engine Specification
+# Render Engine Specification — OOXML-Native
 
-> Version: 1.0
-> Date: 2026-08-07
-> Status: Draft
-
----
-
-## Table of Contents
-
-1. [Overview](#1-overview)
-2. [Architecture](#2-architecture)
-3. [Page Renderer](#3-page-renderer)
-4. [Viewport Virtualizer](#4-viewport-virtualizer)
-5. [Header/Footer Renderer](#5-headerfooter-renderer)
-6. [Virtual Scrolling](#6-virtual-scrolling)
-7. [Framework Adapters](#7-framework-adapters)
-8. [Performance](#8-performance)
-9. [API Reference](#9-api-reference)
+> Version: 3.0
+> Date: 2026-08-24
+> Status: Active
 
 ---
 
 ## 1. Overview
 
-### 1.1 Purpose
+Render Engine chuyển Layout Tree thành Canvas rendering. Input là `LayoutTree` (tính từ OOXML), output là pixel trên màn hình.
 
-The Render Engine converts Layout Tree into HTML/CSS for display in the browser.
+### Design Principles
 
-### 1.2 Architecture
-
-```
-Layout Tree
-    ↓
-┌─────────────────────────────┐
-│       Page Renderer         │  Generate HTML/CSS for each page
-└─────────────────────────────┘
-    ↓
-┌─────────────────────────────┐
-│    Viewport Virtualizer     │  Determine which pages to render
-└─────────────────────────────┘
-    ↓
-┌─────────────────────────────┐
-│  Header/Footer Renderer     │  Render header/footer content
-└─────────────────────────────┘
-    ↓
-┌─────────────────────────────┐
-│     DOM Update              │  Update the DOM
-└─────────────────────────────┘
-```
-
-### 1.3 Design Principles
-
-1. **Lazy Rendering**: Only render visible pages
-2. **Virtual Scrolling**: Recycle DOM elements
-3. **Framework Agnostic**: Core logic has no framework dependency
-4. **Print Ready**: Generate print-friendly HTML/CSS
+1. **Canvas-based**: Render trên `<canvas>` element, không dùng DOM
+2. **Viewport virtualization**: Chỉ render visible pages + buffer
+3. **Font-accurate**: Dùng đúng font từ OOXML document
+4. **Hi-DPI support**: Render ở device pixel ratio
 
 ---
 
 ## 2. Architecture
 
-### 2.1 Components
-
-```
-@kindy/render
-├── PageRenderer           # Generate HTML/CSS for a single page
-├── ViewportVirtualizer    # Determine visible pages
-├── HeaderFooterRenderer   # Render header/footer
-├── PrintRenderer          # Render for print/export
-└── index.ts              # Public API
-```
-
-### 2.2 Data Flow
-
 ```
 Layout Tree
-    ↓
-ViewportVirtualizer.getVisiblePages(scrollTop, containerHeight)
-    ↓
-[Page1, Page2, Page3, Page4, Page5]
-    ↓
-For each page:
-  PageRenderer.renderPage(layoutPage)
-    ↓
-  HTML/CSS string
-    ↓
-  Insert into DOM
+  │
+  ├─ Viewport Virtualizer → visible pages [n, n+1, n+2, ...]
+  │
+  ▼
+For each visible page:
+  │
+  ├─ Canvas Painter
+  │   ├─ paintBackground(page background, borders)
+  │   ├─ paintHeader(header content)
+  │   ├─ paintContent(page blocks)
+  │   │   ├─ paintParagraph(para layout, resolved styles)
+  │   │   ├─ paintTable(table layout, borders, cells)
+  │   │   ├─ paintImage(image layout, data URL)
+  │   │   └─ paintHyperlink(link range, color)
+  │   └─ paintFooter(footer content)
+  │
+  ▼
+Canvas display
 ```
 
 ---
 
-## 3. Page Renderer
+## 3. Canvas Painter
 
-### 3.1 Purpose
-
-Generate HTML/CSS for a single page.
-
-### 3.2 API
+### 3.1 Page Painting
 
 ```typescript
-class PageRenderer {
-  // Generate page styles
-  getPageStyles(layoutPage: LayoutPage): CSSProperties
-  
-  // Generate content area styles
-  getContentStyles(layoutPage: LayoutPage): CSSProperties
-  
-  // Generate complete page HTML
-  renderPage(layoutPage: LayoutPage, contentHtml: string): string
-  
-  // Generate print styles
-  getPrintStyles(layoutPage: LayoutPage): string
-}
-```
+class OoxmlPainter {
+  paintPage(
+    ctx: CanvasRenderingContext2D,
+    page: LayoutPage,
+    package: OoxmlPackage,
+    zoom: number
+  ): void {
+    // 1. Clear and draw page background
+    ctx.save()
+    ctx.scale(zoom, zoom)
 
-### 3.3 Page HTML Structure
+    // 2. Draw page borders
+    this.paintPageBorders(ctx, page)
 
-```html
-<div class="kindy-print-page" style="...">
-  <!-- Header (optional) -->
-  <div class="kindy-print-header" style="...">
-    <!-- Header content -->
-  </div>
-  
-  <!-- Content area -->
-  <div class="kindy-print-page-content" style="...">
-    <!-- Page content -->
-  </div>
-  
-  <!-- Footer (optional) -->
-  <div class="kindy-print-footer" style="...">
-    <!-- Footer content -->
-  </div>
-</div>
-```
+    // 3. Draw header
+    if (page.header) {
+      this.paintHeaderFooter(ctx, page.header, 'header')
+    }
 
-### 3.4 Page Styles
+    // 4. Draw content blocks
+    for (const block of page.blocks) {
+      this.paintBlock(ctx, block, package)
+    }
 
-```typescript
-function getPageStyles(layoutPage: LayoutPage): CSSProperties {
-  return {
-    width: `${pageWidth}cm`,
-    height: `${pageHeight}cm`,
-    padding: `${margin.top}cm ${margin.right}cm ${margin.bottom}cm ${margin.left}cm`,
-    boxSizing: 'border-box',
-    pageBreakAfter: 'always',
-    position: 'relative',
-    background: backgroundColor,
-    overflow: 'hidden'
+    // 5. Draw footer
+    if (page.footer) {
+      this.paintHeaderFooter(ctx, page.footer, 'footer')
+    }
+
+    ctx.restore()
   }
 }
 ```
 
-### 3.5 Content Styles
+### 3.2 Paragraph Painting
 
 ```typescript
-function getContentStyles(layoutPage: LayoutPage): CSSProperties {
-  return {
-    position: 'relative',
-    minHeight: 0,
-    flex: 1
+private paintParagraph(
+  ctx: CanvasRenderingContext2D,
+  para: ParagraphLayout,
+  package: OoxmlPackage
+): void {
+  const resolvedStyle = package.styles.resolveParagraph(para.pPr)
+
+  for (const line of para.lines) {
+    for (const run of line.runs) {
+      const resolvedRun = package.styles.resolveCharacter(run.rPr)
+
+      // Set font
+      ctx.font = this.buildFontString(resolvedRun)
+      ctx.fillStyle = resolvedRun.color || '#000000'
+
+      // Draw text
+      ctx.fillText(run.text, run.x, run.y)
+
+      // Draw decorations
+      if (resolvedRun.u) this.drawUnderline(ctx, run, resolvedRun.u)
+      if (resolvedRun.strike) this.drawStrikethrough(ctx, run)
+      if (resolvedRun.highlight) this.drawHighlight(ctx, run, resolvedRun.highlight)
+    }
+  }
+}
+```
+
+### 3.3 Table Painting
+
+```typescript
+private paintTable(
+  ctx: CanvasRenderingContext2D,
+  table: TableLayout,
+  package: OoxmlPackage
+): void {
+  // Draw cell backgrounds
+  for (const cell of table.cells) {
+    if (cell.shd) {
+      ctx.fillStyle = cell.shd.fill
+      ctx.fillRect(cell.x, cell.y, cell.width, cell.height)
+    }
+  }
+
+  // Draw borders
+  this.drawTableBorders(ctx, table)
+
+  // Paint cell content
+  for (const cell of table.cells) {
+    ctx.save()
+    ctx.translate(cell.x, cell.y)
+    for (const block of cell.content) {
+      this.paintBlock(ctx, block, package)
+    }
+    ctx.restore()
   }
 }
 ```
 
 ---
 
-## 4. Viewport Virtualizer
+## 4. Font Handling
 
-### 4.1 Purpose
+### 4.1 Font Resolution
 
-Determine which pages to render based on scroll position.
+```typescript
+function resolveFontForRun(
+  rPr: RunProperties,
+  package: OoxmlPackage
+): string {
+  // 1. Check rFonts attributes
+  const fonts = rPr.rFonts
+  if (fonts) {
+    // Priority: ascii → hAnsi → eastAsia → cs
+    return fonts.ascii || fonts.hAnsi || fonts.eastAsia || fonts.cs
+  }
 
-### 4.2 API
+  // 2. Check style's rFonts
+  const style = package.styles.resolveCharacter(rPr.rStyle)
+  if (style?.rFonts) {
+    return style.rFonts.ascii || style.rFonts.hAnsi
+  }
+
+  // 3. Check theme fonts
+  if (package.theme) {
+    return resolveThemeFont(package.theme, 'minorHAnsi')
+  }
+
+  // 4. System fallback
+  return 'Times New Roman'
+}
+```
+
+### 4.2 Font Loading
+
+```typescript
+class FontLoader {
+  // Load fonts referenced in document
+  async loadFonts(package: OoxmlPackage): Promise<void> {
+    const fonts = this.extractFontNames(package)
+    for (const font of fonts) {
+      await document.fonts.load(`12px "${font}"`)
+    }
+  }
+
+  // Check if font is loaded
+  isFontLoaded(font: string): boolean {
+    return document.fonts.check(`12px "${font}"`)
+  }
+}
+```
+
+---
+
+## 5. Viewport Virtualization
+
+### 5.1 Visible Pages
 
 ```typescript
 class ViewportVirtualizer {
-  // Update viewport state
-  updateLayout(layoutTree: LayoutTree): void
-  updateZoom(zoomLevel: number): void
-  updateScrollTop(scrollTop: number): void
-  
-  // Get visible pages
-  getVisiblePages(): number[]
-  
-  // Check if page is visible
-  isVisible(pageNumber: number): boolean
-  
-  // Subscribe to viewport changes
-  subscribe(callback: (pages: number[]) => void): () => void
-}
-```
+  getVisiblePages(
+    scrollTop: number,
+    containerHeight: number,
+    layoutTree: LayoutTree,
+    zoom: number,
+    buffer: number = 2
+  ): number[] {
+    const pages: number[] = []
+    const pageHeight = layoutTree.pageHeight * zoom
 
-### 4.3 Algorithm
+    for (let i = 0; i < layoutTree.totalPages; i++) {
+      const pageTop = i * pageHeight
+      const pageBottom = pageTop + pageHeight
 
-```typescript
-function getVisiblePages(
-  scrollTop: number,
-  containerHeight: number,
-  layoutTree: LayoutTree,
-  zoomLevel: number,
-  buffer: number = 2
-): number[] {
-  const visiblePages: number[] = []
-  const zoom = zoomLevel / 100
-  
-  for (let i = 0; i < layoutTree.totalPages; i++) {
-    const pageTop = getPageTop(i, layoutTree) * zoom
-    const pageBottom = pageTop + getPageHeight(i, layoutTree) * zoom
-    
-    // Check if page is visible (with buffer)
-    if (pageBottom >= scrollTop - buffer * pageHeight &&
-        pageTop <= scrollTop + containerHeight + buffer * pageHeight) {
-      visiblePages.push(i)
-    }
-  }
-  
-  return visiblePages
-}
-```
-
----
-
-## 5. Header/Footer Renderer
-
-### 5.1 Purpose
-
-Render header and footer content for each page.
-
-### 5.2 API
-
-```typescript
-class HeaderFooterRenderer {
-  // Render header
-  renderHeader(pageNumber: number, totalPages: number): string
-  
-  // Render footer
-  renderFooter(pageNumber: number, totalPages: number): string
-  
-  // Render both
-  renderBoth(pageNumber: number, totalPages: number): {
-    header: string
-    footer: string
-  }
-}
-```
-
-### 5.3 Header HTML
-
-```html
-<div class="kindy-print-header" style="...">
-  <!-- Single layout -->
-  <div style="display: flex; align-items: center; justify-content: center;">
-    <img src="logo.png" style="height: 32px;" />
-    <span>Header text</span>
-  </div>
-  
-  <!-- Split layout -->
-  <div style="display: flex; justify-content: space-between;">
-    <div>Left text</div>
-    <div>Right text</div>
-  </div>
-</div>
-```
-
-### 5.4 Footer HTML
-
-```html
-<div class="kindy-print-footer" style="...">
-  <!-- Page number -->
-  <div style="text-align: center;">
-    <span>Page 1 of 10</span>
-  </div>
-</div>
-```
-
----
-
-## 6. Virtual Scrolling
-
-### 6.1 Purpose
-
-Only render visible pages to improve performance.
-
-### 6.2 Implementation
-
-```typescript
-class VirtualScroller {
-  private container: HTMLElement
-  private renderedPages: Map<number, HTMLElement>
-  private viewport: ViewportVirtualizer
-  
-  constructor(container: HTMLElement) {
-    this.container = container
-    this.renderedPages = new Map()
-    this.viewport = new ViewportVirtualizer()
-    
-    // Listen to scroll events
-    container.addEventListener('scroll', this.onScroll.bind(this))
-  }
-  
-  onScroll() {
-    const scrollTop = this.container.scrollTop
-    const containerHeight = this.container.clientHeight
-    
-    this.viewport.updateScrollTop(scrollTop)
-    const visiblePages = this.viewport.getVisiblePages()
-    
-    this.renderPages(visiblePages)
-  }
-  
-  renderPages(pages: number[]) {
-    // Remove pages that are no longer visible
-    for (const [pageNumber, element] of this.renderedPages) {
-      if (!pages.includes(pageNumber)) {
-        element.remove()
-        this.renderedPages.delete(pageNumber)
+      if (pageBottom >= scrollTop - buffer * pageHeight &&
+          pageTop <= scrollTop + containerHeight + buffer * pageHeight) {
+        pages.push(i)
       }
     }
-    
-    // Add pages that are now visible
-    for (const pageNumber of pages) {
-      if (!this.renderedPages.has(pageNumber)) {
-        const element = this.createPageElement(pageNumber)
-        this.container.appendChild(element)
-        this.renderedPages.set(pageNumber, element)
-      }
-    }
-  }
-  
-  createPageElement(pageNumber: number): HTMLElement {
-    const div = document.createElement('div')
-    div.innerHTML = this.renderPage(pageNumber)
-    return div.firstElementChild as HTMLElement
+
+    return pages
   }
 }
 ```
 
-### 6.3 Buffer Configuration
+### 5.2 Canvas Pool
 
 ```typescript
-interface VirtualScrollConfig {
-  buffer: number        // Number of pages to render outside viewport
-  minimumVisible: number // Minimum pages to render
-  recycleThreshold: number // When to recycle elements
-}
+class CanvasPool {
+  private pool: HTMLCanvasElement[]
 
-const defaultConfig: VirtualScrollConfig = {
-  buffer: 2,
-  minimumVisible: 3,
-  recycleThreshold: 10
+  acquire(): HTMLCanvasElement {
+    return this.pool.pop() || document.createElement('canvas')
+  }
+
+  release(canvas: HTMLCanvasElement): void {
+    canvas.width = 0
+    canvas.height = 0
+    this.pool.push(canvas)
+  }
 }
 ```
 
 ---
 
-## 7. Framework Adapters
+## 6. Selection Rendering
 
-### 7.1 React Adapter
-
-```typescript
-// @kindy/react
-import { PageRenderer } from '@kindy/render'
-
-interface PageProps {
-  layoutPage: LayoutPage
-  contentHtml: string
-}
-
-function Page({ layoutPage, contentHtml }: PageProps) {
-  const renderer = new PageRenderer()
-  const html = renderer.renderPage(layoutPage, contentHtml)
-  
-  return <div dangerouslySetInnerHTML={{ __html: html }} />
-}
-
-interface DocumentProps {
-  layoutTree: LayoutTree
-  visiblePages: number[]
-}
-
-function Document({ layoutTree, visiblePages }: DocumentProps) {
-  return (
-    <div className="kindy-document">
-      {visiblePages.map(pageNumber => (
-        <Page
-          key={pageNumber}
-          layoutPage={layoutTree.pages[pageNumber]}
-          contentHtml={getPageContent(pageNumber)}
-        />
-      ))}
-    </div>
-  )
-}
-```
-
-### 7.2 Vue Adapter
+### 6.1 Selection Highlight
 
 ```typescript
-// @kindy/vue
-import { PageRenderer } from '@kindy/render'
+private paintSelection(
+  ctx: CanvasRenderingContext2D,
+  selection: Selection,
+  layout: LayoutTree
+): void {
+  ctx.fillStyle = 'rgba(0, 120, 215, 0.3)'  // Word blue
 
-const PageComponent = {
-  props: {
-    layoutPage: Object,
-    contentHtml: String
-  },
-  setup(props) {
-    const renderer = new PageRenderer()
-    const html = computed(() => 
-      renderer.renderPage(props.layoutPage, props.contentHtml)
-    )
-    
-    return { html }
-  },
-  template: `<div v-html="html"></div>`
-}
-
-const DocumentComponent = {
-  props: {
-    layoutTree: Object,
-    visiblePages: Array
-  },
-  components: { Page: PageComponent },
-  template: `
-    <div class="kindy-document">
-      <Page
-        v-for="pageNumber in visiblePages"
-        :key="pageNumber"
-        :layout-page="layoutTree.pages[pageNumber]"
-        :content-html="getPageContent(pageNumber)"
-      />
-    </div>
-  `
-}
-```
-
----
-
-## 8. Performance
-
-### 8.1 DOM Recycling
-
-Reuse DOM elements instead of creating new ones:
-
-```typescript
-class DOMRecycler {
-  private pool: Map<string, HTMLElement[]>
-  
-  acquire(tagName: string): HTMLElement {
-    const pool = this.pool.get(tagName) || []
-    if (pool.length > 0) {
-      return pool.pop()!
-    }
-    return document.createElement(tagName)
-  }
-  
-  release(element: HTMLElement): void {
-    const tagName = element.tagName.toLowerCase()
-    const pool = this.pool.get(tagName) || []
-    pool.push(element)
-    this.pool.set(tagName, pool)
-  }
-}
-```
-
-### 8.2 Batch Updates
-
-Batch DOM updates to avoid layout thrashing:
-
-```typescript
-class BatchUpdater {
-  private updates: (() => void)[] = []
-  private scheduled = false
-  
-  add(update: () => void): void {
-    this.updates.push(update)
-    if (!this.scheduled) {
-      this.schedule()
+  for (const range of selection.ranges) {
+    const rects = this.getSelectionRects(range, layout)
+    for (const rect of rects) {
+      ctx.fillRect(rect.x, rect.y, rect.width, rect.height)
     }
   }
-  
-  schedule(): void {
-    this.scheduled = true
-    requestAnimationFrame(() => {
-      this.flush()
-      this.scheduled = false
-    })
-  }
-  
-  flush(): void {
-    for (const update of this.updates) {
-      update()
-    }
-    this.updates = []
-  }
 }
 ```
 
-### 8.3 Lazy Rendering
-
-Only render pages when they enter the viewport:
+### 6.2 Caret
 
 ```typescript
-function shouldRender(
-  pageNumber: number,
-  visiblePages: number[],
-  renderedPages: Set<number>
-): boolean {
-  // Already rendered
-  if (renderedPages.has(pageNumber)) {
-    return false
-  }
-  
-  // Not visible
-  if (!visiblePages.includes(pageNumber)) {
-    return false
-  }
-  
-  return true
+private paintCaret(
+  ctx: CanvasRenderingContext2D,
+  position: ScreenPosition,
+  focused: boolean
+): void {
+  ctx.strokeStyle = focused ? '#000000' : '#888888'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.moveTo(position.x, position.y)
+  ctx.lineTo(position.x, position.y + position.height)
+  ctx.stroke()
 }
 ```
-
----
-
-## 9. API Reference
-
-### 9.1 Types
-
-```typescript
-interface LayoutTree { ... }
-interface LayoutPage { ... }
-interface LayoutBlock { ... }
-interface PageOptions { ... }
-interface CSSProperties { ... }
-```
-
-### 9.2 Classes
-
-```typescript
-class PageRenderer {
-  getPageStyles(layoutPage: LayoutPage): CSSProperties
-  getContentStyles(layoutPage: LayoutPage): CSSProperties
-  renderPage(layoutPage: LayoutPage, contentHtml: string): string
-  getPrintStyles(layoutPage: LayoutPage): string
-}
-
-class ViewportVirtualizer {
-  updateLayout(layoutTree: LayoutTree): void
-  updateZoom(zoomLevel: number): void
-  updateScrollTop(scrollTop: number): void
-  getVisiblePages(): number[]
-  isVisible(pageNumber: number): boolean
-  subscribe(callback: (pages: number[]) => void): () => void
-}
-
-class HeaderFooterRenderer {
-  renderHeader(pageNumber: number, totalPages: number): string
-  renderFooter(pageNumber: number, totalPages: number): string
-  renderBoth(pageNumber: number, totalPages: number): { header: string; footer: string }
-}
-```
-
-### 9.3 Functions
-
-```typescript
-function renderPage(layoutPage: LayoutPage, contentHtml: string): string
-function renderHeader(pageNumber: number, totalPages: number): string
-function renderFooter(pageNumber: number, totalPages: number): string
-function getVisiblePages(scrollTop: number, containerHeight: number, layoutTree: LayoutTree): number[]
-```
-
----
-
-## Appendix: References
-
-- [Virtual Scrolling](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API)
-- [requestAnimationFrame](https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame)
-- [CSS Paged Media](https://developer.mozilla.org/en-US/docs/Web/CSS/@page)

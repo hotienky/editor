@@ -20,36 +20,75 @@ const PT_PER_HALF_PT = 0.5
 
 /**
  * Resolve the effective font family from run properties and theme.
- * Priority: rFonts.ascii -> rFonts.hAnsi -> rFonts.eastAsia -> theme minorFont
+ * Follows ECMA-376 §2.8.4: hint-based font selection with theme fallback.
+ *
+ * Priority:
+ *   1. rFonts attribute based on hint (ascii → hAnsi → eastAsia → cs)
+ *   2. Theme major/minor font
+ *   3. System fallback
  */
 function resolveFontFamily(
   rFonts: RunFonts | undefined,
   theme: ThemePart | undefined,
   preference: 'ascii' | 'hAnsi' | 'eastAsia' = 'hAnsi',
 ): string {
-  // 1. Direct run font
+  // Determine which attribute to prefer based on hint
+  let hintPreference: 'ascii' | 'hAnsi' | 'eastAsia' | 'cs' = preference
+  if (rFonts?.hint) {
+    switch (rFonts.hint) {
+      case 'eastAsia':
+        hintPreference = 'eastAsia'
+        break
+      case 'cs':
+        hintPreference = 'cs'
+        break
+      case 'hAnsi':
+        hintPreference = 'hAnsi'
+        break
+      case 'default':
+      default:
+        // Keep the original preference
+        break
+    }
+  }
+
+  // 1. Direct run font — try hint-preferred attribute first, then fallback chain
   if (rFonts) {
-    const direct = rFonts[preference]
+    const direct = rFonts[hintPreference]
     if (direct) return direct
-    // Fallback within rFonts
+
+    // Fallback chain within rFonts
     if (rFonts.ascii) return rFonts.ascii
     if (rFonts.hAnsi) return rFonts.hAnsi
     if (rFonts.eastAsia) return rFonts.eastAsia
+    if (rFonts.cs) return rFonts.cs
   }
 
-  // 2. Theme font
+  // 2. Theme font — try major font first (headings), then minor font (body)
   if (theme?.themeElements?.fontScheme) {
-    const minorFont: FontGroup = theme.themeElements.fontScheme.minorFont
-    if (preference === 'eastAsia' && minorFont.eastAsia?.typeface) {
-      return minorFont.eastAsia.typeface
+    const fontScheme = theme.themeElements.fontScheme
+    const minorFont = fontScheme.minorFont
+    const majorFont = fontScheme.majorFont
+
+    // For eastAsia, check eastAsia font face specifically
+    if (hintPreference === 'eastAsia') {
+      if (minorFont.eastAsia?.typeface) return minorFont.eastAsia.typeface
+      if (majorFont.eastAsia?.typeface) return majorFont.eastAsia.typeface
     }
-    if (minorFont.latin?.typeface) {
-      return minorFont.latin.typeface
+
+    // For cs (complex script), check cs font face
+    if (hintPreference === 'cs') {
+      if (minorFont.cs?.typeface) return minorFont.cs.typeface
+      if (majorFont.cs?.typeface) return majorFont.cs.typeface
     }
+
+    // For latin, try minor then major
+    if (minorFont.latin?.typeface) return minorFont.latin.typeface
+    if (majorFont.latin?.typeface) return majorFont.latin.typeface
   }
 
   // 3. System fallback
-  return preference === 'eastAsia' ? 'SimSun' : 'Times New Roman'
+  return hintPreference === 'eastAsia' ? 'SimSun' : 'Times New Roman'
 }
 
 /**
@@ -112,6 +151,8 @@ export class OoxmlTextMeasurer {
     text: string,
     rPr: RunProperties | undefined,
     theme: ThemePart | undefined,
+    kind?: TextFragment['kind'],
+    refId?: number,
   ): TextFragment {
     const sz = rPr?.sz ?? 24 // default 12pt
     const fontFamily = resolveFontFamily(rPr?.rFonts, theme)
@@ -122,6 +163,7 @@ export class OoxmlTextMeasurer {
     const { widthPx, heightPx } = this._measureText(text, font)
 
     return {
+      kind: kind ?? 'text',
       text,
       width: Math.round(widthPx * TWIPS_PER_PX),
       widthPx,
@@ -133,6 +175,7 @@ export class OoxmlTextMeasurer {
       underline: rPr?.u,
       vertAlign: rPr?.vertAlign,
       rPr: rPr as unknown as Record<string, unknown>,
+      refId,
     }
   }
 

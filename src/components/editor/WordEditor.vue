@@ -624,6 +624,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import WordIcon from './WordIcon.vue'
 import CanvasEditor, { EditorMode, EditorZone, PaperDirection, ElementType, TitleLevel } from '../../engines/canvas/core'
 import { createCanvasEngineAdapter, type CanvasEngineHandle } from '../../engines/canvas'
+import { createOoxmlEngineAdapter } from '../../engines/ooxml'
 import { importDocxInWorker, exportDocx } from '../../codecs/docx'
 import { createEmptyDocumentState } from '../../core/state'
 import type { CompatibilityIssue, CompatibilityReport, JSONContent, KindyDocumentState, KindyHeaderFooterState, KindyPageState } from '../../core/types'
@@ -679,6 +680,8 @@ const props = withDefaults(defineProps<{
   docxProfile?: CompatibilityReport['profile']
   height?: string
   onSave?: () => unknown
+  /** Use OOXML-native engine (bypasses ProseMirror for higher DOCX fidelity) */
+  ooxmlNative?: boolean
 }>(), {
   locale: 'vi-VN',
   docxProfile: 'kindy-docx-v2.2',
@@ -686,6 +689,7 @@ const props = withDefaults(defineProps<{
   document: () => ({}),
   page: () => ({}),
   dicts: () => ({}),
+  ooxmlNative: false,
 })
 
 const emits = defineEmits([
@@ -769,10 +773,14 @@ const canvasHostRef = ref<HTMLDivElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const imageInputRef = ref<HTMLInputElement | null>(null)
 let editor: CanvasEditor | null = null
-let engineHandle: CanvasEngineHandle | null = null
+let engineHandle: CanvasEngineHandle | { load: Function; getState: Function; setReadOnly: Function; focus: Function; destroy: Function; onChange: Function; loadDocx?: (buf: Uint8Array) => Promise<void> } | null = null
 let offEngineChange: (() => void) | null = null
 let currentState = createEmptyDocumentState()
 let contentSaved = true
+
+// No-op editor proxy for OOXML-native mode (prevents crashes from toolbar/menu commands)
+const noopCommand = new Proxy({} as any, { get: () => () => {} })
+const noopEditor = { command: noopCommand, listener: {} } as unknown as CanvasEditor
 
 const displayTimestamp = (value: unknown) => {
   const timestamp = Number(value)
@@ -965,25 +973,44 @@ onMounted(() => {
     content: props.document?.content || createEmptyDocumentState().content,
     page: initialPageState(),
   })
-  engineHandle = createCanvasEngineAdapter().mount(canvasHostRef.value, {
-    document: currentState,
-    locale: normalizeLocale(props.locale),
-    readOnly: Boolean(props.document?.readOnly),
-  })
-  editor = engineHandle.getCanvasEditor()
-  offEngineChange = engineHandle.onChange((state) => {
-    currentState = state
-    syncCommentsFromState(state)
-    contentSaved = false
-    emits('change', state)
-    emits('changed', state)
-    updateStats()
-  })
 
-  // Standalone demo/legacy callers may still provide raw CanvasEngine data.
-  // DocumentLibrary always supplies canonical ProseMirror JSON instead.
-  if (!props.document?.content) {
-    editor.command.executeSetValue((props.initialData || defaultSampleData) as any, { isSetCursor: true })
+  if (props.ooxmlNative) {
+    // OOXML-native path: bypasses ProseMirror, uses OoxmlPackage → LayoutTree → Canvas
+    engineHandle = createOoxmlEngineAdapter().mount(canvasHostRef.value, {
+      document: currentState,
+      readOnly: Boolean(props.document?.readOnly),
+    })
+    // No CanvasEditor in OOXML-native path; use no-op proxy for toolbar commands
+    editor = noopEditor
+    offEngineChange = engineHandle.onChange((state: KindyDocumentState) => {
+      currentState = state
+      contentSaved = false
+      emits('change', state)
+      emits('changed', state)
+      updateStats()
+    })
+  } else {
+    // Legacy path: ProseMirror → Canvas
+    engineHandle = createCanvasEngineAdapter().mount(canvasHostRef.value, {
+      document: currentState,
+      locale: normalizeLocale(props.locale),
+      readOnly: Boolean(props.document?.readOnly),
+    })
+    editor = (engineHandle as CanvasEngineHandle).getCanvasEditor()
+    offEngineChange = engineHandle.onChange((state) => {
+      currentState = state
+      syncCommentsFromState(state)
+      contentSaved = false
+      emits('change', state)
+      emits('changed', state)
+      updateStats()
+    })
+
+    // Standalone demo/legacy callers may still provide raw CanvasEngine data.
+    // DocumentLibrary always supplies canonical ProseMirror JSON instead.
+    if (!props.document?.content) {
+      editor.command.executeSetValue((props.initialData || defaultSampleData) as any, { isSetCursor: true })
+    }
   }
   syncCommentsFromState(currentState)
 
@@ -1469,27 +1496,39 @@ const onFileSelected = async (e: Event) => {
     reader.readAsText(file)
   } else if (file.name.toLowerCase().endsWith('.docx')) {
     try {
-      const result = await importDocxInWorker(file, { mode: 'best-effort', profile: props.docxProfile })
-      if (result.state && engineHandle) {
-        currentState = result.state
-        engineHandle.load(result.state)
-        syncCommentsFromState(result.state)
+      if (props.ooxmlNative && engineHandle && 'loadDocx' in engineHandle && engineHandle.loadDocx) {
+        // OOXML-native path: parse DOCX directly into OoxmlPackage
+        const arrayBuf = await file.arrayBuffer()
+        const buffer = new Uint8Array(arrayBuf)
+        await engineHandle.loadDocx(buffer)
+        currentState = engineHandle.getState()
         documentTitle.value = file.name
-        currentIssues.value = result.report.issues || []
-        updateCatalog()
-        if (result.report.issues.length) {
-          emits('compatibility-warning', result.report)
-          ioNotice.value = {
-            tone: 'warning',
-            text: `Đã import DOCX với ${result.report.issues.length} cảnh báo tương thích.`,
+        ioNotice.value = { tone: 'success', text: 'Đã import DOCX (OOXML-native).' }
+        emits('imported', { file, state: currentState, report: { issues: [], profile: props.docxProfile } })
+      } else {
+        // Legacy path: Mammoth + XML → ProseMirror
+        const result = await importDocxInWorker(file, { mode: 'best-effort', profile: props.docxProfile })
+        if (result.state && engineHandle) {
+          currentState = result.state
+          engineHandle.load(result.state)
+          syncCommentsFromState(result.state)
+          documentTitle.value = file.name
+          currentIssues.value = result.report.issues || []
+          updateCatalog()
+          if (result.report.issues.length) {
+            emits('compatibility-warning', result.report)
+            ioNotice.value = {
+              tone: 'warning',
+              text: `Đã import DOCX với ${result.report.issues.length} cảnh báo tương thích.`,
+            }
+          } else {
+            ioNotice.value = { tone: 'success', text: 'Đã import DOCX và giữ metadata thuộc profile hỗ trợ.' }
           }
-        } else {
-          ioNotice.value = { tone: 'success', text: 'Đã import DOCX và giữ metadata thuộc profile hỗ trợ.' }
+          emits('imported', { file, state: result.state, report: result.report })
         }
-        emits('imported', { file, state: result.state, report: result.report })
-        ;(e.target as HTMLInputElement).value = ''
-        return
       }
+      ;(e.target as HTMLInputElement).value = ''
+      return
     } catch (err) {
       ioNotice.value = { tone: 'error', text: err instanceof Error ? err.message : 'Không thể import DOCX.' }
       emits('error', err)

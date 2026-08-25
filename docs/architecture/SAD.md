@@ -1,28 +1,26 @@
-# Software Architecture Document
+# Software Architecture Document — Kindy Editor v3.0
 
-# Open Document Platform
-
-> Version: 1.0
-> Date: 2026-08-07
-> Status: Draft
+> Version: 3.0
+> Date: 2026-08-24
+> Status: Active
 > Author: Kindy Team
 
 ---
 
-## Table of Contents
+## Mục lục
 
 1. [Overview](#1-overview)
-2. [Architecture Goals](#2-architecture-goals)
+2. [Architecture Principles](#2-architecture-principles)
 3. [System Architecture](#3-system-architecture)
-4. [Document Model](#4-document-model)
-5. [Layout Engine](#5-layout-engine)
-6. [Render Engine](#6-render-engine)
-7. [Storage](#7-storage)
-8. [Collaboration](#8-collaboration)
-9. [Plugin System](#9-plugin-system)
-10. [API Contracts](#10-api-contracts)
-11. [Non-functional Requirements](#11-non-functional-requirements)
-12. [Migration Strategy](#12-migration-strategy)
+4. [OOXML Document Model](#4-ooxml-document-model)
+5. [Style Resolution](#5-style-resolution)
+6. [Numbering Engine](#6-numbering-engine)
+7. [Layout Engine](#7-layout-engine)
+8. [Render Engine](#8-render-engine)
+9. [Storage & Delta](#9-storage--delta)
+10. [Collaboration](#10-collaboration)
+11. [Round-trip Fidelity](#11-round-trip-fidelity)
+12. [Non-functional Requirements](#12-non-functional-requirements)
 
 ---
 
@@ -30,118 +28,74 @@
 
 ### 1.1 Purpose
 
-Open Document Platform is a modular, extensible document engine for building rich-text editors like Google Docs, Word Online, and OnlyOffice.
+Kindy Editor là Canvas-based document editor SDK cho web, thiết kế để mở và chỉnh sửa tài liệu DOCX từ SharePoint/Microsoft Word với **độ tương thích cao nhất có thể**.
 
-The platform provides:
+### 1.2 Architecture Decision
 
-- **Document Model**: AST-based document representation
-- **Layout Engine**: Pagination, header/footer, section breaks
-- **Render Engine**: DOM-based rendering with virtual scrolling
-- **Storage**: Snapshots, operations, version history
-- **Collaboration**: Real-time editing via CRDT
-- **Plugin System**: Extensible architecture
+**OOXML-Native Architecture**: OOXML tree là canonical state trong bộ nhớ.
 
-### 1.2 Scope
+```
+Không dùng ProseMirror JSON làm canonical state.
+Không dùng `docx` npm cho core parsing.
+OOXML parsed trực tiếp → OoxmlPackage → Layout → Canvas.
+```
 
-The platform covers:
+### 1.3 Scope
 
-- Document creation and editing
-- Layout and pagination
-- Print and PDF export
-- DOCX import/export
-- Real-time collaboration
-- Plugin development
-
-### 1.3 Definitions
-
-| Term | Definition |
-|------|-----------|
-| AST | Abstract Syntax Tree - tree representation of document structure |
-| Layout Tree | Tree structure representing how content is distributed across pages |
-| Block | A top-level content element (paragraph, heading, table, etc.) |
-| Inline | Content within a block (text, bold, link, etc.) |
-| Section | A group of pages with shared layout settings |
-| Page | A single page in the document |
-
-### 1.4 References
-
-- [ProseMirror Guide](https://prosemirror.net/docs/guide/)
-- [Tiptap Documentation](https://tiptap.dev/)
-- [Google Docs Architecture](https://drive.google.com/)
-- [Word Online](https://www.office.com/)
-- [OnlyOffice](https://www.onlyoffice.com/)
+- Import/export DOCX với fidelity cao
+- Editing trực tiếp trên OOXML tree
+- Layout/pagination theo đúng Word metrics
+- Track changes, comments, headers/footers
+- Collaboration via OT trên OOXML tree
 
 ---
 
-## 2. Architecture Goals
+## 2. Architecture Principles
 
-### 2.1 Modularity
-
-Each component is a separate package with clear boundaries:
-
-```
-@kindy/core           - Document, Node, Tree, Schema
-@kindy/document       - Section, Paragraph, Inline nodes
-@kindy/editor         - Commands, Transactions, Selection
-@kindy/layout         - Layout Engine
-@kindy/render         - Render Engine
-@kindy/storage        - Storage Engine
-@kindy/collaboration  - Collaboration Engine
-@kindy/io             - Import/Export
-@kindy/plugin         - Plugin System
-@kindy/ai             - AI Platform
-@kindy/editor-client  - Kindy Editor Client
-@kindy/performance   - Performance Utilities
-```
-
-### 2.2 Extensibility
-
-Plugins can extend functionality without modifying core:
+### 2.1 OOXML is Canonical
 
 ```typescript
-// Plugin API
-editor.registerPlugin(MyPlugin)
-
-// Plugin can:
-editor.insertImage()
-editor.addComment()
-editor.insertTable()
-
-// Plugin cannot:
-document.querySelector(...)  // No direct DOM access
+// MỤC TIÊU: OOXML tree là single source of truth
+interface OoxmlPackage {
+  document: DocumentPart    // word/document.xml
+  styles: StylesPart        // word/styles.xml
+  numbering: NumberingPart  // word/numbering.xml
+  // ...
+}
 ```
 
-### 2.3 Performance
+- **Import**: Parse OOXML → OoxmlPackage (không convert sang format khác)
+- **Export**: Serialize OoxmlPackage → OOXML bytes (không reconstruct)
+- **Editing**: Modify OoxmlPackage trực tiếp
+- **Storage**: Save OoxmlPackage (hoặc delta)
 
-- Lazy rendering (only visible pages)
-- Layout caching
-- Web Worker for computation
-- Incremental updates
-
-### 2.4 Testability
-
-Each component can be tested independently:
+### 2.2 Preserve Everything
 
 ```typescript
-// Layout Engine can be tested without DOM
-const layout = layoutEngine.compute(nodes, pageOptions)
-expect(layout.pages).toHaveLength(5)
-
-// Render Engine can be tested without editor
-const html = renderEngine.renderPage(layoutPage)
-expect(html).toContain('kindy-print-page')
+// Mọi element không hỗ trợ → giữ nguyên gốc
+interface Paragraph {
+  pPr?: ParagraphProperties
+  content: (Run | Hyperlink)[]
+  _raw?: Element  // XML gốc, giữ lại để export
+}
 ```
 
-### 2.5 Framework Agnostic
+### 2.3 Layout from Properties
 
-Core logic has no dependency on React/Vue/Angular:
+```typescript
+// Layout tính từ OOXML properties, không từ display format
+// twips, half-points, EMU — units gốc của Word
+const TWIPS_PER_CM = 566.93
+const HALF_PT_PER_CM = 28.35
+```
+
+### 2.4 Round-trip Validation
 
 ```
-@kindy/core           - No framework dependency
-@kindy/layout         - No framework dependency
-@kindy/render         - No framework dependency
-@kindy/react          - React adapter
-@kindy/vue            - Vue adapter
+DOCX gốc → Kindy parse → Kindy serialize → DOCX xuất lại
+                  ↓                              ↓
+           Visual comparison              Byte comparison
+           (pixel diff < threshold)       (structural match)
 ```
 
 ---
@@ -152,611 +106,491 @@ Core logic has no dependency on React/Vue/Angular:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Application Layer                        │
-│  (Kindy Editor, CRM Contract, CMS Editor, Mobile Apps)       │
+│                   Presentation (Vue 3)                       │
+│  WordEditor · DocumentLibrary · Toolbar · Viewport           │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│                   Framework Adapters                        │
-│  (React, Vue, Angular, Web Components)                      │
+│                   Editing Engine                             │
+│  Transaction · Selection · Undo/Redo · Input Handler         │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│                     Render Engine                           │
-│  (Page Renderer, Viewport Virtualizer, Header/Footer)      │
+│                   OOXML Document Model                       │
+│  OoxmlPackage · StyleResolver · NumberingEngine              │
+│  SectionManager · RevisionEngine · CommentEngine             │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│                     Layout Engine                           │
-│  (Text Measurement, Line Breaking, Pagination, Sections)    │
+│                   Layout Engine                              │
+│  TextMeasure(twips) · LineBreak · Pagination · HeaderFooter  │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│                    Editing Engine                           │
-│  (Commands, Transactions, Selection, History)               │
+│                   Render Layer                               │
+│  CanvasPainter · ViewportVirtualizer · SelectionModel        │
 └─────────────────────────────────────────────────────────────┘
                               │
 ┌─────────────────────────────────────────────────────────────┐
-│                    Document Model                           │
-│  (AST, Schema, Serializer, Validator)                       │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│               Storage & Collaboration                       │
-│  (Yjs, Snapshots, Versions, Operations)                    │
+│                   Storage & IO                               │
+│  OOXML Parser · OOXML Serializer · DeltaStorage · AutoSave   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### 3.2 Data Flow
 
 ```
-User Action
-    ↓
-Command (InsertText, DeleteText, etc.)
-    ↓
-Transaction (step-based mutations)
-    ↓
-Document Model (AST update)
-    ↓
-Layout Engine (recompute layout)
-    ↓
-Layout Tree (pages with positions)
-    ↓
-Render Engine (HTML/CSS generation)
-    ↓
-DOM Update (virtual scrolling)
-```
-
-### 3.3 Package Structure
-
-```
-packages/
-├── @kindy/document        # Document Model ✅
-├── @kindy/layout          # Layout Engine ✅
-├── @kindy/render          # Render Engine ✅
-├── @kindy/editor          # Editing Engine ✅
-├── @kindy/collaboration   # Collaboration Engine ✅
-├── @kindy/storage         # Storage Engine ✅
-├── @kindy/io              # Import/Export ✅
-├── @kindy/plugin          # Plugin System ✅
-├── @kindy/ai              # AI Platform ✅
-├── @kindy/react           # React Adapter
-├── @kindy/vue             # Vue Adapter
-└── @kindy/editor-client   # Kindy Editor Client (Google Docs-like)
-```
-
----
-
-## 4. Document Model
-
-### 4.1 AST Structure
-
-The document is represented as an Abstract Syntax Tree (AST):
-
-```typescript
-interface Document {
-  type: 'doc'
-  content: Node[]
-  attrs: Record<string, any>
-}
-
-interface Node {
-  type: string
-  attrs?: Record<string, any>
-  content?: Node[]
-  marks?: Mark[]
-  text?: string  // only for text nodes
-}
-
-interface Mark {
-  type: string
-  attrs?: Record<string, any>
-}
-```
-
-### 4.2 Node Types
-
-**Block Nodes:**
-
-| Node Type | Description |
-|-----------|-------------|
-| `doc` | Root document node |
-| `section` | Section with layout settings |
-| `paragraph` | Text paragraph |
-| `heading` | Heading (h1-h6) |
-| `blockquote` | Block quote |
-| `codeBlock` | Code block |
-| `bulletList` | Unordered list |
-| `orderedList` | Ordered list |
-| `listItem` | List item |
-| `table` | Table |
-| `tableRow` | Table row |
-| `tableCell` | Table cell |
-| `image` | Image |
-| `video` | Video |
-| `audio` | Audio |
-| `horizontalRule` | Horizontal rule |
-| `pageBreak` | Manual page break |
-| `columnBreak` | Manual column break |
-
-**Inline Nodes:**
-
-| Node Type | Description |
-|-----------|-------------|
-| `text` | Text content |
-
-**Mark Types:**
-
-| Mark Type | Description |
-|-----------|-------------|
-| `bold` | Bold text |
-| `italic` | Italic text |
-| `code` | Inline code |
-| `link` | Hyperlink |
-| `strike` | Strikethrough |
-| `underline` | Underline |
-| `highlight` | Highlight |
-
-### 4.3 Schema
-
-The schema defines the structure of the document:
-
-```typescript
-interface Schema {
-  nodes: Record<string, NodeSpec>
-  marks: Record<string, MarkSpec>
-}
-
-interface NodeSpec {
-  content?: string  // e.g., 'text*', 'block+', 'inline*'
-  attrs?: Record<string, AttrSpec>
-  group?: string    // e.g., 'block', 'inline'
-  inline?: boolean
-  atom?: boolean    // leaf node (no content editing)
-  draggable?: boolean
-  code?: boolean
-  defining?: boolean
-  linebreakReplacement?: boolean
-  toDOM?: (node: Node) => DOMOutputSpec
-  parseDOM?: ParseRule[]
-}
-
-interface MarkSpec {
-  attrs?: Record<string, AttrSpec>
-  inclusive?: boolean
-  group?: string
-  toDOM?: (mark: Mark, inline: boolean) => DOMOutputSpec
-  parseDOM?: ParseRule[]
-}
-```
-
-### 4.4 Serialization
-
-```typescript
-// ProseMirror JSON → Document AST
-DocumentSerializer.fromProseMirror(pmJson: PNode): Document
-
-// Document AST → ProseMirror JSON
-DocumentSerializer.toProseMirror(doc: Document): PNode
-
-// Document AST → HTML (for export)
-DocumentSerializer.toHTML(doc: Document): string
-
-// HTML → Document AST (for import)
-DocumentSerializer.fromHTML(html: string): Document
-```
-
-### 4.5 Validation
-
-```typescript
-// Validate document structure
-const result = validator.validate(document)
-if (!result.valid) {
-  console.error(result.errors)
-}
-
-// Auto-fix common issues
-const fixed = validator.fix(document)
-```
-
----
-
-## 5. Layout Engine
-
-See [Layout Engine Specification](./layout-engine.md) for details.
-
-### 5.1 Overview
-
-The Layout Engine converts Document AST into a Layout Tree:
-
-```
-Document AST
-    ↓
-Block Measurement
-    ↓
-Line Layout
-    ↓
-Paragraph Layout
-    ↓
-Table Layout
-    ↓
-Image Layout
-    ↓
-Page Layout
-    ↓
-Section Layout
-    ↓
+SharePoint DOCX
+  │
+  ▼
+OOXML Parser (fflate + DOMParser)
+  │
+  ▼
+OoxmlPackage (canonical state in memory)
+  │
+  ├─ StyleResolver.resolve() → resolved properties per element
+  ├─ NumberingEngine.resolve() → list text per paragraph
+  ├─ SectionManager.resolve() → page geometry per section
+  │
+  ▼
+OOXML Layout Engine
+  │
+  ├─ TextMeasure.measureRun() → width in twips
+  ├─ LineBreak.breakParagraph() → lines
+  ├─ Pagination.paginate() → pages with blocks
+  ├─ HeaderFooterLayout.layout() → header/footer per page
+  │
+  ▼
 Layout Tree
-```
-
-### 5.2 Input/Output
-
-**Input:**
-
-- Document AST (from @kindy/document)
-- Page Options (size, margins, orientation)
-
-**Output:**
-
-- Layout Tree (array of pages)
-- Each page contains:
-  - Page number
-  - Content blocks with positions
-  - Header/footer data
-
-### 5.3 Key Algorithms
-
-- **Text Measurement**: Canvas API with LRU cache
-- **Line Breaking**: Knuth-Plass algorithm
-- **Pagination**: Greedy page break algorithm
-- **Table Layout**: Column width optimization
-
----
-
-## 6. Render Engine
-
-See [Render Engine Specification](./render-engine.md) for details.
-
-### 6.1 Overview
-
-The Render Engine converts Layout Tree into HTML/CSS:
-
-```
-Layout Tree
-    ↓
-Page Renderer
-    ↓
-HTML/CSS
-    ↓
-DOM Update (virtual scrolling)
-```
-
-### 6.2 Components
-
-- **PageRenderer**: Generates HTML/CSS for a single page
-- **ViewportVirtualizer**: Determines which pages to render
-- **HeaderFooterRenderer**: Renders header/footer content
-
-### 6.3 Virtual Scrolling
-
-```
-Total Pages: 1000
-Visible Pages: 5 (with buffer)
-Rendered Pages: 10 (5 visible + 5 buffer)
-
-On scroll:
-- Calculate visible range
-- Render only visible pages
-- Recycle DOM elements
+  │
+  ▼
+Canvas Painter
+  │
+  ├─ paintPage() → draw paragraphs, tables, images
+  ├─ paintHeaderFooter() → draw header/footer content
+  │
+  ▼
+Browser Display
 ```
 
 ---
 
-## 7. Storage
+## 4. OOXML Document Model
 
-See [Storage Specification](./storage.md) for details.
+### 4.1 Package Structure
 
-### 7.1 Storage Types
-
-| Type | Description |
-|------|-------------|
-| Snapshot | Full document state at a point in time |
-| Operation | Individual change (insert, delete, move) |
-| Version | Named checkpoint with metadata |
-
-### 7.2 Storage Strategy
+DOCX file là ZIP archive (OPC format):
 
 ```
-Snapshot Storage (every N operations)
-    ↓
-Operation Storage (all operations)
-    ↓
-Version History (named checkpoints)
+document.docx (ZIP)
+├── [Content_Types].xml
+├── _rels/.rels
+├── word/
+│   ├── document.xml          ← Main content
+│   ├── styles.xml            ← Style definitions
+│   ├── numbering.xml         ← List definitions
+│   ├── settings.xml          ← Document settings
+│   ├── fontTable.xml         ← Font declarations
+│   ├── theme/theme1.xml      ← Theme colors/fonts
+│   ├── _rels/document.xml.rels
+│   ├── header1.xml           ← Header sub-documents
+│   ├── footer1.xml           ← Footer sub-documents
+│   ├── comments.xml          ← Comments
+│   ├── footnotes.xml         ← Footnotes
+│   ├── endnotes.xml          ← Endnotes
+│   └── media/                ← Images
 ```
 
-### 7.3 Database Schema
-
-```sql
--- Documents
-CREATE TABLE documents (
-  id UUID PRIMARY KEY,
-  title TEXT,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-);
-
--- Snapshots
-CREATE TABLE snapshots (
-  id UUID PRIMARY KEY,
-  document_id UUID,
-  content JSONB,
-  version INTEGER,
-  created_at TIMESTAMP
-);
-
--- Operations
-CREATE TABLE operations (
-  id UUID PRIMARY KEY,
-  document_id UUID,
-  type TEXT,
-  data JSONB,
-  version INTEGER,
-  created_at TIMESTAMP
-);
-
--- Versions
-CREATE TABLE versions (
-  id UUID PRIMARY KEY,
-  document_id UUID,
-  name TEXT,
-  snapshot_id UUID,
-  created_at TIMESTAMP
-);
-```
-
----
-
-## 8. Collaboration
-
-See [Collaboration Specification](./collaboration.md) for details.
-
-### 8.1 CRDT Integration
-
-We use Yjs for CRDT-based collaboration:
-
-```
-Client A ←→ Yjs Document ←→ Client B
-                ↕
-           Server (Yjs WebSocket)
-```
-
-### 8.2 Features
-
-- **Presence**: Show user cursors and selections
-- **Awareness**: Show user status (idle, active)
-- **Offline**: Work offline, sync when reconnected
-- **Conflict Resolution**: Automatic merge via CRDT
-
-### 8.3 Architecture
-
-```
-@kindy/collaboration
-├── YjsProvider      # Yjs document management
-├── PresenceProvider  # User presence
-├── SyncProvider     # Offline sync
-└── AwarenessProvider # User awareness
-```
-
----
-
-## 9. Plugin System
-
-See [Plugin API Specification](./plugin-api.md) for details.
-
-### 9.1 Plugin API
+### 4.2 Type System
 
 ```typescript
-interface Plugin {
-  name: string
-  version: string
-  
-  // Lifecycle
-  onInit?(editor: Editor): void
-  onDestroy?(editor: Editor): void
-  
-  // Commands
-  commands?: Record<string, Command>
-  
-  // Keyboard shortcuts
-  shortcuts?: Record<string, Command>
-  
-  // Schema extensions
-  schema?: SchemaExtension
-  
-  // UI extensions
-  toolbar?: ToolbarItem[]
-  menu?: MenuItem[]
+// Block-level
+type BlockElement = Paragraph | Table | SdtBlock
+
+// Paragraph
+interface Paragraph {
+  pPr?: ParagraphProperties
+  content: (Run | Hyperlink | SdtInline)[]
+  _raw?: Element
+}
+
+// Run
+interface Run {
+  rPr?: RunProperties
+  content: (Text | Break | Tab | Drawing | Picture)[]
+}
+
+// Table
+interface Table {
+  tblPr?: TableProperties
+  tblGrid: GridColumn[]
+  content: TableRow[]    // rows
+}
+// TableRow → TableCell[] → content: (Paragraph | Table)[] (nested tables!)
+```
+
+### 4.3 Key Properties
+
+**Paragraph Properties** (40+ properties):
+- `pStyle`, `keepNext`, `keepLines`, `pageBreakBefore`, `widowControl`
+- `numPr` (numbering reference), `spacing`, `ind`, `jc`, `tabs`
+- `shd`, `pBdr`, `sectPr` (section break), `outlineLevel`
+
+**Run Properties** (40+ properties):
+- `rStyle`, `rFonts`, `b`, `i`, `u`, `strike`, `sz`, `color`
+- `highlight`, `shd`, `vertAlign`, `spacing`, `kern`
+
+**Table Properties**:
+- `tblStyle`, `tblW`, `tblInd`, `tblBorders`, `jc`, `tblLook`
+- `tblGrid` → `gridCol` widths
+
+**Cell Properties**:
+- `gridSpan`, `vMerge`, `tcW`, `tcMar`, `shd`, `vAlign`
+
+---
+
+## 5. Style Resolution
+
+### 5.1 Cascade Chain
+
+```
+w:docDefaults (styles.xml)
+  → w:rPrDefault / w:pPrDefault
+    → w:style[styleId="Normal"]
+      → w:style[styleId="Heading1"] (basedOn="Normal")
+        → w:pStyle (from w:pPr)
+          → w:rPr (direct formatting on w:r)
+```
+
+### 5.2 Resolution Rules
+
+```typescript
+class StyleResolver {
+  // Resolve paragraph style
+  resolveParagraph(pStyleId?: string): ResolvedParagraphStyle
+
+  // Resolve character style (on run)
+  resolveCharacter(rStyleId?: string): ResolvedCharacterStyle
+
+  // Properties merge order:
+  // 1. docDefaults
+  // 2. basedOn chain (recursive, with cycle detection)
+  // 3. Current style properties
+  // 4. Direct formatting (highest priority)
 }
 ```
 
-### 9.2 Plugin Restrictions
+### 5.3 Style Types
 
-Plugins can:
-
-- Call editor API (insertImage, addComment, etc.)
-- Register commands
-- Register keyboard shortcuts
-- Extend schema
-- Add UI elements
-
-Plugins cannot:
-
-- Access DOM directly
-- Modify core behavior
-- Access other plugins' state
+| Type | Scope | Example |
+|---|---|---|
+| Paragraph | Block-level | Normal, Heading1, ListParagraph |
+| Character | Inline | Hyperlink, Strong, Emphasis |
+| Table | Table-wide | TableGrid, ListTable |
+| Numbering | List definition | NoList, ArticleNumbering |
 
 ---
 
-## 10. API Contracts
+## 6. Numbering Engine
 
-### 10.1 Document API
+### 6.1 OOXML Numbering Structure
 
-```typescript
-interface DocumentAPI {
-  // Create
-  createDocument(content?: Node[]): Document
-  
-  // Query
-  getNode(path: number[]): Node
-  getNodes(type: string): Node[]
-  findNodes(predicate: (node: Node) => boolean): Node[]
-  
-  // Mutate
-  insertNode(path: number[], node: Node): void
-  deleteNode(path: number[]): void
-  moveNode(from: number[], to: number[]): void
-  replaceNode(path: number[], node: Node): void
-}
+```xml
+<w:numbering>
+  <w:abstractNum w:abstractNumId="0">
+    <w:lvl w:ilvl="0">
+      <w:numFmt w:val="decimal"/>
+      <w:lvlText w:val="%1."/>
+      <w:lvlJc w:val="left"/>
+    </w:lvl>
+    <w:lvl w:ilvl="1">
+      <w:numFmt w:val="lowerLetter"/>
+      <w:lvlText w:val="(%2)"/>
+    </w:lvl>
+  </w:abstractNum>
+  <w:num w:numId="1">
+    <w:abstractNumId w:val="0"/>
+    <w:lvlOverride w:ilvl="0">
+      <w:startOverride w:val="1"/>
+    </w:lvlOverride>
+  </w:num>
+</w:numbering>
 ```
 
-### 10.2 Layout API
+### 6.2 Resolution
 
 ```typescript
-interface LayoutAPI {
-  // Compute
-  compute(nodes: Node[], options: PageOptions): LayoutTree
-  computeAndCache(nodes: Node[], options: PageOptions): LayoutTree
-  
-  // Query
-  getPageAtY(y: number): number
-  getYForPage(pageNumber: number): number
-  getPageDimensions(pageNumber: number): PageDimensions
-}
-```
+class NumberingEngine {
+  // Paragraph references: w:pPr → w:numPr → { numId, ilvl }
+  // Resolution: numId → abstractNumId → lvl[ilvl] → lvlText
 
-### 10.3 Render API
+  resolve(numPr: NumberingProperties): string
+  // Returns: "Điều 1." or "(a)" or "1.1." etc.
 
-```typescript
-interface RenderAPI {
-  // Render
-  renderPage(layoutPage: LayoutPage): string
-  renderHeader(pageNumber: number): string
-  renderFooter(pageNumber: number): string
-  
-  // Virtual scrolling
-  getVisiblePages(scrollTop: number, containerHeight: number): number[]
-}
-```
-
-### 10.4 Editor API
-
-```typescript
-interface EditorAPI {
-  // Commands
-  execute(command: Command): void
-  insertText(text: string): void
-  deleteText(from: number, to: number): void
-  insertNode(type: string, attrs?: Record<string, any>): void
-  
-  // Selection
-  getSelection(): Selection
-  setSelection(from: number, to: number): void
-  
-  // History
-  undo(): void
-  redo(): void
-  canUndo(): boolean
-  canRedo(): boolean
+  // Handle restart
+  getRestartInfo(numId: number, ilvl: number): RestartInfo
 }
 ```
 
 ---
 
-## 11. Non-functional Requirements
+## 7. Layout Engine
 
-### 11.1 Performance
+### 7.1 Units
+
+```
+Word uses twips (twentieth of a point):
+  1 twip = 1/20 pt = 1/1440 inch
+  1 cm = 566.93 twips
+  1 inch = 1440 twips
+
+Font size in half-points:
+  12pt = 24 half-points
+
+Images in EMU:
+  1 EMU = 1/914400 inch
+  1 cm = 360000 EMU
+```
+
+### 7.2 Text Measurement
+
+```typescript
+class OoxmlTextMeasure {
+  // Measure run width in twips (for line breaking)
+  measureRun(text: string, rPr: ResolvedRunProperties): RunMetrics {
+    // 1. Resolve font (rFonts → theme → system fallback)
+    // 2. Get font metrics (ascent, descent, avgCharWidth)
+    // 3. Calculate width: sum of character advances
+    // 4. Apply kerning, spacing, scaling
+    return { widthTwip, widthPx, heightTwip, ascent, descent }
+  }
+}
+```
+
+### 7.3 Line Breaking
+
+```typescript
+class LineBreaker {
+  // Word-compatible line breaking
+  breakParagraph(
+    runs: Run[],
+    availableWidthTwip: number,
+    jc: Justification,
+    spacing: Spacing
+  ): Line[]
+
+  // Break opportunities: space, hyphen, CJK character boundary
+  // Justification: distribute extra space across expandable chars
+}
+```
+
+### 7.4 Pagination
+
+```typescript
+class OoxmlPagination {
+  // Section-aware pagination
+  paginate(sections: SectionLayout[], defaults: PageDefaults): Page[]
+
+  // Properties applied:
+  // - keepNext: paragraph stays with next paragraph
+  // - keepLines: all lines of paragraph on same page
+  // - pageBreakBefore: force page break
+  // - widowControl: min lines at top/bottom of page
+  // - sectPr: page geometry, columns
+}
+```
+
+### 7.5 Header/Footer Layout
+
+```typescript
+class HeaderFooterLayout {
+  // Three variants per section
+  getHeader(pageNumber: number, section: Section): HeaderLayout
+  getFooter(pageNumber: number, section: Section): FooterLayout
+
+  // Selection logic:
+  // 1. If titlePg && pageNumber === 1 → first header
+  // 2. If evenAndOddHeaders && pageNumber % 2 === 0 → even header
+  // 3. Otherwise → default header
+}
+```
+
+---
+
+## 8. Render Engine
+
+### 8.1 Canvas Painter
+
+```typescript
+class OoxmlPainter {
+  paintPage(ctx: CanvasRenderingContext2D, page: LayoutPage): void
+
+  // For each block in page:
+  //   - Resolve final properties (style cascade)
+  //   - Draw text with correct font, size, color
+  //   - Draw decorations (underline, strikethrough, highlights)
+  //   - Draw images with correct position and size
+  //   - Draw table borders and cell backgrounds
+}
+```
+
+### 8.2 Selection Model
+
+```typescript
+class OoxmlSelection {
+  // Map screen (x,y) → Character Position (CP) in OOXML
+  hitTest(x: number, y: number, layout: LayoutTree): CharacterPosition
+
+  // Map CP → screen coordinates
+  getCaretPosition(cp: CharacterPosition, layout: LayoutTree): ScreenPosition
+
+  // Arrow key navigation (Word-compatible behavior)
+  moveLeft(sel: Selection): Selection
+  moveRight(sel: Selection): Selection
+  moveUp(sel: Selection): Selection
+  moveDown(sel: Selection): Selection
+  moveWordLeft(sel: Selection): Selection
+  moveWordRight(sel: Selection): Selection
+  moveToLineStart(sel: Selection): Selection
+  moveToLineEnd(sel: Selection): Selection
+}
+```
+
+---
+
+## 9. Storage & Delta
+
+### 9.1 Delta Storage
+
+```typescript
+class OoxmlDeltaStorage {
+  // Create delta from OOXML changes
+  createDelta(previous: OoxmlPackage, current: OoxmlPackage): OoxmlDelta
+
+  // Apply delta to OOXML package
+  applyDelta(base: OoxmlPackage, delta: OoxmlDelta): OoxmlPackage
+
+  // Delta format: array of operations on OOXML tree
+  // { type: 'insert' | 'delete' | 'replace', path: number[], content: OoxmlNode }
+}
+```
+
+### 9.2 Autosave
+
+```typescript
+class OoxmlAutoSave {
+  // Delta-based autosave
+  updateState(doc: OoxmlPackage): void  // Track changes
+  forceSave(): Promise<void>            // Debounced delta save
+
+  // Performance target: < 500ms for 500-page documents
+}
+```
+
+---
+
+## 10. Collaboration
+
+### 10.1 OT on OOXML Tree
+
+```typescript
+class OoxmlOT {
+  // Transform two concurrent operations
+  transform(op1: Operation, op2: Operation): [Operation, Operation]
+
+  // Works on OOXML Character Positions (CP)
+  // Each operation specifies: position in OOXML tree + content change
+}
+```
+
+### 10.2 Track Changes
+
+```typescript
+// OOXML stores revisions inline:
+// <w:ins w:id="0" w:author="Author" w:date="2024-01-01">
+//   <w:r><w:t>inserted text</w:t></w:r>
+// </w:ins>
+
+class RevisionEngine {
+  recordInsert(range: CharacterRange, content: OoxmlContent, author: string): void
+  recordDelete(range: CharacterRange, author: string): void
+  acceptRevision(doc: OoxmlPackage, revisionId: string): OoxmlPackage
+  rejectRevision(doc: OoxmlPackage, revisionId: string): OoxmlPackage
+}
+```
+
+---
+
+## 11. Round-trip Fidelity
+
+### 11.1 Validation Method
+
+```bash
+# Round-trip test
+DOCX_original → Kindy parse → Kindy serialize → DOCX_roundtrip
+
+# Visual comparison
+compare DOCX_original vs DOCX_roundtrip in Word
+# pixel diff < threshold = PASS
+```
+
+### 11.2 Feature Preservation
+
+| Feature | Status | Notes |
+|---|---|---|
+| Paragraphs + styles | ✅ Full | Cascade resolved |
+| Character styles | 🔨 TODO | P0 priority |
+| Numbering lvlText | 🔨 TODO | P0 priority |
+| Theme fonts | 🔨 TODO | P0 priority |
+| Tables (grid/merge) | ✅ Full | Nested tables ✅ |
+| Table styles | 🔨 TODO | P1 priority |
+| Sections | ✅ Full | pgSz, pgMar, cols |
+| Headers/Footers | ✅ Full | 3 variants |
+| Inline images | ✅ Full | DrawingML + VML |
+| Floating images | 🔨 TODO | P1 priority |
+| Track changes | ✅ Full | ins/del round-trip |
+| Comments | ✅ Full | Thread + replies |
+| Page geometry | ✅ Full | twips-based |
+| Tab stops | ✅ Full | With leaders |
+
+---
+
+## 12. Non-functional Requirements
+
+### 12.1 Fidelity
 
 | Metric | Target |
-|--------|--------|
-| Layout computation (100 pages) | < 500ms |
-| Render time (visible pages) | < 100ms |
-| Input latency | < 16ms (60fps) |
-| Memory usage (1000 pages) | < 500MB |
+|---|---|
+| Round-trip structural match | > 95% for SharePoint documents |
+| Visual similarity vs Word | < 5px deviation on text positioning |
+| Numbering accuracy | 100% for common patterns |
+| Style preservation | 100% for paragraph + character styles |
 
-### 11.2 Scalability
+### 12.2 Performance
 
-- Support documents up to 10,000 pages
-- Support tables up to 1000 rows
-- Support images up to 10MB
-- Support collaboration with 100+ users
+| Metric | Target |
+|---|---|
+| Import 100-page DOCX | ≤ 3s |
+| Import 500-page DOCX | ≤ 15s |
+| Typing latency p95 | ≤ 50ms |
+| Autosave (delta) | ≤ 500ms |
+| Memory 500 pages | ≤ 200MB |
 
-### 11.3 Testability
+### 12.3 Compatibility
 
-- Unit test coverage > 80%
-- Integration test coverage > 60%
-- E2E test coverage for critical paths
-- Performance benchmarks
-
-### 11.4 Documentation
-
-- API documentation (TypeDoc)
-- Architecture documentation (this document)
-- User guide
-- Plugin development guide
+| Source | Requirement |
+|---|---|
+| Microsoft Word 2016+ | Full support |
+| SharePoint Online | Full support |
+| Google Docs (DOCX export) | High compatibility |
+| LibreOffice (DOCX export) | Medium compatibility |
 
 ---
 
-## 12. Migration Strategy
+## Appendix: References
 
-### 12.1 From Current Codebase
-
-The current codebase has:
-
-- `src/model/` → Will become `@kindy/document`
-- `src/layout/` → Will become `@kindy/layout`
-- `src/render/` → Will become `@kindy/render`
-- `src/editing/` → Will become `@kindy/editor`
-
-### 12.2 Backward Compatibility
-
-Kindy Editor will continue to work during migration:
-
-1. Create new packages alongside existing code
-2. gradually migrate functionality
-3. Keep Kindy Editor as the "client" of the packages
-4. Remove old code after migration is complete
-
-### 12.3 Migration Steps
-
-1. **Phase 0**: Create documentation ✅
-2. **Phase 1**: Create `@kindy/*` packages ✅
-3. **Phase 2**: Migrate imports to `@kindy/*` ✅
-4. **Phase 3**: Layout Engine improvements ✅
-5. **Phase 4**: Render Engine improvements ✅
-6. **Phase 5**: Collaboration improvements ✅
-7. **Phase 6**: Storage Engine ✅
-8. **Phase 7**: IO Engine (Import/Export) ✅
-9. **Phase 8**: Plugin System ✅
-10. **Phase 9**: AI Platform ✅
-11. **Phase 10**: Framework Adapters (React/Vue) ✅
-12. **Phase 11**: Kindy Editor Client ✅
-13. **Phase 12**: Testing & Quality Assurance ✅
-14. **Phase 13**: Performance Optimization ✅
-15. **Phase 14**: Documentation & Examples ✅
-
----
-
-## Appendix A: Architecture Decision Records
-
-- [ADR-001: Use ProseMirror as Foundation](../adr/001-use-proseMirror-as-foundation.md)
-- [ADR-002: Layout Engine Approach](../adr/002-layout-engine-approach.md)
-- [ADR-003: Render Strategy](../adr/003-render-strategy.md)
-
-## Appendix B: Related Documents
-
-- [Document Model Specification](./document-model.md)
-- [Layout Engine Specification](./layout-engine.md)
-- [Render Engine Specification](./render-engine.md)
-- [Storage Specification](./storage.md)
-- [Collaboration Specification](./collaboration.md)
-- [Plugin API Specification](./plugin-api.md)
+- [ECMA-376](https://www.ecma-international.org/publications-and-standards/standards/ecma-376/) — OOXML standard (5 parts, 6755+ pages)
+- [MS-DOCX](https://learn.microsoft.com/en-us/openspecs/office_standards/ms-docx) — Word extensions
+- [ooxml.dev](https://ooxml.dev) — Interactive spec explorer
+- [SuperDoc](https://superdoc.dev) — Open-source OOXML-native renderer
+- [Open XML SDK](https://learn.microsoft.com/en-us/office/open-xml/open-xml-sdk) — .NET reference

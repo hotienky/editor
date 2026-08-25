@@ -1,180 +1,137 @@
-# Hiệu năng và tài liệu dài
+# Hiệu năng & OOXML Fidelity
 
-## Trạng thái CanvasEngine
+## Mục tiêu kép
 
-Public editing surface hiện dùng CanvasEngine. ProseMirror JSON vẫn là canonical
-state, nhưng DOM contenteditable cũ không còn nằm trên runtime path. Canvas page
-được virtualize backing bitmap theo viewport; layout metadata và page DOM vẫn
-được tính cho toàn tài liệu để giữ page number, hit-test và navigation ổn định.
+Kindy Editor phải đạt **2 mục tiêu cùng lúc**:
 
-Benchmark Chromium ngày 24/08/2026 với 200 trang text đơn giản/manual break đo
-47,4–56,4ms cho một lần set/layout và chỉ 3/200 page giữ backing bitmap. Đây không
-phải SLA cho corpus mixed có bảng, ảnh, comment hoặc Track Changes. Xem
-[CanvasEngine migration](./canvas-engine-migration.md).
+1. **Performance**: Mở/nhập/sửa tài liệu lớn mượt mà
+2. **Fidelity**: Kết quả hiển thị và export phải giống Microsoft Word nhất có thể
 
-## Trạng thái v2.0 trước CanvasEngine (lịch sử)
+---
 
-Kindy v2.0 import DOCX trong Web Worker, nhưng editing surface vẫn là một ProseMirror instance liên tục. Toàn bộ node của document được gắn vào DOM. Automatic pagination chạy sau debounce, cache chiều cao theo DOM node và chỉ invalid block thuộc vùng transaction; `ResizeObserver` và font loading sẽ invalid cache khi layout thật sự đổi.
+## OOXML Fidelity — Vấn đề thực tế
 
-Vì vậy thư viện chưa cam kết mọi tài liệu 100–200 trang luôn mượt. Độ phức tạp phụ thuộc số node, bảng, ảnh, comment và tracked change nhiều hơn số trang hiển thị.
+### Tài liệu SharePoint
 
-## Chi phí chính
+Tài liệu trên SharePoint thường được tạo bởi Microsoft Word nên chứa đầy đủ OOXML features:
 
-1. **Mount editor:** ProseMirror tạo DOM cho toàn bộ document.
-2. **Pagination:** lần đầu phải đo tất cả top-level block. Các lần sau vẫn duyệt block metadata O(N), nhưng chỉ đọc layout DOM cho block mới/thay đổi. Engine chừa đúng khoảng trắng còn lại, lề dưới, page gap và lề trên trước block của trang kế tiếp.
-3. **Review UI:** suggestions cần thu thập tracked change trong document.
-4. **Autosave:** workspace gom update trong `stateSyncDelay` (mặc định 300ms), sau đó canonical state được clone và serialize để gửi adapter. Autosave mặc định của client là 30 giây; ứng dụng không nên đặt chu kỳ 1–2 giây cho tài liệu dài.
-5. **Ảnh/bảng:** ảnh editor dùng `loading="lazy"`; import giới hạn mặc định 20MB mỗi media và 100MB tổng media trước khi chuyển thành data URL. Decoding ảnh và layout bảng vẫn có thể tạo long task trên main thread. Bảng cao hơn một trang được giữ liên tục trong editing surface; engine đếm page span nhưng không tách DOM table thành nhiều ProseMirror node.
+| Feature | Ảnh hưởng khi mất |
+|---|---|
+| Character styles (Hyperlink, Strong) | Link hiển thị sai format |
+| Numbering lvlText ("Điều %1.", "(a)") | Danh sách numbered mất định dạng |
+| Theme fonts (majorHAnsi, minorEastAsia) | Sai font toàn bộ document |
+| Table styles | Bảng mất format template |
+| Floating images | Ảnh logo/positioned collapse thành inline |
+| Section breaks (continuous) | Mất layout multi-section |
+| Headers/Footers per section | Sai header/footer trên mỗi trang |
+| Page borders | Mất viền trang |
+| Columns | Mất layout multi-column |
 
-Module `VirtualScroller` trong codebase là performance primitive, chưa được nối trực tiếp vào editable ProseMirror DOM. Không nên gỡ các node ngoài viewport một cách cơ học vì sẽ phá selection, IME, history, decoration và mapping transaction.
+### Gap Analysis hiện tại
 
-## Ngân sách khuyến nghị
+| # | Feature | Implemented | Missing | Impact |
+|---|---------|------------|---------|--------|
+| 1 | **Styles** | Paragraph styles + basedOn cascade | Character styles, table styles | **High** |
+| 2 | **Numbering** | Basic bullet/number | `lvlText` patterns, restart/override | **High** |
+| 3 | **Sections** | pgSz, pgMar, orientation, header/footer | Multi-column, page borders | **Medium** |
+| 4 | **Tables** | Grid widths, vMerge, gridSpan, cell margins | Nested tables, table styles | **Medium** |
+| 5 | **Track Changes** | `w:ins`/`w:del` round-trip | Move, format revisions | **Low** |
+| 6 | **Images** | Inline, VML, AlternateContent | Floating, text wrapping | **Medium** |
+| 7 | **Headers/Footers** | 3 variants, images | Complex fields | **Low** |
+| 8 | **Fonts** | Per-run rFonts | Theme fonts, fallback chain | **Medium** |
+| 9 | **Page geometry** | pgSz, pgMar, pgNumType | Page borders, columns | **Low** |
+| 10 | **Text metrics** | Line height, tab stops | Word-compatible measurement | **Medium** |
 
-Đây là mục tiêu nghiệm thu cho hệ thống tích hợp, không phải số liệu Kindy hiện đã bảo đảm:
+---
 
-| Chỉ số | Mục tiêu đề xuất |
-|---|---:|
-| Mở JSON 100 trang text cơ bản | ≤ 3 giây trên máy chuẩn dự án |
-| Import DOCX 100 trang | ≤ 8 giây, UI không treo liên tục |
-| Typing latency p95 | ≤ 50 ms |
-| Pagination sau khi dừng gõ | ≤ 500 ms |
-| Autosave không chặn input | Không có long task > 100 ms do save |
-| Scroll | Không có blank page/nhảy layout nghiêm trọng |
-| Peak memory | Đặt theo corpus và thiết bị mục tiêu |
+## Priority Order —那些 SharePoint documents break
 
-Máy chuẩn, browser version, font và dataset phải được ghi trong báo cáo benchmark.
+### P0 — Critical
 
-## Corpus test
+1. **Character style resolution** — Hyperlink, Strong, Intense Reference
+2. **Numbering lvlText patterns** — "Điều %1.", "(a)", "1.1.", "I.", "(I)"
+3. **Theme fonts** — `majorHAnsi`, `minorEastAsia` references
 
-Tối thiểu cần năm nhóm fixture:
+### P1 — High
 
-- 100 trang text/heading/list.
-- 100 trang có bảng hợp đồng và merge cell.
-- 100 trang có ảnh/logo/con dấu.
-- 100 trang có comment/Track Changes.
-- 200 trang mixed content để stress test.
+4. **Floating images** — logos, positioned images, watermarks
+5. **Table styles** — template formatting
+6. **Font fallback chain** — multiple fonts per run
 
-Mỗi fixture cần đo:
+### P2 — Medium
 
-```text
-importStart → importComplete
-openStart → editorReady
-firstInput → nextPaint
-transaction → paginationComplete
-changed → saveStarted → saved
-heapBefore → heapAfterOpen → heapAfterClose
+7. **Page borders** — decorative elements
+8. **Multi-column layouts** — newsletter-style documents
+9. **Footnotes/Endnotes** — academic/legal documents
+
+---
+
+## Performance — OOXML-native approach
+
+### Tại sao OOXML-native cũng giúp performance
+
+| ProseMirror approach | OOXML-native approach |
+|---|---|
+| Parse OOXML → ProseMirror (convert) | Parse OOXML → OoxmlPackage (trực tiếp) |
+| Layout từ ProseMirror nodes | Layout từ OOXML properties |
+| Save: serialize ProseMirror → OOXML | Save: serialize OoxmlPackage → OOXML |
+| Double work cho round-trip | Single parse, single serialize |
+
+### Performance targets
+
+| Metric | Current | Target |
+|---|---|---|
+| Import 100 trang | ~3s | ≤ 3s |
+| Import 500 trang | ~15s | ≤ 15s |
+| Typing latency p95 | ~30ms | ≤ 50ms |
+| Autosave (delta) | ~200ms | ≤ 500ms |
+| Memory 500 trang | ~150MB | ≤ 200MB |
+
+### Optimization strategies
+
+1. **Streaming parse**: Parse OOXML chunks, yield blocks incrementally
+2. **Lazy style resolution**: Only resolve styles for visible paragraphs
+3. **Incremental layout**: Only re-layout dirty sections
+4. **Worker offload**: Parse, layout, serialize in Web Workers
+5. **Delta storage**: Only save changed operations
+
+---
+
+## Benchmark — DOCX from SharePoint
+
+### Test fixtures cần có
+
+| # | Source | Description | Features tested |
+|---|---|---|---|
+| 1 | Simple contract | 10 trang, text + headings | Basic |
+| 2 | Complex contract | 50 trang, tables + numbering | Tables, lists |
+| 3 | Legal document | 100 trang, multi-section | Sections, headers/footers |
+| 4 | Template with styles | 20 trang, custom styles | Style cascade |
+| 5 | Document with images | 30 trang, inline + floating | Images |
+| 6 | Track changes doc | 20 trang, revisions | Revisions |
+| 7 | Vietnamese government | 80 trang, "Điều %1." numbering | Numbering lvlText |
+| 8 | Corporate template | 40 trang, theme fonts | Theme resolution |
+
+### Comparison method
+
+```
+1. Open DOCX in Microsoft Word → screenshot each page
+2. Open DOCX in Kindy → screenshot each page
+3. Pixel diff comparison
+4. Target: < 5px deviation on text positioning
+5. Target: < 10px deviation on image positioning
 ```
 
-Không dùng một paragraph cực dài thay cho tài liệu thật; pagination hiện tính theo top-level block nên fixture phải có cấu trúc tương tự hợp đồng thực tế.
-
-## Cách chạy kiểm thử
-
-Repository hiện có regression/unit test:
-
-```bash
-npm test
-npm run test:e2e
-npm run typecheck
-npm run build
-npm run benchmark:long-doc
-npm run benchmark:ci
-```
-
-`benchmark:ci` áp synthetic budget và ghi `.artifacts/long-document.json`.
-`test:e2e` build demo production, chạy Chromium cho luồng workspace và ghi
-`.artifacts/browser-performance-text.json` cùng
-`.artifacts/browser-performance-mixed.json`. Workflow CI upload các file này
-làm regression artifact; Node benchmark không được dùng thay DOM/paint benchmark.
-
-Mở benchmark UI bằng:
-
-```text
-http://127.0.0.1:9000/kindy-editor?benchmarkPages=100
-http://127.0.0.1:9000/kindy-editor?benchmarkPages=200
-http://127.0.0.1:9000/kindy-editor?benchmarkPages=100&benchmarkVariant=table
-http://127.0.0.1:9000/kindy-editor?benchmarkPages=100&benchmarkVariant=image
-http://127.0.0.1:9000/kindy-editor?benchmarkPages=100&benchmarkVariant=review
-http://127.0.0.1:9000/kindy-editor?benchmarkPages=100&benchmarkVariant=mixed
-http://127.0.0.1:9000/kindy-editor?benchmarkPages=100&benchmarkVariant=section
-```
-
-### Baseline cục bộ ngày 22/08/2026
-
-Production preview, Google Chrome 151, MacBook Pro Apple M2 8-core/24GB,
-viewport 1600×1000, 40 input samples, autosave tắt trong benchmark:
-
-| Corpus | Top-level block | Bảng | Ảnh | Editor ready | Typing median | Typing p95 | Typing max | Pagination cached | Kết quả budget |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 100 trang text | 999 | 0 | 0 | 490,3 ms | 12,2 ms | 21,5 ms | 26,7 ms | 2,8 ms | Pass ≤ 3s / 50ms |
-| 100 trang mixed | 1.101 | 50 | 100 | 849,7 ms | 29,2 ms | 36,5 ms | 89,9 ms | 3,7 ms | Pass guardrail 75ms |
-
-Mixed có một spike 89,9ms; p95 vẫn 36,5ms và 39 mẫu còn lại chủ yếu dưới 37ms.
-Số liệu JSON được sinh bởi Playwright thay vì chép tay. Baseline development
-bên dưới được giữ để thấy ảnh hưởng của build mode, không dùng làm gate phát hành.
-
-Corpus text semantic, Chromium trong Codex desktop, Vite development mode:
-
-| Corpus | Top-level block | Editor ready | Typing median | Typing p95 | Pagination cached |
-|---|---:|---:|---:|---:|---:|
-| 100 trang | 999 | 0,59–0,67 s | 18,5 ms | 33,3 ms | khoảng 2,5 ms |
-| 200 trang | 1.999 | 0,90 s | 26,0 ms | 38,9 ms | khoảng 3,4 ms |
-
-Corpus mixed semantic (bảng 4x4 xen kẽ, ảnh inline, comment/Track Changes),
-autosave tắt để phép đo không lẫn network/storage và vẫn chạy bằng Vite development:
-
-| Corpus | Top-level block | Bảng | Ảnh | Editor ready | Typing median | Typing p95 | Pagination cached |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| 100 trang mixed | 1.101 | 50 | 100 | 1,03–1,29 s | 33,0–41,3 ms | 36,1–56,6 ms | khoảng 3,3–5,1 ms |
-| 200 trang mixed | 2.201 | 100 | 200 | 1,39 s | 69,5 ms | 85,1 ms | khoảng 11 ms |
-
-Kết luận hiện tại: production harness xác nhận target 100 trang text và guardrail
-100 trang mixed trên máy chuẩn cục bộ. Kết quả development từng dao động quá 50ms,
-vì vậy không suy rộng thành SLA cho mọi thiết bị. Corpus 200 trang mixed không đạt
-và vẫn là stress limit, không được quảng bá là SLA.
-
-### Baseline sau `DocumentLayoutService` Phase 0, ngày 24/08/2026
-
-Production preview, Chromium headless, viewport 1600×1000, 40 input samples:
-
-| Corpus | Editor ready | Typing median | Typing p95 | Typing max | Pagination |
-|---|---:|---:|---:|---:|---:|
-| 100 trang text | 448,4 ms | 16,8 ms | 28,1 ms | 35,6 ms | 4,0 ms |
-| 100 trang mixed | 747,6 ms | 23,7 ms | 34,4 ms | 35,8 ms | 3,2 ms |
-| 200 trang mixed | 1.281,8 ms | 48,1 ms | 60,7 ms | 61,7 ms | 2,9 ms |
-
-Hai corpus 100 trang pass release gate. Corpus 200 trang pass stress hard ceiling
-75ms nhưng chưa đạt target typing p95 50ms, nên vẫn được phân loại
-`stress-only-not-sla`.
-
-Số liệu cho thấy page assignment không phải bottleneck hiện tại. Đưa bước compute
-2–4ms sang Worker chưa được chấp thuận vì serialization/cancellation/stale-result
-có thể tốn nhiều hơn lợi ích. Hướng tối ưu tiếp theo là DOM/editor transaction
-cost và layer ngoài viewport.
-
-Có spike p99 khoảng 184–391ms trong lần đo này. Kết quả chỉ là baseline text,
-không phải SLA cho DOCX có bảng lớn, ảnh, comment hoặc Track Changes. Benchmark
-Node riêng với fixture hiện tại đo state khoảng 328KB/657KB: clone p95 lần
-lượt khoảng 2,23/4,88ms và stringify p95 khoảng 0,82/2,79ms; đây không bao gồm DOM/paint.
-
-Benchmark trình duyệt nên chạy riêng bằng Chromium cố định trong CI và ghi kết quả JSON artifact. Không đặt threshold quá chặt trên shared CI runner; dùng dedicated runner hoặc so sánh regression theo baseline.
-
-## Hướng tối ưu tiếp theo
-
-Thứ tự ưu tiên:
-
-1. Chuyển bước tính page assignment O(N) sang incremental index sau khi measurement cache đã ổn định.
-2. Cache/index tracked changes và chỉ cập nhật range bị thay đổi.
-3. Chuyển clone/hash/serialization autosave nặng sang Worker khi browser hỗ trợ.
-4. Lazy decode ảnh và giới hạn kích thước ảnh import.
-5. Giảm decoration/node view không cần thiết ngoài viewport.
-6. Chỉ sau khi có benchmark, thiết kế viewport rendering tương thích ProseMirror thay vì dùng virtual scroller prototype trực tiếp.
+---
 
 ## Checklist trước production
 
-- Chạy corpus của chính hệ thống tích hợp, không chỉ fixture nhỏ của SDK.
-- Đo cả laptop cấu hình thấp nếu đó là thiết bị người dùng.
-- Cài đúng font tiếng Việt trước khi so layout.
-- Test với DevTools đóng và production build.
-- Test autosave qua mạng có latency/loss thực tế.
-- Test mở/đóng nhiều document để phát hiện listener hoặc DOM leak.
-- Không công bố “hỗ trợ 200 trang” nếu chưa có threshold pass trong CI.
+- [ ] Round-trip test: DOCX → Kindy → DOCX → Word (structural match)
+- [ ] Visual test: Compare screenshots with Word (pixel diff)
+- [ ] P0 features: Character styles, numbering lvlText, theme fonts
+- [ ] P1 features: Floating images, table styles
+- [ ] Performance: Import + typing + autosave targets met
+- [ ] SharePoint documents: Test with real files from SharePoint
+- [ ] Vietnamese documents: Test with "Điều %1." numbering
+- [ ] Font loading: Correct fonts loaded from document
+- [ ] Edge cases: Empty paragraphs, nested tables, complex merges
