@@ -187,6 +187,7 @@ export const vi: EditorMessages = {
     alignLeft: "Căn trái",
     alignCenter: "Căn giữa",
     alignRight: "Căn phải",
+    placeCaretInTable: "Đặt con trỏ trong bảng hoặc chọn một hay nhiều ô trước.",
   },
 
   view: {

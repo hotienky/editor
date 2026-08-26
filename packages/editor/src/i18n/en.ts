@@ -187,6 +187,7 @@ export const en: EditorMessages = {
     alignLeft: "Align Left",
     alignCenter: "Align Center",
     alignRight: "Align Right",
+    placeCaretInTable: "Place the caret in a table or select one or more cells first.",
   },
 
   view: {

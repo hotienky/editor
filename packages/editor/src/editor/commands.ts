@@ -6,7 +6,7 @@ import { bakeTableStyleRows, DEFAULT_TBL_LOOK } from "@kindy/shared";
 import { buildTocParagraphs, buildTocInstruction, buildInstruction, evaluateField } from "@kindy/shared";
 import type { BookmarkRange, DocPosition, DocSelection, GridRect } from "@kindy/shared";
 import { isCollapsed, BAND_CONTAINERS } from "@kindy/shared";
-import type { ImagePropsPatch, Op, SectionGeometry, TablePropsPatch } from "@kindy/shared";
+import type { Container, ImagePropsPatch, Op, SectionGeometry, TablePropsPatch } from "@kindy/shared";
 import { sliceRuns, applyStylePatchToRuns, mapTextInRuns, splitRunsAt, normalizeRuns, containerOf, containerBlocks, containerListOf, locateImage, locateEquation, freshId } from "@kindy/shared";
 import { inSdt, innermostSdtId, pushSdt, removeSdt, ancestryThrough } from "@kindy/shared";
 import { buildTableGrid, cellsInRect, gridOriginOfCell, mergeRows, normalizeRect, rebuildRows, unmergeRows } from "@kindy/shared";
@@ -220,6 +220,8 @@ export function insertFragment(fragment: DocFragment): Command {
 
 export function deleteBackward(): Command {
   return (state) => {
+    const clearedCells = clearSelectedTableCells(state);
+    if (clearedCells) return clearedCells;
     const sel = state.selection;
     if (!sel) return null;
     if (!isCollapsed(sel)) {
@@ -302,6 +304,8 @@ export function deleteBackward(): Command {
 
 export function deleteForward(): Command {
   return (state) => {
+    const clearedCells = clearSelectedTableCells(state);
+    if (clearedCells) return clearedCells;
     const sel = state.selection;
     if (!sel) return null;
     if (!isCollapsed(sel)) {
@@ -1858,26 +1862,95 @@ export function insertTable(rows: number, cols: number): Command {
 }
 
 // ---------------------------------------------------------------------------
-// Table structure commands — all act on the table cell containing the caret.
+// Table structure commands — act on the table cell containing the caret, or the
+// focus cell of a rectangular cell selection. Keep physical cell indices and
+// span-aware grid coordinates separate: in a row such as [colSpan=5, colSpan=1],
+// physical cell index 1 is grid column 5, not grid column 1.
 
 interface CellContext {
   table: TableBlock;
+  where: Container;
   bi: number;
+  /** Owning cell's physical table.rows[ri].cells[ci] indices. */
   ri: number;
   ci: number;
+  /** Active position in the span-aware table grid. */
+  gridRow: number;
+  gridCol: number;
+  grid: TableGrid;
 }
 
 function cellContext(state: EditorState): CellContext | null {
+  // A live rectangular selection wins over the stale text caret retained while
+  // dragging across cells. Previously the stale caret made Delete/Insert operate
+  // on the wrong cell, or silently return null when no caret existed.
+  const cs = state.cellSelection;
+  if (cs) {
+    const found = findTableById(state.doc, cs.tableId);
+    if (!found) return null;
+    const grid = buildTableGrid(found.table);
+    if (grid.rows === 0 || grid.cols === 0) return null;
+    const gridRow = Math.max(0, Math.min(grid.rows - 1, cs.focus.row));
+    const gridCol = Math.max(0, Math.min(grid.cols - 1, cs.focus.col));
+    const slot = grid.slots[gridRow]?.[gridCol];
+    if (!slot) return null;
+    const bi = containerListOf(state.doc, found.where).findIndex((b) => b.id === found.table.id);
+    if (bi < 0) return null;
+    return {
+      table: found.table,
+      where: found.where,
+      bi,
+      ri: slot.ri,
+      ci: slot.ci,
+      gridRow,
+      gridCol,
+      grid,
+    };
+  }
+
   const sel = state.selection;
   if (!sel) return null;
   const loc = locateParagraph(state.doc, sel.focus.blockId);
   if (loc?.kind !== "cell") return null;
+  const table = containerBlocks(state.doc, loc.where)[loc.bi] as TableBlock;
+  const grid = buildTableGrid(table);
+  const origin = gridOriginOfCell(grid, loc.ri, loc.ci);
+  if (!origin) return null;
   return {
-    table: containerBlocks(state.doc, loc.where)[loc.bi] as TableBlock,
+    table,
+    where: loc.where,
     bi: loc.bi,
     ri: loc.ri,
     ci: loc.ci,
+    gridRow: origin.row,
+    gridCol: origin.col,
+    grid,
   };
+}
+
+/** Delete/Backspace on a rectangular cell selection clears cell CONTENT while
+ * preserving the table, cell formatting and merge geometry (Word behaviour).
+ * Whole-table deletion remains the explicit Delete Table command. */
+function clearSelectedTableCells(state: EditorState): Transaction | null {
+  if (!state.cellSelection) return null;
+  const found = cellRangeFromState(state);
+  if (!found) return null;
+  const grid = buildTableGrid(found.table);
+  const rect = normalizeRect(grid, found.rect);
+  let firstEmpty: Paragraph | undefined;
+  const rows = rebuildRowsKeepProps(found.table, grid, (cell, slot) => {
+    const selected =
+      slot.originRow >= rect.r0 &&
+      slot.originRow <= rect.r1 &&
+      slot.originCol >= rect.c0 &&
+      slot.originCol <= rect.c1;
+    if (!selected) return cell;
+    const p = emptyCellPara(firstCellPara(cell));
+    firstEmpty ??= p;
+    return { ...cell, blocks: [p] };
+  });
+  if (!firstEmpty) return null;
+  return tr([structureOp(found.table, rows)], caret(firstEmpty.id, 0), "command");
 }
 
 /** First caret-capable paragraph of a cell (cells may lead with images now). */
@@ -1930,16 +2003,26 @@ export function insertTableRowCmd(side: "above" | "below"): Command {
   return (state) => {
     const ctx = cellContext(state);
     if (!ctx) return null;
-    const protoRow = ctx.table.rows[ctx.ri]!;
+    const selectedSlot = ctx.grid.slots[ctx.gridRow]?.[ctx.gridCol];
+    if (!selectedSlot) return null;
+    const protoRowIndex = ctx.gridRow;
     const row: TableRow = {
-      cells: protoRow.cells.map((c) => ({
-        id: freshBlockId(),
-        blocks: [emptyCellPara(firstCellPara(c))],
-        ...cloneCellFormat(c),
-      })),
+      // Build one unmerged cell per logical grid column. Copying the physical
+      // cells of a row with a 5-column merge used to create a malformed 2-column
+      // row in a 6-column table.
+      cells: Array.from({ length: ctx.grid.cols }, (_, col) => {
+        const proto = ctx.grid.slots[protoRowIndex]?.[col]?.cell;
+        return {
+          id: freshBlockId(),
+          blocks: [emptyCellPara(firstCellPara(proto))],
+          ...cloneCellFormat(proto),
+        };
+      }),
     };
-    const rowIndex = side === "above" ? ctx.ri : ctx.ri + 1;
-    const caretCell = row.cells[Math.min(ctx.ci, row.cells.length - 1)]!;
+    const rowIndex = side === "above"
+      ? selectedSlot.originRow
+      : selectedSlot.originRow + selectedSlot.rowSpan;
+    const caretCell = row.cells[Math.min(ctx.gridCol, row.cells.length - 1)]!;
     return tr(
       [{ type: "insertTableRow", tableId: ctx.table.id, rowIndex, row }],
       caret(caretCell.blocks[0]!.id, 0),
@@ -1952,13 +2035,21 @@ export function insertTableColumnCmd(side: "left" | "right"): Command {
   return (state) => {
     const ctx = cellContext(state);
     if (!ctx) return null;
-    const colIndex = side === "left" ? ctx.ci : ctx.ci + 1;
-    const cells = ctx.table.rows.map((row) => ({
-      id: freshBlockId(),
-      blocks: [emptyCellPara(firstCellPara(row.cells[ctx.ci]))],
-      ...cloneCellFormat(row.cells[ctx.ci]),
-    }));
-    const caretCell = cells[ctx.ri]!;
+    const selectedSlot = ctx.grid.slots[ctx.gridRow]?.[ctx.gridCol];
+    if (!selectedSlot) return null;
+    const colIndex = side === "left"
+      ? selectedSlot.originCol
+      : selectedSlot.originCol + selectedSlot.colSpan;
+    const cells = ctx.table.rows.map((_row, ri) => {
+      const sampleCol = Math.max(0, Math.min(ctx.grid.cols - 1, ctx.gridCol));
+      const proto = ctx.grid.slots[ri]?.[sampleCol]?.cell;
+      return {
+        id: freshBlockId(),
+        blocks: [emptyCellPara(firstCellPara(proto))],
+        ...cloneCellFormat(proto),
+      };
+    });
+    const caretCell = cells[Math.min(selectedSlot.originRow, cells.length - 1)]!;
     return tr(
       [{ type: "insertTableColumn", tableId: ctx.table.id, colIndex, cells }],
       caret(caretCell.blocks[0]!.id, 0),
@@ -1968,8 +2059,9 @@ export function insertTableColumnCmd(side: "left" | "right"): Command {
 }
 
 /** Caret target for after a whole table (or its last row/col) disappears. */
-function caretAfterTable(state: EditorState, bi: number): DocSelection | null {
-  const neighbor = state.doc.blocks[bi + 1] ?? state.doc.blocks[bi - 1];
+function caretAfterTable(state: EditorState, where: Container, bi: number): DocSelection | null {
+  const blocks = containerBlocks(state.doc, where);
+  const neighbor = blocks[bi + 1] ?? blocks[bi - 1];
   if (neighbor && neighbor.kind === "paragraph") return caret(neighbor.id, 0);
   return null;
 }
@@ -1979,12 +2071,14 @@ export function deleteTableRowCmd(): Command {
     const ctx = cellContext(state);
     if (!ctx) return null;
     if (ctx.table.rows.length <= 1) return deleteTableCmd()(state);
-    const targetRow = ctx.table.rows[ctx.ri === 0 ? 1 : ctx.ri - 1]!;
-    const caretPara =
-      firstCellPara(targetRow.cells[Math.min(ctx.ci, targetRow.cells.length - 1)]) ??
+    const rowIndex = ctx.gridRow;
+    const targetGridRow = rowIndex === 0 ? 1 : rowIndex - 1;
+    const targetSlot = ctx.grid.slots[targetGridRow]?.[Math.min(ctx.gridCol, ctx.grid.cols - 1)];
+    const targetRow = ctx.table.rows[targetGridRow]!;
+    const caretPara = firstCellPara(targetSlot?.cell) ??
       firstCellPara(targetRow.cells.find((c) => firstCellPara(c)));
     return tr(
-      [{ type: "removeTableRow", tableId: ctx.table.id, rowIndex: ctx.ri }],
+      [{ type: "removeTableRow", tableId: ctx.table.id, rowIndex }],
       caretPara ? caret(caretPara.id, 0) : state.selection,
       "command",
     );
@@ -1995,12 +2089,14 @@ export function deleteTableColumnCmd(): Command {
   return (state) => {
     const ctx = cellContext(state);
     if (!ctx) return null;
-    const colCount = Math.max(...ctx.table.rows.map((r) => r.cells.length));
+    const colCount = ctx.grid.cols;
     if (colCount <= 1) return deleteTableCmd()(state);
-    const row = ctx.table.rows[ctx.ri]!;
-    const caretPara = firstCellPara(row.cells[ctx.ci === 0 ? 1 : ctx.ci - 1]);
+    const colIndex = ctx.gridCol;
+    const targetGridCol = colIndex === 0 ? 1 : colIndex - 1;
+    const targetSlot = ctx.grid.slots[ctx.gridRow]?.[targetGridCol];
+    const caretPara = firstCellPara(targetSlot?.cell);
     return tr(
-      [{ type: "removeTableColumn", tableId: ctx.table.id, colIndex: ctx.ci }],
+      [{ type: "removeTableColumn", tableId: ctx.table.id, colIndex }],
       caretPara ? caret(caretPara.id, 0) : state.selection,
       "command",
     );
@@ -2009,7 +2105,7 @@ export function deleteTableColumnCmd(): Command {
 
 /** Find a body- or band-level table by id (cell selections are body-only today,
  *  but a table can also live in a header/footer story). */
-export function findTableById(doc: EditorState["doc"], tableId: string): { table: TableBlock; where: "body" | (typeof BAND_CONTAINERS)[number] } | null {
+export function findTableById(doc: EditorState["doc"], tableId: string): { table: TableBlock; where: Container } | null {
   for (const where of ["body", ...BAND_CONTAINERS] as const) {
     const t = containerListOf(doc, where).find((b): b is TableBlock => b.kind === "table" && b.id === tableId);
     if (t) return { table: t, where };
@@ -2235,7 +2331,7 @@ export function deleteTableCmd(): Command {
     if (!ctx) return null;
     return tr(
       [{ type: "removeBlock", blockId: ctx.table.id }],
-      caretAfterTable(state, ctx.bi),
+      caretAfterTable(state, ctx.where, ctx.bi),
       "command",
     );
   };
@@ -2478,7 +2574,7 @@ export function deleteImage(blockId: string): Command {
       );
     }
     const bi = state.doc.blocks.findIndex((b) => b.id === blockId);
-    return tr([{ type: "removeBlock", blockId }], caretAfterTable(state, bi), "command");
+    return tr([{ type: "removeBlock", blockId }], caretAfterTable(state, "body", bi), "command");
   };
 }
 

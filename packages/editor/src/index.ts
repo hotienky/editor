@@ -238,6 +238,8 @@ export interface Editor {
   focus(): void;
   getDocument(): Document;
   getSelection(): DocSelection | null;
+  /** Active rectangular table-cell selection in span-aware grid coordinates. */
+  getCellSelection(): CellSelection | null;
   /** Move the caret/selection programmatically (null clears it). Unlike
    *  revealBlock/revealBookmark this does NOT scroll — it just sets the anchor so
    *  a following command (insert/format) targets the range. Used by agent tools. */
@@ -3479,6 +3481,9 @@ export function createEditor(
     },
     getSelection(): DocSelection | null {
       return selection;
+    },
+    getCellSelection(): CellSelection | null {
+      return cellSelection;
     },
     setSelection(sel: DocSelection | null): void {
       setSelection(sel);

@@ -308,6 +308,7 @@ export interface TableMessages {
   alignLeft: string;
   alignCenter: string;
   alignRight: string;
+  placeCaretInTable: string;
 }
 
 // ---- View tab ---------------------------------------------------------------

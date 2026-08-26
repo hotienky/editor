@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Document, SectionProps, TableBlock, TableCell } from "@kindy/shared";
+import type { Document, Paragraph, SectionProps, TableBlock, TableCell } from "@kindy/shared";
 import { applyOp } from "@kindy/shared";
 import {
+  deleteTableColumnCmd,
+  deleteTableCmd,
+  deleteTableRowCmd,
+  deleteBackward,
+  insertText,
   insertTableColumnCmd,
   insertTableRowCmd,
   setCellTextDirectionCmd,
@@ -76,6 +81,90 @@ const caretInCell = (table: TableBlock, ri: number, ci: number): EditorState => 
     cellSelection: null,
   };
 };
+
+const selectedCells = (
+  table: TableBlock,
+  a: [number, number],
+  f: [number, number] = a,
+): EditorState => ({
+  doc: docWith(table),
+  selection: null,
+  cellSelection: sel(table.id, a, f),
+});
+
+/** Same 6-column shape as the imported contract table: summary rows merge the
+ * first five grid columns and keep the amount column separate. */
+const contractTable = (): TableBlock => ({
+  kind: "table",
+  id: "t1",
+  revision: 0,
+  rows: [
+    { cells: Array.from({ length: 6 }, (_, i) => cell(`h${i}`)) },
+    { cells: Array.from({ length: 6 }, (_, i) => cell(`v${i}`)) },
+    { cells: [{ ...cell("TỔNG"), colSpan: 5 }, cell("")] },
+  ],
+});
+
+describe("table commands from caret and cell selection", () => {
+  it("edits text in a normal imported table cell", () => {
+    const table = contractTable();
+    const state = caretInCell(table, 1, 1);
+    const { doc } = applyWithUndo(state, insertText("Tên sản phẩm"));
+    const edited = (tableOf(doc).rows[1]!.cells[1]!.blocks[0] as Paragraph).runs
+      .map((run) => run.text)
+      .join("");
+    expect(edited).toBe("Tên sản phẩmv1");
+  });
+
+  it("deletes the whole table when only a rectangular cell selection is active", () => {
+    const table = contractTable();
+    const { doc, undo } = applyWithUndo(selectedCells(table, [0, 0], [1, 5]), deleteTableCmd());
+    expect(doc.blocks).toHaveLength(0);
+    expect((undo().blocks[0] as TableBlock).id).toBe("t1");
+  });
+
+  it("Delete/Backspace clears selected cell contents but preserves merges and formatting", () => {
+    const table = contractTable();
+    const staleCaret = caretInCell(table, 0, 0).selection;
+    const state: EditorState = {
+      doc: docWith(table),
+      selection: staleCaret,
+      cellSelection: sel("t1", [2, 0], [2, 4]),
+    };
+    const { doc } = applyWithUndo(state, deleteBackward());
+    const result = tableOf(doc);
+    const summary = result.rows[2]!.cells[0]!;
+    expect(summary.colSpan).toBe(5);
+    expect((summary.blocks[0] as Paragraph).runs.map((run) => run.text).join("")).toBe("");
+    expect((result.rows[0]!.cells[0]!.blocks[0] as Paragraph).runs[0]!.text).toBe("h0");
+  });
+
+  it("uses grid column 5, not physical cell index 1, in a 5+1 merged row", () => {
+    const table = contractTable();
+    const state = selectedCells(table, [2, 5]);
+
+    const del = deleteTableColumnCmd()(state);
+    expect(del?.ops[0]).toMatchObject({ type: "removeTableColumn", colIndex: 5 });
+
+    const add = insertTableColumnCmd("right")(state);
+    expect(add?.ops[0]).toMatchObject({ type: "insertTableColumn", colIndex: 6 });
+  });
+
+  it("inserts a structurally valid six-cell row below a merged summary row", () => {
+    const table = contractTable();
+    const { doc } = applyWithUndo(selectedCells(table, [2, 4]), insertTableRowCmd("below"));
+    const inserted = tableOf(doc).rows[3]!;
+    expect(inserted.cells).toHaveLength(6);
+    expect(inserted.cells.every((c) => (c.colSpan ?? 1) === 1)).toBe(true);
+  });
+
+  it("deletes the focused row from a pure cell selection", () => {
+    const table = contractTable();
+    const { doc } = applyWithUndo(selectedCells(table, [1, 3]), deleteTableRowCmd());
+    expect(tableOf(doc).rows).toHaveLength(2);
+    expect((tableOf(doc).rows[1]!.cells[0]!.blocks[0] as { runs: { text: string }[] }).runs[0]!.text).toBe("TỔNG");
+  });
+});
 
 describe("setCellVAlignCmd", () => {
   it("sets vAlign on every cell in a range and undoes cleanly", () => {

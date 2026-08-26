@@ -1985,21 +1985,26 @@ if (toolbar) {
   // ===== Table tab (acts on the cell containing the caret) =================
   const tableTab = tab("table", t.ribbon.table);
   group(tableTab, t.table.groupRowsCols);
-  btn(ICONS.rowAbove, t.table.insertRowAbove, () => editor.dispatch(insertTableRowCmd("above")));
-  btn(ICONS.rowBelow, t.table.insertRowBelow, () => editor.dispatch(insertTableRowCmd("below")));
-  btn(ICONS.colLeft, t.table.insertColLeft, () => editor.dispatch(insertTableColumnCmd("left")));
-  btn(ICONS.colRight, t.table.insertColRight, () => editor.dispatch(insertTableColumnCmd("right")));
-  btn(ICONS.deleteRow, t.table.deleteRow, () => editor.dispatch(deleteTableRowCmd()));
-  btn(ICONS.deleteCol, t.table.deleteCol, () => editor.dispatch(deleteTableColumnCmd()));
-  btn(ICONS.deleteTable, t.table.deleteTable, () => editor.dispatch(deleteTableCmd()));
+  const inTable = (f: CurrentFormat): boolean => f.inTable;
+  enable(btn(ICONS.rowAbove, t.table.insertRowAbove, () => editor.dispatch(insertTableRowCmd("above"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.rowBelow, t.table.insertRowBelow, () => editor.dispatch(insertTableRowCmd("below"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.colLeft, t.table.insertColLeft, () => editor.dispatch(insertTableColumnCmd("left"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.colRight, t.table.insertColRight, () => editor.dispatch(insertTableColumnCmd("right"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteRow, t.table.deleteRow, () => editor.dispatch(deleteTableRowCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteCol, t.table.deleteCol, () => editor.dispatch(deleteTableColumnCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteTable, t.table.deleteTable, () => editor.dispatch(deleteTableCmd())), inTable, t.table.placeCaretInTable);
   group(tableTab, t.table.groupMerge);
-  btn(ICONS.mergeCells, t.table.mergeCells, () => editor.dispatch(mergeCellsCmd()));
-  btn(ICONS.unmergeCells, t.table.unmergeCell, () => editor.dispatch(unmergeCellCmd()));
+  enable(btn(ICONS.mergeCells, t.table.mergeCells, () => editor.dispatch(mergeCellsCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.unmergeCells, t.table.unmergeCells, () => editor.dispatch(unmergeCellCmd())), inTable, t.table.placeCaretInTable);
   group(tableTab, t.table.groupSize);
   const autofitBtn = txtBtn("AutoFit", t.table.autofitTooltip, () => {}, "", true);
   autofitBtn.addEventListener("click", () => {
     // Tick the active mode (resolved against the table the caret is in right now).
-    const tbl = tableAtSelection({ doc: editor.getDocument(), selection: editor.getSelection() });
+    const tbl = tableAtSelection({
+      doc: editor.getDocument(),
+      selection: editor.getSelection(),
+      cellSelection: editor.getCellSelection(),
+    });
     const cur = tbl?.widthMode ?? "fixed";
     const pref = tbl?.preferredWidth;
     const curAlign = tbl?.align ?? "left";
