@@ -3754,6 +3754,7 @@ export function createEditor(
       container.removeEventListener("pointerup", onPinchUp);
       container.removeEventListener("pointercancel", onPinchUp);
       container.removeEventListener("pointerdown", onReviewPinPointerDown, true);
+      comments.destroy();
       controller.destroy();
       objectFrame.destroy();
       mirror.destroy();

@@ -417,12 +417,12 @@ const CSS = `
 .ked-thread.resolved { opacity: .58; }
 .ked-comment { display: flex; gap: 9px; margin-bottom: 10px; }
 .ked-comment:last-of-type { margin-bottom: 6px; }
-.ked-comment-main { min-width: 0; flex: 1 1 auto; }
-.ked-comment-who { font-weight: 600; font-size: 12.5px; color: #202124; }
+.ked-comment-main { min-width: 0; flex: 1 1 auto; position: relative; }
+.ked-comment-who { font-weight: 600; font-size: 12.5px; color: #202124; padding-right: 28px; }
 .ked-comment-when { color: var(--ked-text-subtle); font-size: 11px; margin-left: 6px; font-weight: 400; }
 .ked-comment-body { color: #3c4043; font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; margin-top: 2px; }
 .ked-comment-body.deleted, .ked-thread-popover-comment .deleted { color: var(--ked-text-subtle); font-style: italic; }
-.ked-comment-actions { display: flex; gap: 2px; margin-top: 3px; }
+.ked-comment-actions { display: flex; gap: 2px; position: absolute; right: 0; top: -5px; }
 .ked-comment-menu { position: relative; }
 .ked-comment-menu > summary { list-style: none; cursor: pointer; width: 26px; height: 24px; border-radius: 5px; display: grid; place-items: center; color: var(--ked-text-subtle); font-weight: 700; }
 .ked-comment-menu > summary::-webkit-details-marker { display: none; }
@@ -436,8 +436,10 @@ const CSS = `
 .ked-thread-actions .ked-resolved-tag { color: var(--ked-success); font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
 /* inline reply editor inside a thread */
-.ked-reply-box { display: none; gap: 8px; margin-top: 8px; }
-.ked-reply-box.open { display: flex; }
+.ked-reply-box { display: none; gap: 8px; margin-top: 8px; align-items: end; grid-template-columns: minmax(0, 1fr) auto; }
+.ked-reply-box.open { display: grid; }
+.ked-reply-box textarea { min-width: 0; min-height: 38px; max-height: 120px; resize: vertical; box-sizing: border-box; border: 1px solid var(--ked-border); border-radius: 6px; padding: 7px 8px; outline: none; font: inherit; font-size: 13px; line-height: 1.4; color: var(--ked-text); background: var(--ked-surface); }
+.ked-reply-box textarea:focus { border-color: var(--ked-blue-mid); box-shadow: 0 0 0 2px var(--ked-blue-xlight); }
 .ked-comment-filters { display: flex; gap: 4px; margin: 0 0 9px; position: sticky; top: 0; z-index: 2; background: #f7f8fa; padding-bottom: 5px; }
 .ked-comment-filter { border: 1px solid transparent; background: transparent; color: var(--ked-text-subtle); padding: 4px 9px; border-radius: 12px; cursor: pointer; font: 600 11.5px/1 inherit; }
 .ked-comment-filter.active { color: var(--ked-blue); background: var(--ked-blue-xlight); border-color: var(--ked-blue-light); }

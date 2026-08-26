@@ -46,6 +46,8 @@ export interface CommentController {
   hideChip(): void;
   /** Show/hide the chip as the selection/mode changes. */
   updateAffordance(): void;
+  /** Remove popovers and viewport observers. */
+  destroy(): void;
 }
 
 export function createCommentController(deps: CommentControllerDeps): CommentController {
@@ -99,10 +101,31 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
   };
 
   const placeBubble = (el: HTMLElement, anchor: { left: number; top: number; lineH: number }): void => {
-    const maxLeft = container.clientWidth - 340;
+    const width = el.offsetWidth || (el.classList.contains("ked-comment-thread-popover") ? 336 : 308);
+    const height = el.offsetHeight || (el.classList.contains("ked-comment-thread-popover") ? 220 : 114);
+    const maxLeft = Math.max(8, container.clientWidth - width - 8);
     el.style.left = `${Math.max(8, Math.min(anchor.left + 6, maxLeft))}px`;
-    el.style.top = `${anchor.top + anchor.lineH + 8}px`;
+
+    const viewportTop = container.scrollTop + 8;
+    const viewportBottom = container.scrollTop + container.clientHeight - 8;
+    const below = anchor.top + anchor.lineH + 8;
+    const above = anchor.top - height - 8;
+    const preferred = below + height <= viewportBottom ? below : above;
+    const maxTop = Math.max(viewportTop, viewportBottom - height);
+    el.style.top = `${Math.max(viewportTop, Math.min(preferred, maxTop))}px`;
   };
+
+  const repositionBubble = (): void => {
+    if (!bubble) return;
+    const anchor = anchorAt();
+    if (anchor) placeBubble(bubble, anchor);
+  };
+  const bubbleResizeObserver = typeof ResizeObserver !== "undefined"
+    ? new ResizeObserver(repositionBubble)
+    : null;
+  bubbleResizeObserver?.observe(container);
+  container.addEventListener("scroll", repositionBubble, { passive: true });
+  window.addEventListener("resize", repositionBubble);
 
   const openThread = (threadId: string): void => {
     const thread = getReview().threads.find((item) => item.id === threadId);
@@ -185,6 +208,7 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     }
     container.appendChild(el);
     bubble = el;
+    requestAnimationFrame(repositionBubble);
   };
 
   const openComposer = (): void => {
@@ -230,6 +254,7 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     el.append(row, actions);
     container.appendChild(el);
     bubble = el;
+    requestAnimationFrame(repositionBubble);
     setTimeout(() => ta.focus(), 0);
 
     ta.addEventListener("input", () => {
@@ -254,7 +279,10 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
   };
 
   const updateAffordance = (): void => {
-    if (bubble) return; // composer open → leave it; chip is irrelevant
+    if (bubble) {
+      repositionBubble();
+      return; // composer/thread open → leave it; chip is irrelevant
+    }
     const selection = getSelection();
     // A caret remains a valid target for the toolbar/shortcut entry points, but
     // the floating action is reserved for an explicit ranged selection so it
@@ -281,5 +309,13 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     chip.style.top = `${anchor.top - 4}px`;
   };
 
-  return { openComposer, openThread, closeComposer, hideChip, updateAffordance };
+  const destroy = (): void => {
+    closeComposer();
+    hideChip();
+    bubbleResizeObserver?.disconnect();
+    container.removeEventListener("scroll", repositionBubble);
+    window.removeEventListener("resize", repositionBubble);
+  };
+
+  return { openComposer, openThread, closeComposer, hideChip, updateAffordance, destroy };
 }

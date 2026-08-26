@@ -2709,18 +2709,20 @@ if (toolbar) {
         const replyBox = el("div", "ked-reply-box");
         const replyTa = el("textarea") as HTMLTextAreaElement;
         replyTa.placeholder = "Reply…";
-        replyTa.style.cssText = "flex:1 1 auto;resize:none;min-height:34px;border:1px solid #dadce0;border-radius:6px;padding:6px 8px;font:13px/1.4 inherit;outline:none;";
-        const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers(), {
-          ...(runtime.mentionPicker ? { picker: runtime.mentionPicker } : {}),
-          context: "reply",
-          documentId: () => collabId,
-          threadId: t.id,
-        });
-        reviewDisposers.add(() => replyMentions.destroy());
+        const canReply = t.status === "open" && editor.canReviewAction("comment.reply", t.id);
+        const replyMentions = canReply
+          ? attachMentionAutocomplete(replyTa, () => editor.getKnownUsers(), {
+              ...(runtime.mentionPicker ? { picker: runtime.mentionPicker } : {}),
+              context: "reply",
+              documentId: () => collabId,
+              threadId: t.id,
+            })
+          : null;
+        if (replyMentions) reviewDisposers.add(() => replyMentions.destroy());
         const replySend = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "Reply", () => {
           const v = replyTa.value.trim();
           if (!v) return;
-          editor.replyToComment(t.id, commentFragment(v), replyMentions.getMentions());
+          editor.replyToComment(t.id, commentFragment(v), replyMentions?.getMentions());
           editor.focus();
         });
         replyTa.addEventListener("keydown", (event) => {
@@ -2734,7 +2736,7 @@ if (toolbar) {
             replySend.click();
           }
         });
-        replyBox.append(replyTa, replySend);
+        if (canReply) replyBox.append(replyTa, replySend);
         const actions = el("div", "ked-thread-actions");
         if (t.status === "resolved") {
           const tag = el("span", "ked-resolved-tag");
@@ -2744,7 +2746,7 @@ if (toolbar) {
             actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reopen", () => { editor.resolveThread(t.id, false); editor.focus(); }));
           }
         } else {
-          if (editor.canReviewAction("comment.reply", t.id)) {
+          if (canReply && !active) {
             actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reply", () => {
               replyBox.classList.add("open");
               activeThreadId = t.id;
@@ -2755,8 +2757,9 @@ if (toolbar) {
             actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Resolve", () => { editor.resolveThread(t.id, true); editor.focus(); }));
           }
         }
-        if (active && t.status === "open" && editor.canReviewAction("comment.reply", t.id)) replyBox.classList.add("open");
-        card.append(replyBox, actions);
+        if (active && canReply) replyBox.classList.add("open");
+        if (canReply) card.append(replyBox);
+        card.append(actions);
         card.addEventListener("click", (e) => {
           if (!(e.target as HTMLElement).closest("button, textarea, .ked-reply-box")) {
             activeThreadId = t.id;
