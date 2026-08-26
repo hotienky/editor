@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kindy.dev/schemas/editor-event-1.0.json",
+  "title": "Kindy Editor public event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "type", "occurredAt", "source", "document", "data"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "type": {
+      "enum": [
+        "editor.ready", "editor.destroyed", "editor.mode.changed", "editor.error",
+        "document.open.started", "document.open.completed", "document.open.failed",
+        "document.import.started", "document.import.completed", "document.import.failed",
+        "document.export.started", "document.export.completed", "document.export.failed",
+        "document.change.applied", "document.change.committed", "document.change.rejected",
+        "document.remoteChange.applied", "document.shared",
+        "review.operation.applied", "review.suggestion.created", "review.suggestion.removed",
+        "review.thread.created", "review.thread.removed", "review.comment.added",
+        "review.comment.edited", "review.comment.deleted", "review.comment.removed", "review.thread.status.changed",
+        "collaboration.connecting", "collaboration.connected", "collaboration.disconnected",
+        "collaboration.user.joined", "collaboration.user.left", "collaboration.presence.changed",
+        "selection.changed", "custom"
+      ]
+    },
+    "occurredAt": { "type": "string", "format": "date-time" },
+    "source": { "enum": ["local", "remote", "api", "ai", "undo", "redo", "import", "system"] },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "firstName", "lastName"],
+      "properties": {
+        "id": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" }
+      }
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "baseVersion"],
+      "properties": {
+        "id": { "type": ["string", "null"] },
+        "baseVersion": { "type": "integer", "minimum": 0 },
+        "version": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "correlationId": { "type": "string" },
+        "causationId": { "type": "string" },
+        "status": { "enum": ["optimistic", "committed", "rejected"] }
+      }
+    },
+    "data": { "type": "object" },
+    "metadata": { "type": "object" }
+  }
+}

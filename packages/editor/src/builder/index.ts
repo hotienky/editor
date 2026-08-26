@@ -1,0 +1,29 @@
+// kindy-editor/builder — fluent programmatic document composition.
+//
+//   const b = await DocumentBuilder.fromTemplate(templateBytes);
+//   const doc = b
+//     .paragraph(data.title).withStyle("Heading1")
+//     .paragraph("Generated " + data.date)
+//     .table([["Item", "Qty"], ...data.rows], { headerRow: true })
+//     .build();
+//
+// Pure data in, pure data out: build() returns the same Document model the
+// editor renders and the exporter writes — usable in the browser (live preview
+// via KindyEditor.setDocument) and server-side in Node (DOCX/PDF generation).
+
+export type { Block, CharStyle, Document, NamedStyle, ParaStyle, Stylesheet } from "@kindy/shared";
+// Model types an author needs to call the new field/SDT/TOC/list methods.
+export type { FieldSpec, IfOp, PageNumFmt, SdtProps, SdtType, TocOptions } from "@kindy/shared";
+export { DocumentBuilder } from "./documentBuilder";
+export type { BandOptions, CreateOptions, ListDefinitionSpec, PageSetup, SectionBreakOptions, TemplateOptions } from "./documentBuilder";
+export { ParagraphBuilder } from "./paragraphBuilder";
+export type { IndentOptions, SpacingOptions } from "./paragraphBuilder";
+export { StoryBuilder } from "./storyBuilder";
+export type { ImageOptions, ListItem, ListOptions } from "./storyBuilder";
+export { RowBuilder, TableBuilder } from "./tableBuilder";
+export type { CellContent, CellOptions, CellSpec, RowOptions, TableOptions } from "./tableBuilder";
+export type { TableStylePreset } from "./tableStyles";
+export type { BuilderWarning } from "./blockFactory";
+export { bytesToDataUrl } from "./media";
+export { cm, inches, PAGE_SIZES, pt, twips } from "./units";
+export type { PageSize, PageSizeName } from "./units";

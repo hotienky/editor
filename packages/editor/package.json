@@ -1,21 +1,65 @@
 {
-  "name": "@umo/editor",
-  "version": "0.1.0",
-  "description": "Editing Engine for Open Document Platform",
-  "main": "src/index.js",
-  "module": "src/index.js",
+  "name": "kindy-editor",
+  "version": "3.1.0",
   "type": "module",
-  "exports": {
-    ".": "./src/index.js"
-  },
-  "keywords": [
-    "editor",
-    "commands",
-    "transactions",
-    "selection"
-  ],
-  "author": "UMO Team",
+  "description": "Trình soạn thảo tài liệu Word chính xác, vẽ bằng canvas",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {}
+  "module": "./dist-lib/kindy-editor.js",
+  "types": "./types/kindy-editor.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/kindy-editor.d.ts",
+      "import": "./dist-lib/kindy-editor.js"
+    },
+    "./style": {
+      "default": "./dist-lib/kindy-editor.css"
+    },
+    "./builder": {
+      "types": "./types/builder.d.ts",
+      "import": "./dist-lib/builder.js"
+    },
+    "./import": {
+      "types": "./types/import.d.ts",
+      "default": "./dist-lib/import.js"
+    },
+    "./export": {
+      "types": "./types/export.d.ts",
+      "default": "./dist-lib/export.js"
+    },
+    "./events": {
+      "types": "./types/events.d.ts",
+      "import": "./dist-lib/events.js"
+    },
+    "./events/schema": {
+      "default": "./types/event.schema.json"
+    }
+  },
+  "files": [
+    "dist-lib",
+    "types",
+    "docs",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --mode lib",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@chenglou/pretext": "latest",
+    "@kindy/shared": "*",
+    "@types/fontkit": "^2.0.9",
+    "@types/pdfkit": "^0.17.6",
+    "esbuild": "^0.25.0",
+    "fflate": "^0.8.3",
+    "fontkit": "^2.0.4",
+    "pdfkit": "^0.19.0",
+    "txml": "^6.0.0",
+    "vite": "^6.0.0",
+    "vite-plugin-node-polyfills": "^0.28.0",
+    "vitest": "^3.0.0",
+    "typescript": "^5.9.2",
+    "vue": "^3.5.29"
+  }
 }

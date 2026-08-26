@@ -1,0 +1,4063 @@
+import {
+  EDITOR_EVENT_SCHEMA_VERSION,
+  affectedBlockIds,
+  bakeReview,
+  collectMediaIds,
+  colorForId,
+  configureIds,
+  dataUrlToMedia,
+  deserializeDocument,
+  forEachImage,
+  freshId,
+  mediaToDataUrl,
+  projectReviewEvents,
+  reconstruct,
+  serializeDocument,
+  serializeFullDocument,
+  textOfRuns,
+  DEFAULT_CHAR_STYLE,
+  DOCX_MIME,
+  PDF_MIME,
+  PX_PER_INCH,
+  ptToPx as sharedPtToPx,
+  pxToPt as sharedPxToPt,
+  type Change,
+  type DocSelection,
+  type Document,
+  type EditorEventSource,
+  type Fragment,
+  type FullDocumentExport,
+  type ImageBlock,
+  type ParaStyle,
+  type PublicEditorEvent,
+  type PublicEditorEventDataMap,
+  type PublicEditorEventType,
+  type ReviewLayer,
+  type Run,
+  type SerializedDocument,
+} from "@kindy/shared";
+import { resolveConfig } from "./config";
+import { emptyParagraphFor } from "./builder/blockFactory";
+import { mediaStore, mediaUrl, registerMediaBytes, rehydrateDocMedia } from "./media/store";
+import { SyncClient } from "./sync/SyncClient";
+import { createEditor, type CurrentFormat, type EditMode, type InspectorProbe, type ReviewOpEnvelope } from "./index";
+import type { Command } from "./editor/state";
+import { createLayoutEngine } from "./layout/engine";
+import { sampleDoc } from "./model/sampleDoc";
+import { stressDoc } from "./model/stressDoc";
+import { importDocx, type ImportResult, type ImportPhase } from "./import/docx/importDocx";
+import { exportDocument, type ExportFormat, type ExportWarning } from "./export/exportDocument";
+import { loadArabicFallbackFont, loadCjkFallbackFont, loadHebrewFallbackFont, loadEditorFonts } from "./export/shared/editorFonts";
+import { ARABIC_FONT_FAMILY, CJK_FONT_FAMILY, HEBREW_FONT_FAMILY } from "./fonts/clones";
+import { fontsProgress } from "./app/loadProgress";
+import { toolbarFonts } from "./fonts/clones";
+import { createFontRegistry, normalizeFamily } from "./fonts/customRegistry";
+import type { EditorHandle, KindyEditorRuntime } from "./app/runtime";
+import { buildShell } from "./app/shell";
+import { ensureKindyEditorStyles } from "./ui/styles";
+import { showContextMenu, type MenuEntry } from "./ui/contextMenu";
+import { showStyleManager, type StyleManagerHandle } from "./ui/styleManager";
+import { showDevPanel, type DevPanelHandle } from "./ui/devPanel";
+import { showPageLayout, type PageLayoutHandle } from "./ui/pageLayout";
+import { showParagraphDialog, type ParagraphDialogHandle } from "./ui/paragraphDialog";
+import { showEquationEditor } from "./ui/equationEditor";
+import { showSymbolPicker, type SymbolPickerHandle } from "./ui/symbolPicker";
+import { showFontDialog } from "./ui/fontDialog";
+import { showImageDialog } from "./ui/imageDialog";
+import { loadCollabDocument, loadCollabReview, publishDocument } from "./sync/collab";
+import { attachMentionAutocomplete } from "./review/mentions";
+import { showBusy } from "./app/busyOverlay";
+// Ribbon/toolbar command set + style helpers + icons — the chrome, not the core.
+// (Hoisted here from the toolbar block; ES imports must be top-level, and the
+// toolbar code now lives inside mountEditorApp.)
+import { anchorBeforeId, type RibbonActionContext, type RibbonApi, type RibbonButtonSpec } from "./ribbon";
+import {
+  insertText as insertTextCmd,
+  insertImage,
+  insertImageInCell,
+  insertEquation,
+  insertInlineEquation,
+  insertSymbolCmd,
+  insertTable,
+  insertTableRowCmd,
+  insertTableColumnCmd,
+  deleteTableRowCmd,
+  deleteTableColumnCmd,
+  deleteTableCmd,
+  mergeCellsCmd,
+  unmergeCellCmd,
+  setTableWidthModeAtSelectionCmd,
+  setTablePreferredWidthAtSelectionCmd,
+  setTableAlignAtSelectionCmd,
+  tableAtSelection,
+  setImageProps,
+  applyNamedStyle,
+  applyCharStyle,
+  updateStyleToSelection,
+  setParaProps,
+  addBookmarkCmd,
+  removeBookmarkCmd,
+  renameBookmarkCmd,
+  toggleList,
+  applyListStyleCmd,
+  toggleMultilevelList,
+  toggleHighlight,
+  toggleVerticalAlign,
+  setDirection,
+  changeCaseCmd,
+  adjustIndentCmd,
+  clearCharFormatting,
+  type CaseMode,
+  setLinkCmd,
+  insertPageBreak,
+  insertSectionBreak,
+  insertTocCmd,
+  insertFootnoteCmd,
+  insertEndnoteCmd,
+  insertContentControl,
+  wrapImageInContentControl,
+  removeContentControl,
+  insertFieldCmd,
+  applyPageSetup,
+  pageSetupAt,
+} from "./editor/commands";
+import { defaultStylesheet, styleById, styleType } from "@kindy/shared";
+import { bulletListDefinition, numberListDefinition, paragraphsOf, textOfRuns } from "@kindy/shared";
+import { ICONS } from "./ui/icons";
+import { defaultMessages } from "./i18n";
+
+// Dev hook for in-browser verification (break-rule scans, perf probes, and the
+// snapshot/replay round-trip). Assigned near the end of mountEditorApp.
+declare global {
+  interface Window {
+    __cw?: unknown;
+  }
+}
+
+// Ruler tick GEOMETRY shared by the horizontal ruler (draw) and the vertical
+// ruler (drawV), kept here so the two stay pixel-identical. Colors + font are
+// per-instance (config.theme.ruler).
+const RULER_TICK_START = 4; // band edge the ticks hang from
+const RULER_TICK_LEN = 10; // major (inch) tick extent
+const RULER_HALF_TICK_LEN = 8; // half-inch tick extent
+
+// Mount ONE editor into runtime.container and hand its control surface to
+// runtime.onReady. Called once per KindyEditor instance — every binding below is
+// per-call, so multiple editors coexist on a single page. The CSS is class-based
+// (see ui/styles.ts) and all off-container artifacts are tracked for destroy().
+export async function mountEditorApp(runtime: KindyEditorRuntime): Promise<void> {
+  // Resolve config FIRST: custom fonts must be registered (so cloneFamilyFor /
+  // metrics know them) and loaded before the first layout. pretext measures with the
+  // same font strings the paint layer draws with, so a late font swap would desync
+  // them. The editor renders the bundled metric clones (Calibri→Carlito, …) plus any
+  // custom fonts, so layout matches the PDF/DOCX exporters exactly.
+  const config = resolveConfig({
+    ...(runtime.theme ? { theme: runtime.theme } : {}),
+    ...(runtime.overrideDefaultStyles ? { overrideDefaultStyles: runtime.overrideDefaultStyles } : {}),
+    ...(runtime.behavior ? { behavior: runtime.behavior } : {}),
+    ...(runtime.fonts ? { fonts: runtime.fonts } : {}),
+    ...(runtime.cjk ? { cjk: runtime.cjk } : {}),
+    ...(runtime.develop !== undefined ? { develop: runtime.develop } : {}),
+  });
+  // Resolve the i18n message catalog. Falls back to English when the runtime
+  // doesn't carry a catalog (legacy test harnesses, direct mountEditorApp calls).
+  const t = runtime.messages ?? defaultMessages;
+  // This editor instance's own font registry — threaded into its layout engine and
+  // paint layer (below) so its custom fonts can't be clobbered by another KindyEditor
+  // instance on the page, and into its exports via config.fonts.
+  const fontRegistry = createFontRegistry();
+  const loadedFamilies = await loadEditorFonts(
+    (loaded, total) => runtime.onLoadProgress?.(fontsProgress(loaded, total)),
+    config.fonts,
+  );
+  // Register only families whose required Regular face actually loaded, so a custom
+  // font that failed (CORS/404) falls back to a clone consistently in the editor —
+  // the same fallback the exporter makes when its own fetch fails. (Layout reads
+  // the registry below, so registration must happen before the first engine.layout.)
+  fontRegistry.register({ fonts: config.fonts.fonts.filter((f) => loadedFamilies.has(normalizeFamily(f.family))) });
+  await document.fonts.ready;
+  // CJK fallback + locale are passed to this instance's layout engine (below), which
+  // re-asserts them at the top of every layout pass — no process-global juggling.
+
+  // Give this editor session a unique siteId so every block/cell id it mints is
+  // disjoint from other collaborating clients' ids (see shared/ids). A short
+  // random token is enough; the server later assigns the authoritative ordering.
+  configureIds(crypto.randomUUID().slice(0, 8));
+
+  ensureKindyEditorStyles();
+  const shell = buildShell(runtime.container);
+  const app = shell.app;
+
+  // Config was resolved at the top of mountEditorApp (fonts must register before the
+  // first layout). Everything below reads from `config`; omitting an option keeps the
+  // built-in look. Theme + behavior thread into the editor via editorOpts; the
+  // typography override seeds new/blank docs (a loaded .docx keeps its own).
+  // Recolor the gray gutter behind the pages + the ruler troughs (inline overrides
+  // the static .ked-app/.ked-ruler stylesheet rules, so it stays per-instance).
+  app.style.background = config.theme.canvasBackground;
+  shell.ruler.style.background = config.theme.canvasBackground;
+  shell.vruler.style.background = config.theme.canvasBackground;
+
+  // Per-instance teardown. Global window/document listeners are registered with
+  // this signal, and body-level floating panels (popovers, find bar, image bar,
+  // page-setup, the colour <input>) are tracked in `detachables` — destroy()
+  // aborts the signal and removes them, so nothing leaks outside shell.root.
+  const teardown = new AbortController();
+  const detachables: Element[] = [];
+  // Container-width compact ribbon observer (assigned in the ribbon block below).
+  let compactRO: ResizeObserver | null = null;
+
+// Backend base URL gates online features. Present ⇒ sync/publish/share; absent ⇒
+// fully offline editor (the kill-switch).
+const BACKEND_HTTP: string | null = runtime.backendUrl ?? null;
+const BACKEND_WS: string | null = BACKEND_HTTP ? BACKEND_HTTP.replace(/^http/, "ws") : null;
+const online = BACKEND_HTTP !== null;
+// View-only viewer: hide the editing chrome (ribbon, ruler, replace) and run the
+// editor core in readonly mode. Selection, copy, find, zoom, and live remote
+// edits all still work.
+const readonly = runtime.readonly ?? false;
+// Join an existing session only makes sense online.
+let collabId: string | null = online ? (runtime.collabId ?? null) : null;
+let shareLink: string | null = null;
+
+const reportImport = (r: ImportResult, ms: number): void => {
+  console.log(`[docx-import] blocks=${r.doc.blocks.length} warnings=${r.warnings.length} total=${ms.toFixed(1)}ms`);
+  for (const w of r.warnings) console.warn(`[docx-import] ${w.code}: ${w.message}`);
+};
+
+// Human labels for the import worker's progress phases (shown in the busy overlay).
+const IMPORT_PHASE_LABEL: Record<ImportPhase, string> = {
+  unzip: "Unzipping",
+  styles: "Reading styles",
+  parse: "Parsing content",
+  map: "Building document",
+};
+
+let collabVersion = 0;
+let sync: SyncClient | null = null;
+type PublicEmitOptions = {
+  source?: EditorEventSource;
+  transaction?: PublicEditorEvent["transaction"];
+  version?: number;
+  metadata?: Record<string, unknown>;
+};
+const emitPublic = <K extends PublicEditorEventType>(
+  type: K,
+  data: PublicEditorEventDataMap[K],
+  options: PublicEmitOptions = {},
+): void => {
+  if (!runtime.onPublicEvent) return;
+  const baseVersion = sync?.getVersion() ?? collabVersion;
+  runtime.onPublicEvent({
+    schemaVersion: EDITOR_EVENT_SCHEMA_VERSION,
+    id: freshId(),
+    type,
+    occurredAt: new Date().toISOString(),
+    source: options.source ?? "system",
+    ...(runtime.user ? { actor: runtime.user } : {}),
+    document: {
+      id: collabId,
+      baseVersion,
+      ...(options.version !== undefined ? { version: options.version } : {}),
+    },
+    ...(options.transaction ? { transaction: options.transaction } : {}),
+    data,
+    ...(options.metadata ? { metadata: options.metadata } : {}),
+  } as PublicEditorEvent);
+};
+let doc: Document;
+if (collabId !== null && BACKEND_HTTP) {
+  const busy = showBusy("Loading shared document…");
+  try {
+    const loaded = await loadCollabDocument(BACKEND_HTTP, collabId);
+    collabVersion = loaded.version;
+    doc = loaded.doc;
+    // We joined an existing session: the URL in the address bar IS the share
+    // link, so the Share button reveals it instead of re-publishing.
+    shareLink = location.href;
+    console.log(`[collab] loaded ${collabId} at v${collabVersion}`);
+  } catch (e) {
+    // Dead/invalid link — don't hang the whole load. Drop collab state, strip
+    // ?collab (so a reload doesn't re-fail), and fall back to a blank editor.
+    console.error("[collab] load failed", e);
+    alert(`Could not open the shared document: ${e instanceof Error ? e.message : String(e)}`);
+    collabId = null;
+    shareLink = null;
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete("collab");
+      history.replaceState(null, "", u.toString());
+    } catch {
+      /* ignore URL errors */
+    }
+    doc = sampleDoc();
+  } finally {
+    busy.done();
+  }
+} else {
+  doc = sampleDoc();
+}
+
+// A document with no stylesheet of its own adopts the configured default styles
+// (the `overrideDefaultStyles` typography, or the library default). A loaded .docx
+// always arrives WITH its own stylesheet, so its w:docDefaults/Normal win.
+if (!doc.stylesheet) doc = { ...doc, stylesheet: config.stylesheet };
+
+const engine = createLayoutEngine(fontRegistry, {
+  ...(config.cjk.fallbackFont !== undefined ? { cjkFallback: config.cjk.fallbackFont } : {}),
+  ...(config.cjk.locale !== undefined ? { cjkLocale: config.cjk.locale } : {}),
+  ...(config.cjk.arabicFallbackFont !== undefined ? { arabicFallback: config.cjk.arabicFallbackFont } : {}),
+  ...(config.cjk.hebrewFallbackFont !== undefined ? { hebrewFallback: config.cjk.hebrewFallbackFont } : {}),
+});
+const t0 = performance.now();
+const tree = engine.layout(doc); // cold: every paragraph hits prepareRichInline
+const t1 = performance.now();
+engine.layout(doc); // warm: 100% prepare-cache hits, pure line-walk + pagination
+const t2 = performance.now();
+console.log(
+  `[kindy-editor] blocks=${doc.blocks.length} pages=${tree.pages.length} ` +
+    `layout cold=${(t1 - t0).toFixed(1)}ms warm=${(t2 - t1).toFixed(1)}ms`,
+);
+
+let syncToolbar: () => void = () => {};
+let syncZoom: (zoom: number) => void = () => {};
+let refreshOutline: () => void = () => {};
+let refreshStatus: () => void = () => {};
+let refreshRuler: () => void = () => {};
+let toggleRuler: () => boolean = () => false;
+let refreshVRuler: () => void = () => {};
+let toggleVRuler: () => boolean = () => false;
+let refreshImageBar: () => void = () => {};
+let refreshBookmarks: () => void = () => {};
+let toggleBookmarks: () => void = () => {};
+let refreshReview: () => void = () => {};
+let toggleReview: () => void = () => {};
+let focusCommentThread: (threadId: string) => void = () => {};
+let syncMode: () => void = () => {};
+let syncCommentAction: () => void = () => {};
+// Develop-mode Document-tree inspector hooks (assigned when the panel is open;
+// no-ops otherwise, so non-develop mounts pay nothing). refreshDevPanel re-reads
+// the tree on edits; inspectorHoverSink routes the canvas→tree hover signal.
+let refreshDevPanel: () => void = () => {};
+let inspectorHoverSink: (blockId: string | null) => void = () => {};
+let inspectorProbeSink: (probe: InspectorProbe | null) => void = () => {};
+// Close the inspector (it captures the live editor) when the editor is rebuilt on
+// document replacement. Assigned when the panel opens; no-op otherwise.
+let closeDevPanel: () => void = () => {};
+// Close the Paragraph dialog when the editor is rebuilt on document replacement —
+// an orphaned dialog holds stale paragraph state and would dispatch its OK patch
+// into the newly created editor. Assigned when the dialog opens; no-op otherwise.
+let closeParaDialog: () => void = () => {};
+// Ships a locally-authored review op on the collab review channel (assigned by
+// the sync wiring; no-op offline). Forward-declared so editorOpts can reference it.
+let onLocalReviewOp: (env: ReviewOpEnvelope) => void = () => {};
+// The action context handed to custom ribbon buttons' onClick (handle + macro
+// helpers). Assigned once the editor handle is built; custom buttons can't fire
+// before mount completes, so it's always set by click time.
+let ribbonCtx: RibbonActionContext | null = null;
+let publicMode: EditMode = runtime.mode ?? (readonly ? "view" : "edit");
+const editorOpts = {
+  engine,
+  paintOptions: { fontRegistry },
+  readonly,
+  theme: config.theme,
+  behavior: config.behavior,
+  ...(runtime.mode ? { mode: runtime.mode } : {}),
+  ...(runtime.allowedModes ? { allowedModes: runtime.allowedModes } : {}),
+  ...(runtime.user ? { user: runtime.user } : {}),
+  ...(runtime.knownUsers ? { knownUsers: runtime.knownUsers } : {}),
+  ...(runtime.mentionPicker ? { mentionPicker: runtime.mentionPicker } : {}),
+  ...(runtime.reviewAccess ? { reviewAccess: runtime.reviewAccess } : {}),
+  getDocumentId: () => collabId,
+  onCommentThreadActivated: (threadId: string) => focusCommentThread(threadId),
+  ...(runtime.resolveField ? { resolveField: runtime.resolveField } : {}),
+  ...(collabId !== null ? { docId: collabId } : {}),
+  // In a collab session, ship each recorded local edit to the server.
+  onChangeRecorded: (change: Change) => {
+    sync?.localEdit(change);
+  },
+  onMutationApplied: (event: {
+    source: "local" | "remote";
+    ops: import("@kindy/shared").Op[];
+    origin: import("@kindy/shared").ChangeOrigin;
+    intent?: string;
+    selectionBefore: DocSelection | null;
+    selectionAfter: DocSelection | null;
+    change?: Change;
+  }) => {
+    const detail = runtime.eventDetail ?? "metadata";
+    const data: PublicEditorEventDataMap["document.change.applied"] = {
+      origin: event.origin,
+      ...(event.intent ? { intent: event.intent } : {}),
+      operationCount: event.ops.length,
+      affectedBlockIds: affectedBlockIds(event.ops),
+      ...(detail !== "metadata" ? { operations: event.ops } : {}),
+      ...(detail === "full" ? {
+        selectionBefore: event.selectionBefore,
+        selectionAfter: event.selectionAfter,
+        ...(event.change ? { change: event.change } : {}),
+      } : {}),
+    };
+    const changeId = event.change?.id ?? freshId();
+    const source: EditorEventSource = event.source === "remote"
+      ? "remote"
+      : event.origin === "undo" || event.origin === "redo"
+        ? event.origin
+        : "local";
+    emitPublic(event.source === "remote" ? "document.remoteChange.applied" : "document.change.applied", data, {
+      source,
+      transaction: { id: changeId, status: event.source === "remote" ? "committed" : "optimistic" },
+      ...(event.change?.seq !== undefined ? { version: event.change.seq + 1 } : {}),
+    });
+  },
+  // Review overlay: re-emit changes to the embedder + ship review ops to peers.
+  onReviewChanged: (review: ReviewLayer) => {
+    runtime.onEvent?.({ type: "reviewChanged", review });
+    refreshReview();
+  },
+  onModeChanged: (mode: EditMode) => {
+    runtime.onEvent?.({ type: "modeChanged", mode });
+    emitPublic("editor.mode.changed", { mode, previousMode: publicMode }, { source: "local" });
+    publicMode = mode;
+    syncMode();
+    syncCommentAction();
+    refreshReview();
+  },
+  onReviewOpRecorded: (env: ReviewOpEnvelope) => onLocalReviewOp(env),
+  onReviewOpApplied: (op: import("@kindy/shared").ReviewOp, remote: boolean) => {
+    const transactionId = freshId();
+    for (const projected of projectReviewEvents(op, remote)) {
+      emitPublic(projected.type, projected.data as never, {
+        source: remote ? "remote" : "local",
+        transaction: { id: transactionId, status: remote ? "committed" : "optimistic" },
+      });
+    }
+  },
+  // Broadcast the local caret to collaborators on every move.
+  onSelectionChange: (sel: DocSelection | null) => {
+    sync?.localPresence(sel);
+    if (runtime.includeSelectionEvents) emitPublic("selection.changed", { selection: sel }, { source: "local" });
+    refreshDevPanel();
+    syncCommentAction();
+    refreshReview();
+  },
+  // Develop mode only: the inspector turns this signal on while open (dormant
+  // otherwise) — route the hovered block id to the tree for the reverse highlight.
+  onInspectorHover: (blockId: string | null) => inspectorHoverSink(blockId),
+  onInspectorProbe: (probe: InspectorProbe | null) => inspectorProbeSink(probe),
+  onChange: () => {
+    syncToolbar();
+    refreshOutline();
+    refreshStatus();
+    refreshRuler();
+    refreshVRuler();
+    refreshImageBar();
+    refreshBookmarks();
+    refreshDevPanel();
+  },
+  onZoomChange: (z: number) => {
+    syncZoom(z);
+    refreshStatus();
+    refreshRuler();
+    refreshVRuler();
+    refreshImageBar();
+  },
+  messages: t,
+};
+let editor = createEditor(app, doc, editorOpts);
+
+// When the bundled CJK fallback is active, load it lazily (it's multi-MB; blocking
+// first paint on it would penalize Latin-only documents) and re-lay-out once it
+// arrives so CJK widths re-measure against the bundled face instead of the browser's
+// interim system substitute. A custom fallback family is already loaded eagerly by
+// loadEditorFonts; an explicit "" opt-out skips this entirely.
+if (config.cjk.fallbackFont === CJK_FONT_FAMILY) {
+  void loadCjkFallbackFont().then((ok) => {
+    // The fetch is uncancellable; if the editor was destroyed while it was in
+    // flight, skip — refreshFonts() would touch a torn-down editor/root.
+    if (!ok || teardown.signal.aborted) return;
+    editor.refreshFonts();
+  });
+}
+
+// Same lazy-load pattern for the bundled Arabic fallback. Arabic text needs
+// contextual joining (GSUB) that browser system fallbacks rarely supply correctly
+// in canvas; once the bundled face loads, re-layout re-measures Arabic runs against
+// it so the screen matches the PDF export exactly.
+if (config.cjk.arabicFallbackFont === ARABIC_FONT_FAMILY) {
+  void loadArabicFallbackFont().then((ok) => {
+    if (!ok || teardown.signal.aborted) return;
+    editor.refreshFonts();
+  });
+}
+
+// Same lazy-load pattern for the bundled Hebrew fallback; once it loads, re-layout
+// re-measures Hebrew runs against it so the screen matches the PDF export.
+if (config.cjk.hebrewFallbackFont === HEBREW_FONT_FAMILY) {
+  void loadHebrewFallbackFont().then((ok) => {
+    if (!ok || teardown.signal.aborted) return;
+    editor.refreshFonts();
+  });
+}
+
+// Drawing-grid view state (persisted across document replacement, since the
+// editor — and its paint layer — is rebuilt on docx open / setDocument). Seeded
+// from the embedder's `view` options. Ruler visibility is DOM-class state on the
+// shell, which survives a rebuild, so it isn't tracked here.
+const gridView = {
+  show: runtime.view?.grid ?? false,
+  snap: runtime.view?.snapToGrid ?? false,
+  spacingPx: runtime.view?.gridSpacingPx ?? config.behavior.gridSpacingPx,
+};
+// Formatting-marks visibility — same "survives a paint-layer rebuild" treatment
+// as the grid (re-seeded via applyGridView below).
+let showFormattingMarks = runtime.view?.formattingMarks ?? false;
+const applyGridView = (): void => {
+  editor.setGridSpacing(gridView.spacingPx);
+  editor.setShowGrid(gridView.show);
+  editor.setSnapToGrid(gridView.snap);
+  editor.setShowFormattingMarks(showFormattingMarks);
+};
+applyGridView();
+
+// Initial ruler visibility (both default on; always hidden in readonly, whose
+// only ruler interaction — indent drag — is an edit). Shared by the ruler blocks
+// and the View-tab toggle buttons below.
+const showHRuler = !readonly && (runtime.view?.ruler ?? true);
+const showVRuler = !readonly && (runtime.view?.verticalRuler ?? true);
+
+// Initial zoom (what the reader opens at). One-time at mount — later docx opens
+// reset to 100%, like a fresh document.
+if (runtime.view?.zoom != null) editor.setZoom(runtime.view.zoom);
+
+// Listeners notified whenever a remote change is applied (the activity panel,
+// Part 3, registers here).
+const remoteChangeListeners: Array<(change: Change) => void> = [];
+
+// Build a SyncClient for `docId` wired to the current editor + identity + the
+// presence/event callbacks. Used by both the join path and goOnline.
+const connectSync = (docId: string, startVersion: number): SyncClient => {
+  emitPublic("collaboration.connecting", { docId }, { source: "system" });
+  const s = new SyncClient({
+    wsUrl: BACKEND_WS!,
+    docId,
+    editor,
+    startVersion,
+    user: runtime.user,
+    onConnected: (version) => {
+      collabVersion = version;
+      emitPublic("collaboration.connected", { docId, version }, { source: "system", version });
+    },
+    onDisconnected: (reason) => emitPublic("collaboration.disconnected", {
+      docId,
+      ...(reason ? { reason } : {}),
+    }, { source: "system" }),
+    onCommitted: (change) => {
+      collabVersion = (change.seq ?? collabVersion) + 1;
+      const detail = runtime.eventDetail ?? "metadata";
+      emitPublic("document.change.committed", {
+        origin: change.origin,
+        operationCount: change.ops.length,
+        affectedBlockIds: affectedBlockIds(change.ops),
+        ...(detail !== "metadata" ? { operations: change.ops } : {}),
+        ...(detail === "full" ? { selectionAfter: change.selectionAfter ?? null, change } : {}),
+      }, {
+        source: change.origin === "undo" || change.origin === "redo" ? change.origin : "local",
+        transaction: { id: change.id, status: "committed" },
+        ...(change.seq !== undefined ? { version: change.seq + 1 } : {}),
+      });
+    },
+    onUserEntered: (siteId, user) => {
+      runtime.onEvent?.({ type: "userEntered", siteId, user });
+      emitPublic("collaboration.user.joined", { siteId, ...(user ? { user } : {}) }, { source: "remote" });
+    },
+    onUserLeave: (siteId, user) => {
+      runtime.onEvent?.({ type: "userLeave", siteId, user });
+      emitPublic("collaboration.user.left", { siteId, ...(user ? { user } : {}) }, { source: "remote" });
+    },
+    onPresence: (participants) => {
+      runtime.onEvent?.({ type: "presence", participants });
+      emitPublic("collaboration.presence.changed", {
+        participants: participants.map(({ siteId, user }) => ({ siteId, ...(user ? { user } : {}) })),
+      }, { source: "remote" });
+    },
+    onRemote: (change: Change) => {
+      for (const l of remoteChangeListeners) l(change);
+    },
+  });
+  s.connect();
+  // Ship locally-authored review ops on this socket's review channel.
+  onLocalReviewOp = (env) => s.localReviewOp(env);
+  return s;
+};
+
+// Race-safe review rehydration for a JOINED session: hold inbound review ops,
+// wait until the socket is in the room, fetch the rehydrated snapshot, seed it,
+// then replay the held ops (idempotent) so a review op landing during the
+// HTTP-load → ws-handshake window isn't lost. REVIEW.md §6.
+const rehydrateReviewOnJoin = (s: SyncClient, docId: string): void => {
+  if (!BACKEND_HTTP) return;
+  s.holdReview();
+  void (async () => {
+    await s.whenOpen().catch(() => {});
+    try {
+      editor.seedReview(await loadCollabReview(BACKEND_HTTP, docId));
+    } catch (e) {
+      console.error("[collab] review rehydrate failed", e);
+    } finally {
+      s.markReviewReady(); // always release the hold, even if the fetch failed
+    }
+  })();
+};
+
+if (collabId !== null && BACKEND_WS) {
+  sync = connectSync(collabId, collabVersion);
+  rehydrateReviewOnJoin(sync, collabId);
+  console.log(`[collab] connected to ${BACKEND_WS}/ws?doc=${collabId}`);
+}
+
+// Assigned by the toolbar block; shows the built-in share dialog (used when the
+// embedder didn't supply onShareLink).
+let showShareDialog: (link: string) => void = () => {};
+// Assigned by the activity panel block; toggles the who/when/what-kind drawer.
+let toggleActivity: () => void = () => {};
+
+// Hand a share link to the embedder's handler, or fall back to the built-in dialog.
+const surfaceShareLink = (link: string, docId: string): void => {
+  if (runtime.onShareLink) runtime.onShareLink(link, docId);
+  else showShareDialog(link);
+};
+
+// Publish the current document ONCE and switch this editor into a live collab
+// session, reflecting it in the URL and surfacing a share link. Online only.
+//
+// Idempotent: once published this session (or joined via a ?collab link, which
+// pre-sets shareLink), later calls just re-surface the cached link — no second
+// POST /docs, no WebSocket teardown. Live edits already converge through the
+// sync socket, so the server snapshot never needs re-posting. Used by the Share
+// button and the public share() API.
+const goOnlineWithCurrentDoc = async (): Promise<string> => {
+  if (!BACKEND_HTTP || !BACKEND_WS) throw new Error("cannot share: offline (no backendUrl)");
+  // Already shared — reuse the existing link instead of forking a new document.
+  if (collabId && shareLink) {
+    emitPublic("document.shared", { docId: collabId, url: shareLink, reused: true }, { source: "api" });
+    surfaceShareLink(shareLink, collabId);
+    return shareLink;
+  }
+  const busy = showBusy("Creating share link…");
+  let docId: string;
+  try {
+    ({ docId } = await publishDocument(BACKEND_HTTP, editor.getDocument(), runtime.user));
+  } finally {
+    busy.done();
+  }
+  sync?.destroy();
+  collabId = docId;
+  collabVersion = 0;
+  sync = connectSync(docId, 0);
+  // Reflect in the address bar so a reload re-joins (best-effort; harmless if the
+  // host controls routing differently).
+  try {
+    const u = new URL(location.href);
+    u.searchParams.set("collab", docId);
+    history.replaceState(null, "", u.toString());
+    shareLink = u.toString();
+  } catch {
+    shareLink = `${location.origin}${location.pathname}?collab=${docId}`;
+  }
+  console.log(`[collab] published, sharing ${docId}`);
+  runtime.onEvent?.({ type: "shared", docId, url: shareLink });
+  emitPublic("document.shared", { docId, url: shareLink, reused: false }, { source: "api" });
+  surfaceShareLink(shareLink, docId);
+  return shareLink;
+};
+
+// Replace the open document (docx import): tear down and rebuild the editor.
+// The layout engine instance is reused (cheap to keep its allocations), but its
+// caches MUST be dropped first — see engine.reset() below.
+const replaceDocument = (next: typeof doc): void => {
+  closeDevPanel(); // the inspector captures the outgoing editor — drop it first
+  closeParaDialog(); // ditto for the Paragraph dialog (stale editor reference)
+  editor.destroy();
+  // Drop the outgoing document's layout caches. The shared engine keys cached
+  // lines by (block id, revision, width); the docx importer re-mints ids from i0
+  // at revision 0, so the new document collides with the old one and would render
+  // the two merged unless we clear first.
+  engine.reset();
+  doc = next;
+  editor = createEditor(app, doc, editorOpts);
+  applyGridView(); // re-seed grid state onto the fresh paint layer
+  refreshOutline();
+  refreshStatus();
+  refreshRuler();
+  refreshVRuler();
+  window.__cw = { doc, tree: undefined, engine, editor, createLayoutEngine, sampleDoc, stressDoc, persist };
+};
+
+// A freshly opened/set document is a NEW document: drop any live collab session
+// so the next Share publishes a fresh doc/link (fork), and clear ?collab.
+// Publishing is lazy — it happens on the first Share click, not on open.
+const detachCollabSession = (): void => {
+  sync?.destroy();
+  sync = null;
+  collabId = null;
+  shareLink = null;
+  collabVersion = 0;
+  try {
+    const u = new URL(location.href);
+    if (u.searchParams.has("collab")) {
+      u.searchParams.delete("collab");
+      history.replaceState(null, "", u.toString());
+    }
+  } catch {
+    /* ignore URL errors */
+  }
+};
+
+// Programmatic document swap (the builder / data-binding path): same teardown
+// as a docx open, but the caller hands a ready Document. Clone defensively so
+// later caller-side mutations (or a re-used builder) can't alias editor state,
+// and preserve the viewport (zoom + scroll) so live rebuilds don't jump.
+const setDocumentFromApi = (next: Document): void => {
+  const startedAt = performance.now();
+  emitPublic("document.open.started", { method: "api" }, { source: "api" });
+  try {
+    const clone = structuredClone(next);
+    // A doc with no stylesheet adopts the configured defaults before we mint any
+    // empty paragraph from it (a real .docx always brings its own — see config).
+    if (!clone.stylesheet) clone.stylesheet = config.stylesheet;
+    if (clone.blocks.length === 0) clone.blocks.push(emptyParagraphFor(clone, freshId()));
+    const scrollTop = app.scrollTop;
+    const zoom = editor.getZoom();
+    replaceDocument(clone);
+    editor.setZoom(zoom);
+    requestAnimationFrame(() => {
+      app.scrollTop = Math.min(scrollTop, Math.max(0, app.scrollHeight - app.clientHeight));
+    });
+    detachCollabSession();
+    emitPublic("document.open.completed", { method: "api", durationMs: performance.now() - startedAt }, { source: "api" });
+  } catch (error) {
+    const durationMs = performance.now() - startedAt;
+    const message = error instanceof Error ? error.message : String(error);
+    emitPublic("document.open.failed", { method: "api", durationMs, message }, { source: "api" });
+    emitPublic("editor.error", { scope: "document.open", message, recoverable: true }, { source: "api" });
+    throw error;
+  }
+};
+
+const openDocxFile = async (file: File | ArrayBuffer): Promise<void> => {
+  const i0 = performance.now();
+  const fileName = file instanceof File ? file.name : undefined;
+  emitPublic("document.open.started", { method: "docx" }, { source: "import" });
+  emitPublic("document.import.started", { format: "docx", ...(fileName ? { fileName } : {}) }, { source: "import" });
+  const busy = showBusy("Opening document…");
+  try {
+    const result = await importDocx(file, {
+      onProgress: (phase, pct) => busy.update(`${IMPORT_PHASE_LABEL[phase]}…`, pct),
+    });
+    reportImport(result, performance.now() - i0);
+    replaceDocument(result.doc);
+    if (result.review) {
+      editor.seedReview(result.review);
+    }
+    detachCollabSession();
+    const durationMs = performance.now() - i0;
+    emitPublic("document.import.completed", {
+      format: "docx",
+      ...(fileName ? { fileName } : {}),
+      durationMs,
+      warningCount: result.warnings.length,
+    }, { source: "import" });
+    emitPublic("document.open.completed", { method: "docx", durationMs }, { source: "import" });
+  } catch (e) {
+    console.error("[docx-import]", e);
+    const name = file instanceof File ? file.name : "document";
+    const durationMs = performance.now() - i0;
+    const message = e instanceof Error ? e.message : String(e);
+    emitPublic("document.import.failed", {
+      format: "docx",
+      ...(fileName ? { fileName } : {}),
+      durationMs,
+      message,
+    }, { source: "import" });
+    emitPublic("document.open.failed", { method: "docx", durationMs, message }, { source: "import" });
+    emitPublic("editor.error", { scope: "document.import", message, recoverable: true }, { source: "import" });
+    alert(`Could not open "${name}": ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    busy.done();
+  }
+};
+
+const openJsonFile = async (file: File | string | FullDocumentExport): Promise<void> => {
+  const busy = showBusy("Opening JSON document…");
+  try {
+    let raw: unknown;
+    if (typeof file === "string") {
+      raw = JSON.parse(file);
+    } else if (file instanceof File || file instanceof Blob) {
+      const text = await file.text();
+      raw = JSON.parse(text);
+    } else {
+      raw = file;
+    }
+
+    let parsedDoc: Document | null = null;
+    let parsedReview: ReviewLayer | undefined = undefined;
+
+    if (raw && typeof raw === "object") {
+      const obj = raw as Record<string, unknown>;
+      // Restore embedded base64 media map into the session mediaStore
+      if (obj.media && typeof obj.media === "object") {
+        for (const [mid, dataUrl] of Object.entries(obj.media as Record<string, string>)) {
+          const parsed = dataUrlToMedia(dataUrl);
+          if (parsed) {
+            mediaStore().put({ mediaId: mid, mime: parsed.mime, bytes: parsed.bytes });
+          }
+        }
+      }
+
+      // Case 1: FullDocumentExport { version: 1, document: Document, review?: ReviewLayer }
+      if (obj.version === 1 && obj.document && typeof obj.document === "object") {
+        parsedDoc = deserializeDocument({ version: 1, doc: obj.document as Document });
+        if (obj.review && typeof obj.review === "object") {
+          parsedReview = obj.review as ReviewLayer;
+        }
+      }
+      // Case 2: SerializedDocument { version: 1, doc: Document }
+      else if (obj.version === 1 && obj.doc && typeof obj.doc === "object") {
+        parsedDoc = deserializeDocument(raw as SerializedDocument);
+      }
+      // Case 3: Raw Document { section: SectionProps, blocks: Block[] }
+      else if (obj.blocks && Array.isArray(obj.blocks) && obj.section) {
+        parsedDoc = raw as Document;
+      }
+    }
+
+    if (!parsedDoc) {
+      throw new Error("Invalid document JSON structure. Expected FullDocumentExport, SerializedDocument, or Document.");
+    }
+
+    // Register any inline data: image URLs so they have stable mediaIds in this session
+    forEachImage(parsedDoc, (img) => {
+      if (img.src && img.src.startsWith("data:")) {
+        const parsed = dataUrlToMedia(img.src);
+        if (parsed) {
+          void registerMediaBytes(parsed.bytes, parsed.mime).then((id) => {
+            if (!img.mediaId) img.mediaId = id;
+          });
+        }
+      }
+    });
+
+    rehydrateDocMedia(parsedDoc, mediaStore);
+    replaceDocument(parsedDoc);
+    if (parsedReview) {
+      editor.seedReview(parsedReview);
+    }
+    detachCollabSession();
+  } catch (e) {
+    console.error("[json-import]", e);
+    const name = file instanceof File ? file.name : "document.json";
+    alert(`Could not open "${name}": ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    busy.done();
+  }
+};
+
+// Bake the review overlay into a clean doc (default: reject-all = original
+// baseline) so the review-blind writer emits a plain file, then export it.
+// Defined at mount scope so both the toolbar's Export buttons and the public
+// handle's exportDocx()/exportPdf()/exportJson() share one path.
+const JSON_MIME = "application/json";
+
+const getFullJsonPayload = (): FullDocumentExport => {
+  const doc = editor.getDocument();
+  const review = editor.getReview();
+  const layout = editor.getLayoutInfo?.() ?? { pageCount: 1, currentPage: 1 };
+  let wordCount = 0;
+  let charCount = 0;
+  const countText = (runs: Run[]): void => {
+    const t = textOfRuns(runs);
+    charCount += t.length;
+    const words = t.trim().split(/\s+/).filter(Boolean);
+    wordCount += words.length;
+  };
+  for (const b of doc.blocks) {
+    if (b.kind === "paragraph") countText(b.runs);
+    else if (b.kind === "table") {
+      for (const row of b.rows) {
+        for (const cell of row.cells) {
+          for (const cb of cell.blocks) {
+            if (cb.kind === "paragraph") countText(cb.runs);
+          }
+        }
+      }
+    }
+  }
+
+  // Collect all images and serialize their bytes to base64 Data URLs so the JSON
+  // export is 100% self-contained and portable.
+  const mediaMap: Record<string, string> = {};
+  const store = mediaStore();
+  forEachImage(doc, (img) => {
+    if (img.mediaId) {
+      const blob = store.get(img.mediaId);
+      if (blob) {
+        mediaMap[img.mediaId] = mediaToDataUrl(blob.mime, blob.bytes);
+      }
+    } else if (img.src && img.src.startsWith("data:")) {
+      const parsed = dataUrlToMedia(img.src);
+      if (parsed) {
+        void registerMediaBytes(parsed.bytes, parsed.mime).then((id) => {
+          mediaMap[id] = img.src;
+        });
+      }
+    }
+  });
+
+  return serializeFullDocument(doc, review, {
+    docId: collabId ?? runtime.docId ?? null,
+    metadata: {
+      pageCount: layout.pageCount,
+      wordCount,
+      charCount,
+    },
+    media: mediaMap,
+  });
+};
+
+const exportFullJsonBytes = (): { bytes: Uint8Array; payload: FullDocumentExport } => {
+  const payload = getFullJsonPayload();
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const bytes = new TextEncoder().encode(jsonStr);
+  return { bytes, payload };
+};
+
+const exportBaked = (format: ExportFormat): Promise<{ bytes: Uint8Array; warnings: ExportWarning[] }> => {
+  const baked = bakeReview(editor.getDocument(), editor.getReview(), "reject");
+  return exportDocument(baked, format, config.fonts, config.cjk, format === "docx" ? editor.getReview() : undefined);
+};
+const exportTracked = async (
+  format: ExportFormat,
+  trigger: "api" | "toolbar",
+): Promise<{ bytes: Uint8Array; warnings: ExportWarning[] }> => {
+  const startedAt = performance.now();
+  emitPublic("document.export.started", { format, trigger }, { source: trigger === "api" ? "api" : "local" });
+  try {
+    const result = await exportBaked(format);
+    emitPublic("document.export.completed", {
+      format,
+      trigger,
+      durationMs: performance.now() - startedAt,
+      byteLength: result.bytes.byteLength,
+      warningCount: result.warnings.length,
+    }, { source: trigger === "api" ? "api" : "local" });
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitPublic("document.export.failed", {
+      format,
+      trigger,
+      durationMs: performance.now() - startedAt,
+      message,
+    }, { source: trigger === "api" ? "api" : "local" });
+    emitPublic("editor.error", { scope: "document.export", message, recoverable: true }, { source: trigger === "api" ? "api" : "local" });
+    throw error;
+  }
+};
+const blobFor = (format: ExportFormat | "json", bytes: Uint8Array): Blob =>
+  new Blob([bytes as BlobPart], {
+    type: format === "pdf" ? PDF_MIME : format === "json" ? JSON_MIME : DOCX_MIME,
+  });
+/** Export to a Blob — backs the public handle's exportDocx()/exportPdf()/exportJson(). */
+const exportBlob = async (format: ExportFormat | "json"): Promise<Blob> => {
+  if (format === "json") {
+    const { bytes } = exportFullJsonBytes();
+    return blobFor("json", bytes);
+  }
+  const { bytes } = await exportTracked(format, "api");
+  return blobFor(format, bytes);
+};
+
+// ---- demo toolbar (app chrome, not editor core) ----------------------------
+
+// One function assigned by the find-bar block below; the ribbon's Find button
+// and the global Ctrl+F shortcut share it.
+let openFind: () => void = () => {};
+
+// View-only (or an embedder that opts out via view.toolbar): visually hide the
+// editing ribbon, but keep the block running so the side drawers it wires up
+// (outline navigation, bookmarks) still build and show.
+const toolbar = shell.toolbar;
+const showToolbar = !readonly && (runtime.view?.toolbar ?? true);
+if (!showToolbar) toolbar.style.display = "none";
+if (toolbar) {
+  // ===== Word-style tabbed ribbon ==========================================
+  // A tab strip drives a stack of panels (one visible at a time). Each panel
+  // holds labeled groups of controls. The Home tab mirrors Word's layout; the
+  // app's other real commands live on Insert / Layout / Table / View. Features
+  // the engine/renderer can't do yet render as disabled stubs (greyed, tooltip).
+  const CARET =
+    `<svg class="caret" viewBox="0 0 8 8" fill="none" stroke="currentColor" ` +
+    `stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3 4 5.5 6.5 3"/></svg>`;
+  const chevron = (up: boolean): string =>
+    `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4" ` +
+    `stroke-linecap="round" stroke-linejoin="round"><path d="${up ? "M3 7.5 6 4.5 9 7.5" : "M3 4.5 6 7.5 9 4.5"}"/></svg>`;
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLElementTagNameMap[K] => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    return e;
+  };
+
+  const tabsBar = el("div", "rib-tabs");
+  // Tab buttons live in an inner scroll wrapper so they scroll horizontally on
+  // overflow while the right-side cluster (mode select / Review / collapse
+  // chevron) stays pinned as direct children of `.rib-tabs`.
+  const tabScroll = el("div", "rib-tab-scroll");
+  tabsBar.appendChild(tabScroll);
+  // Mouse users on a narrow desktop: translate vertical wheel to horizontal scroll
+  // (inert when the tabs fit). Auto-removed via the teardown signal.
+  tabScroll.addEventListener(
+    "wheel",
+    (e) => {
+      if (e.deltaY === 0 || tabScroll.scrollWidth <= tabScroll.clientWidth) return;
+      e.preventDefault();
+      tabScroll.scrollLeft += e.deltaY;
+    },
+    { passive: false, signal: teardown.signal },
+  );
+  const bodies = el("div", "rib-bodies");
+  toolbar.append(tabsBar, bodies);
+  const tabButtons = new Map<string, HTMLButtonElement>();
+  const tabPanels = new Map<string, HTMLDivElement>();
+  const showTab = (id: string): void => {
+    for (const [tid, b] of tabButtons) b.classList.toggle("active", tid === id);
+    for (const [tid, p] of tabPanels) p.classList.toggle("active", tid === id);
+    setCollapsed(false); // clicking a tab re-pins a collapsed ribbon (Word)
+  };
+  const tab = (id: string, label: string, kind?: "file"): HTMLDivElement => {
+    const t = el("button", "rib-tab" + (kind === "file" ? " file" : ""));
+    t.textContent = label;
+    t.dataset["ribbonTab"] = id;
+    t.addEventListener("click", () => showTab(id));
+    tabButtons.set(id, t);
+    tabScroll.appendChild(t);
+    const p = el("div", "rib-panel");
+    p.dataset["tab"] = id;
+    p.dataset["ribbonPanel"] = id;
+    tabPanels.set(id, p);
+    bodies.appendChild(p);
+    ribTabsById.set(id, { btn: t, panel: p });
+    curTabId = id;
+    return p;
+  };
+
+  // `controls` is the container the btn/select helpers append into; group() and
+  // row() retarget it as the ribbon is built.
+  let controls: HTMLElement = el("div");
+  // Begin a group: derive its namespaced id, register it, and make it current so
+  // subsequent item helpers register under it. `container` is where custom-added
+  // buttons land (the group's controls, or the last row for two-row groups).
+  const beginGroup = (panel: HTMLElement, label: string, container: HTMLElement, groupEl: HTMLElement): void => {
+    const tabId = (panel as HTMLElement).dataset["ribbonPanel"] ?? curTabId;
+    curGroupId = ribUniqueId(`${tabId}.${ribSlug(label)}`, ribGroupsById);
+    groupEl.dataset["ribbonGroup"] = curGroupId;
+    ribGroupsById.set(curGroupId, { tabId, groupEl, container });
+  };
+  const group = (panel: HTMLElement, label: string): void => {
+    const g = el("div", "rib-group");
+    controls = el("div", "rib-controls");
+    const l = el("div", "rib-label");
+    l.textContent = label;
+    g.append(controls, l);
+    panel.appendChild(g);
+    beginGroup(panel, label, controls, g);
+  };
+  /** A group whose controls stack in two rows (Font, Paragraph). Returns a
+   *  `row()` that opens a fresh row and points the helpers at it. */
+  const groupRows = (panel: HTMLElement, label: string): (() => void) => {
+    const g = el("div", "rib-group");
+    const rows = el("div", "rib-rows");
+    const l = el("div", "rib-label");
+    l.textContent = label;
+    g.append(rows, l);
+    panel.appendChild(g);
+    beginGroup(panel, label, rows, g);
+    const gid = curGroupId;
+    return () => {
+      controls = el("div", "rib-row");
+      rows.appendChild(controls);
+      const gnode = ribGroupsById.get(gid);
+      if (gnode) gnode.container = controls; // custom adds land in the last row
+    };
+  };
+  const sep = (): void => {
+    const d = el("div");
+    d.style.cssText = "width:1px;height:18px;background:#e1dfdd;margin:0 3px;flex:0 0 auto;";
+    controls.appendChild(d);
+    ribRegister(d, "sep");
+  };
+
+  const btn = (icon: string, title: string, onClick: () => void, caret = false): HTMLButtonElement => {
+    const b = el("button", "rib-btn");
+    b.innerHTML = icon + (caret ? CARET : "");
+    b.title = title;
+    b.addEventListener("mousedown", (e) => e.preventDefault()); // keep IME-proxy focus
+    b.addEventListener("click", onClick);
+    controls.appendChild(b);
+    ribRegister(b, title);
+    return b;
+  };
+  /** Letter buttons (B, I, U, x²…) — Word renders these as styled text. */
+  const txtBtn = (label: string, title: string, onClick: () => void, style = "", caret = false): HTMLButtonElement => {
+    const b = el("button", "rib-btn");
+    b.title = title;
+    const s = el("span");
+    s.textContent = label;
+    if (style) s.style.cssText = style;
+    b.appendChild(s);
+    if (caret) b.insertAdjacentHTML("beforeend", CARET);
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.addEventListener("click", onClick);
+    controls.appendChild(b);
+    ribRegister(b, title);
+    return b;
+  };
+  /** Large Paste-style button: icon over a caption (with optional caret). */
+  const bigBtn = (icon: string, caption: string, title: string, onClick: () => void, caret = false): HTMLButtonElement => {
+    const b = el("button", "rib-btn rib-big");
+    b.title = title;
+    b.innerHTML = icon + `<span class="big-cap">${caption}${caret ? CARET : ""}</span>`;
+    b.addEventListener("mousedown", (e) => e.preventDefault());
+    b.addEventListener("click", onClick);
+    controls.appendChild(b);
+    ribRegister(b, title);
+    return b;
+  };
+  /** Disabled placeholder for a feature the engine/renderer doesn't support. */
+  const stub = (inner: string, title: string): HTMLButtonElement => {
+    const b = el("button", "rib-btn");
+    b.innerHTML = inner;
+    b.title = `${title} — not supported by the engine yet`;
+    b.disabled = true;
+    controls.appendChild(b);
+    ribRegister(b, title);
+    return b;
+  };
+  // Formatting-marks toggle — surfaced in both Home (Paragraph) and View, so the
+  // buttons share one state and reflect it in lockstep (like Word's ¶ button).
+  const marksBtns: HTMLButtonElement[] = [];
+  const marksToggleBtn = (): HTMLButtonElement => {
+    const b = btn(ICONS.marks, "Show/hide formatting marks (spaces, tabs, paragraph ends, line breaks)", () => {
+      showFormattingMarks = !showFormattingMarks;
+      editor.setShowFormattingMarks(showFormattingMarks);
+      for (const m of marksBtns) m.classList.toggle("active", showFormattingMarks);
+    });
+    b.classList.toggle("active", showFormattingMarks);
+    marksBtns.push(b);
+    return b;
+  };
+  const select = (title: string, width: number): HTMLSelectElement => {
+    const s = el("select");
+    s.title = title;
+    s.style.width = `${width}px`;
+    s.addEventListener("mousedown", (e) => e.stopPropagation());
+    controls.appendChild(s);
+    ribRegister(s, title);
+    return s;
+  };
+  const opt = (s: HTMLSelectElement, value: string, label: string): void => {
+    const o = el("option");
+    o.value = value;
+    o.textContent = label;
+    s.appendChild(o);
+  };
+
+  // Toggle buttons paint a pressed state from the caret's format (Word). Each
+  // registers a predicate; syncToolbar re-evaluates them on every change.
+  const toggleButtons: { el: HTMLButtonElement; active: (f: CurrentFormat) => boolean }[] = [];
+  const toggle = (b: HTMLButtonElement, active: (f: CurrentFormat) => boolean): HTMLButtonElement => {
+    toggleButtons.push({ el: b, active });
+    return b;
+  };
+
+  // Context-gated buttons: a button is disabled (greyed) when its predicate is
+  // false for the caret's context — e.g. image buttons need a selected image, so
+  // they don't silently no-op when the caret is in a paragraph. syncToolbar
+  // re-evaluates these on every change.
+  const enableButtons: { el: HTMLButtonElement; enabled: (f: CurrentFormat) => boolean; title: string; hint?: string }[] = [];
+  const enable = (b: HTMLButtonElement, enabled: (f: CurrentFormat) => boolean, hint?: string): HTMLButtonElement => {
+    enableButtons.push({ el: b, enabled, title: b.title, ...(hint !== undefined ? { hint } : {}) });
+    return b;
+  };
+
+  // ---- ribbon customization model (stable ids for customizeRibbon) --------
+  // Every built-in tab/group/control registers under an auto-derived, namespaced
+  // id ("home", "home.font", "home.font.bold") — slugged from its tooltip/label
+  // and de-duped within a group. The `customizeRibbon` hook reorders/removes
+  // these by id and adds custom tabs/groups/buttons. `controls`/`curGroupId` are
+  // set by group()/row(); item helpers call ribRegister as they append.
+  let curTabId = "";
+  let curGroupId = "";
+  const ribTabsById = new Map<string, { btn: HTMLButtonElement; panel: HTMLDivElement }>();
+  const ribGroupsById = new Map<string, { tabId: string; groupEl: HTMLElement; container: HTMLElement }>();
+  const ribItemsById = new Map<string, { groupId: string; el: HTMLElement }>();
+  const ribSlug = (s?: string | null): string =>
+    (s ?? "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "item";
+  const ribUniqueId = (root: string, taken: { has: (k: string) => boolean }): string => {
+    let id = root;
+    for (let n = 2; taken.has(id); n++) id = `${root}-${n}`;
+    return id;
+  };
+  const ribRegister = (element: HTMLElement, base: string): HTMLElement => {
+    if (!curGroupId) return element; // defensive: only ribbon controls register
+    const id = ribUniqueId(`${curGroupId}.${ribSlug(base)}`, ribItemsById);
+    element.dataset["ribbonItem"] = id;
+    ribItemsById.set(id, { groupId: curGroupId, el: element });
+    return element;
+  };
+
+  // ---- anchored popovers (palettes, menus, pickers, dialogs) --------------
+  let activePop: HTMLElement | null = null;
+  const closePop = (): void => {
+    if (!activePop) return;
+    activePop.remove();
+    activePop = null;
+    document.removeEventListener("mousedown", onDocDown, true);
+    document.removeEventListener("keydown", onPopKey, true);
+  };
+  const onDocDown = (e: MouseEvent): void => {
+    if (activePop && !activePop.contains(e.target as Node)) closePop();
+  };
+  const onPopKey = (e: KeyboardEvent): void => {
+    if (e.key === "Escape") {
+      closePop();
+      editor.focus();
+    }
+  };
+  /** Open `content` in a popover anchored under `anchor`, clamped on-screen. */
+  const openPop = (anchor: HTMLElement, content: HTMLElement): HTMLElement => {
+    closePop();
+    const pop = el("div", "ked-pop");
+    pop.addEventListener("mousedown", (e) => e.preventDefault()); // keep editor focus
+    pop.appendChild(content);
+    document.body.appendChild(pop);
+    const r = anchor.getBoundingClientRect();
+    pop.style.left = `${Math.round(r.left)}px`;
+    pop.style.top = `${Math.round(r.bottom + 3)}px`;
+    const pr = pop.getBoundingClientRect();
+    if (pr.right > window.innerWidth - 6) pop.style.left = `${Math.round(window.innerWidth - pr.width - 6)}px`;
+    if (pr.bottom > window.innerHeight - 6) pop.style.top = `${Math.round(r.top - pr.height - 3)}px`;
+    activePop = pop;
+    setTimeout(() => {
+      document.addEventListener("mousedown", onDocDown, true);
+      document.addEventListener("keydown", onPopKey, true);
+    }, 0);
+    return pop;
+  };
+  /** A simple vertical menu of labelled actions; `current` marks the active row. */
+  const menu = (
+    items: { label: string; sample?: string; current?: boolean; onClick: () => void }[],
+  ): HTMLElement => {
+    const m = el("div", "ked-menu");
+    for (const it of items) {
+      const b = el("button");
+      const check = el("span", "check");
+      check.textContent = it.current ? "✓" : "";
+      const lbl = el("span");
+      lbl.textContent = it.label;
+      if (it.sample) lbl.className = "sample";
+      b.append(check, lbl);
+      b.addEventListener("click", () => {
+        closePop();
+        it.onClick();
+      });
+      m.appendChild(b);
+    }
+    return m;
+  };
+
+  // Word colour palette: greys, then a standard-colour row set.
+  const PALETTE = [
+    "#000000", "#444444", "#666666", "#999999", "#cccccc", "#ffffff",
+    "#c00000", "#ff0000", "#ffc000", "#ffff00", "#92d050", "#00b050",
+    "#00b0f0", "#0070c0", "#002060", "#7030a0", "#e84393", "#a0522d",
+  ];
+
+  // One shared native colour picker, reused for "More colours…". We apply on
+  // `change` only (not `input`) so a drag is one undo step.
+  const colorPicker = el("input");
+  colorPicker.type = "color";
+  colorPicker.style.cssText = "position:fixed;left:-9999px;width:0;height:0;";
+  document.body.appendChild(colorPicker);
+  detachables.push(colorPicker);
+  const pickColor = (initial: string, onPick: (c: string) => void): void => {
+    colorPicker.value = initial;
+    colorPicker.oninput = null;
+    colorPicker.onchange = () => onPick(colorPicker.value);
+    colorPicker.click();
+  };
+  /** Colour palette popover: swatch grid + an optional clear row + "More…". */
+  const colorPopover = (
+    anchor: HTMLElement,
+    last: string,
+    clearLabel: string | null,
+    onPick: (c: string) => void,
+    onClear: (() => void) | null,
+  ): void => {
+    const wrap = el("div");
+    const grid = el("div", "ked-swatches");
+    for (const c of PALETTE) {
+      const s = el("button");
+      s.style.background = c;
+      s.title = c;
+      s.addEventListener("click", () => {
+        closePop();
+        onPick(c);
+      });
+      grid.appendChild(s);
+    }
+    wrap.appendChild(grid);
+    if (clearLabel && onClear) {
+      const clear = el("button", "pop-action");
+      clear.textContent = clearLabel;
+      clear.addEventListener("click", () => {
+        closePop();
+        onClear();
+      });
+      wrap.appendChild(clear);
+    }
+    const more = el("button", "pop-action");
+    more.textContent = "More colours…";
+    more.addEventListener("click", () => {
+      closePop();
+      pickColor(last, onPick);
+    });
+    wrap.appendChild(more);
+    openPop(anchor, wrap);
+  };
+  /** Word's split colour button: the face applies the last colour, the caret
+   *  opens a palette popover. `clearLabel`/`onClear` add a "No Color"/"Automatic"
+   *  row; `active` wires the face into the pressed-state sync (highlight toggles). */
+  const swatch = (cfg: {
+    face: string;
+    initial: string;
+    title: string;
+    apply: (color: string) => void;
+    clearLabel?: string;
+    onClear?: () => void;
+    active?: (f: CurrentFormat) => boolean;
+  }): void => {
+    let last = cfg.initial;
+    const wrap = el("div");
+    wrap.style.cssText = "display:flex;align-items:stretch;";
+    const main = el("button", "rib-btn rib-swatch");
+    main.title = cfg.title;
+    main.innerHTML = `<span class="row">${cfg.face}</span><span class="bar" style="background:${last}"></span>`;
+    const bar = main.querySelector(".bar") as HTMLElement;
+    main.addEventListener("mousedown", (e) => e.preventDefault());
+    main.addEventListener("click", () => {
+      cfg.apply(last);
+      editor.focus();
+    });
+    const more = el("button", "rib-btn");
+    more.title = `${cfg.title} — choose colour`;
+    more.style.cssText = "min-width:14px;padding:0;";
+    more.innerHTML = CARET;
+    more.addEventListener("mousedown", (e) => e.preventDefault());
+    const pick = (c: string): void => {
+      last = c;
+      bar.style.background = c;
+      cfg.apply(c);
+      editor.focus();
+    };
+    more.addEventListener("click", () =>
+      colorPopover(more, last, cfg.clearLabel ?? null, pick, cfg.onClear ? () => {
+        cfg.onClear!();
+        editor.focus();
+      } : null),
+    );
+    wrap.append(main, more);
+    controls.appendChild(wrap);
+    ribRegister(wrap, cfg.title);
+    if (cfg.active) toggleButtons.push({ el: main, active: cfg.active });
+  };
+
+  /** A list button split like Word's: the icon toggles the default list; the
+   *  caret opens a style picker (bullet glyphs / number formats). The picker
+   *  rows carry a marker preview in their label. */
+  const listSplit = (
+    icon: string,
+    title: string,
+    faceCmd: () => Command,
+    active: (f: CurrentFormat) => boolean,
+    styles: { label: string; cmd: () => Command }[],
+  ): void => {
+    const wrap = el("div");
+    wrap.style.cssText = "display:flex;align-items:stretch;";
+    const main = el("button", "rib-btn");
+    main.title = title;
+    main.innerHTML = icon;
+    main.addEventListener("mousedown", (e) => e.preventDefault());
+    main.addEventListener("click", () => {
+      editor.dispatch(faceCmd());
+      editor.focus();
+    });
+    toggleButtons.push({ el: main, active });
+    const more = el("button", "rib-btn");
+    more.title = `${title} — choose style`;
+    more.style.cssText = "min-width:14px;padding:0;";
+    more.innerHTML = CARET;
+    more.addEventListener("mousedown", (e) => e.preventDefault());
+    more.addEventListener("click", () =>
+      openPop(
+        more,
+        menu(
+          styles.map((s) => ({
+            label: s.label,
+            onClick: () => {
+              editor.dispatch(s.cmd());
+              editor.focus();
+            },
+          })),
+        ),
+      ),
+    );
+    wrap.append(main, more);
+    controls.appendChild(wrap);
+    ribRegister(wrap, title);
+  };
+
+  /** Word's table-size grid: hover to size, click to insert. */
+  const tableGridPopover = (anchor: HTMLElement): void => {
+    const ROWS = 8;
+    const COLS = 10;
+    const wrap = el("div");
+    const grid = el("div", "ked-grid");
+    grid.style.gridTemplateColumns = `repeat(${COLS}, 15px)`;
+    const label = el("div", "ked-grid-label");
+    label.textContent = "Insert table";
+    const cells: HTMLElement[][] = [];
+    const highlight = (R: number, C: number): void => {
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) cells[r]![c]!.classList.toggle("on", r <= R && c <= C);
+    };
+    for (let r = 0; r < ROWS; r++) {
+      const row: HTMLElement[] = [];
+      for (let c = 0; c < COLS; c++) {
+        const cell = el("div", "cell");
+        cell.addEventListener("mouseenter", () => {
+          highlight(r, c);
+          label.textContent = `${c + 1} × ${r + 1} table`;
+        });
+        cell.addEventListener("click", () => {
+          closePop();
+          editor.dispatch(insertTable(r + 1, c + 1));
+          editor.focus();
+        });
+        row.push(cell);
+        grid.appendChild(cell);
+      }
+      cells.push(row);
+    }
+    wrap.append(grid, label);
+    openPop(anchor, wrap);
+  };
+
+  /** Hyperlink dialog: URL field + Apply / Remove, applied to the selection. */
+  const linkDialog = (anchor: HTMLElement): void => {
+    const wrap = el("div", "ked-dialog");
+    const lab = el("label");
+    lab.textContent = "Address";
+    const input = el("input");
+    input.type = "text";
+    input.placeholder = "https://example.com";
+    input.addEventListener("mousedown", (e) => e.stopPropagation()); // allow focus
+    lab.appendChild(input);
+    const row = el("div", "row");
+    const remove = el("button", "danger");
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      closePop();
+      editor.dispatch(setLinkCmd(null));
+      editor.focus();
+    });
+    const apply = el("button", "primary");
+    apply.textContent = "Apply";
+    const doApply = (): void => {
+      const u = input.value.trim();
+      closePop();
+      editor.dispatch(setLinkCmd(u === "" ? null : u));
+      editor.focus();
+    };
+    apply.addEventListener("click", doApply);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doApply();
+      e.stopPropagation();
+    });
+    row.append(remove, apply);
+    wrap.append(lab, row);
+    openPop(anchor, wrap);
+    setTimeout(() => input.focus(), 0);
+  };
+
+  /** Open the Font dialog seeded from the caret's effective style; Apply routes
+   *  the edited patch through setCharStyle (one undoable edit over the selection,
+   *  or the pending typing-style when the caret is collapsed). */
+  const openFontDialog = (): void => {
+    const f = editor.currentFormat();
+    showFontDialog({
+      initial: {
+        underline: f.underline,
+        underlineStyle: f.underlineStyle,
+        underlineColor: f.underlineColor,
+        caps: f.caps,
+        smallCaps: f.smallCaps,
+        doubleStrikethrough: f.doubleStrikethrough,
+        positionPx: f.positionPx,
+        widthScalePct: f.widthScalePct,
+        letterSpacingPx: f.letterSpacingPx,
+        kerningMinPx: f.kerningMinPx,
+        emphasisMark: f.emphasisMark,
+        outline: f.outline,
+        shadow: f.shadow,
+        emboss: f.emboss,
+        imprint: f.imprint,
+        fitTextPx: f.fitTextPx,
+      },
+      onApply: (patch) => {
+        editor.setCharStyle(patch);
+        editor.focus();
+      },
+      messages: t.fontDialog,
+      common: t.common,
+    });
+  };
+
+  const exportAs = async (format: ExportFormat | "json"): Promise<void> => {
+    // Rendering (especially PDF) can take a few seconds; show the busy overlay so
+    // the app doesn't look hung. Dropped before any onSave dialog / download so it
+    // doesn't sit behind a native Save sheet.
+    const busy = showBusy(t.busy.exporting);
+    try {
+      let bytes: Uint8Array;
+      let warnings: ExportWarning[] = [];
+      if (format === "json") {
+        const res = exportFullJsonBytes();
+        bytes = res.bytes;
+      } else {
+        const res = await exportTracked(format, "toolbar");
+        bytes = res.bytes;
+        warnings = res.warnings;
+      }
+      busy.done();
+      if (warnings.length > 0) console.warn(`[export-${format}] warnings`, warnings);
+      const blob = blobFor(format, bytes);
+      // With an embedder onSave hook, hand off the file instead of downloading;
+      // the host routes it to its own pipeline (upload, persist, custom download).
+      if (runtime.onSave) {
+        await runtime.onSave({ blob, bytes, format, warnings });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = el("a");
+      a.href = url;
+      a.download = `document.${format}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error(`[export-${format}] failed`, err);
+    } finally {
+      busy.done(); // idempotent — covers the error path
+    }
+  };
+  const stylesheet = (): ReturnType<typeof defaultStylesheet> =>
+    editor.getDocument().stylesheet ?? defaultStylesheet();
+
+  // ===== File tab (simplified backstage: open / export / undo) =============
+  const fileTab = tab("file", t.ribbon.file, "file");
+  group(fileTab, "Open");
+  bigBtn(ICONS.open, "Open<br>.docx", "Open a Word document", () => {
+    const input = el("input");
+    input.type = "file";
+    input.accept = `.docx,${DOCX_MIME}`;
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (file) void openDocxFile(file);
+    });
+    input.click();
+  });
+
+  // Share (online only): publish the current doc and surface a join link. Also
+  // used by openDocx auto-publish via showShareDialog below.
+  showShareDialog = (link: string): void => {
+    const back = el("div");
+    back.style.cssText =
+      "position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;";
+    const wrap = el("div", "ked-dialog");
+    wrap.style.cssText = "background:#fff;border:1px solid #c8c6c4;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.25);";
+    const lab = el("label");
+    lab.textContent = "Share this document — anyone with the link can join and edit live";
+    const input = el("input");
+    input.type = "text";
+    input.value = link;
+    input.readOnly = true;
+    lab.appendChild(input);
+    const row = el("div", "row");
+    const closeBtn = el("button");
+    closeBtn.textContent = t.common.close;
+    closeBtn.addEventListener("click", () => back.remove());
+    const copyBtn = el("button", "primary");
+    copyBtn.textContent = "Copy link";
+    copyBtn.addEventListener("click", () => {
+      void navigator.clipboard?.writeText(link);
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => (copyBtn.textContent = "Copy link"), 1500);
+    });
+    back.addEventListener("mousedown", (e) => {
+      if (e.target === back) back.remove();
+    });
+    row.append(closeBtn, copyBtn);
+    wrap.append(lab, row);
+    back.appendChild(wrap);
+    document.body.appendChild(back);
+    setTimeout(() => input.select(), 0);
+  };
+
+  if (online) {
+    group(fileTab, "Share");
+    bigBtn(ICONS.share, "Share<br>Link", "Publish & get a shareable link", () => {
+      void goOnlineWithCurrentDoc().catch((e) => alert(`Share failed: ${e instanceof Error ? e.message : String(e)}`));
+    });
+  }
+
+  // Export buttons are independently hideable (view.exportPdf / view.exportDocx)
+  // for embedders that route saving through their own pipeline (onSave / the
+  // exportDocx()/exportPdf() handle methods). Skip the group entirely if both off.
+  const showExportPdf = runtime.view?.exportPdf ?? true;
+  const showExportDocx = runtime.view?.exportDocx ?? true;
+  if (showExportPdf || showExportDocx) {
+    group(fileTab, t.fileGroup.groupExport);
+    if (showExportPdf) txtBtn("PDF", t.fileGroup.exportPdf, () => void exportAs("pdf"), "font-size:11px;font-weight:600;");
+    if (showExportDocx) txtBtn("DOCX", t.fileGroup.exportDocx, () => void exportAs("docx"), "font-size:11px;font-weight:600;");
+  }
+  group(fileTab, t.fileGroup.groupUndo);
+  btn(ICONS.undo, t.fileGroup.undo, () => editor.undo());
+  btn(ICONS.redo, t.fileGroup.redo, () => editor.redo());
+
+  // ===== Home tab ==========================================================
+  const home = tab("home", t.ribbon.home);
+
+  // ---- Clipboard ----
+  group(home, t.clipboard.groupLabel);
+  bigBtn(ICONS.paste, t.clipboard.paste, t.clipboard.pasteTooltip, () => editor.paste(), true);
+  {
+    const stack = el("div");
+    stack.style.cssText = "display:flex;flex-direction:column;gap:1px;";
+    const prev = controls;
+    controls = stack;
+    btn(ICONS.cut, t.clipboard.cutTooltip, () => editor.cut());
+    btn(ICONS.copy, t.clipboard.copyTooltip, () => editor.copy());
+    btn(ICONS.painter, t.clipboard.formatPainterTooltip, () => editor.armFormatPainter(false));
+    controls = prev;
+    controls.appendChild(stack);
+  }
+
+  // ---- Font ----
+  const fontRow = groupRows(home, t.font.groupLabel);
+  fontRow();
+  const fontSelect = select(t.font.fontFamily, 150);
+  // Labels show the bundled clone we actually render — e.g. "Calibri (Carlito)".
+  // Per-instance: built-ins minus disableBuiltin, plus this mount's custom fonts.
+  for (const f of toolbarFonts(config.fonts)) opt(fontSelect, f.value, f.label);
+  fontSelect.addEventListener("change", () => {
+    editor.setCharStyle({ fontFamily: fontSelect.value });
+    editor.focus();
+  });
+  // The model is px-native; Word shows POINTS. Convert on read/write (96dpi:
+  // 1pt = 4/3 px). The displayed value snaps to the nearest half-point.
+  const pxToPt = (px: number): number => Math.round(sharedPxToPt(px) * 2) / 2;
+  const ptToPx = (pt: number): number => sharedPtToPx(pt);
+  const sizeInput = el("input");
+  sizeInput.type = "number";
+  sizeInput.min = "1";
+  sizeInput.max = "72";
+  sizeInput.step = "0.5";
+  sizeInput.title = t.font.fontSize;
+  sizeInput.style.cssText = "width:46px;padding:0 4px;";
+  sizeInput.addEventListener("mousedown", (e) => e.stopPropagation());
+  /** Apply a size given in POINTS (clamped to the model's 6–96px range). */
+  const setSizePt = (pt: number): void => {
+    if (!Number.isFinite(pt)) return;
+    const px = Math.min(96, Math.max(6, ptToPx(pt)));
+    editor.setCharStyle({ fontSizePx: px });
+    editor.focus();
+  };
+  sizeInput.addEventListener("change", () => setSizePt(Number(sizeInput.value)));
+  // Editable combo: type any size in the field, or click the caret for a Word
+  // preset. (A `<datalist>` dropdown never opens for `type=number` in Chromium,
+  // so we render our own menu — which also keeps the typed field + spinner.)
+  const SIZE_PRESETS = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
+  const sizeWrap = el("div");
+  sizeWrap.style.cssText = "display:inline-flex;align-items:stretch;";
+  const sizeCaret = el("button", "rib-btn");
+  sizeCaret.title = t.font.fontSizePresets;
+  sizeCaret.innerHTML = CARET;
+  sizeCaret.style.cssText = "padding:0 1px;min-width:14px;";
+  sizeCaret.addEventListener("mousedown", (e) => e.preventDefault());
+  sizeCaret.addEventListener("click", () => {
+    const r = sizeWrap.getBoundingClientRect();
+    const entries: MenuEntry[] = SIZE_PRESETS.map((p) => ({
+      kind: "item",
+      label: String(p),
+      onClick: () => {
+        sizeInput.value = String(p);
+        setSizePt(p);
+      },
+    }));
+    showContextMenu(r.left, r.bottom + 2, entries);
+  });
+  sizeWrap.append(sizeInput, sizeCaret);
+  controls.appendChild(sizeWrap);
+  ribRegister(sizeWrap, "font-size");
+  const curPt = (): number => pxToPt(editor.currentFormat().fontSizePx ?? 16);
+  txtBtn("A", t.font.growFont, () => setSizePt(curPt() + 1), "font-size:15px;font-weight:600;");
+  txtBtn("A", t.font.shrinkFont, () => setSizePt(curPt() - 1), "font-size:10px;font-weight:600;");
+  const CASES: { label: string; mode: CaseMode }[] = [
+    { label: t.font.caseSentence, mode: "sentence" },
+    { label: t.font.caseLower, mode: "lower" },
+    { label: t.font.caseUpper, mode: "upper" },
+    { label: t.font.caseTitle, mode: "title" },
+    { label: t.font.caseToggle, mode: "toggle" },
+  ];
+  const caseBtn = txtBtn("Aa", t.font.changeCase, () => {}, "font-weight:600;", true);
+  caseBtn.addEventListener("click", () =>
+    openPop(
+      caseBtn,
+      menu(
+        CASES.map((c) => ({
+          label: c.label,
+          onClick: () => {
+            editor.dispatch(changeCaseCmd(c.mode));
+            editor.focus();
+          },
+        })),
+      ),
+    ),
+  );
+  btn(ICONS.clearFormat, t.font.clearFormatting, () => {
+    editor.dispatch(clearCharFormatting());
+    editor.dispatch(applyNamedStyle("Normal"));
+    editor.focus();
+  });
+
+  fontRow();
+  toggle(txtBtn("B", t.font.bold, () => editor.toggleStyle("bold"), "font-weight:700;"), (f) => f.bold);
+  toggle(txtBtn("I", t.font.italic, () => editor.toggleStyle("italic"), "font-style:italic;font-family:Georgia,serif;"), (f) => f.italic);
+  toggle(txtBtn("U", t.font.underline, () => editor.toggleStyle("underline"), "text-decoration:underline;"), (f) => f.underline);
+  toggle(txtBtn("ab", t.font.strikethrough, () => editor.toggleStyle("strikethrough"), "text-decoration:line-through;"), (f) => f.strikethrough);
+  toggle(txtBtn("x²", t.font.superscript, () => editor.dispatch(toggleVerticalAlign("super"))), (f) => f.superscript);
+  toggle(txtBtn("x₂", t.font.subscript, () => editor.dispatch(toggleVerticalAlign("sub"))), (f) => f.subscript);
+  toggle(txtBtn("AB", t.font.allCaps, () => editor.toggleStyle("caps"), "font-size:11px;font-weight:600;letter-spacing:.5px;"), (f) => f.caps);
+  toggle(txtBtn("Ab", t.font.smallCaps, () => editor.toggleStyle("smallCaps"), "font-variant:small-caps;font-size:12px;font-weight:600;"), (f) => f.smallCaps);
+  toggle(txtBtn("ab", t.font.doubleStrikethrough, () => editor.toggleStyle("doubleStrikethrough"), "text-decoration:line-through double;"), (f) => f.doubleStrikethrough);
+  sep();
+  // Home-tab dialog-launcher for the full Font dialog (caps, underline style +
+  // colour, raise/lower, scaling, spacing, kerning, emphasis, text effects).
+  btn(`<span style="color:#2b579a;font-weight:700;">A</span>`, t.font.fontEffects, () => openFontDialog());
+  // Highlight: face toggles the last colour (re-click clears); caret opens the
+  // palette, where "No Color" strips the highlight.
+  swatch({
+    face: ICONS.highlight,
+    initial: "#ffeb3b",
+    title: t.font.highlightColor,
+    apply: (c) => editor.dispatch(toggleHighlight(c)),
+    clearLabel: t.font.noColor,
+    onClear: () => editor.setCharStyle({ highlightColor: undefined }),
+    active: (f) => f.highlight,
+  });
+  // Font colour: face applies the last colour; palette "Automatic" resets it.
+  swatch({
+    face: `<span style="font-weight:700;">A</span>`,
+    initial: "#e00000",
+    title: t.font.fontColor,
+    apply: (c) => editor.setCharStyle({ color: c }),
+    clearLabel: t.font.automatic,
+    onClear: () => editor.setCharStyle({ color: "#202124" }),
+  });
+  // Hyperlink lives on Insert ▸ Links (the canonical spot, like Word) — not
+  // duplicated here in the Font group.
+
+  // ---- Paragraph ----
+  const paraRow = groupRows(home, t.paragraph.groupLabel);
+  paraRow();
+  listSplit(ICONS.bullets, t.paragraph.bulletedList, () => toggleList("bullet"), (f) => f.listKind === "bullet", [
+    { label: t.paragraph.bulletFilledCircle, cmd: () => toggleList("bullet") },
+    { label: t.paragraph.bulletHollowCircle, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-circle", "◦")) },
+    { label: t.paragraph.bulletFilledSquare, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-square", "▪")) },
+    { label: t.paragraph.bulletDash, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-dash", "–")) },
+    { label: t.paragraph.bulletArrow, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-arrow", "➤")) },
+  ]);
+  listSplit(ICONS.numbering, t.paragraph.numberedList, () => toggleList("decimal"), (f) => f.listKind === "number", [
+    { label: t.paragraph.numberDecimal, cmd: () => toggleList("decimal") },
+    { label: t.paragraph.numberParen, cmd: () => applyListStyleCmd(numberListDefinition("numbers-paren", "decimal", ")")) },
+    { label: t.paragraph.numberLowerLetter, cmd: () => applyListStyleCmd(numberListDefinition("numbers-lalpha", "lowerLetter", ".")) },
+    { label: t.paragraph.numberUpperLetter, cmd: () => applyListStyleCmd(numberListDefinition("numbers-ualpha", "upperLetter", ".")) },
+    { label: t.paragraph.numberLowerRoman, cmd: () => applyListStyleCmd(numberListDefinition("numbers-lroman", "lowerRoman", ".")) },
+    { label: t.paragraph.numberUpperRoman, cmd: () => applyListStyleCmd(numberListDefinition("numbers-uroman", "upperRoman", ".")) },
+  ]);
+  btn(ICONS.multilevel, t.paragraph.multilevelList, () => editor.dispatch(toggleMultilevelList()));
+  sep();
+  btn(ICONS.indentDecrease, t.paragraph.decreaseIndent, () => editor.dispatch(adjustIndentCmd(-config.behavior.indentStepPx)));
+  btn(ICONS.indentIncrease, t.paragraph.increaseIndent, () => editor.dispatch(adjustIndentCmd(config.behavior.indentStepPx)));
+  stub(ICONS.sort, t.paragraph.sort);
+  marksToggleBtn();
+
+  paraRow();
+  toggle(btn(ICONS.alignLeft, t.paragraph.alignLeft, () => editor.align("left")), (f) => f.align === "left");
+  toggle(btn(ICONS.alignCenter, t.paragraph.alignCenter, () => editor.align("center")), (f) => f.align === "center");
+  toggle(btn(ICONS.alignRight, t.paragraph.alignRight, () => editor.align("right")), (f) => f.align === "right");
+  toggle(btn(ICONS.alignJustify, t.paragraph.alignJustify, () => editor.align("justify")), (f) => f.align === "justify");
+  sep();
+  // Paragraph writing direction (OOXML w:bidi). RTL right-aligns + reorders.
+  toggle(txtBtn("LTR", t.paragraph.ltr, () => editor.dispatch(setDirection("ltr"))), (f) => f.direction !== "rtl");
+  toggle(txtBtn("RTL", t.paragraph.rtl, () => editor.dispatch(setDirection("rtl"))), (f) => f.direction === "rtl");
+  sep();
+  const SPACINGS = [
+    { v: 1, l: "1.0" },
+    { v: 1.15, l: "1.15" },
+    { v: 1.5, l: "1.5" },
+    { v: 2, l: "2.0" },
+    { v: 2.5, l: "2.5" },
+    { v: 3, l: "3.0" },
+  ];
+  let curLineHeight: number | null = null;
+  // Opens the full Paragraph dialog (borders, shading, line-spacing rule, widow
+  // control, vertical alignment, …) seeded from the caret paragraph's style. One OK
+  // = one undo step (the dialog commits a single setParaProps patch).
+  let paraDlg: ParagraphDialogHandle | null = null;
+  teardown.signal.addEventListener("abort", () => paraDlg?.close(), { once: true });
+  const openParagraphDialog = (): void => {
+    const ps = editor.currentParaStyle();
+    if (!ps) return;
+    paraDlg?.close();
+    paraDlg = showParagraphDialog(
+      {
+        borders: ps.borders,
+        shading: ps.shading ?? null,
+        contextualSpacing: ps.contextualSpacing ?? false,
+        lineRule: ps.lineRule ?? "auto",
+        lineHeight: ps.lineHeight ?? 1,
+        lineHeightPx: ps.lineHeightPx ?? 16,
+        widowControl: ps.widowControl ?? true, // Word default is ON
+        textAlignment: ps.textAlignment ?? "baseline",
+        mirrorIndents: ps.mirrorIndents ?? false,
+        suppressLineNumbers: ps.suppressLineNumbers ?? false,
+        adjustRightInd: ps.adjustRightInd ?? false,
+      },
+      {
+        apply: (patch) => {
+          editor.dispatch(setParaProps(patch));
+          editor.focus();
+        },
+      },
+      {
+        messages: t.paragraphDialog,
+        common: t.common,
+      },
+    );
+    // Let replaceDocument() tear this dialog down if the editor is rebuilt while it's open.
+    closeParaDialog = () => { paraDlg?.close(); paraDlg = null; closeParaDialog = () => {}; };
+  };
+  const spacingBtn = btn(ICONS.lineSpacing, t.paragraph.lineSpacing, () => {}, true);
+  spacingBtn.addEventListener("click", () =>
+    openPop(
+      spacingBtn,
+      menu([
+        ...SPACINGS.map((s) => ({
+          label: s.l,
+          current: curLineHeight !== null && Math.abs(curLineHeight - s.v) < 1e-6,
+          onClick: () => {
+            // Picking a multiplier clears any fixed rule (lineRule/lineHeightPx aren't
+            // `| undefined` under exactOptionalPropertyTypes; Object.assign sets the
+            // explicit-undefined keys setParaStyle uses to remove them).
+            const patch: Partial<ParaStyle> = { lineHeight: s.v };
+            Object.assign(patch, { lineRule: undefined, lineHeightPx: undefined });
+            editor.dispatch(setParaProps(patch));
+            editor.focus();
+          },
+        })),
+        { label: t.paragraph.lineSpacingOptions, onClick: openParagraphDialog },
+      ]),
+    ),
+  );
+  // One entry point to the Paragraph dialog, which covers both borders and
+  // shading (was two separate buttons opening the identical dialog).
+  btn(ICONS.borders, t.paragraph.borders, openParagraphDialog, true);
+
+  // ---- Styles (visual gallery) ----
+  group(home, t.styles.groupLabel);
+  const styleGallery = el("div", "rib-gallery");
+  const styleCards = new Map<string, HTMLButtonElement>();
+  // One child document renders every card's swatch — a real, document-styled
+  // sample (correct font/weight/size/color) instead of damped CSS. Recreated on
+  // rebuild so removed cards' surfaces are torn down.
+  let galleryChild: ReturnType<typeof editor.createChild> | null = null;
+  let styleMgr: StyleManagerHandle | null = null;
+  let devPanel: DevPanelHandle | null = null;
+  let pageLayoutDlg: PageLayoutHandle | null = null;
+  let symbolPicker: SymbolPickerHandle | null = null;
+  // "Show only styles in use" filter. Since import now keeps every defined style
+  // (so authored styles round-trip), a heavy imported doc can crowd the gallery —
+  // this collapses it to styles actually applied in the document.
+  let hideUnusedStyles = false;
+  /** Style ids applied anywhere in the document (paragraph namedStyle + run charStyleId). */
+  const usedStyleIds = (): Set<string> => {
+    const used = new Set<string>();
+    for (const p of paragraphsOf(editor.getDocument())) {
+      if (p.style.namedStyle) used.add(p.style.namedStyle);
+      for (const r of p.runs) if (r.style.charStyleId) used.add(r.style.charStyleId);
+    }
+    return used;
+  };
+  const addStyleCard = (id: string, name: string): HTMLButtonElement => {
+    const c = el("button", "style-card");
+    const isChar = (() => { const st = styleById(stylesheet(), id); return !!st && styleType(st) === "character"; })();
+    c.title = isChar ? `${name} (character style)` : name;
+    c.innerHTML = `<span class="preview"></span><span class="name"></span>`;
+    (c.querySelector(".name") as HTMLElement).textContent = isChar ? `${name} ⓐ` : name; // ⓐ marks a character style
+    const prev = c.querySelector(".preview") as HTMLElement;
+    galleryChild?.render(prev, { kind: "styleSample", styleId: id, sampleText: "AaBbCc" }, { fit: true, widthPx: 70, maxHeightPx: 24 });
+    c.addEventListener("mousedown", (e) => e.preventDefault());
+    c.addEventListener("click", () => {
+      const st = styleById(stylesheet(), id);
+      editor.dispatch(st && styleType(st) === "character" ? applyCharStyle(id) : applyNamedStyle(id));
+      editor.focus();
+    });
+    styleCards.set(id, c);
+    styleGallery.appendChild(c);
+    return c;
+  };
+  const rebuildStyleGallery = (): void => {
+    galleryChild?.destroy();
+    galleryChild = editor.createChild();
+    styleGallery.textContent = "";
+    styleCards.clear();
+    const sheet = stylesheet();
+    // When filtering, always keep the default style and the caret's current style
+    // visible so the gallery never hides what's active.
+    const used = hideUnusedStyles ? usedStyleIds() : null;
+    const curId = editor.currentFormat().styleId;
+    const keep = (id: string): boolean => !used || used.has(id) || id === sheet.defaultStyleId || id === curId;
+    for (const s of sheet.styles) if (keep(s.id)) addStyleCard(s.id, s.name);
+  };
+  rebuildStyleGallery();
+  controls.appendChild(styleGallery);
+  ribRegister(styleGallery, "gallery");
+  btn(ICONS.stylePencil, t.styles.updateStyle, () => {
+    const id = editor.currentFormat().styleId;
+    if (id) editor.dispatch(updateStyleToSelection(id));
+  });
+  const openStyleManager = (sel?: { kind: "paragraph" | "character"; id: string }): void => {
+    if (styleMgr) { styleMgr.refresh(); return; }
+    styleMgr = showStyleManager({
+      editor,
+      ...(sel ? { initialSelection: sel } : {}),
+      messages: t.styleManager,
+      common: t.common,
+      onClose: () => { styleMgr = null; },
+    });
+  };
+  btn(ICONS.styleNew, t.styles.manageStyles, () => {
+    const id = editor.currentFormat().styleId;
+    openStyleManager(id ? { kind: "paragraph", id } : undefined);
+  });
+  const filterBtn = btn(ICONS.filter, t.styles.showOnlyUsed, () => {
+    hideUnusedStyles = !hideUnusedStyles;
+    filterBtn.classList.toggle("active", hideUnusedStyles);
+    filterBtn.title = hideUnusedStyles ? t.styles.showAllStyles : t.styles.showOnlyUsed;
+    rebuildStyleGallery();
+  });
+
+  // ---- Editing ----
+  group(home, t.editing.groupLabel);
+  {
+    const col = el("div");
+    col.style.cssText = "display:flex;flex-direction:column;gap:1px;";
+    const prev = controls;
+    controls = col;
+    const wide = "width:100%;justify-content:flex-start;gap:4px;";
+    const ed = (icon: string, label: string, title: string, onClick: () => void): void => {
+      const b = btn(icon + `<span>${label}</span>`, title, onClick);
+      b.style.cssText = wide;
+    };
+    ed(ICONS.find, t.editing.find, t.editing.findTooltip, () => openFind());
+    ed(ICONS.replace, t.editing.replace, t.editing.replaceTooltip, () => openFind());
+    ed(ICONS.select, t.editing.selectAll, t.editing.selectAllTooltip, () => editor.selectAll());
+    controls = prev;
+    controls.appendChild(col);
+  }
+
+  // ===== Insert tab ========================================================
+  const insert = tab("insert", t.ribbon.insert);
+  group(insert, t.insert.groupPages);
+  btn(ICONS.pageBreak, t.insert.pageBreak, () => {
+    editor.dispatch(insertPageBreak());
+    editor.focus();
+  });
+  btn(ICONS.sectionBreak, t.insert.sectionBreak, () => {
+    editor.dispatch(insertSectionBreak());
+    editor.focus();
+  });
+  group(insert, t.insert.groupTables);
+  const insTableBtn = btn(ICONS.table, t.insert.insertTable, () => {}, true);
+  insTableBtn.addEventListener("click", () => tableGridPopover(insTableBtn));
+  group(insert, t.insert.groupIllustrations);
+  // Pick an image from the device, register its bytes in the shared media store
+  // (content-addressed, so it persists + exports), then insert it at the caret at
+  // its natural size (capped to a sensible width). Both dispatches run — only the
+  // one matching the caret context (body vs table cell) applies.
+  const pickAndInsertImage = (): void => {
+    const input = el("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      void (async () => {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const mime = file.type || "image/png";
+        const mediaId = await registerMediaBytes(bytes, mime);
+        const src = mediaUrl(mediaId);
+        if (!src) return;
+        let w = 320;
+        let h = 200;
+        try {
+          const bmp = await createImageBitmap(new Blob([bytes], { type: mime }));
+          w = bmp.width;
+          h = bmp.height;
+          bmp.close();
+        } catch {
+          /* keep fallback dimensions */
+        }
+        const MAX_W = 480; // don't overflow the page on a large photo
+        if (w > MAX_W) {
+          h = Math.round((h * MAX_W) / w);
+          w = MAX_W;
+        }
+        const imgId = freshId();
+        editor.dispatch(insertImage(src, w, h, mediaId, imgId)); // top-level caret
+        editor.dispatch(insertImageInCell(src, w, h, mediaId, imgId)); // table-cell caret
+        editor.selectObject(imgId);
+        editor.focus();
+      })();
+    });
+    input.click();
+  };
+  btn(ICONS.image, t.insert.insertImage, () => pickAndInsertImage());
+
+  // Insert image from a URL — opens a small inline prompt, fetches the image,
+  // registers its bytes in the media store, and inserts it at the caret.
+  const insertImageFromUrl = (): void => {
+    const url = window.prompt("Enter image URL:");
+    if (!url) return;
+    void (async () => {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const buf = await resp.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        const mime = resp.headers.get("content-type")?.split(";")[0]?.trim() || "image/png";
+        const mediaId = await registerMediaBytes(bytes, mime);
+        const src = mediaUrl(mediaId);
+        if (!src) return;
+        let w = 320;
+        let h = 200;
+        try {
+          const bmp = await createImageBitmap(new Blob([bytes], { type: mime }));
+          w = bmp.width;
+          h = bmp.height;
+          bmp.close();
+        } catch { /* keep fallback */ }
+        const MAX_W = 480;
+        if (w > MAX_W) { h = Math.round((h * MAX_W) / w); w = MAX_W; }
+        const imgId = freshId();
+        editor.dispatch(insertImage(src, w, h, mediaId, imgId));
+        editor.dispatch(insertImageInCell(src, w, h, mediaId, imgId));
+        editor.selectObject(imgId);
+        editor.focus();
+      } catch (err) {
+        console.error("[insertImageFromUrl]", err);
+        window.alert(`Could not load image: ${(err as Error).message ?? err}`);
+      }
+    })();
+  };
+  btn(ICONS.link, "Insert image from URL", () => insertImageFromUrl());
+
+  /** Find an image block anywhere in the document (body, header/footer bands, table cells). */
+  const findImageBlock = (blockId: string): ImageBlock | null => {
+    let found: ImageBlock | null = null;
+    forEachImage(editor.getDocument(), (img) => {
+      if (img.id === blockId) found = img;
+    });
+    return found;
+  };
+
+  group(insert, t.insert.groupPicture); // acts on the selected image
+  enable(
+    btn(ICONS.wrapSquare, t.insert.wrapSquare, () => {
+      const id = editor.getSelectedObject();
+      if (id) editor.dispatch(setImageProps(id, { wrap: "square", align: "left" }));
+    }),
+    (f) => f.imageSelected,
+    t.insert.selectImageFirst,
+  );
+  enable(
+    btn(ICONS.wrapInline, t.insert.wrapInline, () => {
+      const id = editor.getSelectedObject();
+      if (id) editor.dispatch(setImageProps(id, { wrap: "block", align: "center" }));
+    }),
+    (f) => f.imageSelected,
+    t.insert.selectImageFirst,
+  );
+  // Image Properties… — opens the floating size/wrap/align/alt dialog.
+  enable(
+    btn(ICONS.imageProps, "Image properties…", () => {
+      const id = editor.getSelectedObject();
+      if (!id) return;
+      const img = findImageBlock(id);
+      if (!img) return;
+      showImageDialog({
+        initial: { widthPx: img.widthPx, heightPx: img.heightPx, align: img.align, wrap: img.wrap },
+        onApply: (patch) => {
+          editor.dispatch(setImageProps(id, patch));
+          editor.focus();
+        },
+      });
+    }),
+    (f) => f.imageSelected,
+    t.insert.selectImageFirst,
+  );
+
+  group(insert, t.insert.groupEquation);
+  txtBtn("√x", t.insert.insertEquation, () => {
+    showEquationEditor({
+      onApply: (eq) => {
+        editor.dispatch(eq.display ? insertEquation(eq) : insertInlineEquation(eq));
+        editor.focus();
+      },
+    });
+  }, "font-family:Georgia,serif;font-style:italic;");
+
+  group(insert, t.insert.groupSymbols);
+  // Single floating picker (toggle on re-click); closed on teardown so its
+  // backdrop + document-level Escape listener never leak. Mirrors pageLayoutDlg.
+  btn(ICONS.symbol, t.insert.insertSymbol, () => {
+    if (symbolPicker) { symbolPicker.close(); return; }
+    symbolPicker = showSymbolPicker({
+      onPick: (font, char) => {
+        editor.dispatch(insertSymbolCmd(font, char));
+        editor.focus();
+      },
+      messages: t.symbolPicker,
+      onClose: () => { symbolPicker = null; },
+    });
+  });
+  teardown.signal.addEventListener("abort", () => symbolPicker?.close(), { once: true });
+
+  group(insert, t.insert.groupLinks);
+  const insLinkBtn = btn(ICONS.link, t.insert.insertLink, () => {});
+  insLinkBtn.addEventListener("click", () => linkDialog(insLinkBtn));
+  group(insert, t.insert.groupReferences);
+  btn(ICONS.toc, t.insert.insertToc, () => {
+    editor.dispatch(insertTocCmd());
+    editor.focus();
+  });
+  btn(ICONS.tocRefresh, t.insert.recalcToc, () => {
+    const n = editor.recalculateToc();
+    console.log(n > 0 ? `[toc] updated ${n} page number${n === 1 ? "" : "s"}` : "[toc] page numbers already current");
+    editor.focus();
+  });
+  txtBtn("ab¹", t.insert.insertFootnote, () => {
+    editor.dispatch(insertFootnoteCmd());
+    editor.focus();
+  }, "font-size:11px;");
+  txtBtn("abⁱ", t.insert.insertEndnote, () => {
+    editor.dispatch(insertEndnoteCmd());
+    editor.focus();
+  }, "font-size:11px;");
+  group(insert, "Header & Footer");
+  btn(ICONS.header, "Edit Header", () => {
+    editor.editBand("header");
+    editor.focus();
+  });
+  btn(ICONS.footer, "Edit Footer", () => {
+    editor.editBand("footer");
+    editor.focus();
+  });
+  btn(ICONS.pageNumber, "Insert Page Number field", () => {
+    editor.dispatch(insertFieldCmd({ type: "PAGE" }));
+    editor.focus();
+  });
+  group(insert, t.insert.groupControls);
+  btn(ICONS.sdtText, t.insert.richTextControl, () => {
+    // A selected image is an object selection (no text caret), so route it to the
+    // image-wrapping command; otherwise wrap the text selection/caret as before.
+    const imgId = editor.getSelectedObject();
+    if (imgId) {
+      editor.dispatch(wrapImageInContentControl(imgId, "richText", { alias: "Text" }));
+      // Keep the image selected so the new control frame is visible — don't refocus
+      // the doc (which would drop the object selection).
+    } else {
+      editor.dispatch(insertContentControl("richText", { alias: "Text" }));
+      editor.focus();
+    }
+  });
+  btn(ICONS.sdtCheckbox, t.insert.checkboxControl, () => {
+    editor.dispatch(insertContentControl("checkbox", { alias: "Check Box" }));
+    editor.focus();
+  });
+  btn(ICONS.sdtDropdown, t.insert.dropdownControl, () => {
+    const raw = prompt(t.insert.dropdownPrompt, t.insert.dropdownDefault);
+    if (raw === null) return;
+    const listItems = raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+      .map((s) => ({ display: s, value: s }));
+    editor.dispatch(insertContentControl("dropDown", { alias: "Drop-Down List", listItems }));
+    editor.focus();
+  });
+  btn(ICONS.sdtDate, t.insert.datePickerControl, () => {
+    editor.dispatch(insertContentControl("date", { alias: "Date", dateFormat: "M/d/yyyy" }));
+    editor.focus();
+  });
+  enable(
+    btn(ICONS.sdtProps, t.insert.contentControlProps, () => {
+      if (!editor.inspectContentControl()) alert(t.insert.noContentControl);
+    }),
+    (f) => f.inContentControl,
+    t.insert.placeCaretInControl,
+  );
+  enable(
+    btn(ICONS.sdtRemove, t.insert.removeContentControl, () => {
+      const id = editor.activeContentControlId();
+      if (id) editor.dispatch(removeContentControl(id, false));
+      // Don't force focus to the doc — that would drop an active image selection.
+    }),
+    (f) => f.inContentControl,
+    t.insert.placeCaretInControl,
+  );
+
+  // ===== Layout tab ========================================================
+  const layout = tab("layout", t.ribbon.layout);
+  group(layout, t.layout.groupPageSetup);
+  btn(ICONS.pageSetup, t.layout.pageSetup, () => {
+    if (pageLayoutDlg) { pageLayoutDlg.close(); pageLayoutDlg = null; return; }
+    pageLayoutDlg = showPageLayout({
+      editor,
+      messages: t.pageLayout,
+      common: t.common,
+      onClose: () => { pageLayoutDlg = null; },
+    });
+  });
+
+  // ===== Table tab (acts on the cell containing the caret) =================
+  const tableTab = tab("table", t.ribbon.table);
+  group(tableTab, t.table.groupRowsCols);
+  const inTable = (f: CurrentFormat): boolean => f.inTable;
+  enable(btn(ICONS.rowAbove, t.table.insertRowAbove, () => editor.dispatch(insertTableRowCmd("above"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.rowBelow, t.table.insertRowBelow, () => editor.dispatch(insertTableRowCmd("below"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.colLeft, t.table.insertColLeft, () => editor.dispatch(insertTableColumnCmd("left"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.colRight, t.table.insertColRight, () => editor.dispatch(insertTableColumnCmd("right"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteRow, t.table.deleteRow, () => editor.dispatch(deleteTableRowCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteCol, t.table.deleteCol, () => editor.dispatch(deleteTableColumnCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteTable, t.table.deleteTable, () => editor.dispatch(deleteTableCmd())), inTable, t.table.placeCaretInTable);
+  group(tableTab, t.table.groupMerge);
+  enable(btn(ICONS.mergeCells, t.table.mergeCells, () => editor.dispatch(mergeCellsCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.unmergeCells, t.table.unmergeCells, () => editor.dispatch(unmergeCellCmd())), inTable, t.table.placeCaretInTable);
+  group(tableTab, t.table.groupSize);
+  const autofitBtn = txtBtn("AutoFit", t.table.autofitTooltip, () => {}, "", true);
+  autofitBtn.addEventListener("click", () => {
+    // Tick the active mode (resolved against the table the caret is in right now).
+    const tbl = tableAtSelection({
+      doc: editor.getDocument(),
+      selection: editor.getSelection(),
+      cellSelection: editor.getCellSelection(),
+    });
+    const cur = tbl?.widthMode ?? "fixed";
+    const pref = tbl?.preferredWidth;
+    const curAlign = tbl?.align ?? "left";
+    const fit = (text: string, mode: "fixed" | "autofitContents" | "autofitWindow") => ({
+      label: cur === mode ? `${text}  ✓` : text,
+      onClick: () => { editor.dispatch(setTableWidthModeAtSelectionCmd(mode)); editor.focus(); },
+    });
+    const widthItem = (text: string, value: number | null) => ({
+      label:
+        (value === null ? !pref : pref?.type === "pct" && Math.round(pref.value) === value) ? `${text}  ✓` : text,
+      onClick: () => {
+        editor.dispatch(setTablePreferredWidthAtSelectionCmd(value === null ? null : { type: "pct", value }));
+        editor.focus();
+      },
+    });
+    const alignItem = (text: string, a: "left" | "center" | "right") => ({
+      label: curAlign === a ? `${text}  ✓` : text,
+      onClick: () => { editor.dispatch(setTableAlignAtSelectionCmd(a)); editor.focus(); },
+    });
+    openPop(
+      autofitBtn,
+      menu([
+        fit(t.table.autofitContents, "autofitContents"),
+        fit(t.table.autofitWindow, "autofitWindow"),
+        fit(t.table.fixedWidth, "fixed"),
+        widthItem(t.table.width25, 25),
+        widthItem(t.table.width50, 50),
+        widthItem(t.table.width75, 75),
+        widthItem(t.table.widthFull, null),
+        alignItem(t.table.alignLeft, "left"),
+        alignItem(t.table.alignCenter, "center"),
+        alignItem(t.table.alignRight, "right"),
+      ]),
+    );
+  });
+
+  // ===== View tab ==========================================================
+  const view = tab("view", t.ribbon.view);
+  group(view, t.view.groupShow);
+  let outlineToggle = (): void => {};
+  const outlineBtn = btn(ICONS.outline, t.view.outline, () => outlineToggle());
+  const bookmarksBtn = btn(ICONS.bookmark, t.view.bookmarks, () => toggleBookmarks());
+  const rulerBtn = btn(ICONS.ruler, t.view.horizontalRuler, () => rulerBtn.classList.toggle("active", toggleRuler()));
+  rulerBtn.classList.toggle("active", showHRuler);
+  const vrulerBtn = btn(ICONS.rulerV, t.view.verticalRuler, () => vrulerBtn.classList.toggle("active", toggleVRuler()));
+  vrulerBtn.classList.toggle("active", showVRuler);
+  const gridBtn = btn(ICONS.grid, t.view.showGrid, () => {
+    gridView.show = !gridView.show;
+    editor.setShowGrid(gridView.show);
+    gridBtn.classList.toggle("active", gridView.show);
+  });
+  gridBtn.classList.toggle("active", gridView.show);
+  const snapBtn = btn(ICONS.snap, t.view.snapToGrid, () => {
+    gridView.snap = !gridView.snap;
+    editor.setSnapToGrid(gridView.snap);
+    snapBtn.classList.toggle("active", gridView.snap);
+  });
+  snapBtn.classList.toggle("active", gridView.snap);
+  const gridSpacingSel = select(t.view.gridSpacing, 92);
+  for (const [px, label] of [
+    [12, 'Grid: 1/8"'],
+    [24, 'Grid: 1/4"'],
+    [48, 'Grid: 1/2"'],
+  ] as [number, string][]) {
+    opt(gridSpacingSel, String(px), label);
+  }
+  gridSpacingSel.value = String(gridView.spacingPx);
+  gridSpacingSel.addEventListener("change", () => {
+    gridView.spacingPx = Number(gridSpacingSel.value);
+    editor.setGridSpacing(gridView.spacingPx);
+  });
+  marksToggleBtn();
+  if (online) btn(ICONS.activity, t.view.activity, () => toggleActivity());
+
+  // ===== Developer tab (develop mode only) =================================
+  // Gated on the `develop` config flag: the tab only EXISTS when the embedder
+  // opts in, and even then nothing dev-related runs until the developer clicks
+  // "Inspect document tree" to open the floating Document-tree inspector.
+  if (config.develop) {
+    const dev = tab("developer", t.ribbon.developer);
+    group(dev, t.developer.groupInspect);
+    const toggleDevPanel = (): void => {
+      if (devPanel) { devPanel.close(); return; } // toggle: a second click closes it
+      devPanel = showDevPanel({
+        editor,
+        setDocument: (next) => replaceDocument(next),
+        onClose: () => {
+          devPanel = null;
+          refreshDevPanel = () => {};
+          inspectorHoverSink = () => {};
+          inspectorProbeSink = () => {};
+          closeDevPanel = () => {};
+          devBtn.classList.remove("active");
+        },
+      });
+      refreshDevPanel = () => devPanel?.refresh();
+      inspectorHoverSink = (blockId) => devPanel?.highlightNode(blockId);
+      inspectorProbeSink = (probe) => devPanel?.setProbe(probe);
+      closeDevPanel = () => devPanel?.close();
+      devBtn.classList.add("active");
+    };
+    const devBtn = btn(
+      ICONS.devtools + `<span>${t.developer.inspectTree}</span>`,
+      t.developer.inspectTreeTooltip,
+      toggleDevPanel,
+    );
+    devBtn.style.cssText = "width:100%;justify-content:flex-start;gap:4px;";
+  }
+
+  // ---- Review controls live in the ribbon HEADER (right of the tab strip,
+  //      by the collapse button) so the mode switch + pane toggle are reachable
+  //      from any tab — not buried inside the View tab.
+  const MODE_LABELS: Array<[EditMode, string]> = [["edit", t.review.modeEditing], ["suggest", t.review.modeSuggesting], ["view", t.review.modeViewing]];
+  const allowedModesUi = runtime.allowedModes;
+  const headerReview = el("div", "ked-header-review");
+  const modeSel = el("select", "ked-mode-select");
+  modeSel.title = t.review.editingMode;
+  for (const [v, l] of MODE_LABELS) {
+    if (allowedModesUi && !allowedModesUi.includes(v)) continue;
+    const o = el("option");
+    o.value = v;
+    o.textContent = l;
+    modeSel.appendChild(o);
+  }
+  modeSel.value = editor.getMode();
+  modeSel.addEventListener("change", () => {
+    if (!editor.setMode(modeSel.value as EditMode)) modeSel.value = editor.getMode(); // rejected → revert
+    editor.focus();
+  });
+  syncMode = (): void => {
+    modeSel.value = editor.getMode();
+  };
+  const reviewBtn = el("button", "ked-header-btn");
+  reviewBtn.textContent = t.review.reviewButton;
+  reviewBtn.title = t.review.reviewButtonTooltip;
+  reviewBtn.addEventListener("mousedown", (e) => e.preventDefault());
+  reviewBtn.addEventListener("click", () => toggleReview());
+  const commentBtn = el("button", "ked-header-btn");
+  commentBtn.textContent = t.review.addComment;
+  commentBtn.title = t.review.addCommentTooltip;
+  commentBtn.addEventListener("mousedown", (event) => event.preventDefault());
+  commentBtn.addEventListener("click", () => editor.startComment());
+  syncCommentAction = (): void => {
+    commentBtn.hidden = editor.getMode() === "view";
+    commentBtn.disabled = !editor.getSelection() || !editor.canReviewAction("comment.create");
+  };
+  syncCommentAction();
+  headerReview.append(modeSel, commentBtn, reviewBtn);
+  tabsBar.appendChild(headerReview);
+  shell.root.addEventListener("keydown", (event) => {
+    const shortcut = event.altKey && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "m";
+    if (!shortcut) return;
+    event.preventDefault();
+    editor.startComment();
+  }, { capture: true, signal: teardown.signal });
+
+  group(view, t.view.groupZoom);
+  txtBtn("−", t.view.zoomOut, () => editor.setZoom(editor.getZoom() / config.behavior.zoomStep), "font-size:15px;");
+  const zoomSel = select(t.view.zoomLevel, 66);
+  for (const z of [0.5, 0.75, 1, 1.25, 1.5, 2, 3]) opt(zoomSel, String(z), `${Math.round(z * 100)}%`);
+  zoomSel.value = "1";
+  zoomSel.addEventListener("change", () => editor.setZoom(parseFloat(zoomSel.value)));
+  txtBtn("+", t.view.zoomIn, () => editor.setZoom(editor.getZoom() * config.behavior.zoomStep), "font-size:15px;");
+
+  // ---- Activity panel (who created/edited, when) — online only ------------
+  if (online) {
+    const panel = el("div");
+    panel.className = "ked-float-drawer";
+    panel.style.cssText =
+      "position:fixed;top:0;right:0;width:300px;height:100%;z-index:45;background:#fff;border-left:1px solid #e1dfdd;" +
+      "box-shadow:-4px 0 16px rgba(0,0,0,0.08);display:none;flex-direction:column;font-size:13px;";
+    const ahead = el("div");
+    ahead.style.cssText =
+      "flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #e1dfdd;font-weight:600;color:#323130;";
+    const atitle = el("span");
+    atitle.textContent = t.activity.title;
+    const aclose = el("button");
+    aclose.textContent = "×";
+    aclose.style.cssText = "border:none;background:transparent;font-size:18px;cursor:pointer;color:#605e5c;";
+    ahead.append(atitle, aclose);
+    const ameta = el("div");
+    ameta.style.cssText = "flex:0 0 auto;padding:10px 12px;color:#605e5c;border-bottom:1px solid #f0eeee;";
+    const alist = el("div");
+    alist.style.cssText = "flex:1 1 auto;overflow-y:auto;padding:2px 0;";
+    panel.append(ahead, ameta, alist);
+    document.body.appendChild(panel);
+
+    const nameOf = (f: string, l: string): string => `${f} ${l}`.trim() || "Unknown";
+    const kindLabel = (origin: string): string =>
+      origin === "typing" ? t.activity.originTyped
+      : origin === "paste" ? t.activity.originPasted
+      : origin === "undo" ? t.activity.originUndo
+      : origin === "redo" ? t.activity.originRedo
+      : t.activity.originEdited;
+    const timeAgo = (ts: number): string => {
+      const s = Math.max(0, (Date.now() - ts) / 1000);
+      if (s < 60) return t.activity.justNow;
+      if (s < 3600) return `${Math.floor(s / 60)}${t.activity.minutesAgo}`;
+      if (s < 86400) return `${Math.floor(s / 3600)}${t.activity.hoursAgo}`;
+      return new Date(ts).toLocaleDateString();
+    };
+
+    interface ActivityResp {
+      createdBy: string | null;
+      creatorFirstName: string;
+      creatorLastName: string;
+      createdAt: number;
+      entries: Array<{ firstName: string; lastName: string; ts: number; origin: string; opCount: number }>;
+    }
+    const render = (a: ActivityResp): void => {
+      ameta.textContent = a.createdBy
+        ? t.activity.createdByTemplate
+            .replace("{name}", nameOf(a.creatorFirstName, a.creatorLastName))
+            .replace("{time}", timeAgo(a.createdAt))
+        : t.activity.createdLocally;
+      alist.textContent = "";
+      if (a.entries.length === 0) {
+        const e = el("div");
+        e.style.cssText = "padding:12px;color:#80868b;";
+        e.textContent = t.activity.noEdits;
+        alist.appendChild(e);
+        return;
+      }
+      for (const en of a.entries) {
+        const row = el("div");
+        row.style.cssText = "padding:7px 12px;border-bottom:1px solid #f6f5f5;display:flex;justify-content:space-between;gap:8px;";
+        const who = el("span");
+        who.style.color = "#323130";
+        who.textContent = `${nameOf(en.firstName, en.lastName)} · ${kindLabel(en.origin)}`;
+        const when = el("span");
+        when.style.cssText = "color:#80868b;white-space:nowrap;";
+        when.textContent = timeAgo(en.ts);
+        row.append(who, when);
+        alist.appendChild(row);
+      }
+    };
+
+    const fetchActivity = async (): Promise<void> => {
+      if (!collabId || !BACKEND_HTTP) {
+        ameta.textContent = t.activity.shareToTrack;
+        alist.textContent = "";
+        return;
+      }
+      try {
+        const r = await fetch(`${BACKEND_HTTP}/docs/${encodeURIComponent(collabId)}/activity`);
+        if (r.ok) render((await r.json()) as ActivityResp);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    // Live refresh: debounced on remote changes (the author's own edits surface
+    // via the open-panel poll, since the server doesn't echo them back as remote).
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    remoteChangeListeners.push(() => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        void fetchActivity();
+      }, 400);
+    });
+
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let open = false;
+    toggleActivity = (): void => {
+      open = !open;
+      panel.style.display = open ? "flex" : "none";
+      if (open) {
+        void fetchActivity();
+        pollTimer = setInterval(() => void fetchActivity(), 2500);
+      } else if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    };
+    aclose.addEventListener("click", () => toggleActivity());
+    if (runtime.view?.activity) toggleActivity(); // closed by default; embedder can open it
+  }
+
+  // ---- Outline drawer (left navigation pane) ------------------------------
+  // Lists every Heading-styled paragraph; clicking one moves the caret there
+  // and scrolls it into view. The DOM list is rebuilt only when the set of
+  // headings actually changes (so typing doesn't reset the drawer's scroll);
+  // the active highlight follows the caret on every change.
+  const outlineEl = shell.outline;
+  if (outlineEl) {
+    const head = el("div", "outline-head");
+    const title = el("span");
+    title.textContent = t.outline.title;
+    const closeBtn = el("button");
+    closeBtn.innerHTML = "×";
+    closeBtn.title = t.common.close;
+    head.append(title, closeBtn);
+    const list = el("div");
+    list.className = "ked-outline-list";
+    outlineEl.append(head, list);
+
+    // Detect a heading + its outline level. Real .docx files name their styles
+    // "Heading 1" but keep an OPAQUE styleId (e.g. "Style27"), so we resolve the
+    // level through the stylesheet's name/basedOn chain — mirroring the
+    // importer's isHeading(). Built-in ids like "Heading1"/"Title" still match
+    // directly (the sample document has no separate stylesheet entry for them).
+    const labelLevel = (label: string | undefined): number | null => {
+      if (!label) return null;
+      const m = /(?:^|\s)heading\s*([1-9])/i.exec(label);
+      if (m) return Number(m[1]);
+      if (/^\s*title\s*$/i.test(label)) return 0;
+      if (/(?:^|\s)heading(?:\s|$)/i.test(label)) return 1; // "Heading" with no number
+      return null;
+    };
+    const headingLevel = (styleId: string | undefined): number | null => {
+      if (!styleId) return null;
+      const sheet = editor.getDocument().stylesheet ?? defaultStylesheet();
+      let level = labelLevel(styleId);
+      const seen = new Set<string>();
+      for (
+        let cur = styleById(sheet, styleId);
+        cur && level === null && !seen.has(cur.id);
+        cur = cur.basedOn ? styleById(sheet, cur.basedOn) : undefined
+      ) {
+        seen.add(cur.id);
+        level = labelLevel(cur.name) ?? labelLevel(cur.id);
+      }
+      return level;
+    };
+    type Entry = { id: string; index: number; level: number };
+    let entries: Entry[] = [];
+    const buttons = new Map<string, HTMLButtonElement>();
+    let lastSig = "\0"; // sentinel — guarantees the first build runs
+
+    const updateActive = (): void => {
+      const caret = editor.getSelection()?.focus.blockId ?? null;
+      const ci = caret ? editor.getDocument().blocks.findIndex((b) => b.id === caret) : -1;
+      let activeId: string | null = null;
+      for (const e of entries) if (ci >= 0 && e.index <= ci) activeId = e.id; // nearest heading at/above caret
+      for (const [id, b] of buttons) b.classList.toggle("active", id === activeId);
+    };
+
+    const build = (): void => {
+      const collected: { entry: Entry; text: string }[] = [];
+      editor.getDocument().blocks.forEach((b, index) => {
+        if (b.kind !== "paragraph") return;
+        const level = headingLevel(b.style.namedStyle);
+        if (level === null) return;
+        const text = b.runs.map((r) => r.text).join("").trim();
+        if (text === "") return; // skip empty heading-styled paragraphs (structural artifacts)
+        collected.push({ entry: { id: b.id, index, level }, text });
+      });
+      const sig = collected.map((c) => `${c.entry.id}|${c.entry.level}|${c.text}`).join("\n");
+      if (sig !== lastSig) {
+        lastSig = sig;
+        entries = collected.map((c) => c.entry);
+        list.textContent = "";
+        buttons.clear();
+        if (collected.length === 0) {
+          const empty = el("div", "outline-empty");
+          empty.textContent = t.outline.noHeadings;
+          list.appendChild(empty);
+        } else {
+          for (const c of collected) {
+            const item = el("button", "outline-item");
+            item.style.paddingLeft = `${12 + c.entry.level * 14}px`;
+            item.textContent = c.text;
+            item.title = c.text;
+            item.addEventListener("mousedown", (e) => e.preventDefault());
+            item.addEventListener("click", () => editor.revealBlock(c.entry.id));
+            buttons.set(c.entry.id, item);
+            list.appendChild(item);
+          }
+        }
+      }
+      updateActive();
+    };
+
+    let open = false;
+    const setOpen = (v: boolean): void => {
+      open = v;
+      outlineEl.classList.toggle("open", v);
+      outlineBtn.classList.toggle("active", v);
+      if (v) build();
+    };
+    closeBtn.addEventListener("click", () => setOpen(false));
+    outlineToggle = (): void => setOpen(!open);
+    refreshOutline = (): void => {
+      if (open) build();
+    };
+    setOpen(runtime.view?.outline ?? true); // visible by default; embedder can start it closed
+  }
+
+  // ---- Bookmarks panel (list + Go To + add/rename/delete) -----------------
+  {
+    const panel = el("div", "ked-float-drawer");
+    panel.style.cssText =
+      "position:fixed;top:0;right:0;width:300px;height:100%;z-index:45;background:#fff;border-left:1px solid #e1dfdd;" +
+      "box-shadow:-4px 0 16px rgba(0,0,0,0.08);display:none;flex-direction:column;font-size:13px;";
+    const head = el("div", "outline-head");
+    const title = el("span");
+    title.textContent = t.view.bookmarks;
+    const addBtn = el("button");
+    addBtn.textContent = "+";
+    addBtn.title = "Add a bookmark for the current selection";
+    addBtn.style.cssText = "margin-left:auto;border:none;background:transparent;font-size:18px;cursor:pointer;color:#2b579a;";
+    const closeBtn = el("button");
+    closeBtn.innerHTML = "×";
+    closeBtn.title = t.common.close;
+    head.append(title, addBtn, closeBtn);
+    const list = el("div");
+    list.style.cssText = "flex:1 1 auto;overflow-y:auto;padding:2px 0;";
+    panel.append(head, list);
+    document.body.appendChild(panel);
+
+    const build = (): void => {
+      const names = Object.keys(editor.getDocument().bookmarks ?? {}).sort((a, b) => a.localeCompare(b));
+      list.textContent = "";
+      if (names.length === 0) {
+        const empty = el("div", "outline-empty");
+        empty.textContent = "No bookmarks. Select text (or place the caret) and press + to add one.";
+        list.appendChild(empty);
+        return;
+      }
+      for (const name of names) {
+        const row = el("div");
+        row.style.cssText = "display:flex;align-items:center;gap:2px;padding:0 6px 0 0;";
+        const go = el("button", "outline-item");
+        go.style.cssText = "flex:1 1 auto;";
+        go.textContent = name;
+        go.title = `Go to "${name}"`;
+        go.addEventListener("mousedown", (e) => e.preventDefault());
+        go.addEventListener("click", () => editor.revealBookmark(name));
+        const iconBtn = (glyph: string, tip: string, onClick: () => void): HTMLButtonElement => {
+          const b = el("button");
+          b.textContent = glyph;
+          b.title = tip;
+          b.style.cssText = "border:none;background:transparent;cursor:pointer;color:#605e5c;width:24px;height:24px;border-radius:4px;font-size:13px;";
+          b.addEventListener("mousedown", (e) => e.preventDefault());
+          b.addEventListener("click", onClick);
+          return b;
+        };
+        const renameB = iconBtn("✎", "Rename bookmark", () => {
+          const next = prompt("Rename bookmark:", name);
+          if (next && next.trim() && next !== name) {
+            editor.dispatch(renameBookmarkCmd(name, next.trim()));
+            editor.focus();
+          }
+        });
+        const delB = iconBtn("🗑", "Delete bookmark", () => {
+          editor.dispatch(removeBookmarkCmd(name));
+          editor.focus();
+        });
+        row.append(go, renameB, delB);
+        list.appendChild(row);
+      }
+    };
+
+    let open = false;
+    const setOpen = (v: boolean): void => {
+      open = v;
+      panel.style.display = v ? "flex" : "none";
+      bookmarksBtn.classList.toggle("active", v);
+      if (v) build();
+    };
+    addBtn.addEventListener("click", () => {
+      const name = prompt("Bookmark name:");
+      if (name && name.trim()) {
+        editor.dispatch(addBookmarkCmd(name.trim()));
+        editor.focus();
+        build();
+      }
+    });
+    closeBtn.addEventListener("click", () => setOpen(false));
+    toggleBookmarks = (): void => setOpen(!open);
+    refreshBookmarks = (): void => {
+      if (open) build();
+    };
+    if (runtime.view?.bookmarks) setOpen(true); // closed by default; embedder can open it
+  }
+
+  // ---- Review pane (track changes + comments) — docked right, in-shell ----
+  const COMMENT_STYLE = { ...DEFAULT_CHAR_STYLE };
+  const commentFragment = (text: string): Fragment => [{ text, style: COMMENT_STYLE }];
+  {
+    const reviewEl = shell.review;
+    const authorName = (a: { firstName: string; lastName: string }): string => `${a.firstName} ${a.lastName}`.trim() || "Anonymous";
+    const initials = (a: { firstName: string; lastName: string }): string => ((a.firstName[0] ?? "?") + (a.lastName[0] ?? "")).toUpperCase();
+    const formatDateTime = (ms: number): string => {
+      const date = new Date(ms);
+      const now = new Date();
+      const diffMs = Math.max(0, now.getTime() - date.getTime());
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHours = Math.floor(diffMin / 60);
+
+      const isToday =
+        date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear();
+
+      if (isToday) {
+        if (diffSec < 10) return "just now";
+        if (diffSec < 60) return `${diffSec}s ago`;
+        if (diffMin < 60) return `${diffMin}m ago`;
+        return `${diffHours}h ago`;
+      }
+
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const day = pad(date.getDate());
+      const month = pad(date.getMonth() + 1);
+      const year = date.getFullYear();
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+
+      if (year === now.getFullYear()) {
+        return `${day}/${month} ${hours}:${minutes}`;
+      }
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
+    };
+    const mkBtn = (cls: string, label: string, onClick: () => void): HTMLButtonElement => {
+      const b = el("button") as HTMLButtonElement;
+      b.className = cls;
+      b.textContent = label;
+      b.addEventListener("mousedown", (e) => e.preventDefault());
+      b.addEventListener("click", onClick);
+      return b;
+    };
+    const avatar = (a: { id: string; firstName: string; lastName: string }): HTMLElement => {
+      const av = el("div", "ked-avatar");
+      av.style.background = colorForId(a.id);
+      av.textContent = initials(a);
+      return av;
+    };
+
+    // header
+    const head = el("div", "ked-review-head");
+    const title = el("span", "ked-review-title");
+    title.textContent = "Review";
+    const newCommentBtn = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "+ Comment", () => editor.startComment());
+    newCommentBtn.title = "Add comment at the selection (Ctrl+Alt+M)";
+    const closeBtn = mkBtn("ked-review-close", "×", () => setOpen(false));
+    closeBtn.title = "Close";
+    head.append(title, newCommentBtn, closeBtn);
+
+    // tabs
+    const tabs = el("div", "ked-review-tabs");
+    const tabSug = el("button", "ked-review-tab") as HTMLButtonElement;
+    const tabCom = el("button", "ked-review-tab") as HTMLButtonElement;
+    const sugPill = el("span", "ked-pill");
+    const comPill = el("span", "ked-pill");
+    tabSug.append(document.createTextNode("Suggestions "), sugPill);
+    tabCom.append(document.createTextNode("Comments "), comPill);
+    tabs.append(tabSug, tabCom);
+
+    const body = el("div", "ked-review-body");
+    reviewEl.append(head, tabs, body);
+
+    let activeTab: "suggestions" | "comments" = "suggestions";
+    let commentFilter: "open" | "resolved" | "all" = "open";
+    let activeThreadId: string | null = null;
+    const reviewDisposers = new Set<() => void>();
+    const disposeReviewBindings = (): void => {
+      for (const dispose of reviewDisposers) dispose();
+      reviewDisposers.clear();
+    };
+
+    const emptyState = (ico: string, text: string): HTMLElement => {
+      const e = el("div", "ked-review-empty");
+      const i = el("div", "ked-review-empty-ico");
+      i.innerHTML = ico;
+      const t = el("div");
+      t.textContent = text;
+      e.append(i, t);
+      return e;
+    };
+
+    const renderSuggestions = (review: ReturnType<typeof editor.getReview>): void => {
+      if (review.suggestions.length === 0) {
+        body.append(emptyState(ICONS.marks, "No suggestions yet. Switch the mode to Suggesting and edit — your changes become tracked proposals here."));
+        return;
+      }
+      const bar = el("div", "ked-review-actions");
+      bar.append(
+        mkBtn("ked-btn ked-btn-accept ked-btn-sm", "✓ Accept all", () => { editor.acceptAllSuggestions(); editor.focus(); }),
+        mkBtn("ked-btn ked-btn-reject ked-btn-sm", "✗ Reject all", () => { editor.rejectAllSuggestions(); editor.focus(); }),
+      );
+      body.append(bar);
+      for (const s of review.suggestions) {
+        const card = el("div", "ked-sug");
+        card.style.setProperty("--ked-author", colorForId(s.author.id));
+        const top = el("div", "ked-sug-top");
+        const kind = el("div", "ked-sug-kind");
+        const dot = el("span", "ked-dot");
+        const verb = s.kind === "insert" ? "Insertion" : s.kind === "delete" ? "Deletion" : "Formatting";
+        kind.append(dot, document.createTextNode(verb));
+        const meta = el("div", "ked-sug-meta");
+        meta.textContent = `${authorName(s.author)} · ${formatDateTime(s.createdAt)}`;
+        meta.title = new Date(s.createdAt).toLocaleString();
+        top.append(kind, meta);
+        const actions = el("div", "ked-sug-actions");
+        actions.append(
+          mkBtn("ked-btn ked-btn-accept ked-btn-sm", "✓ Accept", () => { editor.acceptSuggestion(s.id); editor.focus(); }),
+          mkBtn("ked-btn ked-btn-reject ked-btn-sm", "✗ Reject", () => { editor.rejectSuggestion(s.id); editor.focus(); }),
+        );
+        card.append(top, actions);
+        card.addEventListener("click", (e) => {
+          if (!(e.target as HTMLElement).closest("button")) editor.revealReview(s.id);
+        });
+        body.append(card);
+      }
+    };
+
+    // Render a comment body as text + highlighted @mention chips (matched against
+    // the comment's resolved mentions; longest display first to avoid overlaps).
+    const renderCommentBody = (host: HTMLElement, text: string, mentions?: { firstName: string; lastName: string }[]): void => {
+      const tokens = (mentions ?? []).map((u) => `@${authorName(u)}`).sort((a, b) => b.length - a.length);
+      if (tokens.length === 0) {
+        host.textContent = text;
+        return;
+      }
+      let rest = text;
+      while (rest.length > 0) {
+        let at = -1;
+        let tok = "";
+        for (const n of tokens) {
+          const i = rest.indexOf(n);
+          if (i >= 0 && (at < 0 || i < at)) { at = i; tok = n; }
+        }
+        if (at < 0) { host.appendChild(document.createTextNode(rest)); break; }
+        if (at > 0) host.appendChild(document.createTextNode(rest.slice(0, at)));
+        const chip = el("span", "ked-mention");
+        chip.textContent = tok;
+        host.appendChild(chip);
+        rest = rest.slice(at + tok.length);
+      }
+    };
+
+    const renderComments = (review: ReturnType<typeof editor.getReview>): void => {
+      const filters = el("div", "ked-comment-filters");
+      for (const value of ["open", "resolved", "all"] as const) {
+        const label = value[0]!.toUpperCase() + value.slice(1);
+        const button = mkBtn("ked-comment-filter" + (commentFilter === value ? " active" : ""), label, () => {
+          commentFilter = value;
+          build();
+        });
+        filters.append(button);
+      }
+      body.append(filters);
+      const threads = review.threads.filter((thread) =>
+        commentFilter === "all" || thread.status === commentFilter,
+      );
+      if (threads.length === 0) {
+        body.append(emptyState(ICONS.comment, review.threads.length === 0
+          ? "No comments yet. Select text or place the caret, then use + Comment or Ctrl+Alt+M."
+          : `No ${commentFilter} discussions.`));
+        return;
+      }
+      for (const t of threads) {
+        const card = el("div", t.status === "resolved" ? "ked-thread resolved" : "ked-thread");
+
+        // Level 1: Root Comment (Parent)
+        const rootComment = t.comments[0];
+        if (rootComment) {
+          const cm = el("div", "ked-comment ked-root");
+          const main = el("div", "ked-comment-main");
+          const who = el("div", "ked-comment-who");
+          who.textContent = authorName(rootComment.author);
+          const when = el("span", "ked-comment-when");
+          when.textContent = formatDateTime(rootComment.createdAt);
+          when.title = new Date(rootComment.createdAt).toLocaleString();
+          who.append(when);
+          const text = el("div", "ked-comment-body");
+          renderCommentBody(text, rootComment.body.map((r) => r.text).join(""), rootComment.mentions);
+          main.append(who, text);
+          cm.append(avatar(rootComment.author), main);
+          card.append(cm);
+        }
+
+        // Level 2: Replies (Child comments)
+        const replies = t.comments.slice(1);
+        if (replies.length > 0) {
+          const repliesWrap = el("div", "ked-replies-wrap");
+          for (const c of replies) {
+            const cm = el("div", "ked-comment ked-reply");
+            const main = el("div", "ked-comment-main");
+            const who = el("div", "ked-comment-who");
+            who.textContent = authorName(c.author);
+            const when = el("span", "ked-comment-when");
+            when.textContent = formatDateTime(c.createdAt);
+            when.title = new Date(c.createdAt).toLocaleString();
+            who.append(when);
+            const text = el("div", "ked-comment-body");
+            renderCommentBody(text, c.body.map((r) => r.text).join(""), c.mentions);
+            main.append(who, text);
+            cm.append(avatar(c.author), main);
+            repliesWrap.append(cm);
+          }
+          card.append(repliesWrap);
+        }
+
+        if (t.status === "resolved") {
+          const actions = el("div", "ked-thread-actions");
+          const tag = el("span", "ked-resolved-tag");
+          tag.textContent = "✓ Resolved";
+          actions.append(tag);
+          actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reopen", () => {
+            editor.resolveThread(t.id, false);
+            editor.focus();
+          }));
+          card.append(actions);
+        } else {
+          const curUser = runtime.user ?? { id: "current-user", firstName: "You", lastName: "" };
+
+          // 1. Collapsed prompt button
+          const promptRow = el("div", "ked-reply-prompt");
+          const pAv = avatar(curUser);
+          pAv.style.cssText = "width:20px;height:20px;font-size:9px;flex:0 0 20px;";
+          const pText = el("span", "ked-reply-prompt-text");
+          pText.textContent = "Reply… (@ to mention)";
+          promptRow.append(pAv, pText);
+
+          // 2. Expanded reply composer box
+          const replyBox = el("div", "ked-reply-box");
+          const replyRow = el("div", "ked-reply-row");
+          const userAv = avatar(curUser);
+          const replyTa = el("textarea", "ked-reply-textarea") as HTMLTextAreaElement;
+          replyTa.placeholder = "Write a reply… (@ to mention)";
+          replyRow.append(userAv, replyTa);
+
+          const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers());
+
+          const replyActions = el("div", "ked-reply-actions");
+          const cancelBtn = mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Cancel", () => {
+            replyTa.value = "";
+            replyMentions.destroy();
+            replyBox.classList.remove("open");
+            promptRow.style.display = "flex";
+            actions.style.display = "flex";
+            editor.focus();
+          });
+          const sendBtn = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "Reply", () => {
+            const v = replyTa.value.trim();
+            if (!v) return;
+            editor.replyToComment(t.id, commentFragment(v), replyMentions.getMentions());
+            replyTa.value = "";
+            replyMentions.destroy();
+            replyBox.classList.remove("open");
+            editor.focus();
+          });
+          (sendBtn as HTMLButtonElement).disabled = true;
+
+          replyTa.addEventListener("input", () => {
+            (sendBtn as HTMLButtonElement).disabled = replyTa.value.trim().length === 0;
+            replyTa.style.height = "auto";
+            replyTa.style.height = `${Math.min(180, Math.max(52, replyTa.scrollHeight))}px`;
+          });
+
+          replyTa.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              cancelBtn.click();
+            } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              if (!(sendBtn as HTMLButtonElement).disabled) {
+                sendBtn.click();
+              }
+            }
+          });
+
+          replyActions.append(cancelBtn, sendBtn);
+          replyBox.append(replyRow, replyActions);
+
+          const actions = el("div", "ked-thread-actions");
+          const openReplyComposer = (): void => {
+            promptRow.style.display = "none";
+            actions.style.display = "none";
+            replyBox.classList.add("open");
+            setTimeout(() => replyTa.focus(), 0);
+          };
+
+          actions.append(
+            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reply", () => {
+              openReplyComposer();
+            }),
+            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Resolve", () => {
+              editor.resolveThread(t.id, true);
+              editor.focus();
+            }),
+          );
+
+          promptRow.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openReplyComposer();
+          });
+
+          card.append(promptRow, replyBox, actions);
+        }
+
+        card.addEventListener("click", (e) => {
+          if (!(e.target as HTMLElement).closest("button, textarea, .ked-reply-box, .ked-reply-prompt")) {
+            editor.revealReview(t.id);
+          }
+        });
+        body.append(card);
+      }
+    };
+
+    const build = (): void => {
+      const review = editor.getReview();
+      sugPill.textContent = String(review.suggestions.length);
+      comPill.textContent = String(review.threads.filter((t) => t.status === "open").length);
+      tabSug.classList.toggle("active", activeTab === "suggestions");
+      tabCom.classList.toggle("active", activeTab === "comments");
+      disposeReviewBindings();
+      body.textContent = "";
+      newCommentBtn.hidden = editor.getMode() === "view";
+      newCommentBtn.disabled = !editor.getSelection() || !editor.canReviewAction("comment.create");
+      if (activeTab === "suggestions") renderSuggestions(review);
+      else renderComments(review);
+    };
+    tabSug.addEventListener("click", () => { activeTab = "suggestions"; build(); });
+    tabCom.addEventListener("click", () => { activeTab = "comments"; build(); });
+
+    let open = false;
+    const setOpen = (v: boolean): void => {
+      open = v;
+      reviewEl.classList.toggle("open", v);
+      reviewBtn.classList.toggle("active", v);
+      if (v) build();
+      else disposeReviewBindings();
+    };
+    toggleReview = (): void => setOpen(!open);
+    focusCommentThread = (threadId: string): void => {
+      activeTab = "comments";
+      activeThreadId = threadId;
+      const thread = editor.getReview().threads.find((item) => item.id === threadId);
+      if (thread?.status === "resolved") commentFilter = "resolved";
+      else commentFilter = "open";
+      setOpen(true);
+      requestAnimationFrame(() => {
+        body.querySelector<HTMLElement>(`[data-thread-id="${CSS.escape(threadId)}"]`)?.scrollIntoView({ block: "nearest" });
+      });
+    };
+    refreshReview = (): void => {
+      if (open) build();
+    };
+    if (runtime.view?.reviewPane) setOpen(true); // closed by default; embedder can open it
+  }
+
+  // Collapse / expand the ribbon body (keeps the tab strip). A pinned chevron
+  // on the right of the tab strip toggles it; clicking any tab re-pins.
+  const collapseBtn = el("button", "rib-tab");
+  // headerReview carries the single margin-left:auto that pushes the right
+  // cluster to the corner; the collapse chevron just sits after it with a gap.
+  collapseBtn.style.marginLeft = "6px";
+  collapseBtn.innerHTML = chevron(true);
+  const setCollapsed = (v: boolean): void => {
+    toolbar.classList.toggle("collapsed", v);
+    collapseBtn.innerHTML = chevron(!v);
+    collapseBtn.title = v ? "Pin the ribbon" : "Collapse the ribbon (Ctrl+F1)";
+  };
+  collapseBtn.addEventListener("click", () => setCollapsed(!toolbar.classList.contains("collapsed")));
+  window.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "F1") {
+      e.preventDefault();
+      setCollapsed(!toolbar.classList.contains("collapsed"));
+    }
+  }, { signal: teardown.signal });
+  setCollapsed(false);
+  tabsBar.appendChild(collapseBtn);
+
+  // ===== customizeRibbon: reorder/remove built-ins + add custom tabs/buttons ===
+  if (runtime.customizeRibbon) {
+    const warn = (what: string, id: string): void =>
+      console.warn(`[kindy-editor] customizeRibbon: ${what} "${id}" not found`);
+    // DOM is the source of truth for order; these read current ids in order.
+    const tabOrder = (): string[] =>
+      [...tabScroll.children].map((c) => (c as HTMLElement).dataset?.["ribbonTab"]).filter((x): x is string => !!x);
+    const groupOrder = (tabId: string): string[] => {
+      const panel = ribTabsById.get(tabId)?.panel;
+      return panel
+        ? [...panel.querySelectorAll(":scope > .rib-group")]
+            .map((g) => (g as HTMLElement).dataset["ribbonGroup"])
+            .filter((x): x is string => !!x)
+        : [];
+    };
+    const itemOrder = (groupId: string): string[] => {
+      const g = ribGroupsById.get(groupId)?.groupEl;
+      return g
+        ? [...g.querySelectorAll("[data-ribbon-item]")]
+            .map((e) => (e as HTMLElement).dataset["ribbonItem"])
+            .filter((x): x is string => !!x)
+        : [];
+    };
+    const dropSync = (target: HTMLElement): void => {
+      for (let i = toggleButtons.length - 1; i >= 0; i--) if (toggleButtons[i]!.el === target) toggleButtons.splice(i, 1);
+      for (let i = enableButtons.length - 1; i >= 0; i--) if (enableButtons[i]!.el === target) enableButtons.splice(i, 1);
+    };
+    const buildCustomButton = (spec: RibbonButtonSpec): HTMLButtonElement => {
+      const b = el("button", "rib-btn");
+      if (spec.icon !== undefined) b.innerHTML = spec.icon;
+      else {
+        const s = el("span");
+        s.textContent = spec.label ?? "";
+        b.appendChild(s);
+      }
+      if (spec.tooltip) b.title = spec.tooltip;
+      b.dataset["ribbonItem"] = spec.id;
+      b.addEventListener("mousedown", (e) => e.preventDefault());
+      b.addEventListener("click", () => {
+        try {
+          if (ribbonCtx) spec.onClick(ribbonCtx);
+        } catch (err) {
+          console.error("[kindy-editor] custom ribbon button onClick threw", err);
+        }
+      });
+      if (spec.active) toggleButtons.push({ el: b, active: spec.active });
+      if (spec.enabled) enableButtons.push({ el: b, enabled: spec.enabled, title: spec.tooltip ?? "" });
+      return b;
+    };
+    const api: RibbonApi = {
+      tabs: () => tabOrder(),
+      groups: (tabId) => groupOrder(tabId),
+      items: (groupId) => itemOrder(groupId),
+      addTab: (spec) => {
+        if (ribTabsById.has(spec.id)) return warn("tab (already exists)", spec.id);
+        const beforeId = anchorBeforeId(tabOrder(), spec, spec.id);
+        const ref = (beforeId ? ribTabsById.get(beforeId)?.btn : null) ?? null;
+        const panel = tab(spec.id, spec.label);
+        tabScroll.insertBefore(ribTabsById.get(spec.id)!.btn, ref);
+        void panel;
+      },
+      removeTab: (id) => {
+        const node = ribTabsById.get(id);
+        if (!node) return warn("tab", id);
+        node.btn.remove();
+        node.panel.remove();
+        ribTabsById.delete(id);
+        tabButtons.delete(id);
+        tabPanels.delete(id);
+      },
+      moveTab: (id, pos) => {
+        const node = ribTabsById.get(id);
+        if (!node) return warn("tab", id);
+        const beforeId = anchorBeforeId(tabOrder(), pos, id);
+        const ref = (beforeId ? ribTabsById.get(beforeId)?.btn : null) ?? null;
+        tabScroll.insertBefore(node.btn, ref);
+      },
+      addGroup: (tabId, spec) => {
+        const tabNode = ribTabsById.get(tabId);
+        if (!tabNode) return warn("tab", tabId);
+        if (ribGroupsById.has(spec.id)) return warn("group (already exists)", spec.id);
+        const g = el("div", "rib-group");
+        const c = el("div", "rib-controls");
+        const l = el("div", "rib-label");
+        l.textContent = spec.label;
+        g.append(c, l);
+        g.dataset["ribbonGroup"] = spec.id;
+        ribGroupsById.set(spec.id, { tabId, groupEl: g, container: c });
+        const beforeId = anchorBeforeId(groupOrder(tabId), spec, spec.id);
+        const ref = beforeId ? ribGroupsById.get(beforeId)?.groupEl ?? null : null;
+        tabNode.panel.insertBefore(g, ref);
+      },
+      removeGroup: (id) => {
+        const node = ribGroupsById.get(id);
+        if (!node) return warn("group", id);
+        for (const itemId of itemOrder(id)) {
+          const it = ribItemsById.get(itemId);
+          if (it) dropSync(it.el as HTMLElement);
+          ribItemsById.delete(itemId);
+        }
+        node.groupEl.remove();
+        ribGroupsById.delete(id);
+      },
+      moveGroup: (id, pos) => {
+        const node = ribGroupsById.get(id);
+        if (!node) return warn("group", id);
+        const beforeId = anchorBeforeId(groupOrder(node.tabId), pos, id);
+        const ref = beforeId ? ribGroupsById.get(beforeId)?.groupEl ?? null : null;
+        node.groupEl.parentElement?.insertBefore(node.groupEl, ref);
+      },
+      addButton: (groupId, spec) => {
+        const gnode = ribGroupsById.get(groupId);
+        if (!gnode) return warn("group", groupId);
+        if (ribItemsById.has(spec.id)) return warn("button (id already exists)", spec.id);
+        const b = buildCustomButton(spec);
+        ribItemsById.set(spec.id, { groupId, el: b });
+        const beforeId = anchorBeforeId(itemOrder(groupId), spec, spec.id);
+        const ref = beforeId ? ribItemsById.get(beforeId)?.el ?? null : null;
+        if (ref && ref.parentElement) ref.parentElement.insertBefore(b, ref);
+        else gnode.container.appendChild(b);
+      },
+      removeItem: (id) => {
+        const node = ribItemsById.get(id);
+        if (!node) return warn("item", id);
+        dropSync(node.el as HTMLElement);
+        node.el.remove();
+        ribItemsById.delete(id);
+      },
+      moveItem: (id, pos) => {
+        const node = ribItemsById.get(id);
+        if (!node) return warn("item", id);
+        const targetGroup = pos.toGroup ?? node.groupId;
+        const gnode = ribGroupsById.get(targetGroup);
+        if (!gnode) return warn("group", targetGroup);
+        const beforeId = anchorBeforeId(itemOrder(targetGroup), pos, id);
+        const ref = beforeId ? ribItemsById.get(beforeId)?.el ?? null : null;
+        if (ref && ref.parentElement) ref.parentElement.insertBefore(node.el, ref);
+        else gnode.container.appendChild(node.el);
+        node.groupId = targetGroup;
+      },
+    };
+    try {
+      runtime.customizeRibbon(api);
+    } catch (err) {
+      console.error("[kindy-editor] customizeRibbon threw", err);
+    }
+    // Custom buttons' active/enabled predicates sync on the next syncToolbar()
+    // (wired to editor onChange + the initial sync below).
+  }
+
+  // Container-width-driven compact ribbon: when the EDITOR itself is narrow (not
+  // just the viewport — so it also works embedded in a narrow pane on a wide page),
+  // switch the body to a dense, single horizontally-scrollable row. Mirrors the
+  // `.collapsed` class pattern. Hysteresis (enter <720, exit ≥760) avoids flapping.
+  if (typeof ResizeObserver !== "undefined") {
+    const COMPACT_ON = 720;
+    const COMPACT_OFF = 760;
+    const applyCompact = (w: number): void => {
+      const on = toolbar.classList.contains("compact");
+      if (!on && w < COMPACT_ON) toolbar.classList.add("compact");
+      else if (on && w >= COMPACT_OFF) toolbar.classList.remove("compact");
+    };
+    compactRO = new ResizeObserver((entries) => {
+      for (const e of entries) applyCompact(e.contentRect.width);
+    });
+    compactRO.observe(shell.root);
+  }
+
+  showTab("home");
+  // After showTab (which re-pins), honor the embedder's initial collapsed choice.
+  if (runtime.view?.ribbonCollapsed) setCollapsed(true);
+
+  // ---- toolbar controls mirror the caret formatting -----------------------
+  let lastStylesheet = editor.getDocument().stylesheet ?? null;
+  let lastUsedSig = ""; // signature of the in-use style set (for the gallery filter)
+  syncToolbar = (): void => {
+    // A .docx import swaps the whole stylesheet — rebuild the gallery so
+    // imported style ids (Heading 1, …) resolve instead of sticking on Normal.
+    const sheet = editor.getDocument().stylesheet ?? null;
+    if (sheet !== lastStylesheet) {
+      lastStylesheet = sheet;
+      rebuildStyleGallery();
+      styleMgr?.refresh();
+    } else if (hideUnusedStyles) {
+      // While the "in use" filter is on, keep it live as usage changes (applying
+      // or clearing a style). Cheap signature check — only runs while filtering.
+      const sig = [...usedStyleIds()].sort().join(",");
+      if (sig !== lastUsedSig) { lastUsedSig = sig; rebuildStyleGallery(); }
+    }
+    const f = editor.currentFormat();
+    if (f.styleId) {
+      // Paragraph references a style the gallery doesn't list (importer kept the
+      // ref but the sheet lacks it) — surface it rather than lying.
+      if (!styleCards.has(f.styleId)) addStyleCard(f.styleId, f.styleId);
+      for (const [id, c] of styleCards) c.classList.toggle("active", id === f.styleId);
+    }
+    if (f.fontFamily) {
+      const match = toolbarFonts(config.fonts).find((x) => x.value.toLowerCase() === f.fontFamily!.toLowerCase());
+      if (match) fontSelect.value = match.value;
+    }
+    if (f.fontSizePx !== null && document.activeElement !== sizeInput) {
+      sizeInput.value = String(pxToPt(f.fontSizePx));
+    }
+    curLineHeight = f.lineHeight; // read by the line-spacing menu when opened
+    // Pressed state for B/I/U/S, highlight, sub/super, lists, alignment.
+    for (const t of toggleButtons) t.el.classList.toggle("active", t.active(f));
+    // Enabled state for context-dependent buttons (image, content control, …).
+    for (const e of enableButtons) {
+      const on = e.enabled(f);
+      e.el.disabled = !on;
+      e.el.title = on || !e.hint ? e.title : `${e.title} — ${e.hint}`;
+    }
+  };
+
+  // Reflect the live zoom (also driven by Ctrl+wheel): snap the select to the
+  // nearest preset, or insert a one-off "NN%" option for in-between values.
+  syncZoom = (z: number): void => {
+    const pct = `${Math.round(z * 100)}%`;
+    const preset = [...zoomSel.options].find((o) => o.textContent === pct);
+    [...zoomSel.options].filter((o) => o.dataset["custom"]).forEach((o) => o.remove());
+    if (preset) {
+      zoomSel.value = preset.value;
+    } else {
+      const o = el("option");
+      o.value = String(z);
+      o.textContent = pct;
+      o.dataset["custom"] = "1";
+      zoomSel.appendChild(o);
+      zoomSel.value = String(z);
+    }
+  };
+
+  syncToolbar(); // set initial pressed/enabled state before the first edit
+}
+
+// ---- status bar (page count, word/character count, zoom slider) -------------
+{
+  const sb = shell.statusbar;
+  if (runtime.view?.statusBar === false) sb.style.display = "none";
+  if (sb) {
+    const left = document.createElement("div");
+    left.className = "sb-left";
+    const right = document.createElement("div");
+    right.className = "sb-right";
+    sb.append(left, right);
+    const item = (parent: HTMLElement): HTMLSpanElement => {
+      const s = document.createElement("span");
+      s.className = "sb-item";
+      parent.appendChild(s);
+      return s;
+    };
+    const pageItem = item(left);
+    const wordItem = item(left);
+
+    const zBtn = (label: string, title: string, onClick: () => void): void => {
+      const b = document.createElement("button");
+      b.className = "sb-btn";
+      b.textContent = label;
+      b.title = title;
+      b.addEventListener("click", onClick);
+      right.appendChild(b);
+    };
+    zBtn("−", "Zoom out", () => editor.setZoom(editor.getZoom() / config.behavior.zoomStep));
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = "50";
+    slider.max = "300";
+    slider.step = "10";
+    slider.title = "Zoom";
+    slider.addEventListener("input", () => editor.setZoom(Number(slider.value) / 100));
+    right.appendChild(slider);
+    zBtn("+", "Zoom in", () => editor.setZoom(editor.getZoom() * config.behavior.zoomStep));
+    const zLabel = document.createElement("span");
+    zLabel.className = "sb-item sb-zoom";
+    right.appendChild(zLabel);
+
+    // Page shown is the one the user is LOOKING AT (scroll), not where the caret
+    // is: the deepest page whose top has scrolled above a line in the upper view.
+    let pageCount = 1;
+    const setPageItem = (): void => {
+      const phs = app.querySelectorAll<HTMLElement>("[data-page]");
+      let current = 1;
+      if (phs.length) {
+        const appRect = app.getBoundingClientRect();
+        const refLine = appRect.top + appRect.height * 0.3;
+        phs.forEach((ph) => {
+          if (ph.getBoundingClientRect().top <= refLine) current = Number(ph.dataset["page"]) + 1;
+        });
+      }
+      pageItem.textContent = `Page ${Math.min(current, pageCount)} of ${pageCount}`;
+    };
+
+    refreshStatus = (): void => {
+      pageCount = editor.getLayoutInfo().pageCount;
+      let chars = 0;
+      let words = 0;
+      for (const p of paragraphsOf(editor.getDocument())) {
+        const t = textOfRuns(p.runs);
+        chars += t.length;
+        const m = t.match(/\S+/g);
+        if (m) words += m.length;
+      }
+      wordItem.textContent = `${words} word${words === 1 ? "" : "s"} · ${chars} character${chars === 1 ? "" : "s"}`;
+      const pct = Math.round(editor.getZoom() * 100);
+      slider.value = String(Math.min(300, Math.max(50, pct)));
+      zLabel.textContent = `${pct}%`;
+      setPageItem();
+    };
+    // Scrolling only re-evaluates the visible page (cheap) — not the word count.
+    app.addEventListener("scroll", setPageItem, { passive: true });
+    window.addEventListener("resize", setPageItem, { signal: teardown.signal });
+    refreshStatus();
+  }
+}
+
+// ---- horizontal ruler (inch ticks, margin shading, draggable indents) -------
+{
+  // View-only: the ruler's only interactions are draggable indent markers, so
+  // hide it (refreshRuler also early-returns while hidden).
+  const rulerRow = shell.ruler.parentElement as HTMLElement; // .ked-ruler-row
+  const rulerCorner = rulerRow.firstElementChild as HTMLElement; // .ked-ruler-corner (spacer over the vruler)
+  const ruler = readonly ? null : shell.ruler;
+  // Apply initial visibility: hide the whole ruler-row when the horizontal ruler
+  // is off (otherwise it leaves an empty 22px bar), and hide the corner spacer
+  // when the vertical ruler is off so the horizontal ruler aligns with .ked-app.
+  if (!showHRuler) {
+    rulerRow.classList.add("hidden");
+    shell.ruler.classList.add("hidden");
+  }
+  if (!showVRuler) {
+    shell.vruler.classList.add("hidden");
+    rulerCorner.classList.add("hidden");
+  }
+  if (ruler) {
+    const canvas = document.createElement("canvas");
+    const leftMarker = document.createElement("div");
+    leftMarker.className = "ruler-marker ruler-left";
+    leftMarker.title = "Left indent — drag to set";
+    const firstMarker = document.createElement("div");
+    firstMarker.className = "ruler-marker ruler-first";
+    firstMarker.title = "First-line indent — drag to set";
+    ruler.append(canvas, leftMarker, firstMarker);
+
+    // Geometry captured each refresh, read by the drag handlers.
+    let geom: { contentLeft: number; zoom: number; paraId: string | null; li: number; fi: number } | null = null;
+
+    const draw = (W: number, H: number, pageLeft: number, pageW: number, cL: number, cR: number, zoom: number): void => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = `${W}px`;
+      canvas.style.height = `${H}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      // page band (margins greyed, content white)
+      ctx.fillStyle = config.theme.ruler.bg;
+      ctx.fillRect(pageLeft, 4, pageW, H - 8);
+      ctx.fillStyle = config.theme.ruler.content;
+      ctx.fillRect(cL, 4, cR - cL, H - 8);
+      // inch ticks + numbers, measured from the left content edge (Word's 0)
+      // Ticks hang from the top of the ruler band; numbers sit in the lower half
+      // so they never overlap the tick lines.
+      const inch = PX_PER_INCH * zoom;
+      const tickTop = RULER_TICK_START; // top of the page band
+      const tickBot = RULER_TICK_LEN;   // bottom of the major tick (6 px, upper half only)
+      const halfTickBot = RULER_HALF_TICK_LEN; // bottom of the half-inch tick (4 px)
+      const numY = H - 4;       // number baseline anchored to the bottom of the band
+      ctx.strokeStyle = config.theme.ruler.line;
+      ctx.fillStyle = config.theme.ruler.label;
+      ctx.font = config.theme.ruler.font;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.lineWidth = 1;
+      for (let i = 1; cL + i * inch < cR - 2; i++) {
+        const x = Math.round(cL + i * inch) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x, tickTop);
+        ctx.lineTo(x, tickBot);
+        ctx.stroke();
+        ctx.fillText(String(i), x, numY);
+        // mid tick at the half-inch
+        const hx = Math.round(cL + (i - 0.5) * inch) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(hx, tickTop);
+        ctx.lineTo(hx, halfTickBot);
+        ctx.stroke();
+      }
+    };
+
+    refreshRuler = (): void => {
+      if (ruler.classList.contains("hidden")) return;
+      const ph = app.querySelector<HTMLElement>("[data-page]");
+      if (!ph) {
+        leftMarker.style.display = firstMarker.style.display = "none";
+        return;
+      }
+      const appRect = app.getBoundingClientRect();
+      const phRect = ph.getBoundingClientRect();
+      const zoom = editor.getZoom();
+      const sec = editor.getDocument().section;
+      const pageLeft = phRect.left - appRect.left;
+      const pageW = phRect.width;
+      const cL = pageLeft + sec.marginPx.left * zoom;
+      const cR = pageLeft + pageW - sec.marginPx.right * zoom;
+      draw(ruler.clientWidth, ruler.clientHeight, pageLeft, pageW, cL, cR, zoom);
+      // indent markers for the caret paragraph
+      const sel = editor.getSelection();
+      const para = sel ? paragraphsOf(editor.getDocument()).find((p) => p.id === sel.focus.blockId) : null;
+      if (para) {
+        const li = para.style.indentLeftPx ?? 0;
+        const fi = para.style.indentFirstLinePx ?? 0;
+        leftMarker.style.left = `${cL + li * zoom - 5}px`;
+        firstMarker.style.left = `${cL + (li + fi) * zoom - 5}px`;
+        leftMarker.style.display = firstMarker.style.display = "block";
+        geom = { contentLeft: cL, zoom, paraId: para.id, li, fi };
+      } else {
+        leftMarker.style.display = firstMarker.style.display = "none";
+        geom = null;
+      }
+    };
+
+    const startDrag = (which: "left" | "first") => (e: PointerEvent): void => {
+      const g = geom;
+      if (!g || !g.paraId) return;
+      e.preventDefault();
+      let liNext = g.li;
+      let fiNext = g.fi;
+      const onMove = (ev: PointerEvent): void => {
+        const x = ev.clientX - app.getBoundingClientRect().left;
+        const px = Math.max(0, (x - g.contentLeft) / g.zoom);
+        if (which === "left") {
+          liNext = px;
+          leftMarker.style.left = `${g.contentLeft + liNext * g.zoom - 5}px`;
+          firstMarker.style.left = `${g.contentLeft + (liNext + fiNext) * g.zoom - 5}px`;
+        } else {
+          fiNext = px - liNext; // first line sits at left-indent + first-line-indent
+          firstMarker.style.left = `${g.contentLeft + px * g.zoom - 5}px`;
+        }
+      };
+      const onUp = (): void => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        editor.dispatch(
+          setParaProps(which === "left" ? { indentLeftPx: Math.round(liNext) } : { indentFirstLinePx: Math.round(fiNext) }),
+        );
+        editor.focus();
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    };
+    leftMarker.addEventListener("pointerdown", startDrag("left"));
+    firstMarker.addEventListener("pointerdown", startDrag("first"));
+
+    app.addEventListener("scroll", () => refreshRuler());
+    window.addEventListener("resize", () => refreshRuler(), { signal: teardown.signal });
+    // expose a toggle for the View-tab button — toggles the whole ruler-row (so
+    // the corner spacer doesn't linger as an empty bar) and the ruler in lockstep.
+    toggleRuler = (): boolean => {
+      const hidden = rulerRow.classList.toggle("hidden");
+      ruler.classList.toggle("hidden", hidden);
+      if (!hidden) refreshRuler();
+      return !hidden;
+    };
+    refreshRuler();
+  }
+
+  // ---- vertical ruler (inch ticks + draggable top/bottom margin markers) ----
+  // A mirror of the horizontal ruler down the left of the scroll area, with
+  // draggable handles at the page's top/bottom margin boundaries (Word's vertical
+  // ruler resize). Tracks the topmost visible page so it stays meaningful while
+  // scrolling.
+  if (!readonly) {
+    const vruler = shell.vruler;
+    const vcanvas = document.createElement("canvas");
+    const topMarker = document.createElement("div");
+    topMarker.className = "vruler-marker vruler-top";
+    topMarker.title = "Top margin — drag to set";
+    const bottomMarker = document.createElement("div");
+    bottomMarker.className = "vruler-marker vruler-bottom";
+    bottomMarker.title = "Bottom margin — drag to set";
+    vruler.append(vcanvas, topMarker, bottomMarker);
+
+    // Geometry captured each refresh, read by the margin drag handlers.
+    let vgeom: { pageTop: number; pageH: number; zoom: number; topPx: number; bottomPx: number } | null = null;
+
+    const drawV = (W: number, H: number, pageTop: number, pageH: number, cT: number, cB: number, zoom: number): void => {
+      const ctx = vcanvas.getContext("2d");
+      if (!ctx) return;
+      const dpr = window.devicePixelRatio || 1;
+      vcanvas.width = Math.round(W * dpr);
+      vcanvas.height = Math.round(H * dpr);
+      vcanvas.style.width = `${W}px`;
+      vcanvas.style.height = `${H}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      // page band (margins greyed, content white) — mirror of the horizontal draw
+      ctx.fillStyle = config.theme.ruler.bg;
+      ctx.fillRect(4, pageTop, W - 8, pageH);
+      ctx.fillStyle = config.theme.ruler.content;
+      ctx.fillRect(4, cT, W - 8, cB - cT);
+      // inch ticks + numbers, measured from the top content edge (Word's 0)
+      const inch = PX_PER_INCH * zoom;
+      const tickLeft = RULER_TICK_START;
+      const tickRight = RULER_TICK_LEN; // major tick (6 px)
+      const halfTickRight = RULER_HALF_TICK_LEN; // half-inch tick (4 px)
+      const numX = W - 4;
+      ctx.strokeStyle = config.theme.ruler.line;
+      ctx.fillStyle = config.theme.ruler.label;
+      ctx.font = config.theme.ruler.font;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.lineWidth = 1;
+      for (let i = 1; cT + i * inch < cB - 2; i++) {
+        const y = Math.round(cT + i * inch) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(tickLeft, y);
+        ctx.lineTo(tickRight, y);
+        ctx.stroke();
+        ctx.fillText(String(i), numX, y);
+        const hy = Math.round(cT + (i - 0.5) * inch) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(tickLeft, hy);
+        ctx.lineTo(halfTickRight, hy);
+        ctx.stroke();
+      }
+    };
+
+    refreshVRuler = (): void => {
+      if (vruler.classList.contains("hidden")) return;
+      const appRect = app.getBoundingClientRect();
+      // Topmost page still in view (its bottom past the scroll area's top), so the
+      // ruler tracks the page you're reading rather than always page 1.
+      let ph: HTMLElement | null = null;
+      for (const el of app.querySelectorAll<HTMLElement>("[data-page]")) {
+        if (el.getBoundingClientRect().bottom > appRect.top) {
+          ph = el;
+          break;
+        }
+      }
+      if (!ph) {
+        topMarker.style.display = bottomMarker.style.display = "none";
+        vgeom = null;
+        return;
+      }
+      const vRect = vruler.getBoundingClientRect();
+      const phRect = ph.getBoundingClientRect();
+      const zoom = editor.getZoom();
+      const sec = editor.getDocument().section;
+      const pageTop = phRect.top - vRect.top;
+      const pageH = phRect.height;
+      const cT = pageTop + sec.marginPx.top * zoom;
+      const cB = pageTop + pageH - sec.marginPx.bottom * zoom;
+      drawV(vruler.clientWidth, vruler.clientHeight, pageTop, pageH, cT, cB, zoom);
+      // Position the margin handles at the content boundaries (centered on them).
+      topMarker.style.top = `${cT - 5}px`;
+      bottomMarker.style.top = `${cB - 5}px`;
+      topMarker.style.display = bottomMarker.style.display = "block";
+      vgeom = { pageTop, pageH, zoom, topPx: sec.marginPx.top, bottomPx: sec.marginPx.bottom };
+    };
+
+    const startVDrag = (which: "top" | "bottom") => (e: PointerEvent): void => {
+      const g = vgeom;
+      if (!g) return;
+      e.preventDefault();
+      let topNext = g.topPx;
+      let bottomNext = g.bottomPx;
+      const pageHDoc = g.pageH / g.zoom; // page height in document px
+      const MIN_CONTENT = 48; // keep at least this much white between margins
+      const onMove = (ev: PointerEvent): void => {
+        const y = ev.clientY - vruler.getBoundingClientRect().top; // ruler-local screen-y
+        if (which === "top") {
+          const maxTop = pageHDoc - bottomNext - MIN_CONTENT;
+          topNext = Math.max(0, Math.min(maxTop, (y - g.pageTop) / g.zoom));
+          topMarker.style.top = `${g.pageTop + topNext * g.zoom - 5}px`;
+        } else {
+          const pageBottom = g.pageTop + g.pageH;
+          const maxBottom = pageHDoc - topNext - MIN_CONTENT;
+          bottomNext = Math.max(0, Math.min(maxBottom, (pageBottom - y) / g.zoom));
+          bottomMarker.style.top = `${pageBottom - bottomNext * g.zoom - 5}px`;
+        }
+      };
+      const onUp = (): void => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        const base = pageSetupAt({ doc: editor.getDocument(), selection: editor.getSelection() });
+        editor.dispatch(
+          applyPageSetup({
+            ...base,
+            marginPx: { ...base.marginPx, top: Math.round(topNext), bottom: Math.round(bottomNext) },
+          }),
+        );
+        editor.focus();
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    };
+    topMarker.addEventListener("pointerdown", startVDrag("top"));
+    bottomMarker.addEventListener("pointerdown", startVDrag("bottom"));
+
+    app.addEventListener("scroll", () => refreshVRuler());
+    window.addEventListener("resize", () => refreshVRuler(), { signal: teardown.signal });
+    toggleVRuler = (): boolean => {
+      const hidden = vruler.classList.toggle("hidden");
+      rulerCorner.classList.toggle("hidden", hidden); // corner spacer tracks the vruler
+      refreshRuler(); // the horizontal ruler shifts as the corner appears/disappears
+      if (!hidden) refreshVRuler();
+      return !hidden;
+    };
+    refreshVRuler();
+  }
+}
+
+// ---- floating image mini-toolbar -------------------------------------------
+// Appears above a selected image (Word's hover bar): wrap, align, delete.
+// Includes a Properties button (ICONS.imageProps) that opens showImageDialog
+// so the user can adjust size / wrap / align / alt-text in one panel.
+// Skipped in view-only mode — images can't be selected there.
+if (!readonly) {
+  const bar = document.createElement("div");
+  bar.className = "ked-img-toolbar";
+  document.body.appendChild(bar);
+  detachables.push(bar);
+  const ibtn = (icon: string, title: string, onClick: () => void, cls = ""): void => {
+    const b = document.createElement("button");
+    if (cls) b.className = cls;
+    b.innerHTML = icon;
+    b.title = title;
+    b.addEventListener("mousedown", (e) => e.preventDefault()); // keep the image selected
+    b.addEventListener("click", () => {
+      onClick();
+      refreshImageBar();
+    });
+    bar.appendChild(b);
+  };
+  const sep = (): void => {
+    const s = document.createElement("div");
+    s.className = "sep";
+    bar.appendChild(s);
+  };
+  const withImg = (fn: (id: string) => void): void => {
+    const id = editor.getSelectedObject();
+    if (id) fn(id);
+  };
+
+  /** Find an image block anywhere in the document (body, header/footer bands, table cells). */
+  const findImageBlock = (blockId: string): ImageBlock | null => {
+    let found: ImageBlock | null = null;
+    forEachImage(editor.getDocument(), (img) => {
+      if (img.id === blockId) found = img;
+    });
+    return found;
+  };
+
+  ibtn(ICONS.wrapInline, "In line with text", () => withImg((id) => editor.dispatch(setImageProps(id, { wrap: "block", align: "center" }))));
+  ibtn(ICONS.wrapSquare, "Wrap text (square)", () => withImg((id) => editor.dispatch(setImageProps(id, { wrap: "square", align: "left" }))));
+  sep();
+  ibtn(ICONS.alignLeft, "Align left", () => editor.align("left"));
+  ibtn(ICONS.alignCenter, "Align center", () => editor.align("center"));
+  ibtn(ICONS.alignRight, "Align right", () => editor.align("right"));
+  sep();
+  // Properties button — opens the Image Properties floating dialog.
+  ibtn(ICONS.imageProps, "Image properties…", () => {
+    const id = editor.getSelectedObject();
+    if (!id) return;
+    const img = findImageBlock(id);
+    if (!img) return;
+    showImageDialog({
+      initial: {
+        widthPx: img.widthPx,
+        heightPx: img.heightPx,
+        align: img.align,
+        wrap: img.wrap,
+        altText: "",
+      },
+      onApply: (patch) => {
+        editor.dispatch(setImageProps(id, patch));
+        editor.focus();
+      },
+    });
+  });
+  sep();
+  ibtn(ICONS.trash, "Delete image (Del)", () => {
+    editor.deleteSelectedObject();
+    editor.focus();
+  }, "danger");
+
+  refreshImageBar = (): void => {
+    const r = editor.getSelectedObject() ? editor.getSelectedObjectRect() : null;
+    if (!r) {
+      bar.style.display = "none";
+      return;
+    }
+    bar.style.display = "flex";
+    const bw = bar.offsetWidth;
+    const bh = bar.offsetHeight;
+    const left = Math.max(8, Math.min(window.innerWidth - bw - 8, r.left + r.width / 2 - bw / 2));
+    const top = r.top - bh - 8 < 56 ? r.top + r.height + 8 : r.top - bh - 8;
+    bar.style.left = `${Math.round(left)}px`;
+    bar.style.top = `${Math.round(top)}px`;
+  };
+  app.addEventListener("scroll", () => refreshImageBar());
+  window.addEventListener("resize", () => refreshImageBar(), { signal: teardown.signal });
+}
+
+// ---- page setup ------------------------------------------------------------
+// Page layout lives in the draggable showPageLayout dialog (ui/pageLayout.ts),
+// opened from the Layout-tab button above. The old inline preset panel was retired.
+
+// ---- find & replace bar (Ctrl+F) -------------------------------------------
+{
+  const bar = document.createElement("div");
+  bar.className = "ked-float-panel";
+  bar.style.cssText =
+    "position:fixed;top:46px;right:24px;display:none;gap:4px;align-items:center;" +
+    "background:#fff;border:1px solid #dadce0;border-radius:8px;padding:6px 8px;" +
+    "box-shadow:0 2px 8px rgba(0,0,0,.18);z-index:10;font-size:13px;";
+  const mkInput = (placeholder: string, width: number): HTMLInputElement => {
+    const i = document.createElement("input");
+    i.placeholder = placeholder;
+    i.style.cssText = `width:${width}px;height:24px;border:1px solid #dadce0;border-radius:4px;padding:0 6px;font-size:13px;`;
+    bar.appendChild(i);
+    return i;
+  };
+  const mkBtn = (label: string, title: string, onClick: () => void): HTMLButtonElement => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.title = title;
+    b.style.cssText = "height:24px;border:none;background:transparent;cursor:pointer;font-size:13px;color:#3c4043;";
+    b.addEventListener("click", onClick);
+    bar.appendChild(b);
+    return b;
+  };
+  const findInput = mkInput("Find", 140);
+  const counter = document.createElement("span");
+  counter.style.cssText = "color:#80868b;min-width:40px;text-align:center;";
+  counter.textContent = "";
+  bar.appendChild(counter);
+  const update = (s: { index: number; total: number }): void => {
+    counter.textContent = s.total > 0 ? `${s.index}/${s.total}` : findInput.value ? "0/0" : "";
+  };
+  // Match-case / whole-word toggles (editor.search already accepts these).
+  let matchCase = false;
+  let wholeWord = false;
+  const reSearch = (): void => {
+    update(findInput.value ? editor.search(findInput.value, { matchCase, wholeWord }) : { index: 0, total: 0 });
+  };
+  const optBtn = (label: string, title: string, get: () => boolean, set: (v: boolean) => void): void => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.title = title;
+    b.style.cssText = "height:24px;min-width:26px;border:1px solid transparent;border-radius:4px;background:transparent;cursor:pointer;font-size:13px;font-weight:600;";
+    const paint = (): void => {
+      const on = get();
+      b.style.background = on ? "#cfe3fb" : "transparent";
+      b.style.borderColor = on ? "#b3d3f5" : "transparent";
+      b.style.color = on ? "#0b57d0" : "#3c4043";
+    };
+    b.addEventListener("click", () => {
+      set(!get());
+      paint();
+      reSearch();
+      findInput.focus();
+    });
+    paint();
+    bar.appendChild(b);
+  };
+  optBtn("Aa", "Match case", () => matchCase, (v) => (matchCase = v));
+  optBtn("⌈W⌋", "Match whole word only", () => wholeWord, (v) => (wholeWord = v));
+  mkBtn("‹", "Previous (Shift+Enter)", () => update(editor.searchNav(-1)));
+  mkBtn("›", "Next (Enter)", () => update(editor.searchNav(1)));
+  // Replace is an edit — only in editable mode. Find/navigate stay for the viewer.
+  if (!readonly) {
+    const replaceInput = mkInput("Replace", 120);
+    mkBtn("Replace", "Replace current", () => update(editor.searchReplaceCurrent(replaceInput.value)));
+    mkBtn("All", "Replace all", () => {
+      const n = editor.searchReplaceAll(replaceInput.value);
+      update(editor.search(findInput.value, { matchCase, wholeWord }));
+      counter.textContent += ` (${n} replaced)`;
+    });
+  }
+  const close = (): void => {
+    bar.style.display = "none";
+    editor.searchClear();
+    editor.focus();
+  };
+  mkBtn("×", "Close (Esc)", close);
+  document.body.appendChild(bar);
+  detachables.push(bar);
+
+  openFind = (): void => {
+    bar.style.display = "flex";
+    findInput.select();
+    findInput.focus();
+    reSearch();
+  };
+
+  findInput.addEventListener("input", reSearch);
+  bar.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") {
+      update(editor.searchNav(ev.shiftKey ? -1 : 1));
+      ev.preventDefault();
+    } else if (ev.key === "Escape") {
+      close();
+      ev.preventDefault();
+    }
+    ev.stopPropagation(); // typing in the bar never reaches the editor keymap
+  });
+  window.addEventListener("keydown", (ev) => {
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "f") {
+      ev.preventDefault();
+      openFind();
+    }
+  }, { signal: teardown.signal });
+}
+
+// Dev hook for in-browser verification (break-rule scans, perf probes, and the
+// snapshot/replay round-trip: serialize the doc at load, reconstruct from the
+// editor's change log, compare). Last-mounted instance wins the global.
+const persist = { serializeDocument, deserializeDocument, reconstruct, rehydrateDocMedia, mediaStore };
+window.__cw = { doc, tree, engine, editor, createLayoutEngine, sampleDoc, stressDoc, persist, share: goOnlineWithCurrentDoc };
+
+// Hand the wrapper a control surface for the mounted editor.
+// Disposer for the WebMCP agent tools (set below when runtime.agentTools is on).
+let disposeAgentTools: (() => void) | null = null;
+
+const handle: EditorHandle = {
+  getDocument: () => editor.getDocument(),
+  createChild: () => editor.createChild(),
+  setDocument: (d) => setDocumentFromApi(d),
+  openDocx: (file) => openDocxFile(file),
+  openJson: (file) => openJsonFile(file),
+  exportDocx: () => exportBlob("docx"),
+  exportPdf: () => exportBlob("pdf"),
+  exportJson: () => exportBlob("json"),
+  getFullJson: () => getFullJsonPayload(),
+  share: () => goOnlineWithCurrentDoc(),
+  getDocId: () => collabId,
+  getShareLink: () => shareLink,
+  getSelection: () => editor.getSelection(),
+  insertText: (text) => editor.dispatch(insertTextCmd(text)),
+  getMode: () => editor.getMode(),
+  setMode: (mode) => editor.setMode(mode),
+  getReview: () => editor.getReview(),
+  getKnownUsers: () => editor.getKnownUsers(),
+  setKnownUsers: (users) => editor.setKnownUsers(users),
+  acceptSuggestion: (id) => editor.acceptSuggestion(id),
+  rejectSuggestion: (id) => editor.rejectSuggestion(id),
+  acceptAllSuggestions: () => editor.acceptAllSuggestions(),
+  rejectAllSuggestions: () => editor.rejectAllSuggestions(),
+  addComment: (body, mentions) => editor.addComment(body, mentions),
+  startComment: () => editor.startComment(),
+  openCommentThread: (threadId) => editor.openCommentThread(threadId),
+  replyToComment: (threadId, body, mentions) => editor.replyToComment(threadId, body, mentions),
+  editComment: (threadId, commentId, body, mentions) => editor.editComment(threadId, commentId, body, mentions),
+  deleteComment: (threadId, commentId) => editor.deleteComment(threadId, commentId),
+  resolveThread: (threadId, resolved) => editor.resolveThread(threadId, resolved),
+  canReviewAction: (action, threadId, commentId) => editor.canReviewAction(action, threadId, commentId),
+  setReviewAccess: (access) => editor.setReviewAccess(access),
+  destroy: () => {
+    emitPublic("editor.destroyed", {}, { source: "system" });
+    disposeAgentTools?.(); // unregister WebMCP tools before tearing the editor down
+    closeDevPanel(); // remove the floating inspector (body-level) if it's open
+    teardown.abort(); // drop every global window/document listener this instance added
+    compactRO?.disconnect(); // ResizeObserver isn't signal-aware — stop it explicitly
+    for (const el of detachables) el.remove(); // body-level floats (find bar, image bar, …)
+    sync?.destroy();
+    editor.destroy();
+    shell.root.remove();
+  },
+};
+// Context for custom ribbon buttons: the handle + macro helpers (getSelection /
+// insertText live on the handle) plus an event emitter and a teardown hook.
+ribbonCtx = {
+  ...handle,
+  emit: (name, payload) => {
+    runtime.onEvent?.({ type: "custom", name, payload });
+    emitPublic("custom", { name, ...(payload !== undefined ? { payload } : {}) }, { source: "local" });
+  },
+  registerCleanup: (target) => {
+    if (typeof target === "function") teardown.signal.addEventListener("abort", () => target(), { once: true });
+    else detachables.push(target);
+  },
+};
+
+runtime.onLoadProgress?.({ phase: "ready", percent: 1, loaded: 0, total: 0 });
+runtime.onReady?.(handle);
+runtime.onEvent?.({ type: "ready" });
+emitPublic("editor.ready", { mode: editor.getMode() }, { source: "system" });
+
+// WebMCP agent tooling (opt-in). Lazy-load the polyfill + bridge so non-agent
+// embedders never pull them into their bundle; initialize navigator.modelContext,
+// then register the tools wrapping the live editor.
+if (runtime.agentTools) {
+  const cfg = typeof runtime.agentTools === "object" ? runtime.agentTools : {};
+  void Promise.all([import("@mcp-b/global"), import("./agent/webmcp")])
+    .then(([global, bridge]) => {
+      global.initializeWebModelContext();
+      disposeAgentTools = bridge.registerAgentTools(
+        editor,
+        { docId: () => collabId, setDocument: setDocumentFromApi },
+        cfg,
+      );
+    })
+    .catch((e) => console.error("[kindy-editor] failed to enable agent tools:", e));
+}
+}

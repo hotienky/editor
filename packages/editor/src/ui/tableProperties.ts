@@ -1,0 +1,593 @@
+// Table "Borders & Shading" modal — Word's dialog of the same name, scoped to the
+// current cell selection (or the caret's cell). Pure presentation: index.ts
+// captures the target range and supplies the apply callbacks; edits are applied
+// live (each click is its own undo step), so there's no separate OK/commit step.
+
+import type { CellBorder, CellMargin, RowProps, TableCell } from "@kindy/shared";
+import type { BorderEdgeFlags } from "../editor/commands";
+import { injectCssOnce } from "./styles";
+import { makeFloatingDialog } from "./floatingDialog";
+import type { DialogCommon, TablePropertiesMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
+
+export type BorderStyleName = NonNullable<CellBorder["style"]> | "single";
+
+/** Cell vertical alignment exposed in the dialog (w:vAlign). */
+export type CellVAlign = NonNullable<TableCell["vAlign"]>;
+/** The text-flow directions the dialog offers (w:textDirection). The model also
+ *  knows the *V variants, but the editor only meaningfully exposes these three. */
+export type CellTextDir = "lrTb" | "tbRl" | "btLr";
+export type RowHeight = NonNullable<RowProps["height"]>;
+
+export interface TablePropertiesInit {
+  /** Seed for the border controls (from the top-left cell of the range). */
+  color: string;
+  widthPx: number;
+  style: BorderStyleName;
+  /** Current shading of the top-left cell, or null for no fill. */
+  shading: string | null;
+  /** Human label for the target, e.g. "4 cells" / "1 cell". */
+  rangeLabel: string;
+  /** Interior presets (Inside / Inside H / Inside V) only apply to a multi-cell range. */
+  multiCell: boolean;
+  /** Current preferred TOTAL table width, or null for "full page width". */
+  tableWidth: { type: "pct" | "px"; value: number } | null;
+  /** Current table alignment within the content width. */
+  tableAlign: "left" | "center" | "right";
+  /** Vertical alignment of the top-left cell of the range (default "top"). */
+  vAlign: CellVAlign;
+  /** Text direction of the top-left cell of the range (default "lrTb"). */
+  textDir: CellTextDir;
+  /** Anchor row's fixed/min height, or null for none. */
+  rowHeight: RowHeight | null;
+  /** Anchor row's "keep together" flag. */
+  cantSplit: boolean;
+  /** Anchor row's "repeat as header" flag. */
+  repeatHeader: boolean;
+  /** Table indent from the leading edge, in px (default 0). */
+  tableIndentPx: number;
+  /** Whether the table carries table-level default borders (w:tblBorders). */
+  hasTableDefaultBorders: boolean;
+  /** Table-level default shading fill (w:shd), or null for none. */
+  tableDefaultShading: string | null;
+  /** Table-level default cell margins (w:tblCellMar), or null for Word defaults. */
+  tableDefaultCellMargin: CellMargin | null;
+}
+
+export interface TablePropertiesCallbacks {
+  applyBorders(spec: CellBorder | null, edges: BorderEdgeFlags): void;
+  applyShading(fill: string | null): void;
+  /** Set the preferred total table width (null = span the full content width). */
+  applyTableWidth(width: { type: "pct" | "px"; value: number } | null): void;
+  /** Set the table's horizontal alignment. */
+  applyTableAlign(align: "left" | "center" | "right"): void;
+  /** Set the vertical alignment of the targeted cell(s). */
+  applyVAlign(vAlign: CellVAlign): void;
+  /** Set the text-flow direction of the targeted cell(s). */
+  applyTextDir(dir: CellTextDir): void;
+  /** Set (or clear with null) the height of the targeted row(s). */
+  applyRowHeight(height: RowHeight | null): void;
+  /** Toggle a boolean row flag (cant-split / repeat-header) on the targeted row(s). */
+  applyRowFlag(flag: "cantSplit" | "repeatHeader", on: boolean): void;
+  /** Set the table indent (px) from the leading edge. */
+  applyTableIndent(px: number): void;
+  /** Apply (spec) or clear (null) the table-level default borders on all edges. */
+  applyTableDefaultBorders(spec: CellBorder | null): void;
+  /** Set (or clear with null) the table-level default shading fill. */
+  applyTableDefaultShading(fill: string | null): void;
+  /** Set (or clear with null) the table-level default cell margins. */
+  applyTableDefaultCellMargin(margin: CellMargin | null): void;
+}
+
+export interface TablePropertiesOptions {
+  messages?: TablePropertiesMessages;
+  common?: DialogCommon;
+}
+
+export interface TablePropertiesHandle {
+  close(): void;
+}
+
+const STYLES: BorderStyleName[] = ["single", "double", "dashed", "dotted"];
+
+const TBL_CSS = `
+/* Non-blocking layer: the panel floats but the document stays visible + interactive
+   so border/shading edits are seen live; clicks outside don't close it. */
+.ked-tbl-backdrop{position:fixed;inset:0;z-index:1100;pointer-events:none;}
+.ked-tbl-modal{position:fixed;width:min(420px,94vw);max-height:88vh;display:flex;flex-direction:column;
+  background:#fff;border-radius:10px;box-shadow:0 18px 56px rgba(0,0,0,.34);border:1px solid #d9dce1;
+  font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;pointer-events:auto;}
+.ked-tbl-head{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #e6e8eb;background:#f7f8fa;}
+.ked-tbl-head h2{margin:0;font-size:14px;font-weight:600;flex:1 1 auto;}
+.ked-tbl-hint{font-size:11px;color:#9aa0a6;margin:-4px 0 2px;}
+.ked-tbl-caption{font-size:11px;color:#5f6368;font-weight:600;margin:0 0 4px;}
+.ked-tbl-badge{font-size:11px;font-weight:600;color:#0b57d0;background:#e8f0fe;border-radius:10px;padding:2px 9px;}
+.ked-tbl-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;
+  width:28px;height:28px;border-radius:6px;}
+.ked-tbl-x:hover{background:#e8eaed;}
+.ked-tbl-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:16px;}
+.ked-tbl-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;margin:0 0 8px;}
+.ked-tbl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ked-tbl-row label{display:flex;align-items:center;gap:6px;color:#5f6368;}
+.ked-tbl-spec{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.ked-tbl-spec input[type=number]{width:56px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;}
+.ked-tbl-spec select{height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;background:#fff;}
+.ked-tbl-swatch{width:28px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0;cursor:pointer;background:#000;}
+.ked-tbl-btn{height:30px;padding:0 12px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;
+  font-size:13px;color:#3c4043;display:inline-flex;align-items:center;gap:6px;}
+.ked-tbl-btn:hover{background:#f1f3f4;}
+.ked-tbl-btn:disabled{opacity:.45;cursor:default;}
+.ked-tbl-btn.active{background:#e8f0fe;border-color:#1a73e8;color:#0b57d0;}
+.ked-tbl-preview{width:108px;height:72px;border:1px dashed #c8c6c4;border-radius:6px;align-self:center;
+  display:grid;place-items:center;background:#fff;}
+.ked-tbl-preview .box{width:64px;height:40px;}
+.ked-tbl-foot{display:flex;justify-content:flex-end;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-tbl-foot .ked-tbl-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-tbl-foot .ked-tbl-btn.primary:hover{background:#1864cc;}`;
+
+const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLElementTagNameMap[K] => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+};
+
+/** CSS border-style for a model border style name (double/dashed/dotted/solid). */
+const cssBorderStyle = (s: BorderStyleName): string =>
+  s === "double" ? "double" : s === "dashed" ? "dashed" : s === "dotted" ? "dotted" : "solid";
+
+export function showTableProperties(init: TablePropertiesInit, cb: TablePropertiesCallbacks, opts: TablePropertiesOptions = {}): TablePropertiesHandle {
+  injectCssOnce("ked-tbl-styles", TBL_CSS);
+  const t = opts.messages ?? defaultMessages.tableProperties;
+  const c = opts.common ?? defaultMessages.common;
+
+  // Live border spec the buttons apply.
+  let color = init.color;
+  let widthPx = init.widthPx;
+  let styleName: BorderStyleName = init.style;
+  const spec = (): CellBorder => ({ color, widthPx, ...(styleName !== "single" ? { style: styleName } : {}) });
+
+  // Apply happens live when the user clicks a preset/edge (or Apply Fill). But a
+  // user who just tweaks the spec (e.g. Width=5) and clicks Done expects that to
+  // take effect — so Done commits any spec/fill change they made without having
+  // clicked a preset. These flags track which case we're in.
+  let borderSpecTouched = false; // color/width/style changed
+  let bordersApplied = false; // a preset/edge button was clicked
+  let fillTouched = false; // fill color changed
+  let shadingApplied = false; // Apply Fill / No Fill was clicked
+  const doBorders = (s: CellBorder | null, edges: BorderEdgeFlags): void => {
+    bordersApplied = true;
+    cb.applyBorders(s, edges);
+  };
+  const doShading = (fill: string | null): void => {
+    shadingApplied = true;
+    cb.applyShading(fill);
+  };
+
+  const backdrop = el("div", "ked-tbl-backdrop");
+  const modal = el("div", "ked-tbl-modal");
+  modal.addEventListener("mousedown", (e) => e.stopPropagation());
+
+  // Header
+  const head = el("div", "ked-tbl-head");
+  const h2 = el("h2");
+  h2.textContent = t.title;
+  const badge = el("span", "ked-tbl-badge");
+  badge.textContent = init.rangeLabel;
+  const xBtn = el("button", "ked-tbl-x");
+  xBtn.textContent = "×";
+  xBtn.title = t.closeTooltip;
+  head.append(h2, badge, xBtn);
+
+  const body = el("div", "ked-tbl-body");
+
+  // ---- Borders section ----------------------------------------------------
+  const bSection = el("div");
+  const bTitle = el("div", "ked-tbl-section-title");
+  bTitle.textContent = t.sectionBorders;
+  bSection.appendChild(bTitle);
+
+  // Spec controls: color, width, style + a live preview.
+  const specRow = el("div", "ked-tbl-spec");
+  const colorInput = el("input");
+  colorInput.type = "color";
+  colorInput.className = "ked-tbl-swatch";
+  colorInput.value = toHexColor(color);
+  colorInput.title = t.borderColor;
+  const colorLabel = el("label");
+  colorLabel.append(t.borderColor, colorInput);
+
+  const widthInput = el("input");
+  widthInput.type = "number";
+  widthInput.min = "0.25";
+  widthInput.max = "12";
+  widthInput.step = "0.25";
+  widthInput.value = String(widthPx);
+  const widthLabel = el("label");
+  widthLabel.append(t.borderWidth, widthInput);
+
+  const styleSelect = el("select");
+  for (const s of STYLES) {
+    const opt = el("option");
+    opt.value = s;
+    opt.textContent = s[0]!.toUpperCase() + s.slice(1);
+    if (s === styleName) opt.selected = true;
+    styleSelect.appendChild(opt);
+  }
+  const styleLabel = el("label");
+  styleLabel.append(t.borderStyle, styleSelect);
+
+  const preview = el("div", "ked-tbl-preview");
+  const previewBox = el("div", "box");
+  preview.appendChild(previewBox);
+  const refreshPreview = (): void => {
+    previewBox.style.border = `${Math.max(1, widthPx)}px ${cssBorderStyle(styleName)} ${color}`;
+  };
+
+  colorInput.addEventListener("input", () => {
+    color = colorInput.value;
+    borderSpecTouched = true;
+    refreshPreview();
+  });
+  widthInput.addEventListener("change", () => {
+    const v = Number(widthInput.value);
+    if (Number.isFinite(v) && v > 0) widthPx = v;
+    widthInput.value = String(widthPx);
+    borderSpecTouched = true;
+    refreshPreview();
+  });
+  styleSelect.addEventListener("change", () => {
+    styleName = (styleSelect.value as BorderStyleName) || "single";
+    borderSpecTouched = true;
+    refreshPreview();
+  });
+  specRow.append(colorLabel, widthLabel, styleLabel, preview);
+  refreshPreview();
+
+  // Presets — apply immediately with the current spec.
+  const presetRow = el("div", "ked-tbl-row");
+  const allFlags: BorderEdgeFlags = { top: true, right: true, bottom: true, left: true, insideH: true, insideV: true };
+  const presetBtn = (label: string, run: () => void, enabled = true): HTMLButtonElement => {
+    const b = el("button", "ked-tbl-btn");
+    b.textContent = label;
+    b.disabled = !enabled;
+    b.addEventListener("click", run);
+    return b;
+  };
+  presetRow.append(
+    presetBtn(t.presetAll, () => doBorders(spec(), allFlags)),
+    presetBtn(t.presetOutside, () => doBorders(spec(), { top: true, right: true, bottom: true, left: true })),
+    presetBtn(t.presetInside, () => doBorders(spec(), { insideH: true, insideV: true }), init.multiCell),
+    presetBtn(t.presetNone, () => doBorders(null, allFlags)),
+  );
+
+  // Individual edges.
+  const edgeRow = el("div", "ked-tbl-row");
+  const edgeBtn = (label: string, flag: BorderEdgeFlags, enabled = true): HTMLButtonElement =>
+    presetBtn(label, () => doBorders(spec(), flag), enabled);
+  edgeRow.append(
+    edgeBtn(t.edgeTop, { top: true }),
+    edgeBtn(t.edgeBottom, { bottom: true }),
+    edgeBtn(t.edgeLeft, { left: true }),
+    edgeBtn(t.edgeRight, { right: true }),
+    edgeBtn(t.edgeInsideH, { insideH: true }, init.multiCell),
+    edgeBtn(t.edgeInsideV, { insideV: true }, init.multiCell),
+  );
+
+  const hint = el("div", "ked-tbl-hint");
+  hint.textContent = t.hint;
+  const applyToCap = el("div", "ked-tbl-caption");
+  applyToCap.textContent = t.borderApplyTo;
+  const edgesCap = el("div", "ked-tbl-caption");
+  edgesCap.textContent = t.individualEdges;
+  bSection.append(specRow, hint, applyToCap, presetRow, edgesCap, edgeRow);
+
+  // ---- Shading section ----------------------------------------------------
+  const sSection = el("div");
+  const sTitle = el("div", "ked-tbl-section-title");
+  sTitle.textContent = t.sectionShading;
+  const sRow = el("div", "ked-tbl-row");
+  const fillInput = el("input");
+  fillInput.type = "color";
+  fillInput.className = "ked-tbl-swatch";
+  fillInput.value = toHexColor(init.shading ?? "#ffffff");
+  fillInput.addEventListener("input", () => { fillTouched = true; });
+  const fillLabel = el("label");
+  fillLabel.append(t.fill, fillInput);
+  const applyFill = presetBtn(t.applyFill, () => doShading(fillInput.value));
+  const noFill = presetBtn(t.noFill, () => doShading(null));
+  sRow.append(fillLabel, applyFill, noFill);
+  sSection.append(sTitle, sRow);
+
+  // ---- Table size section -------------------------------------------------
+  // Width + alignment apply LIVE (like borders/shading): each change is its own
+  // undo step. Width is offered as % of page or inches; "Full width" clears it.
+  const zSection = el("div");
+  const zTitle = el("div", "ked-tbl-section-title");
+  zTitle.textContent = t.sectionTableSize;
+
+  const zRow = el("div", "ked-tbl-spec");
+  const unitSelect = el("select");
+  for (const [val, lbl] of [["full", t.fullWidth], ["pct", t.unitPercent], ["in", t.unitInch]] as const) {
+    const o = el("option");
+    o.value = val;
+    o.textContent = lbl;
+    unitSelect.appendChild(o);
+  }
+  const widthValInput = el("input");
+  widthValInput.type = "number";
+  widthValInput.min = "1";
+  widthValInput.step = "1";
+
+  unitSelect.value = init.tableWidth ? (init.tableWidth.type === "pct" ? "pct" : "in") : "full";
+  if (!init.tableWidth) widthValInput.value = "";
+  else if (init.tableWidth.type === "pct") widthValInput.value = String(Math.round(init.tableWidth.value));
+  else widthValInput.value = (init.tableWidth.value / 96).toFixed(2); // px → inches
+  const syncWidthDisabled = (): void => {
+    widthValInput.disabled = unitSelect.value === "full";
+  };
+  syncWidthDisabled();
+
+  const applyWidth = (): void => {
+    const u = unitSelect.value;
+    if (u === "full") {
+      cb.applyTableWidth(null);
+      return;
+    }
+    const v = Number(widthValInput.value);
+    if (!Number.isFinite(v) || v <= 0) return;
+    if (u === "pct") cb.applyTableWidth({ type: "pct", value: Math.min(100, v) });
+    else cb.applyTableWidth({ type: "px", value: v * 96 }); // inches → px
+  };
+  unitSelect.addEventListener("change", () => {
+    syncWidthDisabled();
+    applyWidth();
+  });
+  widthValInput.addEventListener("change", applyWidth);
+  const zWidthLabel = el("label");
+  zWidthLabel.append(t.tableWidth, widthValInput, unitSelect);
+  zRow.append(zWidthLabel);
+
+  const alignCap = el("div", "ked-tbl-caption");
+  alignCap.textContent = t.tableAlign;
+  const alignRow = el("div", "ked-tbl-row");
+  let curAlign: "left" | "center" | "right" = init.tableAlign;
+  const alignBtns: Partial<Record<"left" | "center" | "right", HTMLButtonElement>> = {};
+  const refreshAlign = (): void => {
+    for (const k of ["left", "center", "right"] as const) alignBtns[k]!.classList.toggle("active", k === curAlign);
+  };
+  const alignBtn = (label: string, a: "left" | "center" | "right"): HTMLButtonElement => {
+    const b = presetBtn(label, () => {
+      curAlign = a;
+      refreshAlign();
+      cb.applyTableAlign(a);
+    });
+    alignBtns[a] = b;
+    return b;
+  };
+  alignRow.append(alignBtn(t.tableAlignLeft, "left"), alignBtn(t.tableAlignCenter, "center"), alignBtn(t.tableAlignRight, "right"));
+  refreshAlign();
+  zSection.append(zTitle, zRow, alignCap, alignRow);
+
+  // ---- Cell section (vAlign + text direction) — applies live ----------------
+  const cSection = el("div");
+  const cTitle = el("div", "ked-tbl-section-title");
+  cTitle.textContent = t.sectionCell;
+  const vCap = el("div", "ked-tbl-caption");
+  vCap.textContent = t.cellVAlign;
+  const vRow = el("div", "ked-tbl-row");
+  let curVAlign: CellVAlign = init.vAlign;
+  const vBtns: Partial<Record<CellVAlign, HTMLButtonElement>> = {};
+  const refreshVAlign = (): void => {
+    for (const k of ["top", "center", "bottom"] as const) vBtns[k]!.classList.toggle("active", k === curVAlign);
+  };
+  const vBtn = (label: string, a: CellVAlign): HTMLButtonElement => {
+    const b = presetBtn(label, () => {
+      curVAlign = a;
+      refreshVAlign();
+      cb.applyVAlign(a);
+    });
+    vBtns[a] = b;
+    return b;
+  };
+  vRow.append(vBtn(t.cellVAlignTop, "top"), vBtn(t.cellVAlignCenter, "center"), vBtn(t.cellVAlignBottom, "bottom"));
+  refreshVAlign();
+
+  const dCap = el("div", "ked-tbl-caption");
+  dCap.textContent = t.cellTextDir;
+  const dRow = el("div", "ked-tbl-row");
+  const dirSelect = el("select");
+  for (const [val, lbl] of [["lrTb", t.cellTextDirLrTb], ["tbRl", t.cellTextDirTbRl], ["btLr", t.cellTextDirBtLr]] as const) {
+    const o = el("option");
+    o.value = val;
+    o.textContent = lbl;
+    if (val === init.textDir) o.selected = true;
+    dirSelect.appendChild(o);
+  }
+  dirSelect.addEventListener("change", () => cb.applyTextDir(dirSelect.value as CellTextDir));
+  const dLabel = el("label");
+  dLabel.append(t.cellTextDir, dirSelect);
+  dRow.append(dLabel);
+  cSection.append(cTitle, vCap, vRow, dCap, dRow);
+
+  // ---- Row section (height + cant-split + repeat-header) — applies live ------
+  const rSection = el("div");
+  const rTitle = el("div", "ked-tbl-section-title");
+  rTitle.textContent = t.sectionRow;
+  const hRow = el("div", "ked-tbl-spec");
+  const heightRule = el("select");
+  for (const [val, lbl] of [["none", "Auto"], ["atLeast", t.rowHeightMin], ["exact", t.rowHeightExact]] as const) {
+    const o = el("option");
+    o.value = val;
+    o.textContent = lbl;
+    heightRule.appendChild(o);
+  }
+  heightRule.value = init.rowHeight ? init.rowHeight.rule : "none";
+  const heightVal = el("input");
+  heightVal.type = "number";
+  heightVal.min = "1";
+  heightVal.step = "1";
+  heightVal.value = init.rowHeight ? String(Math.round(init.rowHeight.value)) : "";
+  const syncHeightDisabled = (): void => {
+    heightVal.disabled = heightRule.value === "none";
+  };
+  syncHeightDisabled();
+  const applyRowHeight = (): void => {
+    if (heightRule.value === "none") {
+      cb.applyRowHeight(null);
+      return;
+    }
+    const v = Number(heightVal.value);
+    if (!Number.isFinite(v) || v <= 0) return;
+    cb.applyRowHeight({ value: v, rule: heightRule.value as RowHeight["rule"] });
+  };
+  heightRule.addEventListener("change", () => {
+    syncHeightDisabled();
+    applyRowHeight();
+  });
+  heightVal.addEventListener("change", applyRowHeight);
+  const hLabel = el("label");
+  hLabel.append(`${t.rowHeight} (${t.unitPx})`, heightVal, heightRule);
+  hRow.append(hLabel);
+
+  const flagRow = el("div", "ked-tbl-row");
+  const flagCheck = (labelText: string, on: boolean, flag: "cantSplit" | "repeatHeader"): HTMLLabelElement => {
+    const lab = el("label");
+    const cbx = el("input");
+    cbx.type = "checkbox";
+    cbx.checked = on;
+    cbx.addEventListener("change", () => cb.applyRowFlag(flag, cbx.checked));
+    lab.append(cbx, labelText);
+    return lab;
+  };
+  flagRow.append(
+    flagCheck(t.rowKeepTogether, init.cantSplit, "cantSplit"),
+    flagCheck(t.rowRepeatHeader, init.repeatHeader, "repeatHeader"),
+  );
+  rSection.append(rTitle, hRow, flagRow);
+
+  // ---- Table defaults (indent + table-level borders/shading/margins) ---------
+  const dfSection = el("div");
+  const dfTitle = el("div", "ked-tbl-section-title");
+  dfTitle.textContent = t.sectionTableDefaults;
+  const indRow = el("div", "ked-tbl-spec");
+  const indInput = el("input");
+  indInput.type = "number";
+  indInput.min = "0";
+  indInput.step = "1";
+  indInput.value = String(Math.round(init.tableIndentPx));
+  indInput.addEventListener("change", () => {
+    const v = Number(indInput.value);
+    cb.applyTableIndent(Number.isFinite(v) && v > 0 ? v : 0);
+  });
+  const indLabel = el("label");
+  indLabel.append(`${t.tableIndent} (${t.unitPx})`, indInput);
+  indRow.append(indLabel);
+
+  const dbCap = el("div", "ked-tbl-caption");
+  dbCap.textContent = t.tableDefaultBorders;
+  const dbRow = el("div", "ked-tbl-row");
+  dbRow.append(
+    presetBtn(c.apply, () => cb.applyTableDefaultBorders(spec())),
+    presetBtn(c.delete, () => cb.applyTableDefaultBorders(null)),
+  );
+
+  const dsCap = el("div", "ked-tbl-caption");
+  dsCap.textContent = t.tableDefaultShading;
+  const dsRow = el("div", "ked-tbl-row");
+  const dsInput = el("input");
+  dsInput.type = "color";
+  dsInput.className = "ked-tbl-swatch";
+  dsInput.value = toHexColor(init.tableDefaultShading ?? "#ffffff");
+  const dsLabel = el("label");
+  dsLabel.append(t.fill, dsInput);
+  dsRow.append(
+    dsLabel,
+    presetBtn(c.apply, () => cb.applyTableDefaultShading(dsInput.value)),
+    presetBtn(c.delete, () => cb.applyTableDefaultShading(null)),
+  );
+
+  const dmCap = el("div", "ked-tbl-caption");
+  dmCap.textContent = `${t.tableDefaultCellMargin} (${t.unitPx})`;
+  const dmRow = el("div", "ked-tbl-spec");
+  const m0 = init.tableDefaultCellMargin;
+  const mkMargin = (lbl: string, v: number | undefined): HTMLInputElement => {
+    const input = el("input");
+    input.type = "number";
+    input.min = "0";
+    input.step = "1";
+    input.value = v === undefined ? "" : String(Math.round(v));
+    const label = el("label");
+    label.append(lbl, input);
+    dmRow.appendChild(label);
+    return input;
+  };
+  const mTop = mkMargin(t.cellMarginTop, m0?.top);
+  const mRight = mkMargin(t.cellMarginRight, m0?.right);
+  const mBottom = mkMargin(t.cellMarginBottom, m0?.bottom);
+  const mLeft = mkMargin(t.cellMarginLeft, m0?.left);
+  const applyMargins = (): void => {
+    const num = (i: HTMLInputElement): number => {
+      const v = Number(i.value);
+      return Number.isFinite(v) && v >= 0 ? v : 0;
+    };
+    cb.applyTableDefaultCellMargin({ top: num(mTop), right: num(mRight), bottom: num(mBottom), left: num(mLeft) });
+  };
+  for (const i of [mTop, mRight, mBottom, mLeft]) i.addEventListener("change", applyMargins);
+  const dmBtnRow = el("div", "ked-tbl-row");
+  dmBtnRow.append(presetBtn(c.delete, () => cb.applyTableDefaultCellMargin(null)));
+  dfSection.append(dfTitle, indRow, dbCap, dbRow, dsCap, dsRow, dmCap, dmRow, dmBtnRow);
+
+  body.append(bSection, sSection, zSection, cSection, rSection, dfSection);
+
+  // Footer
+  const foot = el("div", "ked-tbl-foot");
+  const doneBtn = el("button", "ked-tbl-btn primary");
+  doneBtn.textContent = t.done;
+  foot.append(doneBtn);
+
+  modal.append(head, body, foot);
+  backdrop.appendChild(modal);
+  document.body.appendChild(backdrop);
+
+  const ac = new AbortController();
+  const handle: TablePropertiesHandle = {
+    close(): void {
+      backdrop.remove();
+      ac.abort(); // detaches every listener registered with ac.signal
+    },
+  };
+  // Draggable, non-blocking floating panel (so border/fill changes are seen live).
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-tbl-x" });
+
+  window.addEventListener(
+    "keydown",
+    (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") {
+        ev.preventDefault();
+        ev.stopPropagation();
+        handle.close();
+      }
+    },
+    { capture: true, signal: ac.signal },
+  );
+  xBtn.addEventListener("click", () => handle.close());
+  // Done commits spec/fill the user adjusted but didn't apply via a preset — so
+  // "set Width=5 → Done" borders the selection (All) at 5px, as expected. If they
+  // already clicked a preset/edge (live), Done just closes without re-applying.
+  doneBtn.addEventListener("click", () => {
+    if (borderSpecTouched && !bordersApplied) doBorders(spec(), allFlags);
+    if (fillTouched && !shadingApplied) doShading(fillInput.value);
+    handle.close();
+  });
+  return handle;
+}
+
+/** Native <input type=color> needs a #rrggbb value; coerce loose CSS colors. */
+function toHexColor(c: string): string {
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) return c.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(c)) {
+    const r = c[1]!, g = c[2]!, b = c[3]!;
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return "#000000";
+}
