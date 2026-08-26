@@ -706,19 +706,23 @@ function scanImages(
 }
 
 /** Topmost image under a page point matching `want` — including images inside
- *  table cells. page.blocks is in paint order, so keeping the LAST match yields
- *  the visually-topmost image. (Band objects stay read-only.) */
+ *  table cells and margin bands (header/footer). page.blocks is in paint order,
+ *  so keeping the LAST match yields the visually-topmost image. */
 function hitImage(
   tree: LayoutTree,
   pageIndex: number,
   x: number,
   y: number,
   want: (im: { behind?: boolean }) => boolean,
+  scope?: GeoScope,
 ): ObjectHit | null {
   const page = tree.pages[pageIndex];
   if (!page) return null;
   let hit: ObjectHit | null = null;
-  scanImages(page.blocks, (block) => {
+  const blocksToScan = scope
+    ? (scope.band === "header" ? page.header : page.footer) ?? []
+    : page.blocks;
+  scanImages(blocksToScan, (block) => {
     const im = block.image!;
     if (!want(im)) return false;
     const { width, height } = im;
@@ -733,13 +737,13 @@ function hitImage(
 /** Foreground image (inline or in-front-of-text anchor) under a page point.
  *  Behind-text backgrounds are excluded — those select only via the gaps (see
  *  hitTestSelectableObject), so clicks on the text in front fall through. */
-export function hitTestObject(tree: LayoutTree, pageIndex: number, x: number, y: number): ObjectHit | null {
-  return hitImage(tree, pageIndex, x, y, (im) => im.behind !== true);
+export function hitTestObject(tree: LayoutTree, pageIndex: number, x: number, y: number, scope?: GeoScope): ObjectHit | null {
+  return hitImage(tree, pageIndex, x, y, (im) => im.behind !== true, scope);
 }
 
 /** Behind-text image under a page point (full-page backgrounds). */
-export function hitTestBehindObject(tree: LayoutTree, pageIndex: number, x: number, y: number): ObjectHit | null {
-  return hitImage(tree, pageIndex, x, y, (im) => im.behind === true);
+export function hitTestBehindObject(tree: LayoutTree, pageIndex: number, x: number, y: number, scope?: GeoScope): ObjectHit | null {
+  return hitImage(tree, pageIndex, x, y, (im) => im.behind === true, scope);
 }
 
 /** True when (x,y) lands on the painted glyphs of some text line on the page.
@@ -765,7 +769,7 @@ export function pointOnText(tree: LayoutTree, pageIndex: number, x: number, y: n
 /** Display-equation block under a page point (incl. equations inside table cells).
  *  Equations aren't object-selectable like images (no resize frame); this is used
  *  by the context menu to offer "Edit Equation…". Returns the topmost match. */
-export function hitTestEquation(tree: LayoutTree, pageIndex: number, x: number, y: number): ObjectHit | null {
+export function hitTestEquation(tree: LayoutTree, pageIndex: number, x: number, y: number, scope?: GeoScope): ObjectHit | null {
   const page = tree.pages[pageIndex];
   if (!page) return null;
   let hit: ObjectHit | null = null;
@@ -780,7 +784,10 @@ export function hitTestEquation(tree: LayoutTree, pageIndex: number, x: number, 
       if (block.table) for (const row of block.table.rows) for (const cell of row.cells) scan(cell.blocks);
     }
   };
-  scan(page.blocks);
+  const blocksToScan = scope
+    ? (scope.band === "header" ? page.header : page.footer) ?? []
+    : page.blocks;
+  scan(blocksToScan);
   return hit;
 }
 
@@ -794,12 +801,12 @@ export function hitTestSelectableObject(
   y: number,
   scope?: GeoScope,
 ): ObjectHit | null {
-  const fg = hitTestObject(tree, pageIndex, x, y);
+  const fg = hitTestObject(tree, pageIndex, x, y, scope);
   if (fg) return fg;
-  const eq = hitTestEquation(tree, pageIndex, x, y);
+  const eq = hitTestEquation(tree, pageIndex, x, y, scope);
   if (eq) return eq;
   if (pointOnText(tree, pageIndex, x, y, scope)) return null;
-  return hitTestBehindObject(tree, pageIndex, x, y);
+  return hitTestBehindObject(tree, pageIndex, x, y, scope);
 }
 
 /** Where the selection frame for an image OR equation block lives right now
@@ -807,7 +814,12 @@ export function hitTestSelectableObject(
 export function objectRect(tree: LayoutTree, blockId: string): Rect | null {
   for (const page of tree.pages) {
     let rect: Rect | null = null;
-    scanImages(page.blocks, (block) => {
+    const allBlocks = [
+      ...page.blocks,
+      ...(page.header ?? []),
+      ...(page.footer ?? []),
+    ];
+    scanImages(allBlocks, (block) => {
       if (block.blockId !== blockId) return false;
       rect = {
         pageIndex: page.index,
@@ -822,7 +834,12 @@ export function objectRect(tree: LayoutTree, blockId: string): Rect | null {
   }
   // Equations aren't image blocks; scan them separately (incl. table cells).
   for (const page of tree.pages) {
-    const found = scanEquationRect(page.blocks, blockId, page.index);
+    const allBlocks = [
+      ...page.blocks,
+      ...(page.header ?? []),
+      ...(page.footer ?? []),
+    ];
+    const found = scanEquationRect(allBlocks, blockId, page.index);
     if (found) return found;
   }
   return null;

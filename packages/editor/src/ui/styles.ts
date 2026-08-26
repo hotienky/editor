@@ -290,8 +290,8 @@ const CSS = `
 }
 .cw-thread:hover { border-color: #d2e3fc; }
 .cw-thread.resolved { opacity: .62; }
-.cw-comment { display: flex; gap: 9px; margin-bottom: 10px; }
-.cw-comment:last-of-type { margin-bottom: 6px; }
+.cw-comment { display: flex; gap: 9px; margin-bottom: 8px; }
+.cw-comment.cw-root { margin-bottom: 8px; }
 .cw-comment-main { min-width: 0; flex: 1 1 auto; }
 .cw-comment-who { font-weight: 600; font-size: 12.5px; color: #202124; }
 .cw-comment-when { color: #80868b; font-size: 11px; margin-left: 6px; font-weight: 400; }
@@ -299,9 +299,39 @@ const CSS = `
 .cw-thread-actions { display: flex; gap: 4px; align-items: center; padding-top: 6px; border-top: 1px solid #f1f3f4; }
 .cw-thread-actions .cw-resolved-tag { color: #137333; font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
-/* inline reply editor inside a thread */
-.cw-reply-box { display: none; gap: 8px; margin-top: 8px; }
+/* Level 2: Replies container and items (2-level hierarchy) */
+.cw-replies-wrap {
+  margin-left: 14px; padding-left: 12px; border-left: 2px solid #e8eaed;
+  display: flex; flex-direction: column; gap: 8px; margin-top: 6px; margin-bottom: 8px;
+}
+.cw-comment.cw-reply { margin-bottom: 0; gap: 8px; }
+.cw-comment.cw-reply .cw-avatar { width: 22px; height: 22px; flex: 0 0 22px; font-size: 9.5px; }
+.cw-comment.cw-reply .cw-comment-who { font-size: 12px; }
+.cw-comment.cw-reply .cw-comment-body { font-size: 12.5px; }
+
+/* inline reply editor inside a thread (Level 2) */
+.cw-reply-box {
+  display: none; flex-direction: column; gap: 8px; margin-top: 6px; margin-bottom: 6px;
+  margin-left: 14px; padding-left: 12px; border-left: 2px solid #1a73e8;
+}
 .cw-reply-box.open { display: flex; }
+.cw-reply-row { display: flex; gap: 8px; align-items: flex-start; }
+.cw-reply-row .cw-avatar { width: 22px; height: 22px; flex: 0 0 22px; font-size: 9.5px; }
+.cw-reply-textarea {
+  flex: 1 1 auto; resize: none; min-height: 50px; max-height: 180px;
+  border: 1px solid #dadce0; border-radius: 6px; padding: 7px 9px;
+  font: 12.5px/1.45 inherit; color: #202124; outline: none; background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease; box-sizing: border-box;
+}
+.cw-reply-textarea:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); }
+.cw-reply-actions { display: flex; justify-content: flex-end; gap: 6px; align-items: center; }
+.cw-reply-prompt {
+  display: flex; align-items: center; gap: 8px; padding: 5px 10px; margin-top: 6px; margin-bottom: 6px;
+  margin-left: 14px; border: 1px solid #e8eaed; border-radius: 16px; background: #f8f9fa; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cw-reply-prompt:hover { background: #f1f3f4; border-color: #dadce0; }
+.cw-reply-prompt-text { font-size: 12px; color: #5f6368; flex: 1 1 auto; }
 
 /* ===== Comment composer bubble (Google-Docs style, floats by selection) === */
 .cw-comment-bubble {

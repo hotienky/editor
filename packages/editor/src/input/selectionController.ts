@@ -276,12 +276,8 @@ export function createSelectionController(deps: SelectionControllerDeps): Select
     const tree = deps.getTree();
     const pg = tree.pages[pt.pageIndex];
     if (!pg) return null;
-    // Presence is per PAGE: a first/even variant may exist where the default
-    // band doesn't (and vice versa) — the tree records what rendered there.
-    // Tall bands push the content box, so the clickable band regions are
-    // everything OUTSIDE the body's real content box.
-    if (pt.y < pg.contentTopPx) return pg.headerSource ? "header" : null;
-    if (pt.y > pg.contentBottomPx) return pg.footerSource ? "footer" : null;
+    if (pt.y < pg.contentTopPx) return "header";
+    if (pt.y > pg.contentBottomPx) return "footer";
     return null;
   };
 
@@ -406,10 +402,40 @@ export function createSelectionController(deps: SelectionControllerDeps): Select
     }
     if (story) {
       if (band === story.band) {
+        // A resize handle runs its own pointer-capture loop; the synthetic mousedown
+        // it also emits must not re-run selection/caret logic here.
+        if ((ev.target as HTMLElement | null)?.classList?.contains("cw-obj-handle")) return;
         // Same story, possibly a different page — re-pin the scope there.
         if (pt.pageIndex !== story.pageIndex) {
           deps.setStory({ band: story.band, pageIndex: pt.pageIndex });
         }
+        if (pt.inside) {
+          const objHit = hitTestSelectableObject(deps.getTree(), pt.pageIndex, pt.x, pt.y, scope());
+          if (objHit) {
+            ev.preventDefault();
+            deps.selectObject(objHit.blockId);
+            const mv = movableImage(objHit.blockId);
+            if (mv) {
+              const baseX = mv.anchor!.offsetXPx;
+              const baseY = mv.anchor!.offsetYPx;
+              const placed = objectRect(deps.getTree(), objHit.blockId);
+              const origin = placed ? { ox: placed.x - baseX, oy: placed.y - baseY } : { ox: 0, oy: 0 };
+              objectDrag = {
+                blockId: objHit.blockId,
+                startX: pt.x,
+                startY: pt.y,
+                baseX,
+                baseY,
+                lastX: baseX,
+                lastY: baseY,
+                origin,
+                moved: false,
+              };
+            }
+            return;
+          }
+        }
+        deps.selectObject(null);
       } else if (ev.detail >= 2) {
         deps.setStory(null); // double-click outside the band exits to the body
         if (band) return; // ...unless it hit the OTHER band; require a fresh click
@@ -419,6 +445,11 @@ export function createSelectionController(deps: SelectionControllerDeps): Select
     } else if (band) {
       if (ev.detail < 2) return; // single click in a band does nothing (Word)
       deps.setStory({ band, pageIndex: pt.pageIndex });
+      const objHit = hitTestSelectableObject(deps.getTree(), pt.pageIndex, pt.x, pt.y, { band, pageIndex: pt.pageIndex });
+      if (objHit) {
+        deps.selectObject(objHit.blockId);
+        return;
+      }
     }
 
     const pos = posFromEvent(ev);
@@ -618,7 +649,7 @@ export function createSelectionController(deps: SelectionControllerDeps): Select
     // Over an image, swap the I-beam for an object cursor: a move cursor on a
     // draggable anchored image, an arrow on an in-flow one.
     let objCursor: string | null = null;
-    if (!hit && !href && !overTocEntry && pt?.inside && !deps.getStory()) {
+    if (!hit && !href && !overTocEntry && pt?.inside) {
       const oh = hitTestSelectableObject(deps.getTree(), pt.pageIndex, pt.x, pt.y, scope());
       if (oh) objCursor = movableImage(oh.blockId) ? "move" : "default";
     }

@@ -11,6 +11,7 @@ import { ImportError, WarningSink } from "./types";
 import type {
   BandRefs,
   BookmarkMarker,
+  CommentMarker,
   IRBlock,
   IRCellMargin,
   IRDocument,
@@ -53,6 +54,10 @@ interface ParseCtx {
   pendingMarkers: BookmarkMarker[];
   /** Bookmark markers (start/end + offset) inside the paragraph being walked. */
   currentMarkers: BookmarkMarker[] | null;
+  /** Block-level comment markers, attached at offset 0 of the NEXT paragraph. */
+  pendingCommentMarkers: CommentMarker[];
+  /** Comment markers (start/end/ref + offset) inside the paragraph being walked. */
+  currentCommentMarkers: CommentMarker[] | null;
   /** Capture non-built-in complex fields into a model field registry + stamp the
    *  result blocks' fieldId. True for the body only — bands/footnotes keep their
    *  cached result flattened (custom fields live in the body). */
@@ -111,7 +116,7 @@ export function parseDocumentXml(xmlText: string, partName: string, warnings: Wa
     throw new ImportError("MALFORMED_XML", `${partName} has no w:document/w:body root.`);
   }
   const sdts: Record<string, IRSdtProps> = {};
-  const ctx: ParseCtx = { warnings, fieldTokens: false, sdts, nextSdt: { n: 0 }, blockSdtStack: [], inlineSdtStack: [], pendingBookmarks: [], currentBookmarks: null, pendingMarkers: [], currentMarkers: null, trackFields: true, fieldTrack: newFieldTrack() };
+  const ctx: ParseCtx = { warnings, fieldTokens: false, sdts, nextSdt: { n: 0 }, blockSdtStack: [], inlineSdtStack: [], pendingBookmarks: [], currentBookmarks: null, pendingMarkers: [], currentMarkers: null, pendingCommentMarkers: [], currentCommentMarkers: null, trackFields: true, fieldTrack: newFieldTrack() };
 
   const blocks: IRBlock[] = [];
   walkBlocks(children(body), blocks, ctx);
@@ -144,7 +149,7 @@ export function parseHeaderFooterXml(
   if (!root) {
     throw new ImportError("MALFORMED_XML", `${partName} has no w:hdr/w:ftr root.`);
   }
-  const ctx: ParseCtx = { warnings, fieldTokens: true, sdts, nextSdt: { n: Object.keys(sdts).length }, blockSdtStack: [], inlineSdtStack: [], pendingBookmarks: [], currentBookmarks: null, pendingMarkers: [], currentMarkers: null, trackFields: false, fieldTrack: newFieldTrack() };
+  const ctx: ParseCtx = { warnings, fieldTokens: true, sdts, nextSdt: { n: Object.keys(sdts).length }, blockSdtStack: [], inlineSdtStack: [], pendingBookmarks: [], currentBookmarks: null, pendingMarkers: [], currentMarkers: null, pendingCommentMarkers: [], currentCommentMarkers: null, trackFields: false, fieldTrack: newFieldTrack() };
   const blocks: IRBlock[] = [];
   walkBlocks(children(root), blocks, ctx);
   return blocks;
@@ -224,6 +229,16 @@ function walkBlocks(nodes: XmlNode[], out: IRBlock[], ctx: ParseCtx): void {
         if (idAttr) ctx.pendingMarkers.push({ id: idAttr, kind: "end", offset: 0 });
         break;
       }
+      case "w:commentRangeStart": {
+        const idAttr = attr(node, "w:id");
+        if (idAttr) ctx.pendingCommentMarkers.push({ id: idAttr, kind: "start", offset: 0 });
+        break;
+      }
+      case "w:commentRangeEnd": {
+        const idAttr = attr(node, "w:id");
+        if (idAttr) ctx.pendingCommentMarkers.push({ id: idAttr, kind: "end", offset: 0 });
+        break;
+      }
       case "m:oMathPara": {
         // Display (block) equation — convert OMML → MathML AST, carrying alignment
         // (m:oMathParaPr/m:jc) and the same field/control block metadata as w:p/w:tbl.
@@ -260,15 +275,20 @@ function parseParagraph(p: XmlNode, ctx: ParseCtx): IRParagraph {
   const markers = ctx.pendingMarkers;
   ctx.pendingMarkers = [];
   ctx.currentMarkers = markers;
+  const commentMarkers = ctx.pendingCommentMarkers;
+  ctx.pendingCommentMarkers = [];
+  ctx.currentCommentMarkers = commentMarkers;
   // Complex fields (w:fldChar begin → instr → separate → result → end) span
   // multiple runs; the state lives at paragraph scope.
   const field: FieldState = { depth: 0, instr: "", suppressResult: false };
   walkInlines(children(p), inlines, ctx, field);
   ctx.currentBookmarks = null;
   ctx.currentMarkers = null;
+  ctx.currentCommentMarkers = null;
   const para: IRParagraph = { kind: "paragraph", props, inlines };
   if (bookmarks.length > 0) para.bookmarks = bookmarks;
   if (markers.length > 0) para.bookmarkMarkers = markers;
+  if (commentMarkers.length > 0) para.commentMarkers = commentMarkers;
   if (field.tocInstr !== undefined) para.tocField = field.tocInstr;
   return para;
 }
@@ -397,13 +417,34 @@ function walkInlines(nodes: XmlNode[], out: IRInline[], ctx: ParseCtx, field: Fi
         if (idAttr && ctx.currentMarkers) ctx.currentMarkers.push({ id: idAttr, kind: "end", offset: inlineOffset(out) });
         break;
       }
+      case "w:commentRangeStart": {
+        const idAttr = attr(node, "w:id");
+        if (idAttr && ctx.currentCommentMarkers) {
+          ctx.currentCommentMarkers.push({ id: idAttr, kind: "start", offset: inlineOffset(out) });
+        }
+        break;
+      }
+      case "w:commentRangeEnd": {
+        const idAttr = attr(node, "w:id");
+        if (idAttr && ctx.currentCommentMarkers) {
+          ctx.currentCommentMarkers.push({ id: idAttr, kind: "end", offset: inlineOffset(out) });
+        }
+        break;
+      }
+      case "w:commentReference": {
+        const idAttr = attr(node, "w:id");
+        if (idAttr && ctx.currentCommentMarkers) {
+          ctx.currentCommentMarkers.push({ id: idAttr, kind: "ref", offset: inlineOffset(out) });
+        }
+        break;
+      }
       case "m:oMath": {
         // Inline equation → a single-U+FFFC run carrying the MathML AST.
         out.push({ kind: "mathInline", root: ommlToMathml(node) });
         break;
       }
       default:
-        break; // w:pPr, w:proofErr, comment ranges, …
+        break; // w:pPr, w:proofErr, …
     }
   }
 }
@@ -461,6 +502,13 @@ function parseRun(r: XmlNode, out: IRInline[], ctx: ParseCtx, field: FieldState)
         case "w:noBreakHyphen":
           text += "‑";
           break;
+        case "w:commentReference": {
+          const idAttr = attr(node, "w:id");
+          if (idAttr && ctx.currentCommentMarkers) {
+            ctx.currentCommentMarkers.push({ id: idAttr, kind: "ref", offset: inlineOffset(out) + text.length });
+          }
+          break;
+        }
         case "w:sym": {
           // A symbol-font glyph (font + hex code point). Flush pending text, then
           // emit a standalone run carrying the symbol marker; its text is the
@@ -1120,6 +1168,8 @@ export function parseFootnotesXml(
     currentBookmarks: null,
     pendingMarkers: [],
     currentMarkers: null,
+    pendingCommentMarkers: [],
+    currentCommentMarkers: null,
     trackFields: false,
     fieldTrack: newFieldTrack(),
   };
@@ -1163,6 +1213,8 @@ export function parseEndnotesXml(
     currentBookmarks: null,
     pendingMarkers: [],
     currentMarkers: null,
+    pendingCommentMarkers: [],
+    currentCommentMarkers: null,
     trackFields: false,
     fieldTrack: newFieldTrack(),
   };

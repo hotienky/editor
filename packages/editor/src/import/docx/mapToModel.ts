@@ -21,6 +21,7 @@ import type {
   ParaStyle,
   LineNumbering,
   Paragraph,
+  ReviewAnchor,
   Run,
   SdtProps,
   RowProps,
@@ -177,6 +178,8 @@ export interface Mapper {
   /** Endnotes referenced (in document order) — the pipeline maps their bodies
    *  into Document.endnotes. `noteId` is the model key, `docxId` the source id. */
   endnoteRefs(): { docxId: string; noteId: string }[];
+  /** Comment anchors keyed by docx comment id. */
+  commentAnchors(): Map<string, ReviewAnchor>;
   /** The first `TOC` field's block id + verbatim instruction, or undefined. */
   tocField(): { blockId: string; instruction: string } | undefined;
 }
@@ -204,6 +207,11 @@ export function createMapper(
   // ranges in bookmarks(). Start carries the name; end may live in a later block.
   const bookmarkStarts = new Map<string, { name: string; pos: DocPosition }>();
   const bookmarkEnds = new Map<string, DocPosition>();
+
+  // Comment markers resolved to model positions, keyed by docx w:id.
+  const commentStarts = new Map<string, DocPosition>();
+  const commentEnds = new Map<string, DocPosition>();
+  const commentRefs = new Map<string, DocPosition>();
 
   // Footnote markers numbered sequentially in document order (docx id → number),
   // matching the editor's renumber convention. The pipeline maps the referenced
@@ -678,6 +686,16 @@ export function createMapper(
         else if (m.kind === "end") bookmarkEnds.set(m.id, pos);
       }
     }
+    if (ir.commentMarkers && ir.commentMarkers.length > 0 && blocks[0]) {
+      const home = blocks[0]!;
+      const homeLen = home.kind === "paragraph" ? home.runs.reduce((s, r) => s + r.text.length, 0) : 0;
+      for (const m of ir.commentMarkers) {
+        const pos: DocPosition = { blockId: home.id, offset: Math.min(m.offset, homeLen) };
+        if (m.kind === "start") commentStarts.set(m.id, pos);
+        else if (m.kind === "end") commentEnds.set(m.id, pos);
+        else if (m.kind === "ref") commentRefs.set(m.id, pos);
+      }
+    }
     return blocks;
   }
 
@@ -992,6 +1010,18 @@ export function createMapper(
     },
     footnoteRefs: () => footnoteOrder.map((docxId) => ({ docxId, noteId: `fn${docxId}` })),
     endnoteRefs: () => endnoteOrder.map((docxId) => ({ docxId, noteId: `en${docxId}` })),
+    commentAnchors: () => {
+      const out = new Map<string, ReviewAnchor>();
+      const allIds = new Set([...commentStarts.keys(), ...commentEnds.keys(), ...commentRefs.keys()]);
+      for (const id of allIds) {
+        const start = commentStarts.get(id) ?? commentRefs.get(id) ?? commentEnds.get(id);
+        const end = commentEnds.get(id) ?? commentRefs.get(id) ?? start;
+        if (start && end) {
+          out.set(id, { start, end });
+        }
+      }
+      return out;
+    },
     tocField: () => tocAnchor,
   };
 }

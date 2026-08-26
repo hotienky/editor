@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Document, ImageBlock, Paragraph, SectionProps, TableBlock } from "../model/document";
 import { mediaIdForBytes } from "./media";
-import { collectMediaIds, deserializeDocument, forEachImage, serializeDocument } from "./serialize";
+import { collectMediaIds, deserializeDocument, forEachImage, serializeDocument, serializeFullDocument } from "./serialize";
 
 const section = (): SectionProps => ({
   pageWidthPx: 816,
@@ -86,5 +86,59 @@ describe("mediaIdForBytes", () => {
     );
     // identical bytes → identical id (dedup)
     expect(await mediaIdForBytes(new TextEncoder().encode("abc"))).toBe(await mediaIdForBytes(abc));
+  });
+});
+
+describe("serializeFullDocument", () => {
+  it("packages document, review, mediaIds, and metadata together", () => {
+    const doc: Document = {
+      section: section(),
+      blocks: [para("p1", "Sample text"), img("i1", "hashImg", "blob:abc")],
+    };
+    const review = {
+      suggestions: [],
+      threads: [
+        {
+          id: "t1",
+          anchor: { start: { blockId: "p1", offset: 0 }, end: { blockId: "p1", offset: 6 } },
+          comments: [
+            {
+              id: "c1",
+              author: { id: "u1", firstName: "Alice", lastName: "Smith" },
+              createdAt: 123456,
+              body: [{ text: "Great point!", style: { fontFamily: "Arial", fontSizePx: 14, bold: false, italic: false, underline: false, strikethrough: false, color: "#000" } }],
+            },
+          ],
+        },
+      ],
+    };
+    const full = serializeFullDocument(doc, review, {
+      docId: "doc-123",
+      metadata: { pageCount: 1, wordCount: 2, charCount: 11 },
+    });
+
+    expect(full.version).toBe(1);
+    expect(full.docId).toBe("doc-123");
+    expect(full.metadata).toEqual({ pageCount: 1, wordCount: 2, charCount: 11 });
+    expect(full.mediaIds).toEqual(["hashImg"]);
+    expect((full.document.blocks[1] as ImageBlock).src).toBe(""); // blob dropped
+    expect((full.document.blocks[1] as ImageBlock).mediaId).toBe("hashImg");
+    expect(full.review?.threads.length).toBe(1);
+    expect(full.review?.threads[0]?.comments[0]?.author.firstName).toBe("Alice");
+  });
+
+  it("embeds base64 media directly in exported document and media map", () => {
+    const doc: Document = {
+      section: section(),
+      blocks: [para("p1", "Sample"), img("i1", "hashImg", "blob:abc")],
+    };
+    const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const full = serializeFullDocument(doc, undefined, {
+      media: { hashImg: dataUrl },
+    });
+
+    expect(full.media).toEqual({ hashImg: dataUrl });
+    expect((full.document.blocks[1] as ImageBlock).src).toBe(dataUrl);
+    expect((full.document.blocks[1] as ImageBlock).mediaId).toBe("hashImg");
   });
 });

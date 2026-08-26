@@ -58,3 +58,41 @@ export class MemoryMediaStore implements MediaStore {
     return [...this.map.keys()];
   }
 }
+
+/** Convert raw bytes to a standard base64 string. Safe for large buffers. */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const len = bytes.byteLength;
+  const chunkSize = 0x8000;
+  for (let i = 0; i < len; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, len));
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  return btoa(binary);
+}
+
+/** Convert a base64 string to Uint8Array bytes. */
+export function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/** Parse a data URL (e.g. data:image/png;base64,...) into MIME type and raw bytes. */
+export function dataUrlToMedia(dataUrl: string): { mime: string; bytes: Uint8Array } | null {
+  const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+  if (!match || !match[1] || !match[2]) return null;
+  return {
+    mime: match[1],
+    bytes: base64ToBytes(match[2]),
+  };
+}
+
+/** Format a MIME type and bytes into a standard data: URL. */
+export function mediaToDataUrl(mime: string, bytes: Uint8Array): string {
+  return `data:${mime};base64,${bytesToBase64(bytes)}`;
+}

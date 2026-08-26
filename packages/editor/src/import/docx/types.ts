@@ -5,7 +5,7 @@
 // everything it understands (even what the model can't hold yet); mapToModel
 // decides what survives and emits an ImportWarning for every lossy decision.
 
-import type { Document, FieldDef, MathRow } from "@kindy/shared";
+import type { Document, FieldDef, MathRow, ReviewLayer } from "@kindy/shared";
 
 export type ImportPhase = "unzip" | "styles" | "parse" | "map";
 
@@ -39,6 +39,8 @@ export class WarningSink {
 
 export interface ImportResult {
   doc: Document;
+  /** Imported comment threads / review layer from comments.xml. */
+  review?: ReviewLayer;
   /** Every lossy mapping decision — surfaced, not swallowed. */
   warnings: ImportWarning[];
   /** blob: URLs created for embedded media; caller revokes when the doc is discarded. */
@@ -343,6 +345,13 @@ export interface BookmarkMarker {
   offset: number;
 }
 
+/** A w:commentRangeStart / w:commentRangeEnd / w:commentReference marker. */
+export interface CommentMarker {
+  id: string;
+  kind: "start" | "end" | "ref";
+  offset: number;
+}
+
 export interface IRParagraph {
   kind: "paragraph";
   props: IRParaProps;
@@ -351,6 +360,8 @@ export interface IRParagraph {
   bookmarks?: string[];
   /** Start/end markers with offsets — resolved to model ranges in mapToModel. */
   bookmarkMarkers?: BookmarkMarker[];
+  /** Comment range start/end/ref markers with offsets — resolved to ReviewAnchor in mapToModel. */
+  commentMarkers?: CommentMarker[];
   /** Custom-field result membership — mapped onto Block.fieldId. */
   fieldId?: string;
   /** Block-level content-control ancestry (outer→inner) — mapped onto Block.sdtPath. */

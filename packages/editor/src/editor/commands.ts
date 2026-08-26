@@ -1,7 +1,7 @@
 // Commands: pure (state) -> Transaction | null. The keymap, the IME proxy, and
 // (later) toolbar buttons all dispatch through these.
 
-import type { Block, CellBorder, CellBorders, CharStyle, EquationBlock, FieldDef, FieldSpec, GridSlot, ImageBlock, MathEquation, ParaStyle, Paragraph, Run, RowProps, SdtProps, SdtType, TableBlock, TableCell, TableGrid, TableRow, TableStyle, TocOptions, TocSwitches } from "@kindy/shared";
+import type { Block, CellBorder, CellBorders, CharStyle, Container, EquationBlock, FieldDef, FieldSpec, GridSlot, ImageBlock, MathEquation, ParaStyle, Paragraph, Run, RowProps, SdtProps, SdtType, TableBlock, TableCell, TableGrid, TableRow, TableStyle, TocOptions, TocSwitches } from "@kindy/shared";
 import { bakeTableStyleRows, DEFAULT_TBL_LOOK } from "@kindy/shared";
 import { buildTocParagraphs, buildTocInstruction, buildInstruction, evaluateField } from "@kindy/shared";
 import type { BookmarkRange, DocPosition, DocSelection, GridRect } from "@kindy/shared";
@@ -1687,29 +1687,60 @@ export function toggleCharStyle(
   };
 }
 
-/** Insert an atomic block (image/table) at a collapsed top-level caret: split
- *  the paragraph there and slot the block between head and tail. */
+/** Insert an atomic block (image/table/equation) at a collapsed caret in the
+ *  body or a header/footer margin band: slot the block next to the paragraph
+ *  without creating spurious empty lines when at boundaries. */
 function insertBlockAtCaret(state: EditorState, makeBlock: () => Block): Transaction | null {
   const sel = state.selection;
   if (!sel || !isCollapsed(sel)) return null;
   const at = sel.focus;
-  const bi = state.doc.blocks.findIndex((b) => b.id === at.blockId);
-  if (bi < 0) return null; // inside a cell
-  const tailId = freshBlockId();
+  const loc = locateParagraph(state.doc, at.blockId);
+  if (!loc || loc.kind === "cell" || loc.kind === "footnote" || loc.kind === "endnote") return null;
+  const where: Container = loc.kind === "band" ? loc.band : "body";
+  const p = blockById(state.doc, at.blockId);
+  if (!p || p.kind !== "paragraph") return null;
+  const textLen = textOfRuns(p.runs).length;
   const block = makeBlock();
+
+  // If paragraph is completely empty: insert block before paragraph, keep paragraph at offset 0
+  if (textLen === 0) {
+    const ops: Op[] = [
+      { type: "insertBlock", index: loc.bi, block, where },
+    ];
+    return tr(ops, caret(p.id, 0), "command");
+  }
+
+  // If caret is at the start of paragraph: insert block before paragraph, caret stays at start
+  if (at.offset === 0) {
+    const ops: Op[] = [
+      { type: "insertBlock", index: loc.bi, block, where },
+    ];
+    return tr(ops, caret(p.id, 0), "command");
+  }
+
+  // If caret is at the end of paragraph: insert block after paragraph, caret stays at end
+  if (at.offset === textLen) {
+    const ops: Op[] = [
+      { type: "insertBlock", index: loc.bi + 1, block, where },
+    ];
+    return tr(ops, caret(p.id, textLen), "command");
+  }
+
+  // If caret is in the middle of paragraph text: split paragraph into head and tail
+  const tailId = freshBlockId();
   const ops: Op[] = [
     { type: "splitParagraph", at, newBlockId: tailId },
-    { type: "insertBlock", index: bi + 1, block },
+    { type: "insertBlock", index: loc.bi + 1, block, where },
   ];
   return tr(ops, caret(tailId, 0), "command");
 }
 
-export function insertImage(src: string, widthPx: number, heightPx: number, mediaId?: string): Command {
+export function insertImage(src: string, widthPx: number, heightPx: number, mediaId?: string, id?: string): Command {
   return (state) =>
     insertBlockAtCaret(state, () => {
       const img: ImageBlock = {
         kind: "image",
-        id: freshBlockId(),
+        id: id ?? freshBlockId(),
         revision: 0,
         src,
         widthPx,
@@ -2483,7 +2514,7 @@ export function deleteImage(blockId: string): Command {
 }
 
 /** Insert an image INSIDE the caret's table cell (after the caret paragraph). */
-export function insertImageInCell(src: string, widthPx: number, heightPx: number, mediaId?: string): Command {
+export function insertImageInCell(src: string, widthPx: number, heightPx: number, mediaId?: string, id?: string): Command {
   return (state) => {
     const sel = state.selection;
     if (!sel || !isCollapsed(sel)) return null;
@@ -2494,7 +2525,7 @@ export function insertImageInCell(src: string, widthPx: number, heightPx: number
     const cell = row.cells[loc.ci]!;
     const img: ImageBlock = {
       kind: "image",
-      id: freshBlockId(),
+      id: id ?? freshBlockId(),
       revision: 0,
       src,
       widthPx,

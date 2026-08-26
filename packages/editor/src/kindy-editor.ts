@@ -262,6 +262,11 @@ export class KindyEditor {
     return (await this.ready).openDocx(file);
   }
 
+  /** Open a JSON document (.json or FullDocumentExport). */
+  async openJson(file: File | string | FullDocumentExport): Promise<void> {
+    return (await this.ready).openJson(file);
+  }
+
   /** Export the current document to a .docx Blob — track changes baked to the
    *  original baseline, exactly like the toolbar's Export. Wire it to your own
    *  Save button and POST it anywhere. Resolves once the editor is ready. */

@@ -597,11 +597,17 @@ export interface EditorHandle {
   setDocument(doc: Document): void;
   /** Open a .docx (auto-publishes when online); resolves when loaded. */
   openDocx(file: File | ArrayBuffer): Promise<void>;
+  /** Open a JSON document (.json or FullDocumentExport); resolves when loaded. */
+  openJson(file: File | string | FullDocumentExport): Promise<void>;
   /** Export the current document to a .docx Blob (track changes baked to the
    *  original baseline, matching the toolbar's Export). For a custom Save button. */
   exportDocx(): Promise<Blob>;
   /** Export the current document to a PDF Blob (see `exportDocx`). */
   exportPdf(): Promise<Blob>;
+  /** Export the full document snapshot + review/comments to a JSON Blob. */
+  exportJson(): Promise<Blob>;
+  /** Get the full document JSON payload (Document, ReviewLayer, metadata, mediaIds). */
+  getFullJson(): FullDocumentExport;
   /** Publish the current document and resolve its shareable link (online only). */
   share(): Promise<string>;
   getDocId(): string | null;
@@ -649,12 +655,18 @@ export declare class KindyEditor {
   createChild(): ChildDocument;
   /** Open a .docx. When online, auto-publishes it and surfaces a share link. */
   openDocx(file: File | ArrayBuffer): Promise<void>;
+  /** Open a JSON document (.json or FullDocumentExport). */
+  openJson(file: File | string | FullDocumentExport): Promise<void>;
   /** Export the current document to a .docx Blob — track changes baked to the
    *  original baseline, exactly like the toolbar's Export. Wire it to your own
    *  Save button and POST it anywhere. Resolves once the editor is ready. */
   exportDocx(): Promise<Blob>;
   /** Export the current document to a PDF Blob (see `exportDocx`). */
   exportPdf(): Promise<Blob>;
+  /** Export the full document snapshot + review/comments to a JSON Blob. */
+  exportJson(): Promise<Blob>;
+  /** Get the full document JSON payload (Document, ReviewLayer, metadata, mediaIds). */
+  getFullJson(): Promise<FullDocumentExport>;
   /** Replace the open document with a programmatically-built one (e.g. a
    *  DocumentBuilder result). The input is cloned. Like openDocx, this starts a
    *  NEW document: undo history and any live collab session are dropped (the

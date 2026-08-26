@@ -675,4 +675,116 @@ describe("DOCX export — round trip", () => {
     expect(warnings).toEqual([]);
     expect(paras(runImport(bytes).doc).length).toBeGreaterThan(0);
   });
+
+  it("exports comments and round-trips them back through import", () => {
+    const doc: Document = {
+      section: {
+        pageWidthPx: 816,
+        pageHeightPx: 1056,
+        marginPx: { top: 96, right: 96, bottom: 96, left: 96 },
+      },
+      blocks: [
+        {
+          kind: "paragraph",
+          id: "p1",
+          revision: 0,
+          runs: [{ text: "This is some test content for comments.", style: { fontFamily: "Arial", fontSizePx: 16, bold: false, italic: false, underline: false, strikethrough: false, color: "#000000" } }],
+          style: { align: "left", lineHeight: 1.15, spaceBeforePx: 0, spaceAfterPx: 0, indentLeftPx: 0, indentRightPx: 0, indentFirstLinePx: 0 },
+        },
+      ],
+    };
+
+    const review = {
+      docId: "test-doc",
+      baseVersion: 0,
+      suggestions: [],
+      threads: [
+        {
+          id: "thread1",
+          anchor: {
+            start: { blockId: "p1", offset: 8 },
+            end: { blockId: "p1", offset: 17 }, // "some test"
+          },
+          status: "open" as const,
+          comments: [
+            {
+              id: "c1",
+              author: { id: "u1", firstName: "David", lastName: "Smith" },
+              body: [{ text: "Please review this phrasing.", style: { fontFamily: "Arial", fontSizePx: 16, bold: false, italic: false, underline: false, strikethrough: false, color: "#000000" } }],
+              createdAt: 1700000000000,
+            },
+            {
+              id: "c2",
+              author: { id: "u2", firstName: "Emma", lastName: "Stone" },
+              body: [{ text: "Looks good to me!", style: { fontFamily: "Arial", fontSizePx: 16, bold: true, italic: false, underline: false, strikethrough: false, color: "#000000" } }],
+              createdAt: 1700000060000,
+            },
+          ],
+        },
+      ],
+    };
+
+    const { bytes } = writeDocx(doc, {}, undefined, review);
+    const zip = unzipSync(bytes);
+    expect(zip["word/comments.xml"]).toBeDefined();
+    expect(zip["word/commentsExtended.xml"]).toBeDefined();
+    expect(zip["word/commentsIds.xml"]).toBeDefined();
+
+    const commentsXml = strFromU8(zip["word/comments.xml"]!);
+    expect(commentsXml).toContain("David Smith");
+    expect(commentsXml).toContain("Please review this phrasing.");
+    expect(commentsXml).toContain("Emma Stone");
+    expect(commentsXml).toContain("Looks good to me!");
+
+    const commentsIdsXml = strFromU8(zip["word/commentsIds.xml"]!);
+    expect(commentsIdsXml).toContain("<w16cid:commentId");
+
+    const docXml = strFromU8(zip["word/document.xml"]!);
+    expect(docXml).toContain("<w:commentRangeStart");
+    expect(docXml).toContain("<w:commentRangeEnd");
+    expect(docXml).toContain("<w:commentReference");
+
+    // Round-trip through import
+    const imported = runImport(bytes);
+    expect(imported.review).toBeDefined();
+    expect(imported.review?.threads).toHaveLength(1);
+    const importedThread = imported.review!.threads[0]!;
+    expect(importedThread.status).toBe("open");
+    expect(importedThread.anchor.start.offset).toBe(8);
+    expect(importedThread.anchor.end.offset).toBe(17);
+    expect(importedThread.comments).toHaveLength(2);
+    expect(importedThread.comments[0]!.author.firstName).toBe("David");
+    expect(importedThread.comments[0]!.body[0]!.text).toBe("Please review this phrasing.");
+    expect(importedThread.comments[1]!.author.firstName).toBe("Emma");
+    expect(importedThread.comments[1]!.body[0]!.text).toBe("Looks good to me!");
+  });
+
+  it("exports images resolved by mediaId even when src is blank", () => {
+    const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+    const doc: Document = {
+      section: {
+        pageWidthPx: 816,
+        pageHeightPx: 1056,
+        marginPx: { top: 96, right: 96, bottom: 96, left: 96 },
+      },
+      blocks: [
+        {
+          kind: "image",
+          id: "img1",
+          revision: 0,
+          mediaId: "hash123",
+          src: "",
+          widthPx: 200,
+          heightPx: 150,
+          align: "center",
+        },
+      ],
+    };
+
+    const { bytes } = writeDocx(doc, { hash123: pngBytes });
+    const zip = unzipSync(bytes);
+    expect(zip["word/media/image1.png"]).toBeDefined();
+    const docXml = strFromU8(zip["word/document.xml"]!);
+    expect(docXml).toContain("<a:blip");
+  });
 });

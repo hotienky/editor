@@ -150,6 +150,13 @@ export const ICONS = {
   trash: svg(`<path d="M3 4.5h10"/><path d="M5.5 4.5V3h5v1.5"/><path d="M4 4.5l.8 9h6.4l.8-9"/><path d="M6.5 7v4M9.5 7v4"/>`),
   filter: svg(`<path d="M2.5 3.5h11l-4.2 5v4l-2.6 1.3v-5.3z"/>`),
   symbol: svg(`<path d="M2.5 13h4v-1.5a4.5 4.5 0 1 1 3 0V13h4"/>`),
+  /** Image properties (sliders icon) — opens the image-props dialog. */
+  imageProps: svg(`<path d="M2.5 4.5h4M9.5 4.5h4M6.5 2.5v4"/><circle cx="6.5" cy="4.5" r="1.5" fill="currentColor" stroke="none"/><path d="M2.5 11.5h2M7.5 11.5h6M4.5 9.5v4"/><circle cx="4.5" cy="11.5" r="1.5" fill="currentColor" stroke="none"/>`),
+  /** Crop image icon. */
+  crop: svg(`<path d="M4.5 2v9.5H14"/><path d="M2 4.5h9.5V14"/>`),
+  header: svg(`<rect x="2.5" y="2.5" width="11" height="11" rx="1"/><path d="M2.5 6h11" stroke-dasharray="2 1"/><path d="M5 4.5h6"/>`),
+  footer: svg(`<rect x="2.5" y="2.5" width="11" height="11" rx="1"/><path d="M2.5 10h11" stroke-dasharray="2 1"/><path d="M5 11.5h6"/>`),
+  pageNumber: svg(`<rect x="2.5" y="2.5" width="11" height="11" rx="1"/><path d="M7 6v4M6 7l1-1"/>`),
 } as const;
 
 export type IconName = keyof typeof ICONS;

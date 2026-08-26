@@ -98,4 +98,19 @@ describe("applyPageSetup — section start + line numbering on a mid-document br
     expect(brk.type).toBe("nextPage");
     expect(brk.props.lineNumbering).toEqual({ countBy: 2 });
   });
+
+  it("supports inserting blocks directly into header and footer containers", () => {
+    const a = para("body");
+    const hp = para("header text");
+    const fp = para("footer text");
+    let doc: Document = { section: SECTION, blocks: [a] };
+    const r1 = applyOp(doc, { type: "insertBlock", index: 0, block: hp, where: "header" });
+    doc = r1.doc;
+    const r2 = applyOp(doc, { type: "insertBlock", index: 0, block: fp, where: "footer" });
+    doc = r2.doc;
+    expect(doc.section.header?.length).toBe(1);
+    expect(doc.section.header?.[0]!.id).toBe(hp.id);
+    expect(doc.section.footer?.length).toBe(1);
+    expect(doc.section.footer?.[0]!.id).toBe(fp.id);
+  });
 });

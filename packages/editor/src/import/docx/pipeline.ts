@@ -2,8 +2,9 @@
 // footer parts) → IR → Document. Pure (no worker/DOM references) so the whole
 // pipeline runs under vitest in Node; worker.ts is just transport around this.
 
-import type { Block, BandContainer, Paragraph, SectionProps } from "@kindy/shared";
+import type { Block, BandContainer, Paragraph, SectionProps, ReviewLayer } from "@kindy/shared";
 import { markImportedTocEntries } from "@kindy/shared";
+import { parseCommentsXml, parseCommentsExtendedXml, buildReviewLayer } from "./comments";
 import { findMainDocumentPart } from "./contentTypes";
 import { parseDocumentXml, parseEndnotesXml, parseFootnotesXml, parseHeaderFooterXml } from "./documentParser";
 import { buildStylesheet, buildTableStyles, createMapper, mapSdts, type LinkResolver, type Mapper } from "./mapToModel";
@@ -203,8 +204,26 @@ export function runImport(
   if (settings.defaultTabStopPx !== undefined) doc.defaultTabStopPx = settings.defaultTabStopPx;
   if (settings.compatSettings) doc.compatSettings = settings.compatSettings;
 
+  // Comments (word/comments.xml + word/commentsExtended.xml) → ReviewLayer
+  const commentsPart = partNameByRelType(rels, "comments") ?? "word/comments.xml";
+  const commentsXml = archive.text(commentsPart);
+  let review: ReviewLayer | undefined;
+  if (commentsXml !== undefined) {
+    const rawComments = parseCommentsXml(commentsXml);
+    const commentsExtPart = partNameByRelType(rels, "commentsExtended") ?? "word/commentsExtended.xml";
+    const commentsExtXml = archive.text(commentsExtPart);
+    const rawCommentsExt = commentsExtXml !== undefined ? parseCommentsExtendedXml(commentsExtXml) : new Map();
+    const anchors = mapper.commentAnchors();
+    const firstBlockId = blocks[0]?.id;
+    const fallbackAnchor = firstBlockId
+      ? { start: { blockId: firstBlockId, offset: 0 }, end: { blockId: firstBlockId, offset: 0 } }
+      : undefined;
+    review = buildReviewLayer(rawComments, rawCommentsExt, anchors, fallbackAnchor);
+  }
+
   return {
     doc,
+    ...(review ? { review } : {}),
     warnings: warnings.list,
     mediaUrls: mediaStores.flatMap((s) => s.urls()),
     media: mediaRecords,

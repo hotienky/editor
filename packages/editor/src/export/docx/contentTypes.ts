@@ -12,6 +12,9 @@ const CT = {
   header: "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml",
   footer: "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml",
   theme: "application/vnd.openxmlformats-officedocument.theme+xml",
+  comments: "application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml",
+  commentsExtended: "application/vnd.openxmlformats-officedocument.wordprocessingml.commentsExtended+xml",
+  commentsIds: "application/vnd.openxmlformats-officedocument.wordprocessingml.commentsIds+xml",
 } as const;
 
 export { CT };

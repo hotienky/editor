@@ -1,4 +1,4 @@
-import { bakeReview, colorForId, configureIds, deserializeDocument, freshId, reconstruct, serializeDocument, DEFAULT_CHAR_STYLE, DOCX_MIME, PDF_MIME, PX_PER_INCH, ptToPx as sharedPtToPx, pxToPt as sharedPxToPt, type Change, type DocSelection, type Document, type Fragment, type ParaStyle, type ReviewLayer } from "@kindy/shared";
+import { bakeReview, collectMediaIds, colorForId, configureIds, dataUrlToMedia, deserializeDocument, forEachImage, freshId, mediaToDataUrl, reconstruct, serializeDocument, serializeFullDocument, textOfRuns, DEFAULT_CHAR_STYLE, DOCX_MIME, PDF_MIME, PX_PER_INCH, ptToPx as sharedPtToPx, pxToPt as sharedPxToPt, type Change, type DocSelection, type Document, type Fragment, type FullDocumentExport, type ImageBlock, type ParaStyle, type ReviewLayer, type Run, type SerializedDocument } from "@kindy/shared";
 import { resolveConfig } from "./config";
 import { emptyParagraphFor } from "./builder/blockFactory";
 import { mediaStore, mediaUrl, registerMediaBytes, rehydrateDocMedia } from "./media/store";
@@ -26,6 +26,7 @@ import { showParagraphDialog, type ParagraphDialogHandle } from "./ui/paragraphD
 import { showEquationEditor } from "./ui/equationEditor";
 import { showSymbolPicker, type SymbolPickerHandle } from "./ui/symbolPicker";
 import { showFontDialog } from "./ui/fontDialog";
+import { showImageDialog } from "./ui/imageDialog";
 import { loadCollabDocument, loadCollabReview, publishDocument } from "./sync/collab";
 import { attachMentionAutocomplete } from "./review/mentions";
 import { showBusy } from "./app/busyOverlay";
@@ -79,6 +80,7 @@ import {
   insertContentControl,
   wrapImageInContentControl,
   removeContentControl,
+  insertFieldCmd,
   applyPageSetup,
   pageSetupAt,
 } from "./editor/commands";
@@ -575,6 +577,9 @@ const openDocxFile = async (file: File | ArrayBuffer): Promise<void> => {
     });
     reportImport(result, performance.now() - i0);
     replaceDocument(result.doc);
+    if (result.review) {
+      editor.seedReview(result.review);
+    }
     detachCollabSession();
   } catch (e) {
     console.error("[docx-import]", e);
@@ -585,18 +590,165 @@ const openDocxFile = async (file: File | ArrayBuffer): Promise<void> => {
   }
 };
 
+const openJsonFile = async (file: File | string | FullDocumentExport): Promise<void> => {
+  const busy = showBusy("Opening JSON document…");
+  try {
+    let raw: unknown;
+    if (typeof file === "string") {
+      raw = JSON.parse(file);
+    } else if (file instanceof File || file instanceof Blob) {
+      const text = await file.text();
+      raw = JSON.parse(text);
+    } else {
+      raw = file;
+    }
+
+    let parsedDoc: Document | null = null;
+    let parsedReview: ReviewLayer | undefined = undefined;
+
+    if (raw && typeof raw === "object") {
+      const obj = raw as Record<string, unknown>;
+      // Restore embedded base64 media map into the session mediaStore
+      if (obj.media && typeof obj.media === "object") {
+        for (const [mid, dataUrl] of Object.entries(obj.media as Record<string, string>)) {
+          const parsed = dataUrlToMedia(dataUrl);
+          if (parsed) {
+            mediaStore().put({ mediaId: mid, mime: parsed.mime, bytes: parsed.bytes });
+          }
+        }
+      }
+
+      // Case 1: FullDocumentExport { version: 1, document: Document, review?: ReviewLayer }
+      if (obj.version === 1 && obj.document && typeof obj.document === "object") {
+        parsedDoc = deserializeDocument({ version: 1, doc: obj.document as Document });
+        if (obj.review && typeof obj.review === "object") {
+          parsedReview = obj.review as ReviewLayer;
+        }
+      }
+      // Case 2: SerializedDocument { version: 1, doc: Document }
+      else if (obj.version === 1 && obj.doc && typeof obj.doc === "object") {
+        parsedDoc = deserializeDocument(raw as SerializedDocument);
+      }
+      // Case 3: Raw Document { section: SectionProps, blocks: Block[] }
+      else if (obj.blocks && Array.isArray(obj.blocks) && obj.section) {
+        parsedDoc = raw as Document;
+      }
+    }
+
+    if (!parsedDoc) {
+      throw new Error("Invalid document JSON structure. Expected FullDocumentExport, SerializedDocument, or Document.");
+    }
+
+    // Register any inline data: image URLs so they have stable mediaIds in this session
+    forEachImage(parsedDoc, (img) => {
+      if (img.src && img.src.startsWith("data:")) {
+        const parsed = dataUrlToMedia(img.src);
+        if (parsed) {
+          void registerMediaBytes(parsed.bytes, parsed.mime).then((id) => {
+            if (!img.mediaId) img.mediaId = id;
+          });
+        }
+      }
+    });
+
+    rehydrateDocMedia(parsedDoc, mediaStore);
+    replaceDocument(parsedDoc);
+    if (parsedReview) {
+      editor.seedReview(parsedReview);
+    }
+    detachCollabSession();
+  } catch (e) {
+    console.error("[json-import]", e);
+    const name = file instanceof File ? file.name : "document.json";
+    alert(`Could not open "${name}": ${e instanceof Error ? e.message : String(e)}`);
+  } finally {
+    busy.done();
+  }
+};
+
 // Bake the review overlay into a clean doc (default: reject-all = original
 // baseline) so the review-blind writer emits a plain file, then export it.
 // Defined at mount scope so both the toolbar's Export buttons and the public
-// handle's exportDocx()/exportPdf() share one path.
+// handle's exportDocx()/exportPdf()/exportJson() share one path.
+const JSON_MIME = "application/json";
+
+const getFullJsonPayload = (): FullDocumentExport => {
+  const doc = editor.getDocument();
+  const review = editor.getReview();
+  const layout = editor.getLayoutInfo?.() ?? { pageCount: 1, currentPage: 1 };
+  let wordCount = 0;
+  let charCount = 0;
+  const countText = (runs: Run[]): void => {
+    const t = textOfRuns(runs);
+    charCount += t.length;
+    const words = t.trim().split(/\s+/).filter(Boolean);
+    wordCount += words.length;
+  };
+  for (const b of doc.blocks) {
+    if (b.kind === "paragraph") countText(b.runs);
+    else if (b.kind === "table") {
+      for (const row of b.rows) {
+        for (const cell of row.cells) {
+          for (const cb of cell.blocks) {
+            if (cb.kind === "paragraph") countText(cb.runs);
+          }
+        }
+      }
+    }
+  }
+
+  // Collect all images and serialize their bytes to base64 Data URLs so the JSON
+  // export is 100% self-contained and portable.
+  const mediaMap: Record<string, string> = {};
+  const store = mediaStore();
+  forEachImage(doc, (img) => {
+    if (img.mediaId) {
+      const blob = store.get(img.mediaId);
+      if (blob) {
+        mediaMap[img.mediaId] = mediaToDataUrl(blob.mime, blob.bytes);
+      }
+    } else if (img.src && img.src.startsWith("data:")) {
+      const parsed = dataUrlToMedia(img.src);
+      if (parsed) {
+        void registerMediaBytes(parsed.bytes, parsed.mime).then((id) => {
+          mediaMap[id] = img.src;
+        });
+      }
+    }
+  });
+
+  return serializeFullDocument(doc, review, {
+    docId: collabId ?? runtime.docId ?? null,
+    metadata: {
+      pageCount: layout.pageCount,
+      wordCount,
+      charCount,
+    },
+    media: mediaMap,
+  });
+};
+
+const exportFullJsonBytes = (): { bytes: Uint8Array; payload: FullDocumentExport } => {
+  const payload = getFullJsonPayload();
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const bytes = new TextEncoder().encode(jsonStr);
+  return { bytes, payload };
+};
+
 const exportBaked = (format: ExportFormat): Promise<{ bytes: Uint8Array; warnings: ExportWarning[] }> => {
   const baked = bakeReview(editor.getDocument(), editor.getReview(), "reject");
-  return exportDocument(baked, format, config.fonts, config.cjk);
+  return exportDocument(baked, format, config.fonts, config.cjk, format === "docx" ? editor.getReview() : undefined);
 };
-const blobFor = (format: ExportFormat, bytes: Uint8Array): Blob =>
-  new Blob([bytes as BlobPart], { type: format === "pdf" ? PDF_MIME : DOCX_MIME });
-/** Export to a Blob — backs the public handle's exportDocx()/exportPdf(). */
-const exportBlob = async (format: ExportFormat): Promise<Blob> => {
+const blobFor = (format: ExportFormat | "json", bytes: Uint8Array): Blob =>
+  new Blob([bytes as BlobPart], {
+    type: format === "pdf" ? PDF_MIME : format === "json" ? JSON_MIME : DOCX_MIME,
+  });
+/** Export to a Blob — backs the public handle's exportDocx()/exportPdf()/exportJson(). */
+const exportBlob = async (format: ExportFormat | "json"): Promise<Blob> => {
+  if (format === "json") {
+    const { bytes } = exportFullJsonBytes();
+    return blobFor("json", bytes);
+  }
   const { bytes } = await exportBaked(format);
   return blobFor(format, bytes);
 };
@@ -1154,13 +1306,22 @@ if (toolbar) {
     });
   };
 
-  const exportAs = async (format: ExportFormat): Promise<void> => {
+  const exportAs = async (format: ExportFormat | "json"): Promise<void> => {
     // Rendering (especially PDF) can take a few seconds; show the busy overlay so
     // the app doesn't look hung. Dropped before any onSave dialog / download so it
     // doesn't sit behind a native Save sheet.
     const busy = showBusy(`Exporting ${format.toUpperCase()}…`);
     try {
-      const { bytes, warnings } = await exportBaked(format);
+      let bytes: Uint8Array;
+      let warnings: ExportWarning[] = [];
+      if (format === "json") {
+        const res = exportFullJsonBytes();
+        bytes = res.bytes;
+      } else {
+        const res = await exportBaked(format);
+        bytes = res.bytes;
+        warnings = res.warnings;
+      }
       busy.done();
       if (warnings.length > 0) console.warn(`[export-${format}] warnings`, warnings);
       const blob = blobFor(format, bytes);
@@ -1650,14 +1811,64 @@ if (toolbar) {
           h = Math.round((h * MAX_W) / w);
           w = MAX_W;
         }
-        editor.dispatch(insertImage(src, w, h, mediaId)); // top-level caret
-        editor.dispatch(insertImageInCell(src, w, h, mediaId)); // table-cell caret
+        const imgId = freshId();
+        editor.dispatch(insertImage(src, w, h, mediaId, imgId)); // top-level caret
+        editor.dispatch(insertImageInCell(src, w, h, mediaId, imgId)); // table-cell caret
+        editor.selectObject(imgId);
         editor.focus();
       })();
     });
     input.click();
   };
   btn(ICONS.image, "Insert image from your device", () => pickAndInsertImage());
+
+  // Insert image from a URL — opens a small inline prompt, fetches the image,
+  // registers its bytes in the media store, and inserts it at the caret.
+  const insertImageFromUrl = (): void => {
+    const url = window.prompt("Enter image URL:");
+    if (!url) return;
+    void (async () => {
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const buf = await resp.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        const mime = resp.headers.get("content-type")?.split(";")[0]?.trim() || "image/png";
+        const mediaId = await registerMediaBytes(bytes, mime);
+        const src = mediaUrl(mediaId);
+        if (!src) return;
+        let w = 320;
+        let h = 200;
+        try {
+          const bmp = await createImageBitmap(new Blob([bytes], { type: mime }));
+          w = bmp.width;
+          h = bmp.height;
+          bmp.close();
+        } catch { /* keep fallback */ }
+        const MAX_W = 480;
+        if (w > MAX_W) { h = Math.round((h * MAX_W) / w); w = MAX_W; }
+        const imgId = freshId();
+        editor.dispatch(insertImage(src, w, h, mediaId, imgId));
+        editor.dispatch(insertImageInCell(src, w, h, mediaId, imgId));
+        editor.selectObject(imgId);
+        editor.focus();
+      } catch (err) {
+        console.error("[insertImageFromUrl]", err);
+        window.alert(`Could not load image: ${(err as Error).message ?? err}`);
+      }
+    })();
+  };
+  btn(ICONS.link, "Insert image from URL", () => insertImageFromUrl());
+
+  /** Find an image block anywhere in the document (body, header/footer bands, table cells). */
+  const findImageBlock = (blockId: string): ImageBlock | null => {
+    let found: ImageBlock | null = null;
+    forEachImage(editor.getDocument(), (img) => {
+      if (img.id === blockId) found = img;
+    });
+    return found;
+  };
+
   group(insert, "Picture"); // acts on the selected image
   enable(
     btn(ICONS.wrapSquare, "Wrap text around image (square)", () => {
@@ -1675,6 +1886,25 @@ if (toolbar) {
     (f) => f.imageSelected,
     "select an image first",
   );
+  // Image Properties… — opens the floating size/wrap/align/alt dialog.
+  enable(
+    btn(ICONS.imageProps, "Image properties…", () => {
+      const id = editor.getSelectedObject();
+      if (!id) return;
+      const img = findImageBlock(id);
+      if (!img) return;
+      showImageDialog({
+        initial: { widthPx: img.widthPx, heightPx: img.heightPx, align: img.align, wrap: img.wrap },
+        onApply: (patch) => {
+          editor.dispatch(setImageProps(id, patch));
+          editor.focus();
+        },
+      });
+    }),
+    (f) => f.imageSelected,
+    "select an image first",
+  );
+
   group(insert, "Equation");
   txtBtn("√x", "Insert equation (MathML)", () => {
     showEquationEditor({
@@ -1721,6 +1951,19 @@ if (toolbar) {
     editor.dispatch(insertEndnoteCmd());
     editor.focus();
   }, "font-size:11px;");
+  group(insert, "Header & Footer");
+  btn(ICONS.header, "Edit Header", () => {
+    editor.editBand("header");
+    editor.focus();
+  });
+  btn(ICONS.footer, "Edit Footer", () => {
+    editor.editBand("footer");
+    editor.focus();
+  });
+  btn(ICONS.pageNumber, "Insert Page Number field", () => {
+    editor.dispatch(insertFieldCmd({ type: "PAGE" }));
+    editor.focus();
+  });
   group(insert, "Controls");
   btn(ICONS.sdtText, "Rich text content control (wraps the selection or selected image)", () => {
     // A selected image is an object selection (no text caret), so route it to the
@@ -2263,14 +2506,37 @@ if (toolbar) {
     const reviewEl = shell.review;
     const authorName = (a: { firstName: string; lastName: string }): string => `${a.firstName} ${a.lastName}`.trim() || "Anonymous";
     const initials = (a: { firstName: string; lastName: string }): string => ((a.firstName[0] ?? "?") + (a.lastName[0] ?? "")).toUpperCase();
-    const timeAgo = (ms: number): string => {
-      const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
-      if (s < 60) return "just now";
-      const m = Math.round(s / 60);
-      if (m < 60) return `${m}m ago`;
-      const h = Math.round(m / 60);
-      if (h < 24) return `${h}h ago`;
-      return `${Math.round(h / 24)}d ago`;
+    const formatDateTime = (ms: number): string => {
+      const date = new Date(ms);
+      const now = new Date();
+      const diffMs = Math.max(0, now.getTime() - date.getTime());
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHours = Math.floor(diffMin / 60);
+
+      const isToday =
+        date.getDate() === now.getDate() &&
+        date.getMonth() === now.getMonth() &&
+        date.getFullYear() === now.getFullYear();
+
+      if (isToday) {
+        if (diffSec < 10) return "just now";
+        if (diffSec < 60) return `${diffSec}s ago`;
+        if (diffMin < 60) return `${diffMin}m ago`;
+        return `${diffHours}h ago`;
+      }
+
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const day = pad(date.getDate());
+      const month = pad(date.getMonth() + 1);
+      const year = date.getFullYear();
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+
+      if (year === now.getFullYear()) {
+        return `${day}/${month} ${hours}:${minutes}`;
+      }
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
     };
     const mkBtn = (cls: string, label: string, onClick: () => void): HTMLButtonElement => {
       const b = el("button") as HTMLButtonElement;
@@ -2340,7 +2606,8 @@ if (toolbar) {
         const verb = s.kind === "insert" ? "Insertion" : s.kind === "delete" ? "Deletion" : "Formatting";
         kind.append(dot, document.createTextNode(verb));
         const meta = el("div", "cw-sug-meta");
-        meta.textContent = `${authorName(s.author)} · ${timeAgo(s.createdAt)}`;
+        meta.textContent = `${authorName(s.author)} · ${formatDateTime(s.createdAt)}`;
+        meta.title = new Date(s.createdAt).toLocaleString();
         top.append(kind, meta);
         const actions = el("div", "cw-sug-actions");
         actions.append(
@@ -2387,51 +2654,149 @@ if (toolbar) {
       }
       for (const t of review.threads) {
         const card = el("div", t.status === "resolved" ? "cw-thread resolved" : "cw-thread");
-        for (const c of t.comments) {
-          const cm = el("div", "cw-comment");
+        
+        // Level 1: Root Comment (Parent)
+        const rootComment = t.comments[0];
+        if (rootComment) {
+          const cm = el("div", "cw-comment cw-root");
           const main = el("div", "cw-comment-main");
           const who = el("div", "cw-comment-who");
-          who.textContent = authorName(c.author);
+          who.textContent = authorName(rootComment.author);
           const when = el("span", "cw-comment-when");
-          when.textContent = timeAgo(c.createdAt);
+          when.textContent = formatDateTime(rootComment.createdAt);
+          when.title = new Date(rootComment.createdAt).toLocaleString();
           who.append(when);
           const text = el("div", "cw-comment-body");
-          renderCommentBody(text, c.body.map((r) => r.text).join(""), c.mentions);
+          renderCommentBody(text, rootComment.body.map((r) => r.text).join(""), rootComment.mentions);
           main.append(who, text);
-          cm.append(avatar(c.author), main);
+          cm.append(avatar(rootComment.author), main);
           card.append(cm);
         }
-        // inline reply editor (Google-Docs-style, no prompt)
-        const replyBox = el("div", "cw-reply-box");
-        const replyTa = el("textarea") as HTMLTextAreaElement;
-        replyTa.placeholder = "Reply…";
-        replyTa.style.cssText = "flex:1 1 auto;resize:none;min-height:34px;border:1px solid #dadce0;border-radius:6px;padding:6px 8px;font:13px/1.4 inherit;outline:none;";
-        const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers());
-        const replySend = mkBtn("cw-btn cw-btn-primary cw-btn-sm", "Reply", () => {
-          const v = replyTa.value.trim();
-          if (!v) return;
-          editor.replyToComment(t.id, commentFragment(v), replyMentions.getMentions());
-          editor.focus();
-        });
-        replyBox.append(replyTa, replySend);
-        const actions = el("div", "cw-thread-actions");
+
+        // Level 2: Replies (Child comments)
+        const replies = t.comments.slice(1);
+        if (replies.length > 0) {
+          const repliesWrap = el("div", "cw-replies-wrap");
+          for (const c of replies) {
+            const cm = el("div", "cw-comment cw-reply");
+            const main = el("div", "cw-comment-main");
+            const who = el("div", "cw-comment-who");
+            who.textContent = authorName(c.author);
+            const when = el("span", "cw-comment-when");
+            when.textContent = formatDateTime(c.createdAt);
+            when.title = new Date(c.createdAt).toLocaleString();
+            who.append(when);
+            const text = el("div", "cw-comment-body");
+            renderCommentBody(text, c.body.map((r) => r.text).join(""), c.mentions);
+            main.append(who, text);
+            cm.append(avatar(c.author), main);
+            repliesWrap.append(cm);
+          }
+          card.append(repliesWrap);
+        }
+
         if (t.status === "resolved") {
+          const actions = el("div", "cw-thread-actions");
           const tag = el("span", "cw-resolved-tag");
           tag.textContent = "✓ Resolved";
           actions.append(tag);
-          actions.append(mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Reopen", () => { editor.resolveThread(t.id, false); editor.focus(); }));
+          actions.append(mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Reopen", () => {
+            editor.resolveThread(t.id, false);
+            editor.focus();
+          }));
+          card.append(actions);
         } else {
+          const curUser = runtime.user ?? { id: "current-user", firstName: "You", lastName: "" };
+
+          // 1. Collapsed prompt button
+          const promptRow = el("div", "cw-reply-prompt");
+          const pAv = avatar(curUser);
+          pAv.style.cssText = "width:20px;height:20px;font-size:9px;flex:0 0 20px;";
+          const pText = el("span", "cw-reply-prompt-text");
+          pText.textContent = "Reply… (@ to mention)";
+          promptRow.append(pAv, pText);
+
+          // 2. Expanded reply composer box
+          const replyBox = el("div", "cw-reply-box");
+          const replyRow = el("div", "cw-reply-row");
+          const userAv = avatar(curUser);
+          const replyTa = el("textarea", "cw-reply-textarea") as HTMLTextAreaElement;
+          replyTa.placeholder = "Write a reply… (@ to mention)";
+          replyRow.append(userAv, replyTa);
+
+          const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers());
+
+          const replyActions = el("div", "cw-reply-actions");
+          const cancelBtn = mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Cancel", () => {
+            replyTa.value = "";
+            replyMentions.destroy();
+            replyBox.classList.remove("open");
+            promptRow.style.display = "flex";
+            actions.style.display = "flex";
+            editor.focus();
+          });
+          const sendBtn = mkBtn("cw-btn cw-btn-primary cw-btn-sm", "Reply", () => {
+            const v = replyTa.value.trim();
+            if (!v) return;
+            editor.replyToComment(t.id, commentFragment(v), replyMentions.getMentions());
+            replyTa.value = "";
+            replyMentions.destroy();
+            replyBox.classList.remove("open");
+            editor.focus();
+          });
+          (sendBtn as HTMLButtonElement).disabled = true;
+
+          replyTa.addEventListener("input", () => {
+            (sendBtn as HTMLButtonElement).disabled = replyTa.value.trim().length === 0;
+            replyTa.style.height = "auto";
+            replyTa.style.height = `${Math.min(180, Math.max(52, replyTa.scrollHeight))}px`;
+          });
+
+          replyTa.addEventListener("keydown", (e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              cancelBtn.click();
+            } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              if (!(sendBtn as HTMLButtonElement).disabled) {
+                sendBtn.click();
+              }
+            }
+          });
+
+          replyActions.append(cancelBtn, sendBtn);
+          replyBox.append(replyRow, replyActions);
+
+          const actions = el("div", "cw-thread-actions");
+          const openReplyComposer = (): void => {
+            promptRow.style.display = "none";
+            actions.style.display = "none";
+            replyBox.classList.add("open");
+            setTimeout(() => replyTa.focus(), 0);
+          };
+
           actions.append(
             mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Reply", () => {
-              replyBox.classList.add("open");
-              replyTa.focus();
+              openReplyComposer();
             }),
-            mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Resolve", () => { editor.resolveThread(t.id, true); editor.focus(); }),
+            mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Resolve", () => {
+              editor.resolveThread(t.id, true);
+              editor.focus();
+            }),
           );
+
+          promptRow.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openReplyComposer();
+          });
+
+          card.append(promptRow, replyBox, actions);
         }
-        card.append(replyBox, actions);
+
         card.addEventListener("click", (e) => {
-          if (!(e.target as HTMLElement).closest("button, textarea, .cw-reply-box")) editor.revealReview(t.id);
+          if (!(e.target as HTMLElement).closest("button, textarea, .cw-reply-box, .cw-reply-prompt")) {
+            editor.revealReview(t.id);
+          }
         });
         body.append(card);
       }
@@ -3101,8 +3466,10 @@ if (toolbar) {
 }
 
 // ---- floating image mini-toolbar -------------------------------------------
-// Appears above a selected image (Word's hover bar): wrap, align, delete. Skipped
-// in view-only mode — images can't be selected there, and all its actions edit.
+// Appears above a selected image (Word's hover bar): wrap, align, delete.
+// Includes a Properties button (ICONS.imageProps) that opens showImageDialog
+// so the user can adjust size / wrap / align / alt-text in one panel.
+// Skipped in view-only mode — images can't be selected there.
 if (!readonly) {
   const bar = document.createElement("div");
   bar.className = "cw-img-toolbar";
@@ -3129,12 +3496,43 @@ if (!readonly) {
     const id = editor.getSelectedObject();
     if (id) fn(id);
   };
+
+  /** Find an image block anywhere in the document (body, header/footer bands, table cells). */
+  const findImageBlock = (blockId: string): ImageBlock | null => {
+    let found: ImageBlock | null = null;
+    forEachImage(editor.getDocument(), (img) => {
+      if (img.id === blockId) found = img;
+    });
+    return found;
+  };
+
   ibtn(ICONS.wrapInline, "In line with text", () => withImg((id) => editor.dispatch(setImageProps(id, { wrap: "block", align: "center" }))));
   ibtn(ICONS.wrapSquare, "Wrap text (square)", () => withImg((id) => editor.dispatch(setImageProps(id, { wrap: "square", align: "left" }))));
   sep();
   ibtn(ICONS.alignLeft, "Align left", () => editor.align("left"));
   ibtn(ICONS.alignCenter, "Align center", () => editor.align("center"));
   ibtn(ICONS.alignRight, "Align right", () => editor.align("right"));
+  sep();
+  // Properties button — opens the Image Properties floating dialog.
+  ibtn(ICONS.imageProps, "Image properties…", () => {
+    const id = editor.getSelectedObject();
+    if (!id) return;
+    const img = findImageBlock(id);
+    if (!img) return;
+    showImageDialog({
+      initial: {
+        widthPx: img.widthPx,
+        heightPx: img.heightPx,
+        align: img.align,
+        wrap: img.wrap,
+        altText: "",
+      },
+      onApply: (patch) => {
+        editor.dispatch(setImageProps(id, patch));
+        editor.focus();
+      },
+    });
+  });
   sep();
   ibtn(ICONS.trash, "Delete image (Del)", () => {
     editor.deleteSelectedObject();
@@ -3285,8 +3683,11 @@ const handle: EditorHandle = {
   createChild: () => editor.createChild(),
   setDocument: (d) => setDocumentFromApi(d),
   openDocx: (file) => openDocxFile(file),
+  openJson: (file) => openJsonFile(file),
   exportDocx: () => exportBlob("docx"),
   exportPdf: () => exportBlob("pdf"),
+  exportJson: () => exportBlob("json"),
+  getFullJson: () => getFullJsonPayload(),
   share: () => goOnlineWithCurrentDoc(),
   getDocId: () => collabId,
   getShareLink: () => shareLink,

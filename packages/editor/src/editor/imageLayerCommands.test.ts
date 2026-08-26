@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Document, ImageBlock, Paragraph, SectionProps, TableBlock } from "@kindy/shared";
 import { applyOp } from "@kindy/shared";
-import { setImageLayer, bringImageToFront, sendImageToBack, moveAnchoredImage, setImageProps, wrapImageInContentControl, removeContentControl } from "./commands";
+import { setImageLayer, bringImageToFront, sendImageToBack, moveAnchoredImage, setImageProps, wrapImageInContentControl, removeContentControl, insertImage } from "./commands";
 import type { Command } from "./state";
 import type { EditorState } from "./state";
 
@@ -152,4 +152,32 @@ describe("wrap image in a content control", () => {
     expect(cellImg.sdtPath).toBeUndefined();
     expect(out.sdts?.[id]).toBeUndefined();
   });
+
+  it("inserts an image into a header margin band at caret", () => {
+    const docWithHeader: Document = {
+      section: { ...SECTION, header: [para("hp1")] },
+      blocks: [para("p1")],
+    };
+    const out = apply({ doc: docWithHeader, selection: { anchor: { blockId: "hp1", offset: 0 }, focus: { blockId: "hp1", offset: 0 } } }, insertImage("blob:h", 120, 80));
+    expect(out.section.header?.length).toBe(2); // image, hp1
+    const inserted = out.section.header?.find((b) => b.kind === "image") as ImageBlock;
+    expect(inserted.kind).toBe("image");
+    expect(inserted.src).toBe("blob:h");
+    expect(inserted.widthPx).toBe(120);
+    expect(inserted.heightPx).toBe(80);
+  });
+
+  it("setImageProps modifies an image that lives in a header margin band", () => {
+    const hImg = img("himg");
+    const docWithHeader: Document = {
+      section: { ...SECTION, header: [hImg] },
+      blocks: [para("p1")],
+    };
+    const out = apply({ doc: docWithHeader, selection: null }, setImageProps("himg", { widthPx: 250, heightPx: 180, align: "right" }));
+    const modified = out.section.header?.[0] as ImageBlock;
+    expect(modified.widthPx).toBe(250);
+    expect(modified.heightPx).toBe(180);
+    expect(modified.align).toBe("right");
+  });
 });
+

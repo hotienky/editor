@@ -1,6 +1,4 @@
-// Shared export types — small and transport-friendly (worker postMessage).
-
-import type { Document } from "@kindy/shared";
+import type { Document, ReviewLayer } from "@kindy/shared";
 import type { CustomFontPayload } from "../fonts/customRegistry";
 
 export type ExportFormat = "pdf" | "docx";
@@ -33,6 +31,8 @@ export interface ToExportWorker {
   /** CJK locale + fallback-font tuning (mirrors the editor's `cjk` config). The
    *  fallback family must also be among `fonts` to embed. */
   cjk?: { locale?: string; fallbackFont?: string };
+  /** Review layer (comments, threads) to export into docx. */
+  review?: ReviewLayer;
 }
 
 export type FromExportWorker =

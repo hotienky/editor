@@ -3,10 +3,11 @@
 // caller (blob: URLs resolve only on the main thread).
 
 import { strToU8, zipSync, type Zippable } from "fflate";
-import type { Block, Document } from "@kindy/shared";
+import type { Block, Document, ReviewLayer } from "@kindy/shared";
 import type { ExportResult, ImageBytes } from "../types";
 import { WarningSink } from "../warnings";
-import { buildDocumentXml, type AddBandPart, type ExportBookmarkMark, type PartCtx } from "./documentXml";
+import { buildDocumentXml, type AddBandPart, type ExportBookmarkMark, type ExportCommentMark, type PartCtx } from "./documentXml";
+import { buildCommentsXml } from "./commentsXml";
 import { contentTypesXml, CT } from "./contentTypes";
 import { footnotesXml } from "./footnotesXml";
 import { endnotesXml } from "./endnotesXml";
@@ -22,6 +23,7 @@ export function writeDocx(
   doc: Document,
   images: ImageBytes = {},
   tocPages?: Map<string, number>,
+  review?: ReviewLayer,
 ): ExportResult {
   const warnings = new WarningSink();
   const parts: Record<string, string | Uint8Array> = {};
@@ -49,6 +51,28 @@ export function writeDocx(
     const id = bmId++;
     pushMark(range.start.blockId, { id, name, kind: "start", offset: range.start.offset });
     pushMark(range.end.blockId, { id, kind: "end", offset: range.end.offset });
+  }
+
+  // Comments: threads mapped into start/end/ref marks
+  const commentsByBlock = new Map<string, ExportCommentMark[]>();
+  const pushCommentMark = (blockId: string, mark: ExportCommentMark): void => {
+    const list = commentsByBlock.get(blockId) ?? [];
+    list.push(mark);
+    commentsByBlock.set(blockId, list);
+  };
+  const validThreads = (review?.threads ?? []).filter((t) => t.comments.length > 0);
+  let commentsPayload: ReturnType<typeof buildCommentsXml> | undefined;
+  if (validThreads.length > 0) {
+    commentsPayload = buildCommentsXml(validThreads);
+    for (const thread of validThreads) {
+      const ids = commentsPayload.threadCommentIdMap.get(thread.id);
+      if (!ids || ids.length === 0) continue;
+      for (const id of ids) {
+        pushCommentMark(thread.anchor.start.blockId, { id, kind: "start", offset: thread.anchor.start.offset });
+        pushCommentMark(thread.anchor.end.blockId, { id, kind: "end", offset: thread.anchor.end.offset });
+        pushCommentMark(thread.anchor.end.blockId, { id, kind: "ref", offset: thread.anchor.end.offset });
+      }
+    }
   }
 
   // TOC export: each entry's PAGEREF needs a bookmark on its target heading. Reuse
@@ -89,6 +113,7 @@ export function writeDocx(
     sdts,
     nextId,
     bookmarksByBlock,
+    commentsByBlock,
     listIdMap,
     ...(tocPages ? { tocPages } : {}),
     ...(doc.tocInstruction ? { tocInstruction: doc.tocInstruction } : {}),
@@ -110,6 +135,7 @@ export function writeDocx(
       sdts,
       nextId,
       bookmarksByBlock, // same map — band block ids resolve here, so band bookmarks export
+      commentsByBlock,
       listIdMap,
       fieldTokens: true, // {page}/{pages} -> live PAGE/NUMPAGES fields in bands
     };
@@ -151,6 +177,21 @@ export function writeDocx(
     parts["word/endnotes.xml"] = endnotesXml(doc.endnotes, bodyCtx);
     overrides.push(["/word/endnotes.xml", CT.endnotes]);
     bodyRels.add(REL.endnotes, "endnotes.xml");
+  }
+
+  // comments.xml, commentsExtended.xml, and commentsIds.xml
+  if (commentsPayload) {
+    parts["word/comments.xml"] = commentsPayload.commentsXml;
+    overrides.push(["/word/comments.xml", CT.comments]);
+    bodyRels.add(REL.comments, "comments.xml");
+
+    parts["word/commentsExtended.xml"] = commentsPayload.commentsExtendedXml;
+    overrides.push(["/word/commentsExtended.xml", CT.commentsExtended]);
+    bodyRels.add(REL.commentsExtended, "commentsExtended.xml");
+
+    parts["word/commentsIds.xml"] = commentsPayload.commentsIdsXml;
+    overrides.push(["/word/commentsIds.xml", CT.commentsIds]);
+    bodyRels.add(REL.commentsIds, "commentsIds.xml");
   }
 
   // settings.xml (always — carries the even/odd flag, background-display flag, a

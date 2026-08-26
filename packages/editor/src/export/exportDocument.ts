@@ -7,7 +7,8 @@
 // resolve on the main thread) and handed to the worker, which never touches the
 // network or the DOM.
 
-import type { Block, Document } from "@kindy/shared";
+import { forEachImage, dataUrlToMedia, type Block, type Document, type ReviewLayer } from "@kindy/shared";
+import { mediaStore } from "../media/store";
 import type { ExportFormat, ExportResult, FromExportWorker, ImageBytes, ToExportWorker } from "./types";
 import {
   CUSTOM_FONT_STYLES,
@@ -100,8 +101,30 @@ function collectImageSrcs(doc: Document): Set<string> {
 }
 
 async function resolveImages(doc: Document): Promise<ImageBytes> {
-  const srcs = [...collectImageSrcs(doc)];
   const out: ImageBytes = {};
+  const store = mediaStore();
+
+  forEachImage(doc, (img) => {
+    // 1. From session mediaStore (content-addressed by mediaId)
+    if (img.mediaId) {
+      const blob = store.get(img.mediaId);
+      if (blob) {
+        if (img.src) out[img.src] = blob.bytes;
+        out[img.mediaId] = blob.bytes;
+      }
+    }
+    // 2. From inline data URL
+    if (img.src && img.src.startsWith("data:")) {
+      const parsed = dataUrlToMedia(img.src);
+      if (parsed) {
+        out[img.src] = parsed.bytes;
+        if (img.mediaId) out[img.mediaId] = parsed.bytes;
+      }
+    }
+  });
+
+  // 3. Any remaining unresolved network/blob URLs
+  const srcs = [...collectImageSrcs(doc)].filter((src) => src && !out[src]);
   await Promise.all(
     srcs.map(async (src) => {
       try {
@@ -173,6 +196,7 @@ export async function exportDocument(
   format: ExportFormat,
   fontConfig?: ResolvedFontsConfig,
   cjk?: { locale?: string; fallbackFont?: string },
+  review?: ReviewLayer,
 ): Promise<ExportResult> {
   const [images, fonts] = await Promise.all([resolveImages(doc), resolveFonts(fontConfig)]);
   const w = ensureWorker();
@@ -180,12 +204,25 @@ export async function exportDocument(
   return new Promise<ExportResult>((resolve, reject) => {
     pending.set(id, { resolve, reject });
     const hasCjk = cjk && (cjk.locale !== undefined || cjk.fallbackFont !== undefined);
-    const msg: ToExportWorker = { id, doc, format, images, ...(fonts ? { fonts } : {}), ...(hasCjk ? { cjk } : {}) };
+    const msg: ToExportWorker = {
+      id,
+      doc,
+      format,
+      images,
+      ...(fonts ? { fonts } : {}),
+      ...(hasCjk ? { cjk } : {}),
+      ...(review ? { review } : {}),
+    };
     w.postMessage(msg);
   });
 }
 
 export const exportPdf = (doc: Document, fontConfig?: ResolvedFontsConfig, cjk?: { locale?: string; fallbackFont?: string }): Promise<ExportResult> =>
   exportDocument(doc, "pdf", fontConfig, cjk);
-export const exportDocx = (doc: Document, fontConfig?: ResolvedFontsConfig, cjk?: { locale?: string; fallbackFont?: string }): Promise<ExportResult> =>
-  exportDocument(doc, "docx", fontConfig, cjk);
+export const exportDocx = (
+  doc: Document,
+  fontConfig?: ResolvedFontsConfig,
+  cjk?: { locale?: string; fallbackFont?: string },
+  review?: ReviewLayer,
+): Promise<ExportResult> =>
+  exportDocument(doc, "docx", fontConfig, cjk, review);

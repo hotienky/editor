@@ -121,11 +121,17 @@ export interface EditorHandle {
   setDocument(doc: Document): void;
   /** Open a .docx (auto-publishes when online); resolves when loaded. */
   openDocx(file: File | ArrayBuffer): Promise<void>;
+  /** Open a JSON document (.json or FullDocumentExport); resolves when loaded. */
+  openJson(file: File | string | import("@kindy/shared").FullDocumentExport): Promise<void>;
   /** Export the current document to a .docx Blob (track changes baked to the
    *  original baseline, matching the toolbar's Export). For a custom Save button. */
   exportDocx(): Promise<Blob>;
   /** Export the current document to a PDF Blob. */
   exportPdf(): Promise<Blob>;
+  /** Export the full document snapshot + review/comments to a JSON Blob. */
+  exportJson(): Promise<Blob>;
+  /** Get the full document JSON payload (Document, ReviewLayer, metadata, mediaIds). */
+  getFullJson(): import("@kindy/shared").FullDocumentExport;
   /** Publish the current document and resolve its shareable link (online only). */
   share(): Promise<string>;
   getDocId(): string | null;

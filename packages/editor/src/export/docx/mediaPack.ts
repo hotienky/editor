@@ -26,16 +26,20 @@ export class MediaManager {
 
   constructor(private readonly images: ImageBytes) {}
 
-  /** Register an image src; returns its part path ("media/imageN.ext") or null
+  /** Register an image src or mediaId; returns its part path ("media/imageN.ext") or null
    *  when bytes are unavailable. */
-  resolve(src: string): string | null {
-    const hit = this.bySrc.get(src);
+  resolve(src: string, mediaId?: string): string | null {
+    const key = (src && src.length > 0 ? src : undefined) ?? mediaId ?? "";
+    if (!key) return null;
+    const hit = this.bySrc.get(key);
     if (hit) return hit.path;
-    const bytes = this.images[src];
+    const bytes = (src ? this.images[src] : undefined) ?? (mediaId ? this.images[mediaId] : undefined);
     if (!bytes) return null;
     const { ext, contentType } = sniff(bytes);
     const path = `media/image${++this.n}.${ext}`;
-    this.bySrc.set(src, { path, bytes, ext });
+    this.bySrc.set(key, { path, bytes, ext });
+    if (src) this.bySrc.set(src, { path, bytes, ext });
+    if (mediaId) this.bySrc.set(mediaId, { path, bytes, ext });
     this.exts.set(ext, contentType);
     return path;
   }

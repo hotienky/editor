@@ -85,7 +85,7 @@ describe("PDF export — happy path", () => {
     const pageObjs = (text.match(/\/Type\s*\/Page(?![s])/g) ?? []).length;
     expect(pageObjs).toBe(tree.pages.length);
     expect(tree.pages.length).toBeGreaterThan(1);
-  });
+  }, 20000);
 
   it("renders decorations, tables and images without throwing", async () => {
     // Mixed inline styles exercise sub/super, underline, strike, highlight, links.

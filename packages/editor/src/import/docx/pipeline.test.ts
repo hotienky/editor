@@ -490,4 +490,57 @@ describe("docx pipeline — real Word output", () => {
 
     expect(r.warnings).toEqual([]); // nothing lossy in this document anymore
   });
+
+  it("imports comments and threads from word/comments.xml", () => {
+    const docXml = `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+      <w:body>
+        <w:p>
+          <w:commentRangeStart w:id="1"/>
+          <w:r><w:t>Hello world</w:t></w:r>
+          <w:commentRangeEnd w:id="1"/>
+          <w:r><w:commentReference w:id="1"/></w:r>
+        </w:p>
+      </w:body>
+    </w:document>`;
+
+    const commentsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">
+      <w:comment w:id="1" w:author="Alice" w:date="2026-08-26T10:00:00Z" w:initials="A">
+        <w:p w14:paraId="P1">
+          <w:r><w:t>This is a comment.</w:t></w:r>
+        </w:p>
+      </w:comment>
+      <w:comment w:id="2" w:author="Bob" w:date="2026-08-26T10:05:00Z" w:initials="B">
+        <w:p w14:paraId="P2">
+          <w:r><w:t>This is a reply.</w:t></w:r>
+        </w:p>
+      </w:comment>
+    </w:comments>`;
+
+    const commentsExtXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <w15:commentsEx xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
+      <w15:commentEx w15:paraId="P1" w15:done="0"/>
+      <w15:commentEx w15:paraId="P2" w15:paraIdParent="P1" w15:done="0"/>
+    </w15:commentsEx>`;
+
+    const bytes = makeDocx({
+      "word/document.xml": docXml,
+      "word/comments.xml": commentsXml,
+      "word/commentsExtended.xml": commentsExtXml,
+    });
+
+    const res = runImport(bytes);
+    expect(res.review).toBeDefined();
+    expect(res.review?.threads).toHaveLength(1);
+    const thread = res.review!.threads[0]!;
+    expect(thread.status).toBe("open");
+    expect(thread.anchor.start.offset).toBe(0);
+    expect(thread.anchor.end.offset).toBe(11); // "Hello world".length
+    expect(thread.comments).toHaveLength(2);
+    expect(thread.comments[0]!.author.firstName).toBe("Alice");
+    expect(thread.comments[0]!.body[0]!.text).toBe("This is a comment.");
+    expect(thread.comments[1]!.author.firstName).toBe("Bob");
+    expect(thread.comments[1]!.body[0]!.text).toBe("This is a reply.");
+  });
 });

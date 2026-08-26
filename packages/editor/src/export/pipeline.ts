@@ -2,7 +2,7 @@
 // Image bytes must already be resolved (the main thread does that; blob: URLs are
 // invalid here).
 
-import type { Block, Document } from "@kindy/shared";
+import type { Block, Document, ReviewLayer } from "@kindy/shared";
 import type { ExportFormat, ExportResult, ImageBytes } from "./types";
 import { renderPdf } from "./pdf/renderPdf";
 import { writeDocx } from "./docx/writeDocx";
@@ -49,6 +49,7 @@ export async function runExport(
   images: ImageBytes = {},
   fonts?: CustomFontPayload,
   cjk?: CjkExportConfig,
+  review?: ReviewLayer,
 ): Promise<ExportResult> {
   // Resolve the CJK config once and THREAD it into every layout this job runs
   // (renderPdf's layout + the docx live-TOC pass). No process-global state and no
@@ -63,7 +64,7 @@ export async function runExport(
     hebrewFallback: cjk?.hebrewFallbackFont ?? HEBREW_FONT_FAMILY,
     ...(cjk?.locale !== undefined ? { cjkLocale: cjk.locale } : {}),
   };
-  return runExportInner(doc, format, images, cjkOpts, fonts);
+  return runExportInner(doc, format, images, cjkOpts, fonts, review);
 }
 
 async function runExportInner(
@@ -72,6 +73,7 @@ async function runExportInner(
   images: ImageBytes,
   cjkOpts: LayoutEngineOptions,
   fonts?: CustomFontPayload,
+  review?: ReviewLayer,
 ): Promise<ExportResult> {
   // Each job owns its custom-font state: renderPdf builds + tears down a per-job
   // CustomFontRegistry internally, so a later export that omits a family can't
@@ -81,7 +83,7 @@ async function runExportInner(
   // DOCX writes family names verbatim, but a live TOC field export still needs a
   // layout pass for each heading's real page (cached PAGEREF result). Scope that
   // pass's custom fonts to a per-job registry, just like the PDF path.
-  if (!hasTocEntries(doc)) return writeDocx(doc, images);
+  if (!hasTocEntries(doc)) return writeDocx(doc, images, undefined, review);
   await installMeasureHost(); // idempotent; awaited BEFORE the synchronous font span
   const fontReg = createFontRegistry();
   if (fonts) fontReg.register(fonts.defs);
@@ -89,7 +91,7 @@ async function runExportInner(
   if (fonts) registerCustomFontBytes(fonts.faces);
   try {
     const tocPages = pageOfBlockMap(createLayoutEngine(fontReg, cjkOpts).layout(doc));
-    return await writeDocx(doc, images, tocPages);
+    return await writeDocx(doc, images, tocPages, review);
   } finally {
     clearCustomFontBytes(fontReg);
     setActiveFontRegistry(defaultFontRegistry());

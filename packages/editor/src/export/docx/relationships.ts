@@ -15,6 +15,9 @@ export const REL = {
   endnotes: `${BASE}/endnotes`,
   settings: `${BASE}/settings`,
   theme: `${BASE}/theme`,
+  comments: `${BASE}/comments`,
+  commentsExtended: "http://schemas.microsoft.com/office/2011/relationships/commentsExtended",
+  commentsIds: "http://schemas.microsoft.com/office/2016/09/relationships/commentsIds",
   officeDocument: `${BASE}/officeDocument`,
 } as const;
 

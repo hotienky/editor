@@ -51,6 +51,8 @@ import { showEquationEditor, equationToMathmlString } from "./ui/equationEditor"
 import { showTocProperties } from "./ui/tocProperties";
 import { showStyleManager, type StyleManagerHandle } from "./ui/styleManager";
 import { showTableProperties, type BorderStyleName, type CellTextDir, type TablePropertiesHandle } from "./ui/tableProperties";
+import { showImageDialog } from "./ui/imageDialog";
+import { emptyParagraphFor } from "./builder/blockFactory";
 import { createA11yMirror } from "./a11y/mirror";
 import {
   changeListLevel,
@@ -249,6 +251,7 @@ export interface Editor {
    *  renders or edits a content slice on canvas (see ./child/childDocument). */
   createChild(): ChildDocument;
   getSelectedObject(): string | null;
+  selectObject(blockId: string | null): void;
   dispatch(cmd: Command): void;
   toggleStyle(key: StyleKey): void;
   /** Absolute char patch: range -> restyle runs; collapsed -> pending style. */
@@ -314,6 +317,12 @@ export interface Editor {
   getSelectedObjectRect(): { left: number; top: number; width: number; height: number } | null;
   /** Delete the selected image and clear the object selection. */
   deleteSelectedObject(): void;
+  /** Enter Header / Footer band editing mode on a specified page. */
+  editBand(band: "header" | "footer", pageIndex?: number): void;
+  /** Close Header / Footer band editing mode, returning to body editing. */
+  closeBand(): void;
+  /** Currently active header/footer story scope, or null if editing the body. */
+  getActiveStory(): GeoScope | null;
   // ---- develop-mode Document-tree inspector --------------------------------
   /** Paint a devtools-style highlight over an inspector node's region on the
    *  canvas (block, run range, table cell, content control, or field). Pass null
@@ -1047,6 +1056,19 @@ export function createEditor(
     paint.setTree(tree);
   };
 
+  const targetBandContainer = (
+    band: "header" | "footer",
+    pageIndex: number,
+  ): (typeof BAND_CONTAINERS)[number] => {
+    const isFirst = pageIndex === 0;
+    const isEven = (pageIndex + 1) % 2 === 0;
+    const firstKey = band === "header" ? "headerFirst" : "footerFirst";
+    const evenKey = band === "header" ? "headerEven" : "footerEven";
+    if (isFirst && doc.section[firstKey] !== undefined) return firstKey;
+    if (isEven && doc.section[evenKey] !== undefined) return evenKey;
+    return band;
+  };
+
   const setStory = (next: GeoScope | null): void => {
     const changingBand = (activeStory?.band ?? null) !== (next?.band ?? null);
     if (!changingBand && activeStory?.pageIndex === next?.pageIndex) return;
@@ -1055,9 +1077,28 @@ export function createEditor(
     activeStory = next;
     pendingStyle = null;
     paint.setBandEditMode(next?.band ?? null);
+
+    if (next) {
+      const target = targetBandContainer(next.band, next.pageIndex);
+      const existing = containerBlocks(doc, target);
+      if (existing.length === 0) {
+        const p = emptyParagraphFor(doc, freshId());
+        commit({
+          ops: [{ type: "insertBlock", index: 0, block: p, where: target }],
+          selectionAfter: { anchor: { blockId: p.id, offset: 0 }, focus: { blockId: p.id, offset: 0 } },
+          origin: "command",
+        });
+      } else if (changingBand || !selection) {
+        const firstPara = existing.find((b) => b.kind === "paragraph");
+        if (firstPara) {
+          selection = { anchor: { blockId: firstPara.id, offset: 0 }, focus: { blockId: firstPara.id, offset: 0 } };
+        }
+      }
+    }
+
     if (changingBand) {
       relayout(); // the edited band switches between raw and substituted text
-      selection = next ? null : savedBodySelection;
+      if (!next) selection = savedBodySelection;
     }
     refreshSelectionVisuals();
     mirror.sync(state());
@@ -2396,8 +2437,8 @@ export function createEditor(
   const bandAtPoint = (pt: { pageIndex: number; y: number }): "header" | "footer" | null => {
     const pg = tree.pages[pt.pageIndex];
     if (!pg) return null;
-    if (pt.y < pg.contentTopPx) return pg.headerSource || doc.section.header ? "header" : null;
-    if (pt.y > pg.contentBottomPx) return pg.footerSource || doc.section.footer ? "footer" : null;
+    if (pt.y < pg.contentTopPx) return "header";
+    if (pt.y > pg.contentBottomPx) return "footer";
     return null;
   };
 
@@ -2822,6 +2863,21 @@ export function createEditor(
         },
         item("Crop", () => enterCropMode(imgId)),
         ...(locateImage(doc, imgId)?.image.crop ? [item("Reset Crop", () => dispatch(setImageCropCmd(imgId, null)))] : []),
+        item("Image Properties…", () => {
+          const loc = locateImage(doc, imgId);
+          if (!loc) return;
+          showImageDialog({
+            initial: {
+              widthPx: loc.image.widthPx,
+              heightPx: loc.image.heightPx,
+              align: loc.image.align,
+              wrap: loc.image.wrap,
+            },
+            onApply: (patch) => {
+              dispatch(setImageProps(imgId, patch));
+            },
+          });
+        }, { icon: ICONS.imageProps }),
         item("Bring to Front", () => dispatch(bringImageToFront(imgId))),
         item("Send to Back", () => dispatch(sendImageToBack(imgId))),
         item("Wrap in Content Control", () => dispatch(wrapImageInContentControl(imgId, "richText", { alias: "Text" })), { icon: ICONS.sdtText }),
@@ -3309,6 +3365,7 @@ export function createEditor(
     getSelectedObject(): string | null {
       return selectedObject;
     },
+    selectObject,
     getChangeLog(): Change[] {
       return recorder.changes();
     },
@@ -3520,6 +3577,12 @@ export function createEditor(
       return { left: pr.left + r.x * z, top: pr.top + r.y * z, width: r.width * z, height: r.height * z };
     },
     deleteSelectedObject: deleteSelectedObjectInternal,
+    editBand: (band: "header" | "footer", pageIndex?: number): void => {
+      const pi = pageIndex ?? (selection ? (caretRect(tree, selection.focus, scope())?.pageIndex ?? 0) : 0);
+      setStory({ band, pageIndex: pi });
+    },
+    closeBand: (): void => setStory(null),
+    getActiveStory: (): GeoScope | null => activeStory,
     setInspectorHighlight: (target: InspectorTarget | null): void => {
       paint.setInspectorRects(target ? inspectorRectsFor(target) : null);
     },

@@ -39,6 +39,12 @@ export interface ExportBookmarkMark {
   offset: number;
 }
 
+export interface ExportCommentMark {
+  id: number;
+  kind: "start" | "end" | "ref";
+  offset: number;
+}
+
 export interface PartCtx {
   rels: RelManager;
   media: MediaManager;
@@ -50,6 +56,8 @@ export interface PartCtx {
    *  `id` pairs a start with its end; `offset` is the UTF-16 position in the
    *  paragraph text where the marker sits. */
   bookmarksByBlock: Map<string, ExportBookmarkMark[]>;
+  /** model blockId -> comment start/end/ref markers anchored there. */
+  commentsByBlock?: Map<string, ExportCommentMark[]>;
   /** model list id -> Word-valid integer numId (shared with numbering.xml). */
   listIdMap: Map<string, number>;
   /** Header/footer parts: {page}/{pages} run text becomes live PAGE/NUMPAGES
@@ -303,32 +311,114 @@ const bookmarkEl = (m: ExportBookmarkMark): string =>
     ? el("w:bookmarkStart", { "w:id": m.id, "w:name": m.name ?? "" })
     : el("w:bookmarkEnd", { "w:id": m.id });
 
+type InlineMarker =
+  | { type: "bookmark"; mark: ExportBookmarkMark; offset: number; kind: "start" | "end" }
+  | { type: "comment"; mark: ExportCommentMark; offset: number; kind: "start" | "end" | "ref" };
+
+function inlineMarkerEl(m: InlineMarker): string {
+  if (m.type === "bookmark") {
+    return bookmarkEl(m.mark);
+  }
+  if (m.mark.kind === "start") {
+    return el("w:commentRangeStart", { "w:id": m.mark.id });
+  }
+  if (m.mark.kind === "end") {
+    return el("w:commentRangeEnd", { "w:id": m.mark.id });
+  }
+  return el(
+    "w:r",
+    undefined,
+    el("w:rPr", undefined, el("w:rStyle", { "w:val": "CommentReference" })) +
+      el("w:commentReference", { "w:id": m.mark.id }),
+  );
+}
+
+const markerOrder = (m: InlineMarker): number => {
+  if (m.type === "comment" && m.kind === "start") return 1;
+  if (m.type === "bookmark" && m.kind === "start") return 2;
+  if (m.type === "bookmark" && m.kind === "end") return 3;
+  if (m.type === "comment" && m.kind === "end") return 4;
+  if (m.type === "comment" && m.kind === "ref") return 5;
+  return 0;
+};
+
+function splitRunsAtOffsets(runs: readonly Run[], offsets: number[]): Run[] {
+  const cutPoints = new Set(offsets.filter((o) => o > 0));
+  if (cutPoints.size === 0) return [...runs];
+
+  const out: Run[] = [];
+  let cum = 0;
+
+  for (const r of runs) {
+    const len = r.text.length;
+    if (len === 0) {
+      out.push(r);
+      continue;
+    }
+
+    const rStart = cum;
+    const rEnd = cum + len;
+    cum = rEnd;
+
+    const cuts: number[] = [];
+    for (const cp of cutPoints) {
+      if (cp > rStart && cp < rEnd) {
+        cuts.push(cp - rStart);
+      }
+    }
+
+    if (cuts.length === 0) {
+      out.push(r);
+    } else {
+      cuts.sort((a, b) => a - b);
+      let prev = 0;
+      for (const cut of cuts) {
+        if (cut > prev) {
+          out.push({ ...r, text: r.text.slice(prev, cut) });
+          prev = cut;
+        }
+      }
+      if (prev < len) {
+        out.push({ ...r, text: r.text.slice(prev) });
+      }
+    }
+  }
+
+  return out;
+}
+
 function paragraphXml(p: Paragraph, ctx: PartCtx): string {
   const isEmpty = p.runs.every((r) => r.text.length === 0) && !p.runs.some((r) => r.style.footnoteRef);
   const markRun = isEmpty && p.runs[0] ? p.runs[0].style : undefined;
   const pPr = pPrXml(p.style, ctx, markRun);
-  const runs = isEmpty ? [] : p.runs;
-  const marks = ctx.bookmarksByBlock.get(p.id);
+  const bmMarks = ctx.bookmarksByBlock.get(p.id) ?? [];
+  const cmMarks = ctx.commentsByBlock?.get(p.id) ?? [];
+  const allMarks: InlineMarker[] = [
+    ...bmMarks.map((m): InlineMarker => ({ type: "bookmark", mark: m, offset: m.offset, kind: m.kind })),
+    ...cmMarks.map((m): InlineMarker => ({ type: "comment", mark: m, offset: m.offset, kind: m.kind })),
+  ];
 
-  if (!marks || marks.length === 0) {
-    return el("w:p", undefined, pPr + runsXml(runs, ctx));
+  const rawRuns = isEmpty ? [] : p.runs;
+  if (allMarks.length === 0) {
+    return el("w:p", undefined, pPr + runsXml(rawRuns, ctx));
   }
+  const runs = splitRunsAtOffsets(rawRuns, allMarks.map((m) => m.offset));
   // A paragraph whose runs join an sdt content control can't have markers spliced
   // between its runs without breaking the w:sdt grouping — bracket the whole
   // paragraph at block level instead (start before w:p, end after).
   if (runs.some((r) => r.style.sdtPath?.length)) {
-    const pre = marks.filter((m) => m.kind === "start").map(bookmarkEl).join("");
-    const post = marks.filter((m) => m.kind === "end").map(bookmarkEl).join("");
+    const pre = allMarks.filter((m) => m.kind === "start").map(inlineMarkerEl).join("");
+    const post = allMarks.filter((m) => m.kind !== "start").map(inlineMarkerEl).join("");
     return pre + el("w:p", undefined, pPr + runsXml(runs, ctx)) + post;
   }
   // Offset-aware: emit each run, inserting markers at run boundaries (ends before
   // starts at a shared offset so a point bookmark nests correctly).
-  const sorted = [...marks].sort((a, b) => a.offset - b.offset || (a.kind === "end" ? -1 : 1));
+  const sorted = [...allMarks].sort((a, b) => a.offset - b.offset || markerOrder(a) - markerOrder(b));
   let body = pPr;
   let cum = 0;
   let mi = 0;
   const flush = (upto: number): void => {
-    while (mi < sorted.length && sorted[mi]!.offset <= upto) body += bookmarkEl(sorted[mi++]!);
+    while (mi < sorted.length && sorted[mi]!.offset <= upto) body += inlineMarkerEl(sorted[mi++]!);
   };
   let ri = 0;
   while (ri < runs.length) {
@@ -352,7 +442,7 @@ function paragraphXml(p: Paragraph, ctx: PartCtx): string {
     }
   }
   flush(cum);
-  while (mi < sorted.length) body += bookmarkEl(sorted[mi++]!); // trailing markers past text end
+  while (mi < sorted.length) body += inlineMarkerEl(sorted[mi++]!); // trailing markers past text end
   return el("w:p", undefined, body);
 }
 
@@ -785,9 +875,9 @@ function fieldRegionXml(blocks: Block[], ctx: PartCtx): string {
 }
 
 function imageParagraphXml(img: Extract<Block, { kind: "image" }>, ctx: PartCtx): string {
-  const target = ctx.media.resolve(img.src);
+  const target = ctx.media.resolve(img.src, img.mediaId);
   if (!target) {
-    ctx.warn("image-unresolved", img.src);
+    ctx.warn("image-unresolved", img.src || img.mediaId || "unknown");
     return el("w:p");
   }
   const relId = ctx.rels.add(REL.image, target);

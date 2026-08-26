@@ -15,7 +15,7 @@
 // Each child owns its OWN layout engine, so its cache (keyed by block id+revision
 // +width) can never collide with the parent's even when block ids overlap.
 
-import { cellCondFlags, defaultStylesheet, effectiveCellProps, forEachImage, resolveStyle, resolveTableStyle, textOfRuns } from "@kindy/shared";
+import { cellCondFlags, defaultStylesheet, effectiveCellProps, forEachImage, freshId, resolveStyle, resolveTableStyle, textOfRuns } from "@kindy/shared";
 import type {
   Block,
   CharStyle,
@@ -404,7 +404,9 @@ export function createChildDocument(deps: ChildDeps): ChildDocument {
             h = h ?? 160;
           }
         }
-        ed.dispatch(insertImageCmd(src, w, h, mediaId));
+        const imgId = freshId();
+        ed.dispatch(insertImageCmd(src, w, h, mediaId, imgId));
+        ed.selectObject(imgId);
       },
       destroy: () => {
         ed.destroy();

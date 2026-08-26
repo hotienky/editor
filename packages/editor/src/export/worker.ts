@@ -18,10 +18,10 @@ const ctx = self as unknown as WorkerScope;
 let queue: Promise<void> = Promise.resolve();
 
 ctx.onmessage = (e: MessageEvent<ToExportWorker>): void => {
-  const { id, doc, format, images, fonts, cjk } = e.data;
+  const { id, doc, format, images, fonts, cjk, review } = e.data;
   queue = queue.then(async () => {
     try {
-      const { bytes, warnings } = await runExport(doc, format, images, fonts, cjk);
+      const { bytes, warnings } = await runExport(doc, format, images, fonts, cjk, review);
       ctx.postMessage({ id, type: "done", bytes, warnings }, [bytes.buffer]);
     } catch (err: unknown) {
       ctx.postMessage({ id, type: "error", message: err instanceof Error ? err.message : String(err) });

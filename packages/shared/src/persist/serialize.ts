@@ -70,3 +70,53 @@ export function deserializeDocument(snap: SerializedDocument): Document {
   // fills the blanks from a MediaStore via each image's mediaId (see ./media).
   return clone(snap.doc);
 }
+
+export interface FullDocumentMetadata {
+  title?: string;
+  pageCount?: number;
+  wordCount?: number;
+  charCount?: number;
+}
+
+export interface FullDocumentExport {
+  version: 1;
+  docId: string | null;
+  exportedAt: string;
+  metadata?: FullDocumentMetadata;
+  document: Document;
+  review?: import("../review/model").ReviewLayer;
+  mediaIds: string[];
+  /** Map of mediaId -> "data:image/...;base64,..." data URL for self-contained portability */
+  media?: Record<string, string>;
+}
+
+export function serializeFullDocument(
+  doc: Document,
+  review?: import("../review/model").ReviewLayer,
+  options?: {
+    docId?: string | null;
+    metadata?: FullDocumentMetadata;
+    media?: Record<string, string>;
+  },
+): FullDocumentExport {
+  const serializedDoc = serializeDocument(doc).doc;
+  const mediaIds = Array.from(collectMediaIds(doc));
+  const media = options?.media;
+  if (media) {
+    forEachImage(serializedDoc, (img) => {
+      if (img.mediaId && media[img.mediaId]) {
+        img.src = media[img.mediaId]!;
+      }
+    });
+  }
+  return {
+    version: 1,
+    docId: options?.docId ?? null,
+    exportedAt: new Date().toISOString(),
+    ...(options?.metadata ? { metadata: options.metadata } : {}),
+    document: serializedDoc,
+    ...(review ? { review: clone(review) } : {}),
+    mediaIds,
+    ...(media && Object.keys(media).length > 0 ? { media } : {}),
+  };
+}
