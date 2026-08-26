@@ -1,4 +1,4 @@
-// Node/server distribution build for @forevka/wordcanvas.
+// Node/server distribution build for kindy-editor.
 //
 // The editor (`.` / `./builder`) is a browser bundle built by Vite. The headless
 // pipelines, by contrast, are isomorphic and meant to run on a Node server for

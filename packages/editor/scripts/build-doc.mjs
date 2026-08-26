@@ -20,7 +20,7 @@ b.style({ id: "Heading1", name: "Heading 1", type: "paragraph", char: { bold: tr
 b.paragraph("Kindy-editor").align("center").font("Arial, sans-serif").fontSize(32).bold().color("#1a1a2e");
 b.paragraph("a typed-builder parity check").align("center").italic().color("#5f6368");
 b.paragraph("Section One").withStyle("Heading1");
-b.paragraph().text("Plain, ").text("bold", { bold: true }).text(", a ").text("hyperlink", { link: "https://forevka.dev", color: "#0b57d0", underline: true }).text(", and page ").pageField().text(".");
+b.paragraph().text("Plain, ").text("bold", { bold: true }).text(", a ").text("hyperlink", { link: "https://kindy-editor.dev", color: "#0b57d0", underline: true }).text(", and page ").pageField().text(".");
 b.table([["Feature", "Status"], ["Tables", "ok"], ["Lists", "ok"]], { headerRow: true });
 b.bulletList(["bullet one", "bullet two"]);
 b.numberedList(["number one", "number two"]);
