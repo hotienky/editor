@@ -33,27 +33,27 @@ export interface TextStyleEditorInit {
 }
 
 const CSS = `
-.cw-se{display:flex;flex-direction:column;gap:14px;}
-.cw-se-grp{display:flex;flex-direction:column;gap:9px;}
-.cw-se-grp>h3{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#80868b;font-weight:600;}
-.cw-se-field{display:flex;flex-direction:column;gap:4px;}
-.cw-se-field>label{font-size:11px;color:#5f6368;}
-.cw-se-field input[type=text],.cw-se-field input[type=number],.cw-se-field select{
+.ked-se{display:flex;flex-direction:column;gap:14px;}
+.ked-se-grp{display:flex;flex-direction:column;gap:9px;}
+.ked-se-grp>h3{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#80868b;font-weight:600;}
+.ked-se-field{display:flex;flex-direction:column;gap:4px;}
+.ked-se-field>label{font-size:11px;color:#5f6368;}
+.ked-se-field input[type=text],.ked-se-field input[type=number],.ked-se-field select{
   height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
-.cw-se-row{display:flex;gap:8px;flex-wrap:wrap;}
-.cw-se-row>*{flex:1 1 0;min-width:90px;}
-.cw-se-tgls{display:flex;gap:6px;}
-.cw-se-tgl{width:32px;height:30px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:14px;color:#3c4043;}
-.cw-se-tgl.active{background:#1a73e8;border-color:#1a73e8;color:#fff;}
-.cw-se-tgl[data-k=bold]{font-weight:700;}
-.cw-se-tgl[data-k=italic]{font-style:italic;}
-.cw-se-tgl[data-k=underline]{text-decoration:underline;}
-.cw-se-tgl[data-k=strikethrough]{text-decoration:line-through;}
-.cw-se-color{display:flex;align-items:center;gap:6px;}
-.cw-se-color input[type=color]{width:34px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0;background:#fff;cursor:pointer;}
-.cw-se-color button{height:26px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#3c4043;padding:0 8px;}
-.cw-se-checks{display:flex;flex-direction:column;gap:5px;}
-.cw-se-checks label{display:flex;align-items:center;gap:7px;font-size:12px;color:#3c4043;}`;
+.ked-se-row{display:flex;gap:8px;flex-wrap:wrap;}
+.ked-se-row>*{flex:1 1 0;min-width:90px;}
+.ked-se-tgls{display:flex;gap:6px;}
+.ked-se-tgl{width:32px;height:30px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:14px;color:#3c4043;}
+.ked-se-tgl.active{background:#1a73e8;border-color:#1a73e8;color:#fff;}
+.ked-se-tgl[data-k=bold]{font-weight:700;}
+.ked-se-tgl[data-k=italic]{font-style:italic;}
+.ked-se-tgl[data-k=underline]{text-decoration:underline;}
+.ked-se-tgl[data-k=strikethrough]{text-decoration:line-through;}
+.ked-se-color{display:flex;align-items:center;gap:6px;}
+.ked-se-color input[type=color]{width:34px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0;background:#fff;cursor:pointer;}
+.ked-se-color button{height:26px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#3c4043;padding:0 8px;}
+.ked-se-checks{display:flex;flex-direction:column;gap:5px;}
+.ked-se-checks label{display:flex;align-items:center;gap:7px;font-size:12px;color:#3c4043;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -62,7 +62,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 };
 const field = (label: string, control: HTMLElement): HTMLElement => {
-  const w = el("div", "cw-se-field");
+  const w = el("div", "ked-se-field");
   w.append(el("label", undefined, label), control);
   return w;
 };
@@ -90,7 +90,7 @@ const toHex = (c: string | undefined): string => {
 const ALIGNS: ParaStyle["align"][] = ["left", "center", "right", "justify"];
 
 export function mountTextStyleEditor(host: HTMLElement, init: TextStyleEditorInit): StyleEditorController {
-  injectCssOnce("cw-se-styles", CSS);
+  injectCssOnce("ked-se-styles", CSS);
   const isPara = init.spec.type === "paragraph";
   const ownChar = init.spec.char ?? {};
   const ownPara = init.spec.para ?? {};
@@ -104,10 +104,10 @@ export function mountTextStyleEditor(host: HTMLElement, init: TextStyleEditorIni
   const markC = (k: keyof CharStyle): void => void definedChar.add(k);
   const markP = (k: keyof ParaStyle): void => void definedPara.add(k);
 
-  const root = el("div", "cw-se");
+  const root = el("div", "ked-se");
 
   // -- Identity ---------------------------------------------------------------
-  const idGrp = el("div", "cw-se-grp");
+  const idGrp = el("div", "ked-se-grp");
   const nameInput = el("input");
   nameInput.type = "text";
   nameInput.value = init.spec.name;
@@ -124,7 +124,7 @@ export function mountTextStyleEditor(host: HTMLElement, init: TextStyleEditorIni
   root.append(idGrp);
 
   // -- Character --------------------------------------------------------------
-  const cGrp = el("div", "cw-se-grp");
+  const cGrp = el("div", "ked-se-grp");
   cGrp.append(el("h3", undefined, "Font"));
 
   const fontSel = el("select");
@@ -141,17 +141,17 @@ export function mountTextStyleEditor(host: HTMLElement, init: TextStyleEditorIni
   sizeInput.value = String(pxToPt(ch.fontSizePx ?? 16));
   sizeInput.addEventListener("input", () => { markC("fontSizePx"); fire(); });
 
-  const fontRow = el("div", "cw-se-row");
+  const fontRow = el("div", "ked-se-row");
   fontRow.append(field("Family", fontSel), field("Size (pt)", sizeInput));
   cGrp.append(fontRow);
 
-  const tgls = el("div", "cw-se-tgls");
+  const tgls = el("div", "ked-se-tgls");
   const tglState: Record<"bold" | "italic" | "underline" | "strikethrough", boolean> = {
     bold: ch.bold ?? false, italic: ch.italic ?? false, underline: ch.underline ?? false, strikethrough: ch.strikethrough ?? false,
   };
   const glyph = { bold: "B", italic: "I", underline: "U", strikethrough: "S" } as const;
   for (const k of ["bold", "italic", "underline", "strikethrough"] as const) {
-    const b = el("button", "cw-se-tgl", glyph[k]);
+    const b = el("button", "ked-se-tgl", glyph[k]);
     b.type = "button";
     b.dataset.k = k;
     b.title = k;
@@ -173,7 +173,7 @@ export function mountTextStyleEditor(host: HTMLElement, init: TextStyleEditorIni
   colorInput.addEventListener("input", () => { markC("color"); fire(); });
   cGrp.append(field("Text color", colorInput));
 
-  const hlWrap = el("div", "cw-se-color");
+  const hlWrap = el("div", "ked-se-color");
   const hlInput = el("input");
   hlInput.type = "color";
   hlInput.value = toHex(ch.highlightColor ?? "#ffff00");
@@ -208,7 +208,7 @@ export function mountTextStyleEditor(host: HTMLElement, init: TextStyleEditorIni
   let outlineSel: HTMLSelectElement | undefined;
 
   if (isPara) {
-    const pGrp = el("div", "cw-se-grp");
+    const pGrp = el("div", "ked-se-grp");
     pGrp.append(el("h3", undefined, "Paragraph"));
 
     alignSel = el("select");
@@ -220,18 +220,18 @@ export function mountTextStyleEditor(host: HTMLElement, init: TextStyleEditorIni
     lineInput.type = "number"; lineInput.min = "0.5"; lineInput.max = "4"; lineInput.step = "0.05";
     lineInput.value = String(pa.lineHeight ?? 1.5);
     lineInput.addEventListener("input", () => { markP("lineHeight"); fire(); });
-    pGrp.append((() => { const r = el("div", "cw-se-row"); r.append(field("Alignment", alignSel!), field("Line spacing", lineInput!)); return r; })());
+    pGrp.append((() => { const r = el("div", "ked-se-row"); r.append(field("Alignment", alignSel!), field("Line spacing", lineInput!)); return r; })());
 
     beforeInput = numberPx(pa.spaceBeforePx ?? 0, () => { markP("spaceBeforePx"); fire(); });
     afterInput = numberPx(pa.spaceAfterPx ?? 0, () => { markP("spaceAfterPx"); fire(); });
-    pGrp.append((() => { const r = el("div", "cw-se-row"); r.append(field("Space before (px)", beforeInput!), field("Space after (px)", afterInput!)); return r; })());
+    pGrp.append((() => { const r = el("div", "ked-se-row"); r.append(field("Space before (px)", beforeInput!), field("Space after (px)", afterInput!)); return r; })());
 
     indLeft = numberPx(pa.indentLeftPx ?? 0, () => { markP("indentLeftPx"); fire(); });
     indRight = numberPx(pa.indentRightPx ?? 0, () => { markP("indentRightPx"); fire(); });
     indFirst = numberPx(pa.indentFirstLinePx ?? 0, () => { markP("indentFirstLinePx"); fire(); });
-    pGrp.append((() => { const r = el("div", "cw-se-row"); r.append(field("Indent left (px)", indLeft!), field("Indent right (px)", indRight!), field("First line (px)", indFirst!)); return r; })());
+    pGrp.append((() => { const r = el("div", "ked-se-row"); r.append(field("Indent left (px)", indLeft!), field("Indent right (px)", indRight!), field("First line (px)", indFirst!)); return r; })());
 
-    const checks = el("div", "cw-se-checks");
+    const checks = el("div", "ked-se-checks");
     kwn = checkbox(checks, "Keep with next paragraph", pa.keepWithNext ?? false, () => { markP("keepWithNext"); fire(); });
     klt = checkbox(checks, "Keep lines together", pa.keepLinesTogether ?? false, () => { markP("keepLinesTogether"); fire(); });
     pbb = checkbox(checks, "Page break before", pa.pageBreakBefore ?? false, () => { markP("pageBreakBefore"); fire(); });

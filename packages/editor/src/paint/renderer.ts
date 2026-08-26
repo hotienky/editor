@@ -299,13 +299,13 @@ function injectCaretCss(): void {
   caretCssInjected = true;
   const style = document.createElement("style");
   style.textContent =
-    "@keyframes cw-caret-blink{0%,55%{opacity:1}56%,100%{opacity:0}}" +
+    "@keyframes ked-caret-blink{0%,55%{opacity:1}56%,100%{opacity:0}}" +
     // Caret color is set per-instance inline (caretEl.style.background = theme.caret).
-    ".cw-caret{position:absolute;width:2px;pointer-events:none;animation:cw-caret-blink 1.06s step-end infinite;}" +
-    ".cw-rcaret{position:absolute;width:2px;pointer-events:none;z-index:3;}" +
-    ".cw-rcaret .flag{position:absolute;top:-13px;left:-1px;height:13px;display:flex;align-items:center;" +
+    ".ked-caret{position:absolute;width:2px;pointer-events:none;animation:ked-caret-blink 1.06s step-end infinite;}" +
+    ".ked-rcaret{position:absolute;width:2px;pointer-events:none;z-index:3;}" +
+    ".ked-rcaret .flag{position:absolute;top:-13px;left:-1px;height:13px;display:flex;align-items:center;" +
     "font:600 10px/1 'Segoe UI',Roboto,sans-serif;color:#fff;padding:0 4px;border-radius:3px 3px 3px 0;white-space:nowrap;}" +
-    ".cw-rsel{position:absolute;pointer-events:none;z-index:2;opacity:0.24;border-radius:1px;}";
+    ".ked-rsel{position:absolute;pointer-events:none;z-index:2;opacity:0.24;border-radius:1px;}";
   document.head.appendChild(style);
 }
 
@@ -362,7 +362,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
   container.appendChild(pagesWrap);
 
   const caretEl = document.createElement("div");
-  caretEl.className = "cw-caret";
+  caretEl.className = "ked-caret";
   caretEl.style.background = theme.caret;
   caretEl.style.display = "none";
 
@@ -515,7 +515,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
       let entry = remoteCaretEls.get(c.siteId);
       if (!entry) {
         const caret = document.createElement("div");
-        caret.className = "cw-rcaret";
+        caret.className = "ked-rcaret";
         caret.appendChild(Object.assign(document.createElement("div"), { className: "flag" }));
         entry = { caret, sels: [] };
         remoteCaretEls.set(c.siteId, entry);
@@ -544,7 +544,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
         const rph = placeholders[r.pageIndex];
         if (!rph) continue;
         const sd = document.createElement("div");
-        sd.className = "cw-rsel";
+        sd.className = "ked-rsel";
         sd.style.background = c.color;
         sd.style.left = `${r.x * zoom}px`;
         sd.style.top = `${r.y * zoom}px`;

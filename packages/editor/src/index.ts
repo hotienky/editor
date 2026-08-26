@@ -2272,7 +2272,7 @@ export function createEditor(
       .map((rr): import("@kindy/shared").Paragraph | null => {
         const block = blockById(doc, rr.blockId);
         return block
-          ? { kind: "paragraph", id: `cw-sdt-${rr.blockId}-${rr.start}`, revision: 0, runs: sliceRuns(block.runs, rr.start, rr.end), style: { ...block.style } }
+          ? { kind: "paragraph", id: `ked-sdt-${rr.blockId}-${rr.start}`, revision: 0, runs: sliceRuns(block.runs, rr.start, rr.end), style: { ...block.style } }
           : null;
       })
       .filter((b): b is import("@kindy/shared").Paragraph => b !== null);

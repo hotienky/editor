@@ -44,33 +44,33 @@ const EDGE_LABEL: Record<Edge, string> = { top: "Top", right: "Right", bottom: "
 const STYLES: ParaBorderStyle[] = ["single", "double", "dashed", "dotted"];
 
 const PDLG_CSS = `
-.cw-pdlg-backdrop{position:fixed;inset:0;z-index:1100;pointer-events:none;}
-.cw-pdlg-modal{position:fixed;width:min(440px,94vw);max-height:88vh;display:flex;flex-direction:column;
+.ked-pdlg-backdrop{position:fixed;inset:0;z-index:1100;pointer-events:none;}
+.ked-pdlg-modal{position:fixed;width:min(440px,94vw);max-height:88vh;display:flex;flex-direction:column;
   background:#fff;border-radius:10px;box-shadow:0 18px 56px rgba(0,0,0,.34);border:1px solid #d9dce1;
   font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;pointer-events:auto;}
-.cw-pdlg-head{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #e6e8eb;background:#f7f8fa;}
-.cw-pdlg-head h2{margin:0;font-size:14px;font-weight:600;flex:1 1 auto;}
-.cw-pdlg-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;
+.ked-pdlg-head{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #e6e8eb;background:#f7f8fa;}
+.ked-pdlg-head h2{margin:0;font-size:14px;font-weight:600;flex:1 1 auto;}
+.ked-pdlg-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;
   width:28px;height:28px;border-radius:6px;}
-.cw-pdlg-x:hover{background:#e8eaed;}
-.cw-pdlg-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:16px;}
-.cw-pdlg-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;margin:0 0 8px;}
-.cw-pdlg-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px;}
-.cw-pdlg-row label{display:flex;align-items:center;gap:6px;color:#5f6368;}
-.cw-pdlg-row input[type=number]{width:64px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;}
-.cw-pdlg-row select{height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;background:#fff;}
-.cw-pdlg-swatch{width:28px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0;cursor:pointer;background:#000;}
-.cw-pdlg-edges{display:flex;gap:14px;flex-wrap:wrap;}
-.cw-pdlg-edges label{color:#3c4043;}
-.cw-pdlg-preview{width:120px;height:60px;border:1px dashed #c8c6c4;border-radius:6px;
+.ked-pdlg-x:hover{background:#e8eaed;}
+.ked-pdlg-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:16px;}
+.ked-pdlg-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;margin:0 0 8px;}
+.ked-pdlg-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px;}
+.ked-pdlg-row label{display:flex;align-items:center;gap:6px;color:#5f6368;}
+.ked-pdlg-row input[type=number]{width:64px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;}
+.ked-pdlg-row select{height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;background:#fff;}
+.ked-pdlg-swatch{width:28px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0;cursor:pointer;background:#000;}
+.ked-pdlg-edges{display:flex;gap:14px;flex-wrap:wrap;}
+.ked-pdlg-edges label{color:#3c4043;}
+.ked-pdlg-preview{width:120px;height:60px;border:1px dashed #c8c6c4;border-radius:6px;
   display:grid;place-items:center;background:#fff;}
-.cw-pdlg-preview .box{width:78px;height:34px;}
-.cw-pdlg-foot{display:flex;justify-content:flex-end;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-pdlg-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;
+.ked-pdlg-preview .box{width:78px;height:34px;}
+.ked-pdlg-foot{display:flex;justify-content:flex-end;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-pdlg-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;
   font-size:13px;color:#3c4043;}
-.cw-pdlg-btn:hover{background:#f1f3f4;}
-.cw-pdlg-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-pdlg-btn.primary:hover{background:#1864cc;}`;
+.ked-pdlg-btn:hover{background:#f1f3f4;}
+.ked-pdlg-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-pdlg-btn.primary:hover{background:#1864cc;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -102,22 +102,22 @@ function checkRow(labelText: string, checked: boolean): { row: HTMLLabelElement;
 }
 
 export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDialogCallbacks): ParagraphDialogHandle {
-  injectCssOnce("cw-pdlg-styles", PDLG_CSS);
+  injectCssOnce("ked-pdlg-styles", PDLG_CSS);
 
-  const backdrop = el("div", "cw-pdlg-backdrop");
-  const modal = el("div", "cw-pdlg-modal");
+  const backdrop = el("div", "ked-pdlg-backdrop");
+  const modal = el("div", "ked-pdlg-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
   // Header
-  const head = el("div", "cw-pdlg-head");
+  const head = el("div", "ked-pdlg-head");
   const h2 = el("h2");
   h2.textContent = "Paragraph";
-  const xBtn = el("button", "cw-pdlg-x");
+  const xBtn = el("button", "ked-pdlg-x");
   xBtn.textContent = "×";
   xBtn.title = "Close (Esc)";
   head.append(h2, xBtn);
 
-  const body = el("div", "cw-pdlg-body");
+  const body = el("div", "ked-pdlg-body");
 
   // ---- Borders ------------------------------------------------------------
   // Seed the spec from whichever edge already exists, else a 1px black single line.
@@ -127,14 +127,14 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   let styleName: ParaBorderStyle = seedEdge?.style ?? "single";
 
   const bSection = el("div");
-  const bTitle = el("div", "cw-pdlg-section-title");
+  const bTitle = el("div", "ked-pdlg-section-title");
   bTitle.textContent = "Borders";
   bSection.appendChild(bTitle);
 
-  const specRow = el("div", "cw-pdlg-row");
+  const specRow = el("div", "ked-pdlg-row");
   const colorInput = el("input");
   colorInput.type = "color";
-  colorInput.className = "cw-pdlg-swatch";
+  colorInput.className = "ked-pdlg-swatch";
   colorInput.value = toHexColor(color);
   const colorLabel = el("label");
   colorLabel.append("Color", colorInput);
@@ -159,7 +159,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   const styleLabel = el("label");
   styleLabel.append("Style", styleSelect);
 
-  const preview = el("div", "cw-pdlg-preview");
+  const preview = el("div", "ked-pdlg-preview");
   const previewBox = el("div", "box");
   preview.appendChild(previewBox);
   const refreshPreview = (): void => {
@@ -177,7 +177,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   refreshPreview();
 
   // Per-edge toggles (which edges of the box are drawn).
-  const edgeRow = el("div", "cw-pdlg-edges");
+  const edgeRow = el("div", "ked-pdlg-edges");
   const edgeInputs: Record<Edge, HTMLInputElement> = {} as Record<Edge, HTMLInputElement>;
   for (const e of EDGES) {
     const { row, input } = checkRow(EDGE_LABEL[e], !!init.borders?.[e]);
@@ -188,9 +188,9 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
 
   // ---- Shading ------------------------------------------------------------
   const sSection = el("div");
-  const sTitle = el("div", "cw-pdlg-section-title");
+  const sTitle = el("div", "ked-pdlg-section-title");
   sTitle.textContent = "Shading (fill)";
-  const sRow = el("div", "cw-pdlg-row");
+  const sRow = el("div", "ked-pdlg-row");
   const { row: fillToggleRow, input: fillToggle } = checkRow("Fill", init.shading !== null);
   // Keep the ORIGINAL shading string (which may be a named/`rgb(...)` color the native
   // picker can't represent) and only overwrite it when the user actually edits the
@@ -199,7 +199,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   let shading = init.shading;
   const fillInput = el("input");
   fillInput.type = "color";
-  fillInput.className = "cw-pdlg-swatch";
+  fillInput.className = "ked-pdlg-swatch";
   fillInput.value = toHexColor(init.shading ?? "#ffff00");
   fillInput.addEventListener("input", () => { shading = fillInput.value; });
   sRow.append(fillToggleRow, fillInput);
@@ -207,10 +207,10 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
 
   // ---- Spacing + flags ----------------------------------------------------
   const oSection = el("div");
-  const oTitle = el("div", "cw-pdlg-section-title");
+  const oTitle = el("div", "ked-pdlg-section-title");
   oTitle.textContent = "Spacing & line breaks";
 
-  const lsRow = el("div", "cw-pdlg-row");
+  const lsRow = el("div", "ked-pdlg-row");
   const ruleSelect = el("select");
   for (const [val, lbl] of [["auto", "Multiple"], ["atLeast", "At least"], ["exact", "Exactly"]] as const) {
     const o = el("option");
@@ -245,7 +245,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   lsRow.append(ruleLabel, multLabel, pxLabel);
   syncRuleInputs();
 
-  const vaRow = el("div", "cw-pdlg-row");
+  const vaRow = el("div", "ked-pdlg-row");
   const vaSelect = el("select");
   for (const [val, lbl] of [["baseline", "Baseline"], ["top", "Top"], ["center", "Center"], ["bottom", "Bottom"]] as const) {
     const o = el("option");
@@ -258,7 +258,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   vaLabel.append("Vertical alignment", vaSelect);
   vaRow.append(vaLabel);
 
-  const flagRow = el("div", "cw-pdlg-edges");
+  const flagRow = el("div", "ked-pdlg-edges");
   const { row: csRow, input: csInput } = checkRow("Contextual spacing", init.contextualSpacing);
   const { row: wcRow, input: wcInput } = checkRow("Widow/orphan control", init.widowControl);
   const { row: miRow, input: miInput } = checkRow("Mirror indents", init.mirrorIndents);
@@ -271,10 +271,10 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   body.append(bSection, sSection, oSection);
 
   // Footer
-  const foot = el("div", "cw-pdlg-foot");
-  const cancelBtn = el("button", "cw-pdlg-btn");
+  const foot = el("div", "ked-pdlg-foot");
+  const cancelBtn = el("button", "ked-pdlg-btn");
   cancelBtn.textContent = "Cancel";
-  const okBtn = el("button", "cw-pdlg-btn primary");
+  const okBtn = el("button", "ked-pdlg-btn primary");
   okBtn.textContent = "OK";
   foot.append(cancelBtn, okBtn);
 
@@ -289,7 +289,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
       ac.abort();
     },
   };
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-pdlg-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-pdlg-x" });
 
   window.addEventListener(
     "keydown",

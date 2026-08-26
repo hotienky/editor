@@ -44,16 +44,16 @@ export function attachMentionAutocomplete(ta: HTMLTextAreaElement, getUsers: () 
   const render = (): void => {
     if (!menu) {
       menu = document.createElement("div");
-      menu.className = "cw-mention-menu";
+      menu.className = "ked-mention-menu";
       menu.addEventListener("mousedown", (e) => e.preventDefault()); // keep textarea focus
       document.body.appendChild(menu);
     }
     menu.textContent = "";
     items.forEach((u, idx) => {
       const row = document.createElement("div");
-      row.className = "cw-mention-item" + (idx === active ? " active" : "");
+      row.className = "ked-mention-item" + (idx === active ? " active" : "");
       const av = document.createElement("span");
-      av.className = "cw-mention-av";
+      av.className = "ked-mention-av";
       av.style.background = colorForId(u.id);
       av.textContent = initials(u);
       const name = document.createElement("span");

@@ -44,108 +44,108 @@ export interface DevPanelHandle {
 }
 
 const CSS = `
-.cw-dev-backdrop{position:fixed;inset:0;z-index:1100;}
-.cw-dev-modal{position:fixed;width:min(460px,96vw);height:min(680px,92vh);min-width:300px;min-height:240px;
+.ked-dev-backdrop{position:fixed;inset:0;z-index:1100;}
+.ked-dev-modal{position:fixed;width:min(460px,96vw);height:min(680px,92vh);min-width:300px;min-height:240px;
   max-width:96vw;max-height:96vh;display:flex;flex-direction:column;background:#1e1f22;resize:both;
   border-radius:10px;box-shadow:0 18px 56px rgba(0,0,0,.5);font:12px/1.5 'Segoe UI',Arial,sans-serif;color:#d4d6da;overflow:hidden;}
-.cw-dev-head{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #34363b;background:#26282c;cursor:move;}
-.cw-dev-head h2{margin:0;font-size:13px;font-weight:600;flex:1 1 auto;color:#e8eaed;}
-.cw-dev-x{border:none;background:transparent;font-size:18px;line-height:1;color:#9aa0a6;cursor:pointer;width:26px;height:26px;border-radius:6px;}
-.cw-dev-x:hover{background:#34363b;color:#fff;}
-.cw-dev-tabs{display:flex;gap:2px;padding:4px 8px 0;border-bottom:1px solid #34363b;background:#26282c;}
-.cw-dev-tab{border:none;background:transparent;color:#9aa0a6;cursor:pointer;font:inherit;padding:5px 10px;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;}
-.cw-dev-tab:hover{background:#2f3236;color:#d4d6da;}
-.cw-dev-tab.active{color:#e8eaed;border-bottom-color:#5b9bd5;background:#1e1f22;}
-.cw-dev-tab .cw-dev-tabcount{color:#6b6f76;font-size:10px;margin-left:5px;}
-.cw-dev-toolbar{display:flex;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid #34363b;background:#222428;flex-wrap:wrap;}
-.cw-dev-filter{flex:1 1 140px;height:26px;padding:0 8px;border:1px solid #3a3d42;border-radius:6px;background:#1a1b1e;color:#e8eaed;font-size:12px;}
-.cw-dev-filter::placeholder{color:#6b6f76;}
-.cw-dev-content{flex:1 1 auto;display:flex;min-height:0;}
-.cw-dev-tabpane{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
-.cw-dev-tree{flex:1 1 auto;overflow:auto;padding:4px 0;font-family:'Cascadia Code',Consolas,monospace;}
-.cw-dev-row{display:flex;align-items:baseline;gap:5px;padding:1px 10px 1px 0;cursor:pointer;white-space:nowrap;}
-.cw-dev-row:hover{background:#2b2d31;}
-.cw-dev-row.sel{background:#33415e;}
-.cw-dev-row.cur{outline:1px solid #5b9bd5;outline-offset:-1px;}
-.cw-dev-row.match{background:#3a3320;}
-.cw-dev-tw{display:inline-block;width:12px;flex:0 0 auto;text-align:center;color:#9aa0a6;user-select:none;}
-.cw-dev-kind{color:#9cdcfe;flex:0 0 auto;}
-.cw-dev-kind.tag{color:#c586c0;}
-.cw-dev-kind.run{color:#7ec699;}
-.cw-dev-kind.group{color:#d7ba7d;}
-.cw-dev-kind.layout{color:#80cbc4;}
-.cw-dev-kind.problem{color:#e0e0e0;}
-.cw-dev-prev{color:#cea36a;overflow:hidden;text-overflow:ellipsis;}
-.cw-dev-badge{color:#6b9bd1;font-size:10px;border:1px solid #3f5470;border-radius:7px;padding:0 5px;flex:0 0 auto;}
-.cw-dev-id{color:#6b6f76;font-size:10px;flex:0 0 auto;}
-.cw-dev-empty{color:#6b6f76;padding:6px 14px;font-style:italic;}
-.cw-dev-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border:1px solid #3a3d42;border-radius:12px;background:#1a1b1e;color:#9aa0a6;cursor:pointer;font-size:11px;user-select:none;}
-.cw-dev-chip:hover{border-color:#4a4d52;color:#d4d6da;}
-.cw-dev-chip.on{background:#2d4156;border-color:#5b9bd5;color:#cfe3f5;}
-.cw-dev-overlays{display:flex;align-items:center;gap:5px;padding:6px 10px;border-bottom:1px solid #34363b;background:#1f2124;flex-wrap:wrap;}
-.cw-dev-overlabel{color:#6b6f76;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
-.cw-dev-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto;}
-.cw-dev-btn{height:24px;padding:0 9px;border:1px solid #3a3d42;border-radius:6px;background:#1a1b1e;color:#9aa0a6;cursor:pointer;font-size:11px;}
-.cw-dev-btn:hover{border-color:#4a4d52;color:#d4d6da;}
-.cw-dev-history{flex:1 1 auto;overflow:auto;padding:2px 0;font-family:'Cascadia Code',Consolas,monospace;}
-.cw-dev-hrow{display:flex;align-items:baseline;gap:8px;padding:2px 10px;cursor:pointer;white-space:nowrap;}
-.cw-dev-hrow:hover{background:#2b2d31;}
-.cw-dev-hrow.sel{background:#33415e;}
-.cw-dev-hi{color:#6b6f76;flex:0 0 38px;}
-.cw-dev-horigin{flex:0 0 60px;color:#9aa0a6;}
-.cw-dev-horigin.typing{color:#7ec699;}
-.cw-dev-horigin.command{color:#9cdcfe;}
-.cw-dev-horigin.paste{color:#d7ba7d;}
-.cw-dev-horigin.undo,.cw-dev-horigin.redo{color:#c586c0;}
-.cw-dev-hops{color:#cea36a;overflow:hidden;text-overflow:ellipsis;}
-.cw-dev-hts{color:#6b6f76;font-size:10px;margin-left:auto;}
-.cw-dev-probe{flex:1 1 auto;overflow:auto;padding:8px 12px;}
-.cw-dev-probe-row{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid #2b2d31;}
-.cw-dev-probe-k{flex:0 0 84px;color:#9aa0a6;}
-.cw-dev-probe-v{color:#cdd1d6;font-family:'Cascadia Code',Consolas,monospace;word-break:break-all;}
-.cw-dev-detail{flex:0 0 200px;border-top:1px solid #34363b;background:#191a1d;display:flex;flex-direction:column;min-height:0;}
-.cw-dev-detail-head{padding:6px 12px;border-bottom:1px solid #2b2d31;color:#9aa0a6;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
-.cw-dev-json{flex:1 1 auto;overflow:auto;margin:0;padding:8px 12px;font-family:'Cascadia Code',Consolas,monospace;font-size:11px;color:#cdd1d6;white-space:pre;}`;
+.ked-dev-head{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #34363b;background:#26282c;cursor:move;}
+.ked-dev-head h2{margin:0;font-size:13px;font-weight:600;flex:1 1 auto;color:#e8eaed;}
+.ked-dev-x{border:none;background:transparent;font-size:18px;line-height:1;color:#9aa0a6;cursor:pointer;width:26px;height:26px;border-radius:6px;}
+.ked-dev-x:hover{background:#34363b;color:#fff;}
+.ked-dev-tabs{display:flex;gap:2px;padding:4px 8px 0;border-bottom:1px solid #34363b;background:#26282c;}
+.ked-dev-tab{border:none;background:transparent;color:#9aa0a6;cursor:pointer;font:inherit;padding:5px 10px;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;}
+.ked-dev-tab:hover{background:#2f3236;color:#d4d6da;}
+.ked-dev-tab.active{color:#e8eaed;border-bottom-color:#5b9bd5;background:#1e1f22;}
+.ked-dev-tab .ked-dev-tabcount{color:#6b6f76;font-size:10px;margin-left:5px;}
+.ked-dev-toolbar{display:flex;align-items:center;gap:6px;padding:7px 10px;border-bottom:1px solid #34363b;background:#222428;flex-wrap:wrap;}
+.ked-dev-filter{flex:1 1 140px;height:26px;padding:0 8px;border:1px solid #3a3d42;border-radius:6px;background:#1a1b1e;color:#e8eaed;font-size:12px;}
+.ked-dev-filter::placeholder{color:#6b6f76;}
+.ked-dev-content{flex:1 1 auto;display:flex;min-height:0;}
+.ked-dev-tabpane{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;}
+.ked-dev-tree{flex:1 1 auto;overflow:auto;padding:4px 0;font-family:'Cascadia Code',Consolas,monospace;}
+.ked-dev-row{display:flex;align-items:baseline;gap:5px;padding:1px 10px 1px 0;cursor:pointer;white-space:nowrap;}
+.ked-dev-row:hover{background:#2b2d31;}
+.ked-dev-row.sel{background:#33415e;}
+.ked-dev-row.cur{outline:1px solid #5b9bd5;outline-offset:-1px;}
+.ked-dev-row.match{background:#3a3320;}
+.ked-dev-tw{display:inline-block;width:12px;flex:0 0 auto;text-align:center;color:#9aa0a6;user-select:none;}
+.ked-dev-kind{color:#9cdcfe;flex:0 0 auto;}
+.ked-dev-kind.tag{color:#c586c0;}
+.ked-dev-kind.run{color:#7ec699;}
+.ked-dev-kind.group{color:#d7ba7d;}
+.ked-dev-kind.layout{color:#80cbc4;}
+.ked-dev-kind.problem{color:#e0e0e0;}
+.ked-dev-prev{color:#cea36a;overflow:hidden;text-overflow:ellipsis;}
+.ked-dev-badge{color:#6b9bd1;font-size:10px;border:1px solid #3f5470;border-radius:7px;padding:0 5px;flex:0 0 auto;}
+.ked-dev-id{color:#6b6f76;font-size:10px;flex:0 0 auto;}
+.ked-dev-empty{color:#6b6f76;padding:6px 14px;font-style:italic;}
+.ked-dev-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border:1px solid #3a3d42;border-radius:12px;background:#1a1b1e;color:#9aa0a6;cursor:pointer;font-size:11px;user-select:none;}
+.ked-dev-chip:hover{border-color:#4a4d52;color:#d4d6da;}
+.ked-dev-chip.on{background:#2d4156;border-color:#5b9bd5;color:#cfe3f5;}
+.ked-dev-overlays{display:flex;align-items:center;gap:5px;padding:6px 10px;border-bottom:1px solid #34363b;background:#1f2124;flex-wrap:wrap;}
+.ked-dev-overlabel{color:#6b6f76;font-size:10px;text-transform:uppercase;letter-spacing:.05em;margin-right:2px;}
+.ked-dev-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto;margin-left:auto;}
+.ked-dev-btn{height:24px;padding:0 9px;border:1px solid #3a3d42;border-radius:6px;background:#1a1b1e;color:#9aa0a6;cursor:pointer;font-size:11px;}
+.ked-dev-btn:hover{border-color:#4a4d52;color:#d4d6da;}
+.ked-dev-history{flex:1 1 auto;overflow:auto;padding:2px 0;font-family:'Cascadia Code',Consolas,monospace;}
+.ked-dev-hrow{display:flex;align-items:baseline;gap:8px;padding:2px 10px;cursor:pointer;white-space:nowrap;}
+.ked-dev-hrow:hover{background:#2b2d31;}
+.ked-dev-hrow.sel{background:#33415e;}
+.ked-dev-hi{color:#6b6f76;flex:0 0 38px;}
+.ked-dev-horigin{flex:0 0 60px;color:#9aa0a6;}
+.ked-dev-horigin.typing{color:#7ec699;}
+.ked-dev-horigin.command{color:#9cdcfe;}
+.ked-dev-horigin.paste{color:#d7ba7d;}
+.ked-dev-horigin.undo,.ked-dev-horigin.redo{color:#c586c0;}
+.ked-dev-hops{color:#cea36a;overflow:hidden;text-overflow:ellipsis;}
+.ked-dev-hts{color:#6b6f76;font-size:10px;margin-left:auto;}
+.ked-dev-probe{flex:1 1 auto;overflow:auto;padding:8px 12px;}
+.ked-dev-probe-row{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid #2b2d31;}
+.ked-dev-probe-k{flex:0 0 84px;color:#9aa0a6;}
+.ked-dev-probe-v{color:#cdd1d6;font-family:'Cascadia Code',Consolas,monospace;word-break:break-all;}
+.ked-dev-detail{flex:0 0 200px;border-top:1px solid #34363b;background:#191a1d;display:flex;flex-direction:column;min-height:0;}
+.ked-dev-detail-head{padding:6px 12px;border-bottom:1px solid #2b2d31;color:#9aa0a6;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
+.ked-dev-json{flex:1 1 auto;overflow:auto;margin:0;padding:8px 12px;font-family:'Cascadia Code',Consolas,monospace;font-size:11px;color:#cdd1d6;white-space:pre;}`;
 
 export function showDevPanel(opts: DevPanelOptions): DevPanelHandle {
-  injectCssOnce("cw-dev-styles", CSS);
+  injectCssOnce("ked-dev-styles", CSS);
   const { editor } = opts;
 
   // ---- DOM scaffold ---------------------------------------------------------
-  const backdrop = el("div", "cw-dev-backdrop");
-  const modal = el("div", "cw-dev-modal");
+  const backdrop = el("div", "ked-dev-backdrop");
+  const modal = el("div", "ked-dev-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
-  const head = el("div", "cw-dev-head");
+  const head = el("div", "ked-dev-head");
   const h2 = el("h2", undefined, "Document Inspector");
-  const xBtn = el("button", "cw-dev-x", "×");
+  const xBtn = el("button", "ked-dev-x", "×");
   head.append(h2, xBtn);
 
-  const tabStrip = el("div", "cw-dev-tabs");
+  const tabStrip = el("div", "ked-dev-tabs");
 
-  const toolbar = el("div", "cw-dev-toolbar");
-  const filterInput = el("input", "cw-dev-filter");
+  const toolbar = el("div", "ked-dev-toolbar");
+  const filterInput = el("input", "ked-dev-filter");
   filterInput.type = "search";
   filterInput.placeholder = "Filter…";
-  const extrasHost = el("div", "cw-dev-extras");
+  const extrasHost = el("div", "ked-dev-extras");
   extrasHost.style.cssText = "display:flex;align-items:center;gap:6px;flex:0 1 auto;flex-wrap:wrap;";
 
   // Shell actions: follow-caret toggle + snapshot copy/load.
-  const actions = el("div", "cw-dev-actions");
-  const followChip = el("span", "cw-dev-chip", "⟲ Follow caret");
+  const actions = el("div", "ked-dev-actions");
+  const followChip = el("span", "ked-dev-chip", "⟲ Follow caret");
   followChip.title = "Scroll the tree to the node under the caret as you edit";
   let followOn = false;
   followChip.addEventListener("click", () => { followOn = !followOn; followChip.classList.toggle("on", followOn); active.setFollowCaret?.(followOn); });
   const flash = (btn: HTMLButtonElement, fn: () => void): void => { fn(); const t = btn.textContent; btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = t; }, 900); };
-  const copyDocBtn = el("button", "cw-dev-btn", "⧉ Doc");
+  const copyDocBtn = el("button", "ked-dev-btn", "⧉ Doc");
   copyDocBtn.title = "Copy the Document JSON to the clipboard";
   copyDocBtn.addEventListener("click", () => flash(copyDocBtn, () => void navigator.clipboard?.writeText(JSON.stringify(editor.getDocument(), null, 2))));
-  const copyLayoutBtn = el("button", "cw-dev-btn", "⧉ Layout");
+  const copyLayoutBtn = el("button", "ked-dev-btn", "⧉ Layout");
   copyLayoutBtn.title = "Copy the LayoutTree JSON to the clipboard";
   copyLayoutBtn.addEventListener("click", () => flash(copyLayoutBtn, () => void navigator.clipboard?.writeText(JSON.stringify(editor.getLayoutTree(), null, 2))));
   actions.append(followChip, copyDocBtn, copyLayoutBtn);
   if (opts.setDocument) {
-    const loadBtn = el("button", "cw-dev-btn", "⤓ Load");
+    const loadBtn = el("button", "ked-dev-btn", "⤓ Load");
     loadBtn.title = "Replace the document from a JSON snapshot";
     const fileInput = el("input");
     fileInput.type = "file";
@@ -164,11 +164,11 @@ export function showDevPanel(opts: DevPanelOptions): DevPanelHandle {
   toolbar.append(filterInput, extrasHost, actions);
 
   const overlayBar = createOverlayBar(editor);
-  const content = el("div", "cw-dev-content");
+  const content = el("div", "ked-dev-content");
 
-  const detail = el("div", "cw-dev-detail");
-  const detailHead = el("div", "cw-dev-detail-head", "Select a node");
-  const json = el("pre", "cw-dev-json");
+  const detail = el("div", "ked-dev-detail");
+  const detailHead = el("div", "ked-dev-detail-head", "Select a node");
+  const json = el("pre", "ked-dev-json");
   detail.append(detailHead, json);
 
   modal.append(head, tabStrip, toolbar, overlayBar.element, content, detail);
@@ -193,13 +193,13 @@ export function showDevPanel(opts: DevPanelOptions): DevPanelHandle {
   const tabCounts = new Map<string, HTMLSpanElement>();
 
   for (const tab of tabs) {
-    tab.element.classList.add("cw-dev-tabpane");
+    tab.element.classList.add("ked-dev-tabpane");
     tab.element.style.display = "none";
     content.append(tab.element);
     if (tab.toolbar) { tab.toolbar.style.display = "none"; extrasHost.append(tab.toolbar); }
-    const btn = el("button", "cw-dev-tab");
+    const btn = el("button", "ked-dev-tab");
     btn.append(document.createTextNode(tab.label));
-    const countSpan = el("span", "cw-dev-tabcount");
+    const countSpan = el("span", "ked-dev-tabcount");
     btn.append(countSpan);
     btn.addEventListener("click", () => switchTo(tab.id));
     tabButtons.set(tab.id, btn);
@@ -256,7 +256,7 @@ export function showDevPanel(opts: DevPanelOptions): DevPanelHandle {
     // Let the search filter's native Escape-to-clear run; only close on a global Escape.
     if (ev.key === "Escape" && ev.target !== filterInput) { ev.preventDefault(); ev.stopPropagation(); handle.close(); }
   }, { capture: true, signal: ac.signal });
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-dev-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-dev-x" });
   xBtn.addEventListener("click", () => handle.close());
 
   switchTo(active.id);

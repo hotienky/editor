@@ -21,12 +21,12 @@ export interface OverlayBar {
 }
 
 export function createOverlayBar(editor: DevPanelEditor): OverlayBar {
-  const bar = el("div", "cw-dev-overlays");
-  bar.append(el("span", "cw-dev-overlabel", "Overlays"));
+  const bar = el("div", "ked-dev-overlays");
+  bar.append(el("span", "ked-dev-overlabel", "Overlays"));
   const chips: HTMLElement[] = [];
   const state = new Map<string, boolean>();
   for (const [kind, label] of OVERLAYS) {
-    const chip = el("span", "cw-dev-chip", label);
+    const chip = el("span", "ked-dev-chip", label);
     chip.title = `Toggle the ${label.toLowerCase()} overlay on the canvas`;
     chip.addEventListener("click", () => {
       const on = !(state.get(kind) ?? false);

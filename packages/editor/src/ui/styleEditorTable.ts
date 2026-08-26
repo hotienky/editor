@@ -27,19 +27,19 @@ const PARTS: TableCond[] = [
 const BORDER_STYLES: NonNullable<CellBorder["style"]>[] = ["single", "double", "dashed", "dotted"];
 
 const CSS = `
-.cw-te{display:flex;flex-direction:column;gap:14px;}
-.cw-te-field{display:flex;flex-direction:column;gap:4px;}
-.cw-te-field>label{font-size:11px;color:#5f6368;}
-.cw-te-field input,.cw-te-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
-.cw-te-row{display:flex;gap:8px;flex-wrap:wrap;}
-.cw-te-row>*{flex:1 1 0;min-width:84px;}
-.cw-te-h3{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#80868b;font-weight:600;}
-.cw-te-btns{display:flex;gap:6px;flex-wrap:wrap;}
-.cw-te-btn{height:28px;padding:0 10px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#3c4043;}
-.cw-te-btn:hover{background:#f1f3f4;}
-.cw-te-color{display:flex;align-items:center;gap:6px;}
-.cw-te-color input[type=color]{width:34px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0;cursor:pointer;}
-.cw-te-chk{display:flex;align-items:center;gap:7px;font-size:12px;color:#3c4043;}`;
+.ked-te{display:flex;flex-direction:column;gap:14px;}
+.ked-te-field{display:flex;flex-direction:column;gap:4px;}
+.ked-te-field>label{font-size:11px;color:#5f6368;}
+.ked-te-field input,.ked-te-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
+.ked-te-row{display:flex;gap:8px;flex-wrap:wrap;}
+.ked-te-row>*{flex:1 1 0;min-width:84px;}
+.ked-te-h3{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#80868b;font-weight:600;}
+.ked-te-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.ked-te-btn{height:28px;padding:0 10px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:12px;color:#3c4043;}
+.ked-te-btn:hover{background:#f1f3f4;}
+.ked-te-color{display:flex;align-items:center;gap:6px;}
+.ked-te-color input[type=color]{width:34px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0;cursor:pointer;}
+.ked-te-chk{display:flex;align-items:center;gap:7px;font-size:12px;color:#3c4043;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -48,7 +48,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 };
 const field = (label: string, control: HTMLElement): HTMLElement => {
-  const w = el("div", "cw-te-field");
+  const w = el("div", "ked-te-field");
   w.append(el("label", undefined, label), control);
   return w;
 };
@@ -58,7 +58,7 @@ const option = (sel: HTMLSelectElement, value: string, label: string): void => {
 const toHex = (c: string | undefined, fallback: string): string => (c && /^#[0-9a-f]{6}$/i.test(c) ? c : fallback);
 
 export function mountTableStyleEditor(host: HTMLElement, init: TableStyleEditorInit): TableStyleController {
-  injectCssOnce("cw-te-styles", CSS);
+  injectCssOnce("ked-te-styles", CSS);
   // Deep clone so edits don't mutate the document's style before Apply.
   const style: TableStyle = {
     id: init.style.id,
@@ -72,7 +72,7 @@ export function mountTableStyleEditor(host: HTMLElement, init: TableStyleEditorI
   const fire = (): void => onChangeCb();
   let part: TableCond = "wholeTable";
 
-  const root = el("div", "cw-te");
+  const root = el("div", "ked-te");
 
   const nameInput = el("input");
   nameInput.type = "text";
@@ -86,8 +86,8 @@ export function mountTableStyleEditor(host: HTMLElement, init: TableStyleEditorI
   partSel.value = "wholeTable";
   root.append(field("Editing part", partSel));
 
-  root.append(el("h3", "cw-te-h3", "Formatting"));
-  const formHost = el("div", "cw-te");
+  root.append(el("h3", "ked-te-h3", "Formatting"));
+  const formHost = el("div", "ked-te");
   root.append(formHost);
   host.append(root);
 
@@ -98,15 +98,15 @@ export function mountTableStyleEditor(host: HTMLElement, init: TableStyleEditorI
     const props = cur();
 
     // -- Fill --
-    const fillWrap = el("div", "cw-te-color");
+    const fillWrap = el("div", "ked-te-color");
     const fill = el("input");
     fill.type = "color";
     fill.value = toHex(props.shading, "#d9e2f3");
     fill.addEventListener("input", () => { props.shading = fill.value; fire(); });
-    const fillBtn = el("button", "cw-te-btn", "Apply fill");
+    const fillBtn = el("button", "ked-te-btn", "Apply fill");
     fillBtn.type = "button";
     fillBtn.addEventListener("click", () => { props.shading = fill.value; fire(); });
-    const noFill = el("button", "cw-te-btn", "No fill");
+    const noFill = el("button", "ked-te-btn", "No fill");
     noFill.type = "button";
     noFill.addEventListener("click", () => { delete props.shading; fire(); });
     fillWrap.append(fill, fillBtn, noFill);
@@ -117,7 +117,7 @@ export function mountTableStyleEditor(host: HTMLElement, init: TableStyleEditorI
     const bWidth = el("input"); bWidth.type = "number"; bWidth.min = "0.25"; bWidth.max = "6"; bWidth.step = "0.25"; bWidth.value = "1";
     const bStyle = el("select");
     for (const s of BORDER_STYLES) option(bStyle, s, s);
-    const bRow = el("div", "cw-te-row");
+    const bRow = el("div", "ked-te-row");
     bRow.append(field("Border color", bColor), field("Width (px)", bWidth), field("Line", bStyle));
     formHost.append(bRow);
 
@@ -128,9 +128,9 @@ export function mountTableStyleEditor(host: HTMLElement, init: TableStyleEditorI
       props.borders = b;
       fire();
     };
-    const btns = el("div", "cw-te-btns");
+    const btns = el("div", "ked-te-btns");
     const mk = (label: string, on: () => void): void => {
-      const b = el("button", "cw-te-btn", label);
+      const b = el("button", "ked-te-btn", label);
       b.type = "button"; b.addEventListener("click", on);
       btns.append(b);
     };
@@ -141,15 +141,15 @@ export function mountTableStyleEditor(host: HTMLElement, init: TableStyleEditorI
     formHost.append(field("Borders", btns));
 
     // -- Text --
-    const boldL = el("label", "cw-te-chk");
+    const boldL = el("label", "ked-te-chk");
     const bold = el("input"); bold.type = "checkbox"; bold.checked = props.char?.bold ?? false;
     bold.addEventListener("change", () => { props.char = { ...props.char, bold: bold.checked }; fire(); });
     boldL.append(bold, document.createTextNode("Bold text"));
 
-    const colorWrap = el("div", "cw-te-color");
+    const colorWrap = el("div", "ked-te-color");
     const tColor = el("input"); tColor.type = "color"; tColor.value = toHex(props.char?.color, "#202124");
     tColor.addEventListener("input", () => { props.char = { ...props.char, color: tColor.value }; fire(); });
-    const tClear = el("button", "cw-te-btn", "Auto");
+    const tClear = el("button", "ked-te-btn", "Auto");
     tClear.type = "button";
     tClear.addEventListener("click", () => { if (props.char) delete props.char.color; fire(); });
     colorWrap.append(tColor, tClear);

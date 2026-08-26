@@ -64,31 +64,31 @@ const EMPHASIS_MARKS: { value: EmphasisMark | "none"; label: string }[] = [
 ];
 
 const CSS = `
-.cw-font-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);display:flex;align-items:center;justify-content:center;}
-.cw-font-modal{width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
+.ked-font-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);display:flex;align-items:center;justify-content:center;}
+.ked-font-modal{width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
   box-shadow:0 18px 56px rgba(0,0,0,.34);font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;}
-.cw-font-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
-.cw-font-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
-.cw-font-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
-.cw-font-x:hover{background:#e8eaed;}
-.cw-font-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:14px;}
-.cw-font-section{display:flex;flex-direction:column;gap:8px;}
-.cw-font-section>label.head{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
-.cw-font-check{display:flex;align-items:center;gap:8px;font-size:13px;color:#3c4043;}
-.cw-font-check input{width:16px;height:16px;}
-.cw-font-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;}
-.cw-font-row{display:flex;align-items:center;gap:8px;}
-.cw-font-row.dim{opacity:.45;}
-.cw-font-row>span.lbl{flex:0 0 150px;color:#3c4043;}
-.cw-font-body input[type=number],.cw-font-body select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
-.cw-font-body input[type=number]{width:88px;}
-.cw-font-body input[type=color]{width:42px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 2px;background:#fff;cursor:pointer;}
-.cw-font-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-font-foot .spacer{flex:1 1 auto;}
-.cw-font-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
-.cw-font-btn:hover{background:#f1f3f4;}
-.cw-font-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-font-btn.primary:hover{background:#1864cc;}`;
+.ked-font-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
+.ked-font-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
+.ked-font-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
+.ked-font-x:hover{background:#e8eaed;}
+.ked-font-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:14px;}
+.ked-font-section{display:flex;flex-direction:column;gap:8px;}
+.ked-font-section>label.head{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
+.ked-font-check{display:flex;align-items:center;gap:8px;font-size:13px;color:#3c4043;}
+.ked-font-check input{width:16px;height:16px;}
+.ked-font-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;}
+.ked-font-row{display:flex;align-items:center;gap:8px;}
+.ked-font-row.dim{opacity:.45;}
+.ked-font-row>span.lbl{flex:0 0 150px;color:#3c4043;}
+.ked-font-body input[type=number],.ked-font-body select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
+.ked-font-body input[type=number]{width:88px;}
+.ked-font-body input[type=color]{width:42px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 2px;background:#fff;cursor:pointer;}
+.ked-font-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-font-foot .spacer{flex:1 1 auto;}
+.ked-font-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
+.ked-font-btn:hover{background:#f1f3f4;}
+.ked-font-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-font-btn.primary:hover{background:#1864cc;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -98,7 +98,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 };
 
 const checkbox = (label: string, checked: boolean): { row: HTMLElement; input: HTMLInputElement } => {
-  const row = el("label", "cw-font-check");
+  const row = el("label", "ked-font-check");
   const input = el("input");
   input.type = "checkbox";
   input.checked = checked;
@@ -131,21 +131,21 @@ const numOrUndef = (raw: string, min?: number, max?: number): number | undefined
 };
 
 export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
-  injectCssOnce("cw-font-styles", CSS);
+  injectCssOnce("ked-font-styles", CSS);
   const init = opts.initial;
 
-  const backdrop = el("div", "cw-font-backdrop");
-  const modal = el("div", "cw-font-modal");
+  const backdrop = el("div", "ked-font-backdrop");
+  const modal = el("div", "ked-font-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
-  const head = el("div", "cw-font-head");
-  const xBtn = el("button", "cw-font-x", "×");
+  const head = el("div", "ked-font-head");
+  const xBtn = el("button", "ked-font-x", "×");
   head.append(el("h2", undefined, "Font"), xBtn);
 
-  const body = el("div", "cw-font-body");
+  const body = el("div", "ked-font-body");
 
   // ---- Effects (caps / small-caps / double-strike / outline / shadow / …) ----
-  const effects = el("div", "cw-font-section");
+  const effects = el("div", "ked-font-section");
   const capsChk = checkbox("All caps", init.caps);
   const smallChk = checkbox("Small caps", init.smallCaps);
   const dstrikeChk = checkbox("Double strikethrough", init.doubleStrikethrough);
@@ -153,13 +153,13 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   const shadowChk = checkbox("Shadow", init.shadow);
   const embossChk = checkbox("Emboss", init.emboss);
   const imprintChk = checkbox("Engrave (imprint)", init.imprint);
-  const checks = el("div", "cw-font-checks");
+  const checks = el("div", "ked-font-checks");
   checks.append(capsChk.row, smallChk.row, dstrikeChk.row, outlineChk.row, shadowChk.row, embossChk.row, imprintChk.row);
   effects.append(el("label", "head", "Effects"), checks);
   body.append(effects);
 
   // ---- Underline (style + color) ----
-  const underline = el("div", "cw-font-section");
+  const underline = el("div", "ked-font-section");
   const uStyleSel = el("select");
   for (const s of UNDERLINE_STYLES) {
     const o = el("option");
@@ -168,9 +168,9 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
     uStyleSel.append(o);
   }
   uStyleSel.value = init.underline ? (init.underlineStyle ?? "single") : "none";
-  const uStyleRow = el("div", "cw-font-row");
+  const uStyleRow = el("div", "ked-font-row");
   uStyleRow.append(el("span", "lbl", "Underline style"), uStyleSel);
-  const uColorRow = el("div", "cw-font-row");
+  const uColorRow = el("div", "ked-font-row");
   const uColorIn = el("input");
   uColorIn.type = "color";
   uColorIn.value = init.underlineColor ?? "#000000";
@@ -180,14 +180,14 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   body.append(underline);
 
   // ---- Spacing / position / scaling / kerning ----
-  const spacing = el("div", "cw-font-section");
+  const spacing = el("div", "ked-font-section");
   const posIn = numberInput(init.positionPx, "1");
   const scaleIn = numberInput(init.widthScalePct, "1", "1", "600");
   const spacingIn = numberInput(init.letterSpacingPx, "0.5");
   const kernIn = numberInput(init.kerningMinPx, "0.5", "0");
   const fitIn = numberInput(init.fitTextPx, "1", "0");
   const row = (label: string, input: HTMLElement, suffix?: string): HTMLElement => {
-    const r = el("div", "cw-font-row");
+    const r = el("div", "ked-font-row");
     r.append(el("span", "lbl", label), input);
     if (suffix) r.append(el("span", undefined, suffix));
     return r;
@@ -203,7 +203,7 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   body.append(spacing);
 
   // ---- Emphasis mark ----
-  const emphasis = el("div", "cw-font-section");
+  const emphasis = el("div", "ked-font-section");
   const emSel = el("select");
   for (const m of EMPHASIS_MARKS) {
     const o = el("option");
@@ -215,9 +215,9 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   emphasis.append(el("label", "head", "Emphasis mark"), row("Mark", emSel));
   body.append(emphasis);
 
-  const foot = el("div", "cw-font-foot");
-  const cancel = el("button", "cw-font-btn", "Cancel");
-  const apply = el("button", "cw-font-btn primary", "Apply");
+  const foot = el("div", "ked-font-foot");
+  const cancel = el("button", "ked-font-btn", "Cancel");
+  const apply = el("button", "ked-font-btn primary", "Apply");
   foot.append(el("div", "spacer"), cancel, apply);
 
   modal.append(head, body, foot);
@@ -273,7 +273,7 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   window.addEventListener("keydown", (ev: KeyboardEvent) => {
     if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); handle.close(); }
   }, { capture: true, signal: ac.signal });
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-font-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-font-x" });
   xBtn.addEventListener("click", () => handle.close());
   cancel.addEventListener("click", () => handle.close());
   apply.addEventListener("click", () => { opts.onApply(read()); handle.close(); });

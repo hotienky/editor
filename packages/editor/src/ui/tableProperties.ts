@@ -86,37 +86,37 @@ const STYLES: BorderStyleName[] = ["single", "double", "dashed", "dotted"];
 const TBL_CSS = `
 /* Non-blocking layer: the panel floats but the document stays visible + interactive
    so border/shading edits are seen live; clicks outside don't close it. */
-.cw-tbl-backdrop{position:fixed;inset:0;z-index:1100;pointer-events:none;}
-.cw-tbl-modal{position:fixed;width:min(420px,94vw);max-height:88vh;display:flex;flex-direction:column;
+.ked-tbl-backdrop{position:fixed;inset:0;z-index:1100;pointer-events:none;}
+.ked-tbl-modal{position:fixed;width:min(420px,94vw);max-height:88vh;display:flex;flex-direction:column;
   background:#fff;border-radius:10px;box-shadow:0 18px 56px rgba(0,0,0,.34);border:1px solid #d9dce1;
   font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;pointer-events:auto;}
-.cw-tbl-head{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #e6e8eb;background:#f7f8fa;}
-.cw-tbl-head h2{margin:0;font-size:14px;font-weight:600;flex:1 1 auto;}
-.cw-tbl-hint{font-size:11px;color:#9aa0a6;margin:-4px 0 2px;}
-.cw-tbl-caption{font-size:11px;color:#5f6368;font-weight:600;margin:0 0 4px;}
-.cw-tbl-badge{font-size:11px;font-weight:600;color:#0b57d0;background:#e8f0fe;border-radius:10px;padding:2px 9px;}
-.cw-tbl-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;
+.ked-tbl-head{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid #e6e8eb;background:#f7f8fa;}
+.ked-tbl-head h2{margin:0;font-size:14px;font-weight:600;flex:1 1 auto;}
+.ked-tbl-hint{font-size:11px;color:#9aa0a6;margin:-4px 0 2px;}
+.ked-tbl-caption{font-size:11px;color:#5f6368;font-weight:600;margin:0 0 4px;}
+.ked-tbl-badge{font-size:11px;font-weight:600;color:#0b57d0;background:#e8f0fe;border-radius:10px;padding:2px 9px;}
+.ked-tbl-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;
   width:28px;height:28px;border-radius:6px;}
-.cw-tbl-x:hover{background:#e8eaed;}
-.cw-tbl-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:16px;}
-.cw-tbl-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;margin:0 0 8px;}
-.cw-tbl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.cw-tbl-row label{display:flex;align-items:center;gap:6px;color:#5f6368;}
-.cw-tbl-spec{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
-.cw-tbl-spec input[type=number]{width:56px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;}
-.cw-tbl-spec select{height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;background:#fff;}
-.cw-tbl-swatch{width:28px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0;cursor:pointer;background:#000;}
-.cw-tbl-btn{height:30px;padding:0 12px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;
+.ked-tbl-x:hover{background:#e8eaed;}
+.ked-tbl-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:16px;}
+.ked-tbl-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;margin:0 0 8px;}
+.ked-tbl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ked-tbl-row label{display:flex;align-items:center;gap:6px;color:#5f6368;}
+.ked-tbl-spec{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.ked-tbl-spec input[type=number]{width:56px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;}
+.ked-tbl-spec select{height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0 6px;background:#fff;}
+.ked-tbl-swatch{width:28px;height:28px;border:1px solid #c8c6c4;border-radius:4px;padding:0;cursor:pointer;background:#000;}
+.ked-tbl-btn{height:30px;padding:0 12px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;
   font-size:13px;color:#3c4043;display:inline-flex;align-items:center;gap:6px;}
-.cw-tbl-btn:hover{background:#f1f3f4;}
-.cw-tbl-btn:disabled{opacity:.45;cursor:default;}
-.cw-tbl-btn.active{background:#e8f0fe;border-color:#1a73e8;color:#0b57d0;}
-.cw-tbl-preview{width:108px;height:72px;border:1px dashed #c8c6c4;border-radius:6px;align-self:center;
+.ked-tbl-btn:hover{background:#f1f3f4;}
+.ked-tbl-btn:disabled{opacity:.45;cursor:default;}
+.ked-tbl-btn.active{background:#e8f0fe;border-color:#1a73e8;color:#0b57d0;}
+.ked-tbl-preview{width:108px;height:72px;border:1px dashed #c8c6c4;border-radius:6px;align-self:center;
   display:grid;place-items:center;background:#fff;}
-.cw-tbl-preview .box{width:64px;height:40px;}
-.cw-tbl-foot{display:flex;justify-content:flex-end;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-tbl-foot .cw-tbl-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-tbl-foot .cw-tbl-btn.primary:hover{background:#1864cc;}`;
+.ked-tbl-preview .box{width:64px;height:40px;}
+.ked-tbl-foot{display:flex;justify-content:flex-end;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-tbl-foot .ked-tbl-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-tbl-foot .ked-tbl-btn.primary:hover{background:#1864cc;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -129,7 +129,7 @@ const cssBorderStyle = (s: BorderStyleName): string =>
   s === "double" ? "double" : s === "dashed" ? "dashed" : s === "dotted" ? "dotted" : "solid";
 
 export function showTableProperties(init: TablePropertiesInit, cb: TablePropertiesCallbacks): TablePropertiesHandle {
-  injectCssOnce("cw-tbl-styles", TBL_CSS);
+  injectCssOnce("ked-tbl-styles", TBL_CSS);
 
   // Live border spec the buttons apply.
   let color = init.color;
@@ -154,34 +154,34 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     cb.applyShading(fill);
   };
 
-  const backdrop = el("div", "cw-tbl-backdrop");
-  const modal = el("div", "cw-tbl-modal");
+  const backdrop = el("div", "ked-tbl-backdrop");
+  const modal = el("div", "ked-tbl-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
   // Header
-  const head = el("div", "cw-tbl-head");
+  const head = el("div", "ked-tbl-head");
   const h2 = el("h2");
   h2.textContent = "Borders & Shading";
-  const badge = el("span", "cw-tbl-badge");
+  const badge = el("span", "ked-tbl-badge");
   badge.textContent = init.rangeLabel;
-  const xBtn = el("button", "cw-tbl-x");
+  const xBtn = el("button", "ked-tbl-x");
   xBtn.textContent = "×";
   xBtn.title = "Close (Esc)";
   head.append(h2, badge, xBtn);
 
-  const body = el("div", "cw-tbl-body");
+  const body = el("div", "ked-tbl-body");
 
   // ---- Borders section ----------------------------------------------------
   const bSection = el("div");
-  const bTitle = el("div", "cw-tbl-section-title");
+  const bTitle = el("div", "ked-tbl-section-title");
   bTitle.textContent = "Borders";
   bSection.appendChild(bTitle);
 
   // Spec controls: color, width, style + a live preview.
-  const specRow = el("div", "cw-tbl-spec");
+  const specRow = el("div", "ked-tbl-spec");
   const colorInput = el("input");
   colorInput.type = "color";
-  colorInput.className = "cw-tbl-swatch";
+  colorInput.className = "ked-tbl-swatch";
   colorInput.value = toHexColor(color);
   colorInput.title = "Line color";
   const colorLabel = el("label");
@@ -207,7 +207,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   const styleLabel = el("label");
   styleLabel.append("Style", styleSelect);
 
-  const preview = el("div", "cw-tbl-preview");
+  const preview = el("div", "ked-tbl-preview");
   const previewBox = el("div", "box");
   preview.appendChild(previewBox);
   const refreshPreview = (): void => {
@@ -235,10 +235,10 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   refreshPreview();
 
   // Presets — apply immediately with the current spec.
-  const presetRow = el("div", "cw-tbl-row");
+  const presetRow = el("div", "ked-tbl-row");
   const allFlags: BorderEdgeFlags = { top: true, right: true, bottom: true, left: true, insideH: true, insideV: true };
   const presetBtn = (label: string, run: () => void, enabled = true): HTMLButtonElement => {
-    const b = el("button", "cw-tbl-btn");
+    const b = el("button", "ked-tbl-btn");
     b.textContent = label;
     b.disabled = !enabled;
     b.addEventListener("click", run);
@@ -252,7 +252,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   );
 
   // Individual edges.
-  const edgeRow = el("div", "cw-tbl-row");
+  const edgeRow = el("div", "ked-tbl-row");
   const edgeBtn = (label: string, flag: BorderEdgeFlags, enabled = true): HTMLButtonElement =>
     presetBtn(label, () => doBorders(spec(), flag), enabled);
   edgeRow.append(
@@ -264,22 +264,22 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     edgeBtn("Inside V", { insideV: true }, init.multiCell),
   );
 
-  const hint = el("div", "cw-tbl-hint");
+  const hint = el("div", "ked-tbl-hint");
   hint.textContent = "Pick a target to apply now — or set the options above and click Done.";
-  const applyToCap = el("div", "cw-tbl-caption");
+  const applyToCap = el("div", "ked-tbl-caption");
   applyToCap.textContent = "Apply borders to";
-  const edgesCap = el("div", "cw-tbl-caption");
+  const edgesCap = el("div", "ked-tbl-caption");
   edgesCap.textContent = "Individual edges";
   bSection.append(specRow, hint, applyToCap, presetRow, edgesCap, edgeRow);
 
   // ---- Shading section ----------------------------------------------------
   const sSection = el("div");
-  const sTitle = el("div", "cw-tbl-section-title");
+  const sTitle = el("div", "ked-tbl-section-title");
   sTitle.textContent = "Shading (fill)";
-  const sRow = el("div", "cw-tbl-row");
+  const sRow = el("div", "ked-tbl-row");
   const fillInput = el("input");
   fillInput.type = "color";
-  fillInput.className = "cw-tbl-swatch";
+  fillInput.className = "ked-tbl-swatch";
   fillInput.value = toHexColor(init.shading ?? "#ffffff");
   fillInput.addEventListener("input", () => { fillTouched = true; });
   const fillLabel = el("label");
@@ -293,10 +293,10 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   // Width + alignment apply LIVE (like borders/shading): each change is its own
   // undo step. Width is offered as % of page or inches; "Full width" clears it.
   const zSection = el("div");
-  const zTitle = el("div", "cw-tbl-section-title");
+  const zTitle = el("div", "ked-tbl-section-title");
   zTitle.textContent = "Table size";
 
-  const zRow = el("div", "cw-tbl-spec");
+  const zRow = el("div", "ked-tbl-spec");
   const unitSelect = el("select");
   for (const [val, lbl] of [["full", "Full width"], ["pct", "% of page"], ["in", "Inches"]] as const) {
     const o = el("option");
@@ -338,9 +338,9 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   zWidthLabel.append("Width", widthValInput, unitSelect);
   zRow.append(zWidthLabel);
 
-  const alignCap = el("div", "cw-tbl-caption");
+  const alignCap = el("div", "ked-tbl-caption");
   alignCap.textContent = "Alignment";
-  const alignRow = el("div", "cw-tbl-row");
+  const alignRow = el("div", "ked-tbl-row");
   let curAlign: "left" | "center" | "right" = init.tableAlign;
   const alignBtns: Partial<Record<"left" | "center" | "right", HTMLButtonElement>> = {};
   const refreshAlign = (): void => {
@@ -361,11 +361,11 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
 
   // ---- Cell section (vAlign + text direction) — applies live ----------------
   const cSection = el("div");
-  const cTitle = el("div", "cw-tbl-section-title");
+  const cTitle = el("div", "ked-tbl-section-title");
   cTitle.textContent = "Cell";
-  const vCap = el("div", "cw-tbl-caption");
+  const vCap = el("div", "ked-tbl-caption");
   vCap.textContent = "Vertical alignment";
-  const vRow = el("div", "cw-tbl-row");
+  const vRow = el("div", "ked-tbl-row");
   let curVAlign: CellVAlign = init.vAlign;
   const vBtns: Partial<Record<CellVAlign, HTMLButtonElement>> = {};
   const refreshVAlign = (): void => {
@@ -383,9 +383,9 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   vRow.append(vBtn("Top", "top"), vBtn("Center", "center"), vBtn("Bottom", "bottom"));
   refreshVAlign();
 
-  const dCap = el("div", "cw-tbl-caption");
+  const dCap = el("div", "ked-tbl-caption");
   dCap.textContent = "Text direction";
-  const dRow = el("div", "cw-tbl-row");
+  const dRow = el("div", "ked-tbl-row");
   const dirSelect = el("select");
   for (const [val, lbl] of [["lrTb", "Horizontal"], ["tbRl", "Rotate 90°"], ["btLr", "Rotate 270°"]] as const) {
     const o = el("option");
@@ -402,9 +402,9 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
 
   // ---- Row section (height + cant-split + repeat-header) — applies live ------
   const rSection = el("div");
-  const rTitle = el("div", "cw-tbl-section-title");
+  const rTitle = el("div", "ked-tbl-section-title");
   rTitle.textContent = "Row";
-  const hRow = el("div", "cw-tbl-spec");
+  const hRow = el("div", "ked-tbl-spec");
   const heightRule = el("select");
   for (const [val, lbl] of [["none", "Auto"], ["atLeast", "At least"], ["exact", "Exactly"]] as const) {
     const o = el("option");
@@ -440,7 +440,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   hLabel.append("Height (px)", heightVal, heightRule);
   hRow.append(hLabel);
 
-  const flagRow = el("div", "cw-tbl-row");
+  const flagRow = el("div", "ked-tbl-row");
   const flagCheck = (labelText: string, on: boolean, flag: "cantSplit" | "repeatHeader"): HTMLLabelElement => {
     const lab = el("label");
     const cbx = el("input");
@@ -458,9 +458,9 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
 
   // ---- Table defaults (indent + table-level borders/shading/margins) ---------
   const dfSection = el("div");
-  const dfTitle = el("div", "cw-tbl-section-title");
+  const dfTitle = el("div", "ked-tbl-section-title");
   dfTitle.textContent = "Table defaults";
-  const indRow = el("div", "cw-tbl-spec");
+  const indRow = el("div", "ked-tbl-spec");
   const indInput = el("input");
   indInput.type = "number";
   indInput.min = "0";
@@ -474,22 +474,22 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   indLabel.append("Indent (px)", indInput);
   indRow.append(indLabel);
 
-  const dbCap = el("div", "cw-tbl-caption");
+  const dbCap = el("div", "ked-tbl-caption");
   dbCap.textContent = init.hasTableDefaultBorders
     ? "Default borders — all edges, from the Borders spec above (currently set)"
     : "Default borders — all edges, from the Borders spec above";
-  const dbRow = el("div", "cw-tbl-row");
+  const dbRow = el("div", "ked-tbl-row");
   dbRow.append(
     presetBtn("Apply", () => cb.applyTableDefaultBorders(spec())),
     presetBtn("Clear", () => cb.applyTableDefaultBorders(null)),
   );
 
-  const dsCap = el("div", "cw-tbl-caption");
+  const dsCap = el("div", "ked-tbl-caption");
   dsCap.textContent = "Default shading";
-  const dsRow = el("div", "cw-tbl-row");
+  const dsRow = el("div", "ked-tbl-row");
   const dsInput = el("input");
   dsInput.type = "color";
-  dsInput.className = "cw-tbl-swatch";
+  dsInput.className = "ked-tbl-swatch";
   dsInput.value = toHexColor(init.tableDefaultShading ?? "#ffffff");
   const dsLabel = el("label");
   dsLabel.append("Fill", dsInput);
@@ -499,9 +499,9 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     presetBtn("Clear", () => cb.applyTableDefaultShading(null)),
   );
 
-  const dmCap = el("div", "cw-tbl-caption");
+  const dmCap = el("div", "ked-tbl-caption");
   dmCap.textContent = "Default cell margins (px)";
-  const dmRow = el("div", "cw-tbl-spec");
+  const dmRow = el("div", "ked-tbl-spec");
   const m0 = init.tableDefaultCellMargin;
   const mkMargin = (lbl: string, v: number | undefined): HTMLInputElement => {
     const input = el("input");
@@ -526,15 +526,15 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     cb.applyTableDefaultCellMargin({ top: num(mTop), right: num(mRight), bottom: num(mBottom), left: num(mLeft) });
   };
   for (const i of [mTop, mRight, mBottom, mLeft]) i.addEventListener("change", applyMargins);
-  const dmBtnRow = el("div", "cw-tbl-row");
+  const dmBtnRow = el("div", "ked-tbl-row");
   dmBtnRow.append(presetBtn("Clear margins", () => cb.applyTableDefaultCellMargin(null)));
   dfSection.append(dfTitle, indRow, dbCap, dbRow, dsCap, dsRow, dmCap, dmRow, dmBtnRow);
 
   body.append(bSection, sSection, zSection, cSection, rSection, dfSection);
 
   // Footer
-  const foot = el("div", "cw-tbl-foot");
-  const doneBtn = el("button", "cw-tbl-btn primary");
+  const foot = el("div", "ked-tbl-foot");
+  const doneBtn = el("button", "ked-tbl-btn primary");
   doneBtn.textContent = "Done";
   foot.append(doneBtn);
 
@@ -550,7 +550,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     },
   };
   // Draggable, non-blocking floating panel (so border/fill changes are seen live).
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-tbl-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-tbl-x" });
 
   window.addEventListener(
     "keydown",

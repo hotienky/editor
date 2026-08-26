@@ -41,22 +41,22 @@ const LATEX_HINT = "Type LaTeX math: \\frac{}{}, ^{}, _{}, \\sqrt{}, \\sum, \\in
 const MML_HINT = "Edit Presentation MathML directly: <mi> variables, <mn> numbers, <mo> operators, <mfrac>, <msup>, <msqrt>…";
 
 const CSS = `
-.cw-eqe{position:fixed;z-index:1002;width:520px;max-width:94vw;background:#fff;border:1px solid #d0d5dd;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.22);font:13px/1.4 system-ui,sans-serif;color:#1a1a2e;display:flex;flex-direction:column;overflow:hidden;}
-.cw-eqe-head{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#f5f7fa;border-bottom:1px solid #e6e9ee;font-weight:600;}
-.cw-eqe-head .t{flex:1;}
-.cw-eqe-x{cursor:pointer;border:none;background:none;font-size:18px;line-height:1;color:#8a9099;padding:2px 4px;border-radius:4px;}
-.cw-eqe-x:hover{background:#e6e9ee;color:#1a1a2e;}
-.cw-eqe-body{padding:12px;display:flex;flex-direction:column;gap:10px;}
-.cw-eqe-palette{display:flex;flex-wrap:wrap;gap:4px;}
-.cw-eqe-palette button{cursor:pointer;border:1px solid #d0d5dd;background:#fff;border-radius:5px;padding:3px 7px;font-size:14px;min-width:30px;}
-.cw-eqe-palette button:hover{background:#eef2f7;border-color:#9aa4b2;}
-.cw-eqe-ta{width:100%;box-sizing:border-box;min-height:120px;font:12px/1.45 Consolas,ui-monospace,monospace;border:1px solid #d0d5dd;border-radius:6px;padding:8px;resize:vertical;}
-.cw-eqe-prevwrap{border:1px solid #e6e9ee;border-radius:6px;background:#fafbfc;min-height:64px;display:flex;align-items:center;justify-content:center;padding:8px;overflow:auto;}
-.cw-eqe-err{color:#b23b34;font-size:12px;min-height:0;}
-.cw-eqe-foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e6e9ee;background:#fafbfc;}
-.cw-eqe-foot button{cursor:pointer;border-radius:6px;padding:6px 14px;font-size:13px;border:1px solid #d0d5dd;background:#fff;}
-.cw-eqe-foot .primary{background:#2f6fed;border-color:#2f6fed;color:#fff;font-weight:600;}
-.cw-eqe-hint{font-size:11px;color:#8a9099;}
+.ked-eqe{position:fixed;z-index:1002;width:520px;max-width:94vw;background:#fff;border:1px solid #d0d5dd;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.22);font:13px/1.4 system-ui,sans-serif;color:#1a1a2e;display:flex;flex-direction:column;overflow:hidden;}
+.ked-eqe-head{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#f5f7fa;border-bottom:1px solid #e6e9ee;font-weight:600;}
+.ked-eqe-head .t{flex:1;}
+.ked-eqe-x{cursor:pointer;border:none;background:none;font-size:18px;line-height:1;color:#8a9099;padding:2px 4px;border-radius:4px;}
+.ked-eqe-x:hover{background:#e6e9ee;color:#1a1a2e;}
+.ked-eqe-body{padding:12px;display:flex;flex-direction:column;gap:10px;}
+.ked-eqe-palette{display:flex;flex-wrap:wrap;gap:4px;}
+.ked-eqe-palette button{cursor:pointer;border:1px solid #d0d5dd;background:#fff;border-radius:5px;padding:3px 7px;font-size:14px;min-width:30px;}
+.ked-eqe-palette button:hover{background:#eef2f7;border-color:#9aa4b2;}
+.ked-eqe-ta{width:100%;box-sizing:border-box;min-height:120px;font:12px/1.45 Consolas,ui-monospace,monospace;border:1px solid #d0d5dd;border-radius:6px;padding:8px;resize:vertical;}
+.ked-eqe-prevwrap{border:1px solid #e6e9ee;border-radius:6px;background:#fafbfc;min-height:64px;display:flex;align-items:center;justify-content:center;padding:8px;overflow:auto;}
+.ked-eqe-err{color:#b23b34;font-size:12px;min-height:0;}
+.ked-eqe-foot{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e6e9ee;background:#fafbfc;}
+.ked-eqe-foot button{cursor:pointer;border-radius:6px;padding:6px 14px;font-size:13px;border:1px solid #d0d5dd;background:#fff;}
+.ked-eqe-foot .primary{background:#2f6fed;border-color:#2f6fed;color:#fff;font-weight:600;}
+.ked-eqe-hint{font-size:11px;color:#8a9099;}
 `;
 
 type InputMode = "latex" | "mathml";
@@ -77,27 +77,27 @@ const TEMPLATES: { label: string; title: string; latex: string; mml: string }[] 
 const SYMBOLS = ["π", "∞", "±", "×", "÷", "≤", "≥", "≠", "≈", "→", "α", "β", "θ", "λ", "μ", "Σ", "Δ", "∂", "∇", "∈"];
 
 export function showEquationEditor(opts: EquationEditorOptions): EquationEditorHandle {
-  injectCssOnce("cw-equation-editor", CSS);
+  injectCssOnce("ked-equation-editor", CSS);
   const ac = new AbortController();
 
   const backdrop = document.createElement("div");
   backdrop.style.cssText = "position:fixed;inset:0;z-index:1001;";
   const modal = document.createElement("div");
-  modal.className = "cw-eqe";
+  modal.className = "ked-eqe";
   // Keep canvas selection/focus from being stolen when interacting with the panel.
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
   const head = document.createElement("div");
-  head.className = "cw-eqe-head";
+  head.className = "ked-eqe-head";
   head.innerHTML = `<span class="t">${opts.editing ? "Edit equation" : "Insert equation"}</span>`;
   const x = document.createElement("button");
-  x.className = "cw-eqe-x";
+  x.className = "ked-eqe-x";
   x.textContent = "×";
   x.title = "Close";
   head.appendChild(x);
 
   const body = document.createElement("div");
-  body.className = "cw-eqe-body";
+  body.className = "ked-eqe-body";
 
   // Input mode: LaTeX is the friendly default for both new and existing equations
   // (the stored MathML is converted to LaTeX to seed). If that conversion fails,
@@ -115,13 +115,13 @@ export function showEquationEditor(opts: EquationEditorOptions): EquationEditorH
 
   // Input-mode toggle (LaTeX / MathML).
   const inputRow = document.createElement("div");
-  inputRow.className = "cw-eqe-hint";
+  inputRow.className = "ked-eqe-hint";
   const mkInput = (label: string, val: InputMode): HTMLLabelElement => {
     const l = document.createElement("label");
     l.style.cssText = "margin-right:14px;cursor:pointer;font-weight:600;";
     const r = document.createElement("input");
     r.type = "radio";
-    r.name = "cw-eqe-input";
+    r.name = "ked-eqe-input";
     r.checked = inputMode === val;
     r.style.marginRight = "4px";
     r.addEventListener("change", () => {
@@ -149,9 +149,9 @@ export function showEquationEditor(opts: EquationEditorOptions): EquationEditorH
 
   // Template palette
   const palette = document.createElement("div");
-  palette.className = "cw-eqe-palette";
+  palette.className = "ked-eqe-palette";
   const ta = document.createElement("textarea");
-  ta.className = "cw-eqe-ta";
+  ta.className = "ked-eqe-ta";
   ta.spellcheck = false;
   ta.value = seedText;
   ta.placeholder = inputMode === "latex" ? LATEX_PLACEHOLDER : MML_PLACEHOLDER;
@@ -185,14 +185,14 @@ export function showEquationEditor(opts: EquationEditorOptions): EquationEditorH
   // Display vs inline toggle (hidden when editing — kind is fixed by the click).
   let displayMode = opts.initialDisplay ?? true;
   const modeRow = document.createElement("div");
-  modeRow.className = "cw-eqe-hint";
+  modeRow.className = "ked-eqe-hint";
   if (!opts.editing) {
     const mk = (label: string, val: boolean): HTMLLabelElement => {
       const l = document.createElement("label");
       l.style.cssText = "margin-right:14px;cursor:pointer;";
       const r = document.createElement("input");
       r.type = "radio";
-      r.name = "cw-eqe-mode";
+      r.name = "ked-eqe-mode";
       r.checked = displayMode === val;
       r.style.marginRight = "4px";
       r.addEventListener("change", () => { if (r.checked) { displayMode = val; update(); } });
@@ -203,21 +203,21 @@ export function showEquationEditor(opts: EquationEditorOptions): EquationEditorH
   }
 
   const hint = document.createElement("div");
-  hint.className = "cw-eqe-hint";
+  hint.className = "ked-eqe-hint";
   const updateHint = (): void => { hint.textContent = inputMode === "latex" ? LATEX_HINT : MML_HINT; };
   updateHint();
 
   const prevWrap = document.createElement("div");
-  prevWrap.className = "cw-eqe-prevwrap";
+  prevWrap.className = "ked-eqe-prevwrap";
   const canvas = document.createElement("canvas");
   prevWrap.appendChild(canvas);
   const err = document.createElement("div");
-  err.className = "cw-eqe-err";
+  err.className = "ked-eqe-err";
 
   body.append(inputRow, palette, modeRow, ta, hint, prevWrap, err);
 
   const foot = document.createElement("div");
-  foot.className = "cw-eqe-foot";
+  foot.className = "ked-eqe-foot";
   const cancel = document.createElement("button");
   cancel.textContent = "Cancel";
   const apply = document.createElement("button");
@@ -288,7 +288,7 @@ export function showEquationEditor(opts: EquationEditorOptions): EquationEditorH
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); }, { signal: ac.signal, capture: true });
 
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-eqe-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-eqe-x" });
   update();
   ta.focus();
 

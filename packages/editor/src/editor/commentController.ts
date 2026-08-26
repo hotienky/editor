@@ -85,7 +85,7 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     const style = styleForComment();
 
     const el = document.createElement("div");
-    el.className = "cw-comment-bubble";
+    el.className = "ked-comment-bubble";
     const maxLeft = container.clientWidth - 312;
     el.style.left = `${Math.max(8, Math.min(anchor.left + 6, maxLeft))}px`;
     el.style.top = `${anchor.top + anchor.lineH + 8}px`;
@@ -93,9 +93,9 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
 
     const who = reviewAuthor();
     const row = document.createElement("div");
-    row.className = "cw-bubble-row";
+    row.className = "ked-bubble-row";
     const av = document.createElement("div");
-    av.className = "cw-avatar";
+    av.className = "ked-avatar";
     av.style.background = colorForId(who.id);
     av.textContent = (who.firstName[0] ?? "?") + (who.lastName[0] ?? "");
     const ta = document.createElement("textarea");
@@ -104,12 +104,12 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     const mentions = attachMentionAutocomplete(ta, mentionableUsers);
 
     const actions = document.createElement("div");
-    actions.className = "cw-bubble-actions";
+    actions.className = "ked-bubble-actions";
     const cancel = document.createElement("button");
-    cancel.className = "cw-btn cw-btn-sm";
+    cancel.className = "ked-btn ked-btn-sm";
     cancel.textContent = "Cancel";
     const submit = document.createElement("button");
-    submit.className = "cw-btn cw-btn-primary cw-btn-sm";
+    submit.className = "ked-btn ked-btn-primary ked-btn-sm";
     submit.textContent = "Comment";
     submit.disabled = true;
     actions.append(cancel, submit);
@@ -146,7 +146,7 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     }
     if (!chip) {
       chip = document.createElement("button");
-      chip.className = "cw-comment-chip";
+      chip.className = "ked-comment-chip";
       chip.title = "Leave a comment";
       chip.textContent = "💬";
       // stopPropagation is essential: without it the selection controller sees the

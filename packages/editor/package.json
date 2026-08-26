@@ -2,7 +2,7 @@
   "name": "kindy-editor",
   "version": "3.0.0",
   "type": "module",
-  "description": "Kindy Editor v3 — Canvas-rendered Word-accurate document editor .",
+  "description": "Trình soạn thảo tài liệu Word chính xác, vẽ bằng canvas",
   "license": "MIT",
   "module": "./dist-lib/kindy-editor.js",
   "types": "./types/kindy-editor.d.ts",

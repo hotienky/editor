@@ -52,41 +52,41 @@ const MARGINS: Record<string, { top: number; right: number; bottom: number; left
 const BORDER_STYLES = ["single", "double", "dashed", "dotted", "thick"] as const;
 
 const CSS = `
-.cw-pl-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.30);}
-.cw-pl-modal{position:fixed;width:min(640px,95vw);max-height:90vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
+.ked-pl-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.30);}
+.ked-pl-modal{position:fixed;width:min(640px,95vw);max-height:90vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
   box-shadow:0 18px 56px rgba(0,0,0,.34);font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;}
-.cw-pl-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e6e8eb;cursor:move;}
-.cw-pl-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
-.cw-pl-unit{display:flex;gap:4px;align-items:center;font-size:11px;color:#80868b;}
-.cw-pl-unit select{height:24px;border:1px solid #d0d4d9;border-radius:5px;font:12px Arial;}
-.cw-pl-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
-.cw-pl-x:hover{background:#e8eaed;}
-.cw-pl-body{display:flex;min-height:0;flex:1 1 auto;}
-.cw-pl-main{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;}
-.cw-pl-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid #e6e8eb;}
-.cw-pl-tab{border:none;background:transparent;padding:7px 11px;font-size:12px;color:#5f6368;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;}
-.cw-pl-tab.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600;}
-.cw-pl-pane{padding:14px 16px;overflow:auto;display:none;flex-direction:column;gap:12px;flex:1 1 auto;}
-.cw-pl-pane.active{display:flex;}
-.cw-pl-right{flex:0 0 200px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:14px 12px;display:flex;flex-direction:column;gap:8px;align-items:center;}
-.cw-pl-prev-ttl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;align-self:flex-start;}
-.cw-pl-prev{border:1px solid #dadce0;border-radius:6px;background:#eef0f2;display:flex;align-items:center;justify-content:center;width:100%;height:240px;}
-.cw-pl-field{display:flex;flex-direction:column;gap:4px;}
-.cw-pl-field label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
-.cw-pl-field input,.cw-pl-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;box-sizing:border-box;}
-.cw-pl-row{display:flex;gap:8px;}.cw-pl-row>*{flex:1 1 0;min-width:0;}
-.cw-pl-presets{display:flex;flex-wrap:wrap;gap:6px;}
-.cw-pl-chip{border:1px solid #d0d4d9;border-radius:14px;background:#fff;cursor:pointer;font-size:11px;padding:3px 10px;color:#3c4043;}
-.cw-pl-chip:hover{background:#f1f3f4;}
-.cw-pl-check{display:flex;align-items:center;gap:7px;font-size:13px;color:#3c4043;cursor:pointer;}
-.cw-pl-check input{width:16px;height:16px;}
-.cw-pl-cols{display:flex;flex-direction:column;gap:6px;}
-.cw-pl-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-pl-foot .spacer{flex:1 1 auto;}
-.cw-pl-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
-.cw-pl-btn:hover{background:#f1f3f4;}
-.cw-pl-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-pl-btn.primary:hover{background:#1864cc;}`;
+.ked-pl-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e6e8eb;cursor:move;}
+.ked-pl-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
+.ked-pl-unit{display:flex;gap:4px;align-items:center;font-size:11px;color:#80868b;}
+.ked-pl-unit select{height:24px;border:1px solid #d0d4d9;border-radius:5px;font:12px Arial;}
+.ked-pl-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
+.ked-pl-x:hover{background:#e8eaed;}
+.ked-pl-body{display:flex;min-height:0;flex:1 1 auto;}
+.ked-pl-main{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;}
+.ked-pl-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid #e6e8eb;}
+.ked-pl-tab{border:none;background:transparent;padding:7px 11px;font-size:12px;color:#5f6368;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;}
+.ked-pl-tab.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600;}
+.ked-pl-pane{padding:14px 16px;overflow:auto;display:none;flex-direction:column;gap:12px;flex:1 1 auto;}
+.ked-pl-pane.active{display:flex;}
+.ked-pl-right{flex:0 0 200px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:14px 12px;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.ked-pl-prev-ttl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;align-self:flex-start;}
+.ked-pl-prev{border:1px solid #dadce0;border-radius:6px;background:#eef0f2;display:flex;align-items:center;justify-content:center;width:100%;height:240px;}
+.ked-pl-field{display:flex;flex-direction:column;gap:4px;}
+.ked-pl-field label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
+.ked-pl-field input,.ked-pl-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;box-sizing:border-box;}
+.ked-pl-row{display:flex;gap:8px;}.ked-pl-row>*{flex:1 1 0;min-width:0;}
+.ked-pl-presets{display:flex;flex-wrap:wrap;gap:6px;}
+.ked-pl-chip{border:1px solid #d0d4d9;border-radius:14px;background:#fff;cursor:pointer;font-size:11px;padding:3px 10px;color:#3c4043;}
+.ked-pl-chip:hover{background:#f1f3f4;}
+.ked-pl-check{display:flex;align-items:center;gap:7px;font-size:13px;color:#3c4043;cursor:pointer;}
+.ked-pl-check input{width:16px;height:16px;}
+.ked-pl-cols{display:flex;flex-direction:column;gap:6px;}
+.ked-pl-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-pl-foot .spacer{flex:1 1 auto;}
+.ked-pl-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
+.ked-pl-btn:hover{background:#f1f3f4;}
+.ked-pl-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-pl-btn.primary:hover{background:#1864cc;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -96,7 +96,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 };
 
 const labelled = (label: string, control: HTMLElement): HTMLElement => {
-  const wrap = el("div", "cw-pl-field");
+  const wrap = el("div", "ked-pl-field");
   wrap.append(el("label", undefined, label), control);
   return wrap;
 };
@@ -118,7 +118,7 @@ interface NumField {
 }
 
 export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
-  injectCssOnce("cw-pl-styles", CSS);
+  injectCssOnce("ked-pl-styles", CSS);
   const { editor } = opts;
 
   // ---- draft state (seeded from the caret's section) ------------------------
@@ -177,27 +177,27 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   };
 
   // ---- scaffold -------------------------------------------------------------
-  const backdrop = el("div", "cw-pl-backdrop");
+  const backdrop = el("div", "ked-pl-backdrop");
   backdrop.style.pointerEvents = "none";
-  const modal = el("div", "cw-pl-modal");
+  const modal = el("div", "ked-pl-modal");
   modal.style.pointerEvents = "auto";
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
-  const head = el("div", "cw-pl-head");
+  const head = el("div", "ked-pl-head");
   const h2 = el("h2", undefined, "Page layout");
-  const unitWrap = el("div", "cw-pl-unit");
+  const unitWrap = el("div", "ked-pl-unit");
   const unitSel = el("select");
   unitSel.append(option("in", "inches"), option("cm", "cm"));
   unitWrap.append(el("span", undefined, "Units"), unitSel);
-  const xBtn = el("button", "cw-pl-x", "×");
+  const xBtn = el("button", "ked-pl-x", "×");
   head.append(h2, unitWrap, xBtn);
 
-  const bodyWrap = el("div", "cw-pl-body");
-  const mainCol = el("div", "cw-pl-main");
-  const tabsBar = el("div", "cw-pl-tabs");
-  const right = el("div", "cw-pl-right");
-  const prevTtl = el("div", "cw-pl-prev-ttl", "Preview");
-  const prevHost = el("div", "cw-pl-prev");
+  const bodyWrap = el("div", "ked-pl-body");
+  const mainCol = el("div", "ked-pl-main");
+  const tabsBar = el("div", "ked-pl-tabs");
+  const right = el("div", "ked-pl-right");
+  const prevTtl = el("div", "ked-pl-prev-ttl", "Preview");
+  const prevHost = el("div", "ked-pl-prev");
   const prevCanvas = el("canvas");
   prevHost.append(prevCanvas);
   right.append(prevTtl, prevHost);
@@ -206,11 +206,11 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   const panes: Record<string, HTMLElement> = {};
   const tabs: Record<string, HTMLButtonElement> = {};
   const addTab = (id: string, label: string): HTMLElement => {
-    const t = el("button", "cw-pl-tab", label);
+    const t = el("button", "ked-pl-tab", label);
     t.addEventListener("click", () => selectTab(id));
     tabsBar.append(t);
     tabs[id] = t;
-    const pane = el("div", "cw-pl-pane");
+    const pane = el("div", "ked-pl-pane");
     mainCol.append(pane);
     panes[id] = pane;
     return pane;
@@ -263,9 +263,9 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   const mBottom = makeNum(draft.margin.bottom, (px) => { draft.margin.bottom = px; });
   const mLeft = makeNum(draft.margin.left, (px) => { draft.margin.left = px; });
   const mRight = makeNum(draft.margin.right, (px) => { draft.margin.right = px; });
-  const marginPresets = el("div", "cw-pl-presets");
+  const marginPresets = el("div", "ked-pl-presets");
   for (const k of Object.keys(MARGINS)) {
-    const chip = el("button", "cw-pl-chip", k);
+    const chip = el("button", "ked-pl-chip", k);
     chip.type = "button";
     chip.addEventListener("click", () => {
       const m = MARGINS[k]!;
@@ -291,7 +291,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   const equalCheck = checkbox("Equal column width");
   const sepCheck = checkbox("Line between columns");
   const gapHost = el("div");
-  const colsHost = el("div", "cw-pl-cols");
+  const colsHost = el("div", "ked-pl-cols");
   const rebuildColumns = (): void => {
     const count = Math.max(1, Math.min(6, Number(countInput.value) || 1));
     gapHost.replaceChildren();
@@ -382,7 +382,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   lnRestartSel.append(option("newPage", "Each page"), option("newSection", "Each section"), option("continuous", "Continuous"));
   lnRestartSel.value = draft.lineNumbering?.restart ?? "newPage";
   const lnDistance = makeNum(draft.lineNumbering?.distancePx ?? 0, () => syncLineNumbering(), 0);
-  const lnDetail = el("div", "cw-pl-cols");
+  const lnDetail = el("div", "ked-pl-cols");
   lnDetail.append(
     rowOf(labelled("Count by", lnCountBy), labelled("Start at", lnStart)),
     rowOf(labelled("Restart", lnRestartSel), relabel(lnDistance, "Distance from text")),
@@ -564,10 +564,10 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   });
 
   // ---- footer ---------------------------------------------------------------
-  const foot = el("div", "cw-pl-foot");
+  const foot = el("div", "ked-pl-foot");
   const spacer = el("div", "spacer");
-  const cancel = el("button", "cw-pl-btn", "Cancel");
-  const apply = el("button", "cw-pl-btn primary", "Apply to this section");
+  const cancel = el("button", "ked-pl-btn", "Cancel");
+  const apply = el("button", "ked-pl-btn primary", "Apply to this section");
   foot.append(spacer, cancel, apply);
 
   bodyWrap.append(mainCol, right);
@@ -605,7 +605,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   );
   // Exclude the unit dropdown from drag — otherwise the header's mousedown
   // preventDefault swallows the native <select> open.
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-pl-x, .cw-pl-unit" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-pl-x, .ked-pl-unit" });
   xBtn.addEventListener("click", () => handle.close());
   cancel.addEventListener("click", () => handle.close());
   apply.addEventListener("click", () => {
@@ -639,7 +639,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
 
 // --- small helpers ----------------------------------------------------------
 function rowOf(...kids: HTMLElement[]): HTMLElement {
-  const r = el("div", "cw-pl-row");
+  const r = el("div", "ked-pl-row");
   r.append(...kids);
   return r;
 }
@@ -649,7 +649,7 @@ interface Check {
   input: HTMLInputElement;
 }
 function checkbox(label: string): Check {
-  const row = el("label", "cw-pl-check");
+  const row = el("label", "ked-pl-check");
   const input = el("input");
   input.type = "checkbox";
   row.append(input, el("span", undefined, label));

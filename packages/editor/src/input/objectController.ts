@@ -153,7 +153,7 @@ export function createObjectFrame(deps: ObjectFrameDeps): ObjectFrame {
   const handleEls: HTMLDivElement[] = HANDLES.map((h) => {
     const el = document.createElement("div");
     el.dataset["handle"] = h.name;
-    el.className = "cw-obj-handle"; // the mobile CSS enlarges its touch hit area
+    el.className = "ked-obj-handle"; // the mobile CSS enlarges its touch hit area
     el.style.cssText =
       "position:absolute;width:8px;height:8px;background:#fff;border:1.5px solid #1a73e8;" +
       `border-radius:50%;pointer-events:auto;cursor:${h.cursor};` +
@@ -363,7 +363,7 @@ export function createObjectFrame(deps: ObjectFrameDeps): ObjectFrame {
   const cropHandleEls: HTMLDivElement[] = HANDLES.map((h) => {
     const el = document.createElement("div");
     el.dataset["handle"] = h.name;
-    el.className = "cw-obj-handle";
+    el.className = "ked-obj-handle";
     el.style.cssText =
       "position:absolute;width:8px;height:8px;background:#fff;border:1.5px solid #1a73e8;" +
       `pointer-events:auto;cursor:${h.cursor};` +

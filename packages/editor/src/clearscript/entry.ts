@@ -133,7 +133,7 @@ function installFont(file: string, bytes: Uint8Array): void {
 }
 
 /** Result of {@link importDocx} — the opaque model plus everything export needs
- *  to faithfully re-emit it (image bytes keyed by their synthetic `cw-media:N`
+ *  to faithfully re-emit it (image bytes keyed by their synthetic `ked-media:N`
  *  src, so a later export round-trips embedded images without a DOM). */
 interface ImportHandle {
   doc: Document;
@@ -156,7 +156,7 @@ function countBlocks(doc: Document): number {
 }
 
 /** Import a .docx (raw bytes) into the model. Always collects media bytes (V8
- *  has no URL.createObjectURL), so ImageBlocks carry `cw-media:N` srcs matched by
+ *  has no URL.createObjectURL), so ImageBlocks carry `ked-media:N` srcs matched by
  *  the returned `images` map. */
 function importDocx(bytes: Uint8Array): ImportHandle {
   const res = runImport(bytes, undefined, { collectMediaBytes: true });

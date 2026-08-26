@@ -21,13 +21,13 @@ const timeOf = (ts: number): string => {
 };
 
 export function createHistoryTab(ctx: PanelCtx): PanelTab {
-  const list = el("div", "cw-dev-history");
+  const list = el("div", "ked-dev-history");
 
   const toolbar = el("div");
   toolbar.style.cssText = "display:flex;align-items:center;gap:6px;";
-  const undoBtn = el("button", "cw-dev-btn", "↶ Undo");
-  const redoBtn = el("button", "cw-dev-btn", "↷ Redo");
-  const headLbl = el("span", "cw-dev-overlabel");
+  const undoBtn = el("button", "ked-dev-btn", "↶ Undo");
+  const redoBtn = el("button", "ked-dev-btn", "↷ Redo");
+  const headLbl = el("span", "ked-dev-overlabel");
   undoBtn.addEventListener("click", () => { ctx.editor.undo(); render(true); });
   redoBtn.addEventListener("click", () => { ctx.editor.redo(); render(true); });
   toolbar.append(undoBtn, redoBtn, headLbl);
@@ -43,21 +43,21 @@ export function createHistoryTab(ctx: PanelCtx): PanelTab {
     lastLen = log.length;
     list.replaceChildren();
     if (log.length === 0) {
-      list.append(el("div", "cw-dev-empty", "No edits recorded yet. Type or run a command to see changes here."));
+      list.append(el("div", "ked-dev-empty", "No edits recorded yet. Type or run a command to see changes here."));
       return;
     }
     log.forEach((c: Change, i) => {
-      const row = el("div", "cw-dev-hrow");
+      const row = el("div", "ked-dev-hrow");
       if (i === selectedIdx) row.classList.add("sel");
       row.append(
-        el("span", "cw-dev-hi", `#${i}`),
-        el("span", `cw-dev-horigin ${c.origin}`, c.origin),
-        el("span", "cw-dev-hops", opSummary(c.ops)),
-        el("span", "cw-dev-hts", timeOf(c.ts)),
+        el("span", "ked-dev-hi", `#${i}`),
+        el("span", `ked-dev-horigin ${c.origin}`, c.origin),
+        el("span", "ked-dev-hops", opSummary(c.ops)),
+        el("span", "ked-dev-hts", timeOf(c.ts)),
       );
       row.addEventListener("click", () => {
         selectedIdx = i;
-        for (const r of list.querySelectorAll(".cw-dev-hrow.sel")) r.classList.remove("sel");
+        for (const r of list.querySelectorAll(".ked-dev-hrow.sel")) r.classList.remove("sel");
         row.classList.add("sel");
         ctx.showDetail(`change #${i} · ${c.origin}`, c);
       });

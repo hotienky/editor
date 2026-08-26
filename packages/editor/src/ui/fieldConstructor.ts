@@ -48,32 +48,32 @@ const DATE_PRESETS = ["M/d/yyyy", "MMMM d, yyyy", "dddd, MMMM d, yyyy", "yyyy-MM
 const TIME_PRESETS = ["h:mm AM/PM", "HH:mm", "h:mm:ss AM/PM"];
 
 const CSS = `
-.cw-fc-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);display:flex;align-items:center;justify-content:center;}
-.cw-fc-modal{width:min(720px,94vw);max-height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
+.ked-fc-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);display:flex;align-items:center;justify-content:center;}
+.ked-fc-modal{width:min(720px,94vw);max-height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
   box-shadow:0 18px 56px rgba(0,0,0,.34);font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;}
-.cw-fc-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
-.cw-fc-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
-.cw-fc-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
-.cw-fc-x:hover{background:#e8eaed;}
-.cw-fc-body{display:flex;min-height:0;flex:1 1 auto;}
-.cw-fc-left{flex:1 1 auto;padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
-.cw-fc-right{flex:0 0 240px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
-.cw-fc-field{display:flex;flex-direction:column;gap:4px;}
-.cw-fc-field label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
-.cw-fc-field input,.cw-fc-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;}
-.cw-fc-row{display:flex;gap:8px;}.cw-fc-row>*{flex:1 1 auto;}
-.cw-fc-presets{display:flex;flex-wrap:wrap;gap:6px;}
-.cw-fc-chip{border:1px solid #d0d4d9;border-radius:14px;background:#fff;cursor:pointer;font-size:11px;padding:3px 9px;color:#3c4043;}
-.cw-fc-chip:hover{background:#f1f3f4;}
-.cw-fc-prev-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
-.cw-fc-prev{border:1px solid #dadce0;border-radius:8px;padding:10px 12px;background:#fff;min-height:48px;font-size:14px;word-break:break-word;}
-.cw-fc-note{font-size:11px;color:#9aa0a6;}
-.cw-fc-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-fc-foot .spacer{flex:1 1 auto;}
-.cw-fc-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
-.cw-fc-btn:hover{background:#f1f3f4;}
-.cw-fc-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-fc-btn.primary:hover{background:#1864cc;}`;
+.ked-fc-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
+.ked-fc-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
+.ked-fc-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
+.ked-fc-x:hover{background:#e8eaed;}
+.ked-fc-body{display:flex;min-height:0;flex:1 1 auto;}
+.ked-fc-left{flex:1 1 auto;padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:12px;}
+.ked-fc-right{flex:0 0 240px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:14px 16px;display:flex;flex-direction:column;gap:8px;}
+.ked-fc-field{display:flex;flex-direction:column;gap:4px;}
+.ked-fc-field label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
+.ked-fc-field input,.ked-fc-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;}
+.ked-fc-row{display:flex;gap:8px;}.ked-fc-row>*{flex:1 1 auto;}
+.ked-fc-presets{display:flex;flex-wrap:wrap;gap:6px;}
+.ked-fc-chip{border:1px solid #d0d4d9;border-radius:14px;background:#fff;cursor:pointer;font-size:11px;padding:3px 9px;color:#3c4043;}
+.ked-fc-chip:hover{background:#f1f3f4;}
+.ked-fc-prev-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
+.ked-fc-prev{border:1px solid #dadce0;border-radius:8px;padding:10px 12px;background:#fff;min-height:48px;font-size:14px;word-break:break-word;}
+.ked-fc-note{font-size:11px;color:#9aa0a6;}
+.ked-fc-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-fc-foot .spacer{flex:1 1 auto;}
+.ked-fc-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
+.ked-fc-btn:hover{background:#f1f3f4;}
+.ked-fc-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-fc-btn.primary:hover{background:#1864cc;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -83,7 +83,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 };
 
 const labelled = (label: string, control: HTMLElement): HTMLElement => {
-  const wrap = el("div", "cw-fc-field");
+  const wrap = el("div", "ked-fc-field");
   wrap.append(el("label", undefined, label), control);
   return wrap;
 };
@@ -96,22 +96,22 @@ const option = (value: string, label: string): HTMLOptionElement => {
 };
 
 export function showFieldConstructor(opts: FieldConstructorOptions): FieldConstructorHandle {
-  injectCssOnce("cw-fc-styles", CSS);
+  injectCssOnce("ked-fc-styles", CSS);
   const now = opts.now ?? new Date();
   const editing = opts.initial !== undefined;
 
-  const backdrop = el("div", "cw-fc-backdrop");
-  const modal = el("div", "cw-fc-modal");
+  const backdrop = el("div", "ked-fc-backdrop");
+  const modal = el("div", "ked-fc-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
-  const head = el("div", "cw-fc-head");
+  const head = el("div", "ked-fc-head");
   const h2 = el("h2", undefined, editing ? "Edit field" : "Insert field");
-  const xBtn = el("button", "cw-fc-x", "×");
+  const xBtn = el("button", "ked-fc-x", "×");
   head.append(h2, xBtn);
 
-  const body = el("div", "cw-fc-body");
-  const left = el("div", "cw-fc-left");
-  const right = el("div", "cw-fc-right");
+  const body = el("div", "ked-fc-body");
+  const left = el("div", "ked-fc-left");
+  const right = el("div", "ked-fc-right");
 
   // Type picker
   const typeSel = el("select");
@@ -119,12 +119,12 @@ export function showFieldConstructor(opts: FieldConstructorOptions): FieldConstr
   typeSel.value = opts.initial?.type ?? "PAGE";
   left.append(labelled("Field type", typeSel));
 
-  const formHost = el("div", "cw-fc-field");
+  const formHost = el("div", "ked-fc-field");
   left.append(formHost);
 
-  const prevTitle = el("div", "cw-fc-prev-title", "Preview");
-  const prev = el("div", "cw-fc-prev");
-  const note = el("div", "cw-fc-note");
+  const prevTitle = el("div", "ked-fc-prev-title", "Preview");
+  const prev = el("div", "ked-fc-prev");
+  const note = el("div", "ked-fc-note");
   right.append(prevTitle, prev, note);
 
   // --- per-type form builders. Each returns a readSpec() closure. -------------
@@ -146,9 +146,9 @@ export function showFieldConstructor(opts: FieldConstructorOptions): FieldConstr
     const init = opts.initial;
     input.value = (init && (init.type === "DATE" || init.type === "TIME") && init.format) || (type === "DATE" ? "M/d/yyyy" : "h:mm AM/PM");
     input.addEventListener("input", refresh);
-    const presets = el("div", "cw-fc-presets");
+    const presets = el("div", "ked-fc-presets");
     for (const p of type === "DATE" ? DATE_PRESETS : TIME_PRESETS) {
-      const chip = el("button", "cw-fc-chip", p);
+      const chip = el("button", "ked-fc-chip", p);
       chip.type = "button";
       chip.addEventListener("click", () => { input.value = p; refresh(); });
       presets.append(chip);
@@ -171,7 +171,7 @@ export function showFieldConstructor(opts: FieldConstructorOptions): FieldConstr
       f.value = init.falseRuns.map((r) => r.text).join("");
     }
     for (const inp of [a, opSel, b, t, f]) inp.addEventListener("input", refresh), inp.addEventListener("change", refresh);
-    const cmp = el("div", "cw-fc-row");
+    const cmp = el("div", "ked-fc-row");
     cmp.append(labelled("If", a), labelled("Is", opSel), labelled("Than", b));
     formHost.append(cmp, labelled("Then show", t), labelled("Otherwise show", f));
     return () => ({
@@ -225,10 +225,10 @@ export function showFieldConstructor(opts: FieldConstructorOptions): FieldConstr
   typeSel.addEventListener("change", rebuildForm);
   typeSel.disabled = editing; // editing keeps the field's type
 
-  const foot = el("div", "cw-fc-foot");
+  const foot = el("div", "ked-fc-foot");
   const spacer = el("div", "spacer");
-  const cancel = el("button", "cw-fc-btn", "Cancel");
-  const apply = el("button", "cw-fc-btn primary", editing ? "Apply" : "Insert");
+  const cancel = el("button", "ked-fc-btn", "Cancel");
+  const apply = el("button", "ked-fc-btn primary", editing ? "Apply" : "Insert");
   foot.append(spacer, cancel, apply);
 
   body.append(left, right);
@@ -247,7 +247,7 @@ export function showFieldConstructor(opts: FieldConstructorOptions): FieldConstr
   window.addEventListener("keydown", (ev: KeyboardEvent) => {
     if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); handle.close(); }
   }, { capture: true, signal: ac.signal });
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-fc-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-fc-x" });
   xBtn.addEventListener("click", () => handle.close());
   cancel.addEventListener("click", () => handle.close());
   apply.addEventListener("click", () => { opts.onApply(readSpec()); handle.close(); });

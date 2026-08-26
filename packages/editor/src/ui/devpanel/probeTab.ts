@@ -6,22 +6,22 @@ import type { InspectorProbe } from "../../index";
 import { el, type PanelCtx, type PanelTab } from "./types";
 
 export function createProbeTab(ctx: PanelCtx): PanelTab {
-  const pane = el("div", "cw-dev-probe");
-  const hint = el("div", "cw-dev-empty", "Move the pointer over the page to inspect what the input layer resolves there.");
-  const body = el("div", "cw-dev-proberows");
+  const pane = el("div", "ked-dev-probe");
+  const hint = el("div", "ked-dev-empty", "Move the pointer over the page to inspect what the input layer resolves there.");
+  const body = el("div", "ked-dev-proberows");
   pane.append(hint, body);
 
   const toolbar = el("div");
   toolbar.style.cssText = "display:flex;align-items:center;gap:6px;";
-  const freezeChip = el("span", "cw-dev-chip", "❄ Freeze");
+  const freezeChip = el("span", "ked-dev-chip", "❄ Freeze");
   freezeChip.title = "Pin the current reading (stop following the pointer)";
   let frozen = false;
   freezeChip.addEventListener("click", () => { frozen = !frozen; freezeChip.classList.toggle("on", frozen); });
   toolbar.append(freezeChip);
 
   const row = (k: string, v: string): void => {
-    const r = el("div", "cw-dev-probe-row");
-    r.append(el("span", "cw-dev-probe-k", k), el("span", "cw-dev-probe-v", v));
+    const r = el("div", "ked-dev-probe-row");
+    r.append(el("span", "ked-dev-probe-k", k), el("span", "ked-dev-probe-v", v));
     body.append(r);
   };
 

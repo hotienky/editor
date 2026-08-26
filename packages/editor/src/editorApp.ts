@@ -150,7 +150,7 @@ export async function mountEditorApp(runtime: KindyEditorRuntime): Promise<void>
   // built-in look. Theme + behavior thread into the editor via editorOpts; the
   // typography override seeds new/blank docs (a loaded .docx keeps its own).
   // Recolor the gray gutter behind the pages + the ruler troughs (inline overrides
-  // the static .cw-app/.cw-ruler stylesheet rules, so it stays per-instance).
+  // the static .ked-app/.ked-ruler stylesheet rules, so it stays per-instance).
   app.style.background = config.theme.canvasBackground;
   shell.ruler.style.background = config.theme.canvasBackground;
   shell.vruler.style.background = config.theme.canvasBackground;
@@ -860,7 +860,7 @@ if (toolbar) {
   /** Open `content` in a popover anchored under `anchor`, clamped on-screen. */
   const openPop = (anchor: HTMLElement, content: HTMLElement): HTMLElement => {
     closePop();
-    const pop = el("div", "cw-pop");
+    const pop = el("div", "ked-pop");
     pop.addEventListener("mousedown", (e) => e.preventDefault()); // keep editor focus
     pop.appendChild(content);
     document.body.appendChild(pop);
@@ -881,7 +881,7 @@ if (toolbar) {
   const menu = (
     items: { label: string; sample?: string; current?: boolean; onClick: () => void }[],
   ): HTMLElement => {
-    const m = el("div", "cw-menu");
+    const m = el("div", "ked-menu");
     for (const it of items) {
       const b = el("button");
       const check = el("span", "check");
@@ -928,7 +928,7 @@ if (toolbar) {
     onClear: (() => void) | null,
   ): void => {
     const wrap = el("div");
-    const grid = el("div", "cw-swatches");
+    const grid = el("div", "ked-swatches");
     for (const c of PALETTE) {
       const s = el("button");
       s.style.background = c;
@@ -1055,9 +1055,9 @@ if (toolbar) {
     const ROWS = 8;
     const COLS = 10;
     const wrap = el("div");
-    const grid = el("div", "cw-grid");
+    const grid = el("div", "ked-grid");
     grid.style.gridTemplateColumns = `repeat(${COLS}, 15px)`;
-    const label = el("div", "cw-grid-label");
+    const label = el("div", "ked-grid-label");
     label.textContent = "Insert table";
     const cells: HTMLElement[][] = [];
     const highlight = (R: number, C: number): void => {
@@ -1088,7 +1088,7 @@ if (toolbar) {
 
   /** Hyperlink dialog: URL field + Apply / Remove, applied to the selection. */
   const linkDialog = (anchor: HTMLElement): void => {
-    const wrap = el("div", "cw-dialog");
+    const wrap = el("div", "ked-dialog");
     const lab = el("label");
     lab.textContent = "Address";
     const input = el("input");
@@ -1205,7 +1205,7 @@ if (toolbar) {
     const back = el("div");
     back.style.cssText =
       "position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;";
-    const wrap = el("div", "cw-dialog");
+    const wrap = el("div", "ked-dialog");
     wrap.style.cssText = "background:#fff;border:1px solid #c8c6c4;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.25);";
     const lab = el("label");
     lab.textContent = "Share this document — anyone with the link can join and edit live";
@@ -1911,8 +1911,8 @@ if (toolbar) {
   //      from any tab — not buried inside the View tab.
   const MODE_LABELS: Array<[EditMode, string]> = [["edit", "Editing"], ["suggest", "Suggesting"], ["view", "Viewing"]];
   const allowedModesUi = runtime.allowedModes;
-  const headerReview = el("div", "cw-header-review");
-  const modeSel = el("select", "cw-mode-select");
+  const headerReview = el("div", "ked-header-review");
+  const modeSel = el("select", "ked-mode-select");
   modeSel.title = "Editing mode";
   for (const [v, l] of MODE_LABELS) {
     if (allowedModesUi && !allowedModesUi.includes(v)) continue;
@@ -1929,7 +1929,7 @@ if (toolbar) {
   syncMode = (): void => {
     modeSel.value = editor.getMode();
   };
-  const reviewBtn = el("button", "cw-header-btn");
+  const reviewBtn = el("button", "ked-header-btn");
   reviewBtn.textContent = "Review";
   reviewBtn.title = "Suggestions & comments — review, accept, reject";
   reviewBtn.addEventListener("mousedown", (e) => e.preventDefault());
@@ -1948,7 +1948,7 @@ if (toolbar) {
   // ---- Activity panel (who created/edited, when) — online only ------------
   if (online) {
     const panel = el("div");
-    panel.className = "cw-float-drawer";
+    panel.className = "ked-float-drawer";
     panel.style.cssText =
       "position:fixed;top:0;right:0;width:300px;height:100%;z-index:45;background:#fff;border-left:1px solid #e1dfdd;" +
       "box-shadow:-4px 0 16px rgba(0,0,0,0.08);display:none;flex-direction:column;font-size:13px;";
@@ -2073,7 +2073,7 @@ if (toolbar) {
     closeBtn.title = "Close";
     head.append(title, closeBtn);
     const list = el("div");
-    list.className = "cw-outline-list";
+    list.className = "ked-outline-list";
     outlineEl.append(head, list);
 
     // Detect a heading + its outline level. Real .docx files name their styles
@@ -2170,7 +2170,7 @@ if (toolbar) {
 
   // ---- Bookmarks panel (list + Go To + add/rename/delete) -----------------
   {
-    const panel = el("div", "cw-float-drawer");
+    const panel = el("div", "ked-float-drawer");
     panel.style.cssText =
       "position:fixed;top:0;right:0;width:300px;height:100%;z-index:45;background:#fff;border-left:1px solid #e1dfdd;" +
       "box-shadow:-4px 0 16px rgba(0,0,0,0.08);display:none;flex-direction:column;font-size:13px;";
@@ -2281,38 +2281,38 @@ if (toolbar) {
       return b;
     };
     const avatar = (a: { id: string; firstName: string; lastName: string }): HTMLElement => {
-      const av = el("div", "cw-avatar");
+      const av = el("div", "ked-avatar");
       av.style.background = colorForId(a.id);
       av.textContent = initials(a);
       return av;
     };
 
     // header
-    const head = el("div", "cw-review-head");
-    const title = el("span", "cw-review-title");
+    const head = el("div", "ked-review-head");
+    const title = el("span", "ked-review-title");
     title.textContent = "Review";
-    const closeBtn = mkBtn("cw-review-close", "×", () => setOpen(false));
+    const closeBtn = mkBtn("ked-review-close", "×", () => setOpen(false));
     closeBtn.title = "Close";
     head.append(title, closeBtn);
 
     // tabs
-    const tabs = el("div", "cw-review-tabs");
-    const tabSug = el("button", "cw-review-tab") as HTMLButtonElement;
-    const tabCom = el("button", "cw-review-tab") as HTMLButtonElement;
-    const sugPill = el("span", "cw-pill");
-    const comPill = el("span", "cw-pill");
+    const tabs = el("div", "ked-review-tabs");
+    const tabSug = el("button", "ked-review-tab") as HTMLButtonElement;
+    const tabCom = el("button", "ked-review-tab") as HTMLButtonElement;
+    const sugPill = el("span", "ked-pill");
+    const comPill = el("span", "ked-pill");
     tabSug.append(document.createTextNode("Suggestions "), sugPill);
     tabCom.append(document.createTextNode("Comments "), comPill);
     tabs.append(tabSug, tabCom);
 
-    const body = el("div", "cw-review-body");
+    const body = el("div", "ked-review-body");
     reviewEl.append(head, tabs, body);
 
     let activeTab: "suggestions" | "comments" = "suggestions";
 
     const emptyState = (ico: string, text: string): HTMLElement => {
-      const e = el("div", "cw-review-empty");
-      const i = el("div", "cw-review-empty-ico");
+      const e = el("div", "ked-review-empty");
+      const i = el("div", "ked-review-empty-ico");
       i.textContent = ico;
       const t = el("div");
       t.textContent = text;
@@ -2325,27 +2325,27 @@ if (toolbar) {
         body.append(emptyState("✦", "No suggestions yet. Switch the mode to Suggesting and edit — your changes become tracked proposals here."));
         return;
       }
-      const bar = el("div", "cw-review-actions");
+      const bar = el("div", "ked-review-actions");
       bar.append(
-        mkBtn("cw-btn cw-btn-accept cw-btn-sm", "✓ Accept all", () => { editor.acceptAllSuggestions(); editor.focus(); }),
-        mkBtn("cw-btn cw-btn-reject cw-btn-sm", "✗ Reject all", () => { editor.rejectAllSuggestions(); editor.focus(); }),
+        mkBtn("ked-btn ked-btn-accept ked-btn-sm", "✓ Accept all", () => { editor.acceptAllSuggestions(); editor.focus(); }),
+        mkBtn("ked-btn ked-btn-reject ked-btn-sm", "✗ Reject all", () => { editor.rejectAllSuggestions(); editor.focus(); }),
       );
       body.append(bar);
       for (const s of review.suggestions) {
-        const card = el("div", "cw-sug");
-        card.style.setProperty("--cw-author", colorForId(s.author.id));
-        const top = el("div", "cw-sug-top");
-        const kind = el("div", "cw-sug-kind");
-        const dot = el("span", "cw-dot");
+        const card = el("div", "ked-sug");
+        card.style.setProperty("--ked-author", colorForId(s.author.id));
+        const top = el("div", "ked-sug-top");
+        const kind = el("div", "ked-sug-kind");
+        const dot = el("span", "ked-dot");
         const verb = s.kind === "insert" ? "Insertion" : s.kind === "delete" ? "Deletion" : "Formatting";
         kind.append(dot, document.createTextNode(verb));
-        const meta = el("div", "cw-sug-meta");
+        const meta = el("div", "ked-sug-meta");
         meta.textContent = `${authorName(s.author)} · ${timeAgo(s.createdAt)}`;
         top.append(kind, meta);
-        const actions = el("div", "cw-sug-actions");
+        const actions = el("div", "ked-sug-actions");
         actions.append(
-          mkBtn("cw-btn cw-btn-accept cw-btn-sm", "✓ Accept", () => { editor.acceptSuggestion(s.id); editor.focus(); }),
-          mkBtn("cw-btn cw-btn-reject cw-btn-sm", "✗ Reject", () => { editor.rejectSuggestion(s.id); editor.focus(); }),
+          mkBtn("ked-btn ked-btn-accept ked-btn-sm", "✓ Accept", () => { editor.acceptSuggestion(s.id); editor.focus(); }),
+          mkBtn("ked-btn ked-btn-reject ked-btn-sm", "✗ Reject", () => { editor.rejectSuggestion(s.id); editor.focus(); }),
         );
         card.append(top, actions);
         card.addEventListener("click", (e) => {
@@ -2373,7 +2373,7 @@ if (toolbar) {
         }
         if (at < 0) { host.appendChild(document.createTextNode(rest)); break; }
         if (at > 0) host.appendChild(document.createTextNode(rest.slice(0, at)));
-        const chip = el("span", "cw-mention");
+        const chip = el("span", "ked-mention");
         chip.textContent = tok;
         host.appendChild(chip);
         rest = rest.slice(at + tok.length);
@@ -2386,52 +2386,52 @@ if (toolbar) {
         return;
       }
       for (const t of review.threads) {
-        const card = el("div", t.status === "resolved" ? "cw-thread resolved" : "cw-thread");
+        const card = el("div", t.status === "resolved" ? "ked-thread resolved" : "ked-thread");
         for (const c of t.comments) {
-          const cm = el("div", "cw-comment");
-          const main = el("div", "cw-comment-main");
-          const who = el("div", "cw-comment-who");
+          const cm = el("div", "ked-comment");
+          const main = el("div", "ked-comment-main");
+          const who = el("div", "ked-comment-who");
           who.textContent = authorName(c.author);
-          const when = el("span", "cw-comment-when");
+          const when = el("span", "ked-comment-when");
           when.textContent = timeAgo(c.createdAt);
           who.append(when);
-          const text = el("div", "cw-comment-body");
+          const text = el("div", "ked-comment-body");
           renderCommentBody(text, c.body.map((r) => r.text).join(""), c.mentions);
           main.append(who, text);
           cm.append(avatar(c.author), main);
           card.append(cm);
         }
         // inline reply editor (Google-Docs-style, no prompt)
-        const replyBox = el("div", "cw-reply-box");
+        const replyBox = el("div", "ked-reply-box");
         const replyTa = el("textarea") as HTMLTextAreaElement;
         replyTa.placeholder = "Reply…";
         replyTa.style.cssText = "flex:1 1 auto;resize:none;min-height:34px;border:1px solid #dadce0;border-radius:6px;padding:6px 8px;font:13px/1.4 inherit;outline:none;";
         const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers());
-        const replySend = mkBtn("cw-btn cw-btn-primary cw-btn-sm", "Reply", () => {
+        const replySend = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "Reply", () => {
           const v = replyTa.value.trim();
           if (!v) return;
           editor.replyToComment(t.id, commentFragment(v), replyMentions.getMentions());
           editor.focus();
         });
         replyBox.append(replyTa, replySend);
-        const actions = el("div", "cw-thread-actions");
+        const actions = el("div", "ked-thread-actions");
         if (t.status === "resolved") {
-          const tag = el("span", "cw-resolved-tag");
+          const tag = el("span", "ked-resolved-tag");
           tag.textContent = "✓ Resolved";
           actions.append(tag);
-          actions.append(mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Reopen", () => { editor.resolveThread(t.id, false); editor.focus(); }));
+          actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reopen", () => { editor.resolveThread(t.id, false); editor.focus(); }));
         } else {
           actions.append(
-            mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Reply", () => {
+            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reply", () => {
               replyBox.classList.add("open");
               replyTa.focus();
             }),
-            mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Resolve", () => { editor.resolveThread(t.id, true); editor.focus(); }),
+            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Resolve", () => { editor.resolveThread(t.id, true); editor.focus(); }),
           );
         }
         card.append(replyBox, actions);
         card.addEventListener("click", (e) => {
-          if (!(e.target as HTMLElement).closest("button, textarea, .cw-reply-box")) editor.revealReview(t.id);
+          if (!(e.target as HTMLElement).closest("button, textarea, .ked-reply-box")) editor.revealReview(t.id);
         });
         body.append(card);
       }
@@ -2805,12 +2805,12 @@ if (toolbar) {
 {
   // View-only: the ruler's only interactions are draggable indent markers, so
   // hide it (refreshRuler also early-returns while hidden).
-  const rulerRow = shell.ruler.parentElement as HTMLElement; // .cw-ruler-row
-  const rulerCorner = rulerRow.firstElementChild as HTMLElement; // .cw-ruler-corner (spacer over the vruler)
+  const rulerRow = shell.ruler.parentElement as HTMLElement; // .ked-ruler-row
+  const rulerCorner = rulerRow.firstElementChild as HTMLElement; // .ked-ruler-corner (spacer over the vruler)
   const ruler = readonly ? null : shell.ruler;
   // Apply initial visibility: hide the whole ruler-row when the horizontal ruler
   // is off (otherwise it leaves an empty 22px bar), and hide the corner spacer
-  // when the vertical ruler is off so the horizontal ruler aligns with .cw-app.
+  // when the vertical ruler is off so the horizontal ruler aligns with .ked-app.
   if (!showHRuler) {
     rulerRow.classList.add("hidden");
     shell.ruler.classList.add("hidden");
@@ -3105,7 +3105,7 @@ if (toolbar) {
 // in view-only mode — images can't be selected there, and all its actions edit.
 if (!readonly) {
   const bar = document.createElement("div");
-  bar.className = "cw-img-toolbar";
+  bar.className = "ked-img-toolbar";
   document.body.appendChild(bar);
   detachables.push(bar);
   const ibtn = (icon: string, title: string, onClick: () => void, cls = ""): void => {
@@ -3166,7 +3166,7 @@ if (!readonly) {
 // ---- find & replace bar (Ctrl+F) -------------------------------------------
 {
   const bar = document.createElement("div");
-  bar.className = "cw-float-panel";
+  bar.className = "ked-float-panel";
   bar.style.cssText =
     "position:fixed;top:46px;right:24px;display:none;gap:4px;align-items:center;" +
     "background:#fff;border:1px solid #dadce0;border-radius:8px;padding:6px 8px;" +
