@@ -85,6 +85,7 @@ import {
 import { defaultStylesheet, styleById, styleType } from "@kindy/shared";
 import { bulletListDefinition, numberListDefinition, paragraphsOf, textOfRuns } from "@kindy/shared";
 import { ICONS } from "./ui/icons";
+import { defaultMessages } from "./i18n";
 
 // Dev hook for in-browser verification (break-rule scans, perf probes, and the
 // snapshot/replay round-trip). Assigned near the end of mountEditorApp.
@@ -119,6 +120,9 @@ export async function mountEditorApp(runtime: KindyEditorRuntime): Promise<void>
     ...(runtime.cjk ? { cjk: runtime.cjk } : {}),
     ...(runtime.develop !== undefined ? { develop: runtime.develop } : {}),
   });
+  // Resolve the i18n message catalog. Falls back to English when the runtime
+  // doesn't carry a catalog (legacy test harnesses, direct mountEditorApp calls).
+  const t = runtime.messages ?? defaultMessages;
   // This editor instance's own font registry — threaded into its layout engine and
   // paint layer (below) so its custom fonts can't be clobbered by another KindyEditor
   // instance on the page, and into its exports via config.fonts.
@@ -289,7 +293,9 @@ let refreshBookmarks: () => void = () => {};
 let toggleBookmarks: () => void = () => {};
 let refreshReview: () => void = () => {};
 let toggleReview: () => void = () => {};
+let focusCommentThread: (threadId: string) => void = () => {};
 let syncMode: () => void = () => {};
+let syncCommentAction: () => void = () => {};
 // Develop-mode Document-tree inspector hooks (assigned when the panel is open;
 // no-ops otherwise, so non-develop mounts pay nothing). refreshDevPanel re-reads
 // the tree on edits; inspectorHoverSink routes the canvas→tree hover signal.
@@ -321,6 +327,10 @@ const editorOpts = {
   ...(runtime.allowedModes ? { allowedModes: runtime.allowedModes } : {}),
   ...(runtime.user ? { user: runtime.user } : {}),
   ...(runtime.knownUsers ? { knownUsers: runtime.knownUsers } : {}),
+  ...(runtime.mentionPicker ? { mentionPicker: runtime.mentionPicker } : {}),
+  ...(runtime.reviewAccess ? { reviewAccess: runtime.reviewAccess } : {}),
+  getDocumentId: () => collabId,
+  onCommentThreadActivated: (threadId: string) => focusCommentThread(threadId),
   ...(runtime.resolveField ? { resolveField: runtime.resolveField } : {}),
   ...(collabId !== null ? { docId: collabId } : {}),
   // In a collab session, ship each recorded local edit to the server.
@@ -371,6 +381,8 @@ const editorOpts = {
     emitPublic("editor.mode.changed", { mode, previousMode: publicMode }, { source: "local" });
     publicMode = mode;
     syncMode();
+    syncCommentAction();
+    refreshReview();
   },
   onReviewOpRecorded: (env: ReviewOpEnvelope) => onLocalReviewOp(env),
   onReviewOpApplied: (op: import("@kindy/shared").ReviewOp, remote: boolean) => {
@@ -387,6 +399,8 @@ const editorOpts = {
     sync?.localPresence(sel);
     if (runtime.includeSelectionEvents) emitPublic("selection.changed", { selection: sel }, { source: "local" });
     refreshDevPanel();
+    syncCommentAction();
+    refreshReview();
   },
   // Develop mode only: the inspector turns this signal on while open (dormant
   // otherwise) — route the hovered block id to the tree for the reverse highlight.
@@ -409,6 +423,7 @@ const editorOpts = {
     refreshVRuler();
     refreshImageBar();
   },
+  messages: t,
 };
 let editor = createEditor(app, doc, editorOpts);
 
@@ -998,8 +1013,8 @@ if (toolbar) {
   const ribTabsById = new Map<string, { btn: HTMLButtonElement; panel: HTMLDivElement }>();
   const ribGroupsById = new Map<string, { tabId: string; groupEl: HTMLElement; container: HTMLElement }>();
   const ribItemsById = new Map<string, { groupId: string; el: HTMLElement }>();
-  const ribSlug = (s: string): string =>
-    s.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "item";
+  const ribSlug = (s?: string | null): string =>
+    (s ?? "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "item";
   const ribUniqueId = (root: string, taken: { has: (k: string) => boolean }): string => {
     let id = root;
     for (let n = 2; taken.has(id); n++) id = `${root}-${n}`;
@@ -1325,6 +1340,8 @@ if (toolbar) {
         editor.setCharStyle(patch);
         editor.focus();
       },
+      messages: t.fontDialog,
+      common: t.common,
     });
   };
 
@@ -1332,7 +1349,7 @@ if (toolbar) {
     // Rendering (especially PDF) can take a few seconds; show the busy overlay so
     // the app doesn't look hung. Dropped before any onSave dialog / download so it
     // doesn't sit behind a native Save sheet.
-    const busy = showBusy(`Exporting ${format.toUpperCase()}…`);
+    const busy = showBusy(t.busy.exporting);
     try {
       const { bytes, warnings } = await exportTracked(format, "toolbar");
       busy.done();
@@ -1360,7 +1377,7 @@ if (toolbar) {
     editor.getDocument().stylesheet ?? defaultStylesheet();
 
   // ===== File tab (simplified backstage: open / export / undo) =============
-  const fileTab = tab("file", "File", "file");
+  const fileTab = tab("file", t.ribbon.file, "file");
   group(fileTab, "Open");
   bigBtn(ICONS.open, "Open<br>.docx", "Open a Word document", () => {
     const input = el("input");
@@ -1390,7 +1407,7 @@ if (toolbar) {
     lab.appendChild(input);
     const row = el("div", "row");
     const closeBtn = el("button");
-    closeBtn.textContent = "Close";
+    closeBtn.textContent = t.common.close;
     closeBtn.addEventListener("click", () => back.remove());
     const copyBtn = el("button", "primary");
     copyBtn.textContent = "Copy link";
@@ -1422,36 +1439,36 @@ if (toolbar) {
   const showExportPdf = runtime.view?.exportPdf ?? true;
   const showExportDocx = runtime.view?.exportDocx ?? true;
   if (showExportPdf || showExportDocx) {
-    group(fileTab, "Export");
-    if (showExportPdf) txtBtn("PDF", "Export to PDF", () => void exportAs("pdf"), "font-size:11px;font-weight:600;");
-    if (showExportDocx) txtBtn("DOCX", "Export to .docx", () => void exportAs("docx"), "font-size:11px;font-weight:600;");
+    group(fileTab, t.fileGroup.groupExport);
+    if (showExportPdf) txtBtn("PDF", t.fileGroup.exportPdf, () => void exportAs("pdf"), "font-size:11px;font-weight:600;");
+    if (showExportDocx) txtBtn("DOCX", t.fileGroup.exportDocx, () => void exportAs("docx"), "font-size:11px;font-weight:600;");
   }
-  group(fileTab, "Undo");
-  btn(ICONS.undo, "Undo (Ctrl+Z)", () => editor.undo());
-  btn(ICONS.redo, "Redo (Ctrl+Y)", () => editor.redo());
+  group(fileTab, t.fileGroup.groupUndo);
+  btn(ICONS.undo, t.fileGroup.undo, () => editor.undo());
+  btn(ICONS.redo, t.fileGroup.redo, () => editor.redo());
 
   // ===== Home tab ==========================================================
-  const home = tab("home", "Home");
+  const home = tab("home", t.ribbon.home);
 
   // ---- Clipboard ----
-  group(home, "Clipboard");
-  bigBtn(ICONS.paste, "Paste", "Paste (Ctrl+V)", () => editor.paste(), true);
+  group(home, t.clipboard.groupLabel);
+  bigBtn(ICONS.paste, t.clipboard.paste, t.clipboard.pasteTooltip, () => editor.paste(), true);
   {
     const stack = el("div");
     stack.style.cssText = "display:flex;flex-direction:column;gap:1px;";
     const prev = controls;
     controls = stack;
-    btn(ICONS.cut, "Cut (Ctrl+X)", () => editor.cut());
-    btn(ICONS.copy, "Copy (Ctrl+C)", () => editor.copy());
-    btn(ICONS.painter, "Format painter (double-click = sticky)", () => editor.armFormatPainter(false));
+    btn(ICONS.cut, t.clipboard.cutTooltip, () => editor.cut());
+    btn(ICONS.copy, t.clipboard.copyTooltip, () => editor.copy());
+    btn(ICONS.painter, t.clipboard.formatPainterTooltip, () => editor.armFormatPainter(false));
     controls = prev;
     controls.appendChild(stack);
   }
 
   // ---- Font ----
-  const fontRow = groupRows(home, "Font");
+  const fontRow = groupRows(home, t.font.groupLabel);
   fontRow();
-  const fontSelect = select("Font family", 150);
+  const fontSelect = select(t.font.fontFamily, 150);
   // Labels show the bundled clone we actually render — e.g. "Calibri (Carlito)".
   // Per-instance: built-ins minus disableBuiltin, plus this mount's custom fonts.
   for (const f of toolbarFonts(config.fonts)) opt(fontSelect, f.value, f.label);
@@ -1468,7 +1485,7 @@ if (toolbar) {
   sizeInput.min = "1";
   sizeInput.max = "72";
   sizeInput.step = "0.5";
-  sizeInput.title = "Font size (pt)";
+  sizeInput.title = t.font.fontSize;
   sizeInput.style.cssText = "width:46px;padding:0 4px;";
   sizeInput.addEventListener("mousedown", (e) => e.stopPropagation());
   /** Apply a size given in POINTS (clamped to the model's 6–96px range). */
@@ -1486,7 +1503,7 @@ if (toolbar) {
   const sizeWrap = el("div");
   sizeWrap.style.cssText = "display:inline-flex;align-items:stretch;";
   const sizeCaret = el("button", "rib-btn");
-  sizeCaret.title = "Font size presets";
+  sizeCaret.title = t.font.fontSizePresets;
   sizeCaret.innerHTML = CARET;
   sizeCaret.style.cssText = "padding:0 1px;min-width:14px;";
   sizeCaret.addEventListener("mousedown", (e) => e.preventDefault());
@@ -1506,16 +1523,16 @@ if (toolbar) {
   controls.appendChild(sizeWrap);
   ribRegister(sizeWrap, "font-size");
   const curPt = (): number => pxToPt(editor.currentFormat().fontSizePx ?? 16);
-  txtBtn("A", "Grow font", () => setSizePt(curPt() + 1), "font-size:15px;font-weight:600;");
-  txtBtn("A", "Shrink font", () => setSizePt(curPt() - 1), "font-size:10px;font-weight:600;");
+  txtBtn("A", t.font.growFont, () => setSizePt(curPt() + 1), "font-size:15px;font-weight:600;");
+  txtBtn("A", t.font.shrinkFont, () => setSizePt(curPt() - 1), "font-size:10px;font-weight:600;");
   const CASES: { label: string; mode: CaseMode }[] = [
-    { label: "Sentence case", mode: "sentence" },
-    { label: "lowercase", mode: "lower" },
-    { label: "UPPERCASE", mode: "upper" },
-    { label: "Capitalize Each Word", mode: "title" },
-    { label: "tOGGLE cASE", mode: "toggle" },
+    { label: t.font.caseSentence, mode: "sentence" },
+    { label: t.font.caseLower, mode: "lower" },
+    { label: t.font.caseUpper, mode: "upper" },
+    { label: t.font.caseTitle, mode: "title" },
+    { label: t.font.caseToggle, mode: "toggle" },
   ];
-  const caseBtn = txtBtn("Aa", "Change case", () => {}, "font-weight:600;", true);
+  const caseBtn = txtBtn("Aa", t.font.changeCase, () => {}, "font-weight:600;", true);
   caseBtn.addEventListener("click", () =>
     openPop(
       caseBtn,
@@ -1530,34 +1547,34 @@ if (toolbar) {
       ),
     ),
   );
-  btn(ICONS.clearFormat, "Clear all formatting", () => {
+  btn(ICONS.clearFormat, t.font.clearFormatting, () => {
     editor.dispatch(clearCharFormatting());
     editor.dispatch(applyNamedStyle("Normal"));
     editor.focus();
   });
 
   fontRow();
-  toggle(txtBtn("B", "Bold (Ctrl+B)", () => editor.toggleStyle("bold"), "font-weight:700;"), (f) => f.bold);
-  toggle(txtBtn("I", "Italic (Ctrl+I)", () => editor.toggleStyle("italic"), "font-style:italic;font-family:Georgia,serif;"), (f) => f.italic);
-  toggle(txtBtn("U", "Underline (Ctrl+U)", () => editor.toggleStyle("underline"), "text-decoration:underline;"), (f) => f.underline);
-  toggle(txtBtn("ab", "Strikethrough", () => editor.toggleStyle("strikethrough"), "text-decoration:line-through;"), (f) => f.strikethrough);
-  toggle(txtBtn("x²", "Superscript", () => editor.dispatch(toggleVerticalAlign("super"))), (f) => f.superscript);
-  toggle(txtBtn("x₂", "Subscript", () => editor.dispatch(toggleVerticalAlign("sub"))), (f) => f.subscript);
-  toggle(txtBtn("AB", "All caps", () => editor.toggleStyle("caps"), "font-size:11px;font-weight:600;letter-spacing:.5px;"), (f) => f.caps);
-  toggle(txtBtn("Ab", "Small caps", () => editor.toggleStyle("smallCaps"), "font-variant:small-caps;font-size:12px;font-weight:600;"), (f) => f.smallCaps);
-  toggle(txtBtn("ab", "Double strikethrough", () => editor.toggleStyle("doubleStrikethrough"), "text-decoration:line-through double;"), (f) => f.doubleStrikethrough);
+  toggle(txtBtn("B", t.font.bold, () => editor.toggleStyle("bold"), "font-weight:700;"), (f) => f.bold);
+  toggle(txtBtn("I", t.font.italic, () => editor.toggleStyle("italic"), "font-style:italic;font-family:Georgia,serif;"), (f) => f.italic);
+  toggle(txtBtn("U", t.font.underline, () => editor.toggleStyle("underline"), "text-decoration:underline;"), (f) => f.underline);
+  toggle(txtBtn("ab", t.font.strikethrough, () => editor.toggleStyle("strikethrough"), "text-decoration:line-through;"), (f) => f.strikethrough);
+  toggle(txtBtn("x²", t.font.superscript, () => editor.dispatch(toggleVerticalAlign("super"))), (f) => f.superscript);
+  toggle(txtBtn("x₂", t.font.subscript, () => editor.dispatch(toggleVerticalAlign("sub"))), (f) => f.subscript);
+  toggle(txtBtn("AB", t.font.allCaps, () => editor.toggleStyle("caps"), "font-size:11px;font-weight:600;letter-spacing:.5px;"), (f) => f.caps);
+  toggle(txtBtn("Ab", t.font.smallCaps, () => editor.toggleStyle("smallCaps"), "font-variant:small-caps;font-size:12px;font-weight:600;"), (f) => f.smallCaps);
+  toggle(txtBtn("ab", t.font.doubleStrikethrough, () => editor.toggleStyle("doubleStrikethrough"), "text-decoration:line-through double;"), (f) => f.doubleStrikethrough);
   sep();
   // Home-tab dialog-launcher for the full Font dialog (caps, underline style +
   // colour, raise/lower, scaling, spacing, kerning, emphasis, text effects).
-  btn(`<span style="color:#2b579a;font-weight:700;">A</span>`, "Font — effects, caps, underline style, spacing", () => openFontDialog());
+  btn(`<span style="color:#2b579a;font-weight:700;">A</span>`, t.font.fontEffects, () => openFontDialog());
   // Highlight: face toggles the last colour (re-click clears); caret opens the
   // palette, where "No Color" strips the highlight.
   swatch({
     face: ICONS.highlight,
     initial: "#ffeb3b",
-    title: "Text highlight colour",
+    title: t.font.highlightColor,
     apply: (c) => editor.dispatch(toggleHighlight(c)),
-    clearLabel: "No Color",
+    clearLabel: t.font.noColor,
     onClear: () => editor.setCharStyle({ highlightColor: undefined }),
     active: (f) => f.highlight,
   });
@@ -1565,48 +1582,48 @@ if (toolbar) {
   swatch({
     face: `<span style="font-weight:700;">A</span>`,
     initial: "#e00000",
-    title: "Font colour",
+    title: t.font.fontColor,
     apply: (c) => editor.setCharStyle({ color: c }),
-    clearLabel: "Automatic",
+    clearLabel: t.font.automatic,
     onClear: () => editor.setCharStyle({ color: "#202124" }),
   });
   // Hyperlink lives on Insert ▸ Links (the canonical spot, like Word) — not
   // duplicated here in the Font group.
 
   // ---- Paragraph ----
-  const paraRow = groupRows(home, "Paragraph");
+  const paraRow = groupRows(home, t.paragraph.groupLabel);
   paraRow();
-  listSplit(ICONS.bullets, "Bulleted list", () => toggleList("bullet"), (f) => f.listKind === "bullet", [
-    { label: "•   Filled circle", cmd: () => toggleList("bullet") },
-    { label: "◦   Hollow circle", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-circle", "◦")) },
-    { label: "▪   Filled square", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-square", "▪")) },
-    { label: "–   Dash", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-dash", "–")) },
-    { label: "➤   Arrow", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-arrow", "➤")) },
+  listSplit(ICONS.bullets, t.paragraph.bulletedList, () => toggleList("bullet"), (f) => f.listKind === "bullet", [
+    { label: t.paragraph.bulletFilledCircle, cmd: () => toggleList("bullet") },
+    { label: t.paragraph.bulletHollowCircle, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-circle", "◦")) },
+    { label: t.paragraph.bulletFilledSquare, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-square", "▪")) },
+    { label: t.paragraph.bulletDash, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-dash", "–")) },
+    { label: t.paragraph.bulletArrow, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-arrow", "➤")) },
   ]);
-  listSplit(ICONS.numbering, "Numbered list (Tab/Shift+Tab change level)", () => toggleList("decimal"), (f) => f.listKind === "number", [
-    { label: "1.   Decimal", cmd: () => toggleList("decimal") },
-    { label: "1)   Decimal, parenthesis", cmd: () => applyListStyleCmd(numberListDefinition("numbers-paren", "decimal", ")")) },
-    { label: "a.   Lower letter", cmd: () => applyListStyleCmd(numberListDefinition("numbers-lalpha", "lowerLetter", ".")) },
-    { label: "A.   Upper letter", cmd: () => applyListStyleCmd(numberListDefinition("numbers-ualpha", "upperLetter", ".")) },
-    { label: "i.   Lower roman", cmd: () => applyListStyleCmd(numberListDefinition("numbers-lroman", "lowerRoman", ".")) },
-    { label: "I.   Upper roman", cmd: () => applyListStyleCmd(numberListDefinition("numbers-uroman", "upperRoman", ".")) },
+  listSplit(ICONS.numbering, t.paragraph.numberedList, () => toggleList("decimal"), (f) => f.listKind === "number", [
+    { label: t.paragraph.numberDecimal, cmd: () => toggleList("decimal") },
+    { label: t.paragraph.numberParen, cmd: () => applyListStyleCmd(numberListDefinition("numbers-paren", "decimal", ")")) },
+    { label: t.paragraph.numberLowerLetter, cmd: () => applyListStyleCmd(numberListDefinition("numbers-lalpha", "lowerLetter", ".")) },
+    { label: t.paragraph.numberUpperLetter, cmd: () => applyListStyleCmd(numberListDefinition("numbers-ualpha", "upperLetter", ".")) },
+    { label: t.paragraph.numberLowerRoman, cmd: () => applyListStyleCmd(numberListDefinition("numbers-lroman", "lowerRoman", ".")) },
+    { label: t.paragraph.numberUpperRoman, cmd: () => applyListStyleCmd(numberListDefinition("numbers-uroman", "upperRoman", ".")) },
   ]);
-  btn(ICONS.multilevel, "Multilevel list (1, 1.1, 1.1.1 — Tab / Shift+Tab change level)", () => editor.dispatch(toggleMultilevelList()));
+  btn(ICONS.multilevel, t.paragraph.multilevelList, () => editor.dispatch(toggleMultilevelList()));
   sep();
-  btn(ICONS.indentDecrease, "Decrease indent", () => editor.dispatch(adjustIndentCmd(-config.behavior.indentStepPx)));
-  btn(ICONS.indentIncrease, "Increase indent", () => editor.dispatch(adjustIndentCmd(config.behavior.indentStepPx)));
-  stub(ICONS.sort, "Sort");
+  btn(ICONS.indentDecrease, t.paragraph.decreaseIndent, () => editor.dispatch(adjustIndentCmd(-config.behavior.indentStepPx)));
+  btn(ICONS.indentIncrease, t.paragraph.increaseIndent, () => editor.dispatch(adjustIndentCmd(config.behavior.indentStepPx)));
+  stub(ICONS.sort, t.paragraph.sort);
   marksToggleBtn();
 
   paraRow();
-  toggle(btn(ICONS.alignLeft, "Align left", () => editor.align("left")), (f) => f.align === "left");
-  toggle(btn(ICONS.alignCenter, "Center", () => editor.align("center")), (f) => f.align === "center");
-  toggle(btn(ICONS.alignRight, "Align right", () => editor.align("right")), (f) => f.align === "right");
-  toggle(btn(ICONS.alignJustify, "Justify", () => editor.align("justify")), (f) => f.align === "justify");
+  toggle(btn(ICONS.alignLeft, t.paragraph.alignLeft, () => editor.align("left")), (f) => f.align === "left");
+  toggle(btn(ICONS.alignCenter, t.paragraph.alignCenter, () => editor.align("center")), (f) => f.align === "center");
+  toggle(btn(ICONS.alignRight, t.paragraph.alignRight, () => editor.align("right")), (f) => f.align === "right");
+  toggle(btn(ICONS.alignJustify, t.paragraph.alignJustify, () => editor.align("justify")), (f) => f.align === "justify");
   sep();
   // Paragraph writing direction (OOXML w:bidi). RTL right-aligns + reorders.
-  toggle(txtBtn("LTR", "Left-to-right paragraph", () => editor.dispatch(setDirection("ltr"))), (f) => f.direction !== "rtl");
-  toggle(txtBtn("RTL", "Right-to-left paragraph", () => editor.dispatch(setDirection("rtl"))), (f) => f.direction === "rtl");
+  toggle(txtBtn("LTR", t.paragraph.ltr, () => editor.dispatch(setDirection("ltr"))), (f) => f.direction !== "rtl");
+  toggle(txtBtn("RTL", t.paragraph.rtl, () => editor.dispatch(setDirection("rtl"))), (f) => f.direction === "rtl");
   sep();
   const SPACINGS = [
     { v: 1, l: "1.0" },
@@ -1646,11 +1663,15 @@ if (toolbar) {
           editor.focus();
         },
       },
+      {
+        messages: t.paragraphDialog,
+        common: t.common,
+      },
     );
     // Let replaceDocument() tear this dialog down if the editor is rebuilt while it's open.
     closeParaDialog = () => { paraDlg?.close(); paraDlg = null; closeParaDialog = () => {}; };
   };
-  const spacingBtn = btn(ICONS.lineSpacing, "Line spacing", () => {}, true);
+  const spacingBtn = btn(ICONS.lineSpacing, t.paragraph.lineSpacing, () => {}, true);
   spacingBtn.addEventListener("click", () =>
     openPop(
       spacingBtn,
@@ -1668,16 +1689,16 @@ if (toolbar) {
             editor.focus();
           },
         })),
-        { label: "Line Spacing Options…", onClick: openParagraphDialog },
+        { label: t.paragraph.lineSpacingOptions, onClick: openParagraphDialog },
       ]),
     ),
   );
   // One entry point to the Paragraph dialog, which covers both borders and
   // shading (was two separate buttons opening the identical dialog).
-  btn(ICONS.borders, "Borders & shading", openParagraphDialog, true);
+  btn(ICONS.borders, t.paragraph.borders, openParagraphDialog, true);
 
   // ---- Styles (visual gallery) ----
-  group(home, "Styles");
+  group(home, t.styles.groupLabel);
   const styleGallery = el("div", "rib-gallery");
   const styleCards = new Map<string, HTMLButtonElement>();
   // One child document renders every card's swatch — a real, document-styled
@@ -1735,7 +1756,7 @@ if (toolbar) {
   rebuildStyleGallery();
   controls.appendChild(styleGallery);
   ribRegister(styleGallery, "gallery");
-  btn(ICONS.stylePencil, "Update current style to match selection", () => {
+  btn(ICONS.stylePencil, t.styles.updateStyle, () => {
     const id = editor.currentFormat().styleId;
     if (id) editor.dispatch(updateStyleToSelection(id));
   });
@@ -1744,22 +1765,24 @@ if (toolbar) {
     styleMgr = showStyleManager({
       editor,
       ...(sel ? { initialSelection: sel } : {}),
+      messages: t.styleManager,
+      common: t.common,
       onClose: () => { styleMgr = null; },
     });
   };
-  btn(ICONS.styleNew, "Manage styles…", () => {
+  btn(ICONS.styleNew, t.styles.manageStyles, () => {
     const id = editor.currentFormat().styleId;
     openStyleManager(id ? { kind: "paragraph", id } : undefined);
   });
-  const filterBtn = btn(ICONS.filter, "Show only styles in use", () => {
+  const filterBtn = btn(ICONS.filter, t.styles.showOnlyUsed, () => {
     hideUnusedStyles = !hideUnusedStyles;
     filterBtn.classList.toggle("active", hideUnusedStyles);
-    filterBtn.title = hideUnusedStyles ? "Show all styles" : "Show only styles in use";
+    filterBtn.title = hideUnusedStyles ? t.styles.showAllStyles : t.styles.showOnlyUsed;
     rebuildStyleGallery();
   });
 
   // ---- Editing ----
-  group(home, "Editing");
+  group(home, t.editing.groupLabel);
   {
     const col = el("div");
     col.style.cssText = "display:flex;flex-direction:column;gap:1px;";
@@ -1770,28 +1793,28 @@ if (toolbar) {
       const b = btn(icon + `<span>${label}</span>`, title, onClick);
       b.style.cssText = wide;
     };
-    ed(ICONS.find, "Find", "Find & replace (Ctrl+F)", () => openFind());
-    ed(ICONS.replace, "Replace", "Replace (Ctrl+F)", () => openFind());
-    ed(ICONS.select, "Select All", "Select all (Ctrl+A)", () => editor.selectAll());
+    ed(ICONS.find, t.editing.find, t.editing.findTooltip, () => openFind());
+    ed(ICONS.replace, t.editing.replace, t.editing.replaceTooltip, () => openFind());
+    ed(ICONS.select, t.editing.selectAll, t.editing.selectAllTooltip, () => editor.selectAll());
     controls = prev;
     controls.appendChild(col);
   }
 
   // ===== Insert tab ========================================================
-  const insert = tab("insert", "Insert");
-  group(insert, "Pages");
-  btn(ICONS.pageBreak, "Page break (Ctrl+Enter)", () => {
+  const insert = tab("insert", t.ribbon.insert);
+  group(insert, t.insert.groupPages);
+  btn(ICONS.pageBreak, t.insert.pageBreak, () => {
     editor.dispatch(insertPageBreak());
     editor.focus();
   });
-  btn(ICONS.sectionBreak, "Section break — next page", () => {
+  btn(ICONS.sectionBreak, t.insert.sectionBreak, () => {
     editor.dispatch(insertSectionBreak());
     editor.focus();
   });
-  group(insert, "Tables");
-  const insTableBtn = btn(ICONS.table, "Insert table", () => {}, true);
+  group(insert, t.insert.groupTables);
+  const insTableBtn = btn(ICONS.table, t.insert.insertTable, () => {}, true);
   insTableBtn.addEventListener("click", () => tableGridPopover(insTableBtn));
-  group(insert, "Illustrations");
+  group(insert, t.insert.groupIllustrations);
   // Pick an image from the device, register its bytes in the shared media store
   // (content-addressed, so it persists + exports), then insert it at the caret at
   // its natural size (capped to a sensible width). Both dispatches run — only the
@@ -1831,26 +1854,26 @@ if (toolbar) {
     });
     input.click();
   };
-  btn(ICONS.image, "Insert image from your device", () => pickAndInsertImage());
-  group(insert, "Picture"); // acts on the selected image
+  btn(ICONS.image, t.insert.insertImage, () => pickAndInsertImage());
+  group(insert, t.insert.groupPicture); // acts on the selected image
   enable(
-    btn(ICONS.wrapSquare, "Wrap text around image (square)", () => {
+    btn(ICONS.wrapSquare, t.insert.wrapSquare, () => {
       const id = editor.getSelectedObject();
       if (id) editor.dispatch(setImageProps(id, { wrap: "square", align: "left" }));
     }),
     (f) => f.imageSelected,
-    "select an image first",
+    t.insert.selectImageFirst,
   );
   enable(
-    btn(ICONS.wrapInline, "Image in line with text (block)", () => {
+    btn(ICONS.wrapInline, t.insert.wrapInline, () => {
       const id = editor.getSelectedObject();
       if (id) editor.dispatch(setImageProps(id, { wrap: "block", align: "center" }));
     }),
     (f) => f.imageSelected,
-    "select an image first",
+    t.insert.selectImageFirst,
   );
-  group(insert, "Equation");
-  txtBtn("√x", "Insert equation (MathML)", () => {
+  group(insert, t.insert.groupEquation);
+  txtBtn("√x", t.insert.insertEquation, () => {
     showEquationEditor({
       onApply: (eq) => {
         editor.dispatch(eq.display ? insertEquation(eq) : insertInlineEquation(eq));
@@ -1859,44 +1882,45 @@ if (toolbar) {
     });
   }, "font-family:Georgia,serif;font-style:italic;");
 
-  group(insert, "Symbols");
+  group(insert, t.insert.groupSymbols);
   // Single floating picker (toggle on re-click); closed on teardown so its
   // backdrop + document-level Escape listener never leak. Mirrors pageLayoutDlg.
-  btn(ICONS.symbol, "Insert symbol or special character", () => {
+  btn(ICONS.symbol, t.insert.insertSymbol, () => {
     if (symbolPicker) { symbolPicker.close(); return; }
     symbolPicker = showSymbolPicker({
       onPick: (font, char) => {
         editor.dispatch(insertSymbolCmd(font, char));
         editor.focus();
       },
+      messages: t.symbolPicker,
       onClose: () => { symbolPicker = null; },
     });
   });
   teardown.signal.addEventListener("abort", () => symbolPicker?.close(), { once: true });
 
-  group(insert, "Links");
-  const insLinkBtn = btn(ICONS.link, "Insert/remove hyperlink", () => {});
+  group(insert, t.insert.groupLinks);
+  const insLinkBtn = btn(ICONS.link, t.insert.insertLink, () => {});
   insLinkBtn.addEventListener("click", () => linkDialog(insLinkBtn));
-  group(insert, "References");
-  btn(ICONS.toc, "Insert / update table of contents (Ctrl+click an entry jumps to it)", () => {
+  group(insert, t.insert.groupReferences);
+  btn(ICONS.toc, t.insert.insertToc, () => {
     editor.dispatch(insertTocCmd());
     editor.focus();
   });
-  btn(ICONS.tocRefresh, "Recalculate TOC page numbers from the current layout", () => {
+  btn(ICONS.tocRefresh, t.insert.recalcToc, () => {
     const n = editor.recalculateToc();
     console.log(n > 0 ? `[toc] updated ${n} page number${n === 1 ? "" : "s"}` : "[toc] page numbers already current");
     editor.focus();
   });
-  txtBtn("ab¹", "Insert footnote", () => {
+  txtBtn("ab¹", t.insert.insertFootnote, () => {
     editor.dispatch(insertFootnoteCmd());
     editor.focus();
   }, "font-size:11px;");
-  txtBtn("abⁱ", "Insert endnote", () => {
+  txtBtn("abⁱ", t.insert.insertEndnote, () => {
     editor.dispatch(insertEndnoteCmd());
     editor.focus();
   }, "font-size:11px;");
-  group(insert, "Controls");
-  btn(ICONS.sdtText, "Rich text content control (wraps the selection or selected image)", () => {
+  group(insert, t.insert.groupControls);
+  btn(ICONS.sdtText, t.insert.richTextControl, () => {
     // A selected image is an object selection (no text caret), so route it to the
     // image-wrapping command; otherwise wrap the text selection/caret as before.
     const imgId = editor.getSelectedObject();
@@ -1909,12 +1933,12 @@ if (toolbar) {
       editor.focus();
     }
   });
-  btn(ICONS.sdtCheckbox, "Check box content control", () => {
+  btn(ICONS.sdtCheckbox, t.insert.checkboxControl, () => {
     editor.dispatch(insertContentControl("checkbox", { alias: "Check Box" }));
     editor.focus();
   });
-  btn(ICONS.sdtDropdown, "Drop-down list content control", () => {
-    const raw = prompt("List items (comma-separated):", "Yes, No, N/A");
+  btn(ICONS.sdtDropdown, t.insert.dropdownControl, () => {
+    const raw = prompt(t.insert.dropdownPrompt, t.insert.dropdownDefault);
     if (raw === null) return;
     const listItems = raw
       .split(",")
@@ -1924,50 +1948,55 @@ if (toolbar) {
     editor.dispatch(insertContentControl("dropDown", { alias: "Drop-Down List", listItems }));
     editor.focus();
   });
-  btn(ICONS.sdtDate, "Date picker content control", () => {
+  btn(ICONS.sdtDate, t.insert.datePickerControl, () => {
     editor.dispatch(insertContentControl("date", { alias: "Date", dateFormat: "M/d/yyyy" }));
     editor.focus();
   });
   enable(
-    btn(ICONS.sdtProps, "Content control properties & content (inspect the control at the caret)", () => {
-      if (!editor.inspectContentControl()) alert("Place the caret inside a content control first.");
+    btn(ICONS.sdtProps, t.insert.contentControlProps, () => {
+      if (!editor.inspectContentControl()) alert(t.insert.noContentControl);
     }),
     (f) => f.inContentControl,
-    "place the caret in a content control",
+    t.insert.placeCaretInControl,
   );
   enable(
-    btn(ICONS.sdtRemove, "Remove the content control at the caret or around the selected image (keeps its content)", () => {
+    btn(ICONS.sdtRemove, t.insert.removeContentControl, () => {
       const id = editor.activeContentControlId();
       if (id) editor.dispatch(removeContentControl(id, false));
       // Don't force focus to the doc — that would drop an active image selection.
     }),
     (f) => f.inContentControl,
-    "place the caret in a content control",
+    t.insert.placeCaretInControl,
   );
 
   // ===== Layout tab ========================================================
-  const layout = tab("layout", "Layout");
-  group(layout, "Page Setup");
-  btn(ICONS.pageSetup, "Page layout (size, orientation, margins, columns, header/footer distance, page color & borders — applies to the caret's section)", () => {
+  const layout = tab("layout", t.ribbon.layout);
+  group(layout, t.layout.groupPageSetup);
+  btn(ICONS.pageSetup, t.layout.pageSetup, () => {
     if (pageLayoutDlg) { pageLayoutDlg.close(); pageLayoutDlg = null; return; }
-    pageLayoutDlg = showPageLayout({ editor, onClose: () => { pageLayoutDlg = null; } });
+    pageLayoutDlg = showPageLayout({
+      editor,
+      messages: t.pageLayout,
+      common: t.common,
+      onClose: () => { pageLayoutDlg = null; },
+    });
   });
 
   // ===== Table tab (acts on the cell containing the caret) =================
-  const tableTab = tab("table", "Table");
-  group(tableTab, "Rows & Columns");
-  btn(ICONS.rowAbove, "Insert row above", () => editor.dispatch(insertTableRowCmd("above")));
-  btn(ICONS.rowBelow, "Insert row below", () => editor.dispatch(insertTableRowCmd("below")));
-  btn(ICONS.colLeft, "Insert column left", () => editor.dispatch(insertTableColumnCmd("left")));
-  btn(ICONS.colRight, "Insert column right", () => editor.dispatch(insertTableColumnCmd("right")));
-  btn(ICONS.deleteRow, "Delete row", () => editor.dispatch(deleteTableRowCmd()));
-  btn(ICONS.deleteCol, "Delete column", () => editor.dispatch(deleteTableColumnCmd()));
-  btn(ICONS.deleteTable, "Delete table", () => editor.dispatch(deleteTableCmd()));
-  group(tableTab, "Merge");
-  btn(ICONS.mergeCells, "Merge cells (select across cells in one row)", () => editor.dispatch(mergeCellsCmd()));
-  btn(ICONS.unmergeCells, "Unmerge cell", () => editor.dispatch(unmergeCellCmd()));
-  group(tableTab, "Size");
-  const autofitBtn = txtBtn("AutoFit", "AutoFit columns to contents or window, or use fixed widths", () => {}, "", true);
+  const tableTab = tab("table", t.ribbon.table);
+  group(tableTab, t.table.groupRowsCols);
+  btn(ICONS.rowAbove, t.table.insertRowAbove, () => editor.dispatch(insertTableRowCmd("above")));
+  btn(ICONS.rowBelow, t.table.insertRowBelow, () => editor.dispatch(insertTableRowCmd("below")));
+  btn(ICONS.colLeft, t.table.insertColLeft, () => editor.dispatch(insertTableColumnCmd("left")));
+  btn(ICONS.colRight, t.table.insertColRight, () => editor.dispatch(insertTableColumnCmd("right")));
+  btn(ICONS.deleteRow, t.table.deleteRow, () => editor.dispatch(deleteTableRowCmd()));
+  btn(ICONS.deleteCol, t.table.deleteCol, () => editor.dispatch(deleteTableColumnCmd()));
+  btn(ICONS.deleteTable, t.table.deleteTable, () => editor.dispatch(deleteTableCmd()));
+  group(tableTab, t.table.groupMerge);
+  btn(ICONS.mergeCells, t.table.mergeCells, () => editor.dispatch(mergeCellsCmd()));
+  btn(ICONS.unmergeCells, t.table.unmergeCell, () => editor.dispatch(unmergeCellCmd()));
+  group(tableTab, t.table.groupSize);
+  const autofitBtn = txtBtn("AutoFit", t.table.autofitTooltip, () => {}, "", true);
   autofitBtn.addEventListener("click", () => {
     // Tick the active mode (resolved against the table the caret is in right now).
     const tbl = tableAtSelection({ doc: editor.getDocument(), selection: editor.getSelection() });
@@ -1993,43 +2022,43 @@ if (toolbar) {
     openPop(
       autofitBtn,
       menu([
-        fit("AutoFit to Contents", "autofitContents"),
-        fit("AutoFit to Window", "autofitWindow"),
-        fit("Fixed Column Width", "fixed"),
-        widthItem("Width: 25%", 25),
-        widthItem("Width: 50%", 50),
-        widthItem("Width: 75%", 75),
-        widthItem("Width: Full page", null),
-        alignItem("Align Left", "left"),
-        alignItem("Align Center", "center"),
-        alignItem("Align Right", "right"),
+        fit(t.table.autofitContents, "autofitContents"),
+        fit(t.table.autofitWindow, "autofitWindow"),
+        fit(t.table.fixedWidth, "fixed"),
+        widthItem(t.table.width25, 25),
+        widthItem(t.table.width50, 50),
+        widthItem(t.table.width75, 75),
+        widthItem(t.table.widthFull, null),
+        alignItem(t.table.alignLeft, "left"),
+        alignItem(t.table.alignCenter, "center"),
+        alignItem(t.table.alignRight, "right"),
       ]),
     );
   });
 
   // ===== View tab ==========================================================
-  const view = tab("view", "View");
-  group(view, "Show");
+  const view = tab("view", t.ribbon.view);
+  group(view, t.view.groupShow);
   let outlineToggle = (): void => {};
-  const outlineBtn = btn(ICONS.outline, "Outline / navigation pane (jump to any heading)", () => outlineToggle());
-  const bookmarksBtn = btn(ICONS.bookmark, "Bookmarks — list, go to, add, rename, delete", () => toggleBookmarks());
-  const rulerBtn = btn(ICONS.ruler, "Horizontal ruler", () => rulerBtn.classList.toggle("active", toggleRuler()));
+  const outlineBtn = btn(ICONS.outline, t.view.outline, () => outlineToggle());
+  const bookmarksBtn = btn(ICONS.bookmark, t.view.bookmarks, () => toggleBookmarks());
+  const rulerBtn = btn(ICONS.ruler, t.view.horizontalRuler, () => rulerBtn.classList.toggle("active", toggleRuler()));
   rulerBtn.classList.toggle("active", showHRuler);
-  const vrulerBtn = btn(ICONS.rulerV, "Vertical ruler", () => vrulerBtn.classList.toggle("active", toggleVRuler()));
+  const vrulerBtn = btn(ICONS.rulerV, t.view.verticalRuler, () => vrulerBtn.classList.toggle("active", toggleVRuler()));
   vrulerBtn.classList.toggle("active", showVRuler);
-  const gridBtn = btn(ICONS.grid, "Show grid — a light mesh for aligning objects", () => {
+  const gridBtn = btn(ICONS.grid, t.view.showGrid, () => {
     gridView.show = !gridView.show;
     editor.setShowGrid(gridView.show);
     gridBtn.classList.toggle("active", gridView.show);
   });
   gridBtn.classList.toggle("active", gridView.show);
-  const snapBtn = btn(ICONS.snap, "Snap to grid — anchored objects snap to grid lines while dragging", () => {
+  const snapBtn = btn(ICONS.snap, t.view.snapToGrid, () => {
     gridView.snap = !gridView.snap;
     editor.setSnapToGrid(gridView.snap);
     snapBtn.classList.toggle("active", gridView.snap);
   });
   snapBtn.classList.toggle("active", gridView.snap);
-  const gridSpacingSel = select("Grid spacing", 92);
+  const gridSpacingSel = select(t.view.gridSpacing, 92);
   for (const [px, label] of [
     [12, 'Grid: 1/8"'],
     [24, 'Grid: 1/4"'],
@@ -2043,15 +2072,15 @@ if (toolbar) {
     editor.setGridSpacing(gridView.spacingPx);
   });
   marksToggleBtn();
-  if (online) btn(ICONS.activity, "Activity — who created/edited this document and when", () => toggleActivity());
+  if (online) btn(ICONS.activity, t.view.activity, () => toggleActivity());
 
   // ===== Developer tab (develop mode only) =================================
   // Gated on the `develop` config flag: the tab only EXISTS when the embedder
   // opts in, and even then nothing dev-related runs until the developer clicks
   // "Inspect document tree" to open the floating Document-tree inspector.
   if (config.develop) {
-    const dev = tab("developer", "Developer");
-    group(dev, "Inspect");
+    const dev = tab("developer", t.ribbon.developer);
+    group(dev, t.developer.groupInspect);
     const toggleDevPanel = (): void => {
       if (devPanel) { devPanel.close(); return; } // toggle: a second click closes it
       devPanel = showDevPanel({
@@ -2073,8 +2102,8 @@ if (toolbar) {
       devBtn.classList.add("active");
     };
     const devBtn = btn(
-      ICONS.devtools + "<span>Inspect document tree</span>",
-      "Open the Document-tree inspector — browse the parsed model, highlight nodes on the page, and read each node's JSON",
+      ICONS.devtools + `<span>${t.developer.inspectTree}</span>`,
+      t.developer.inspectTreeTooltip,
       toggleDevPanel,
     );
     devBtn.style.cssText = "width:100%;justify-content:flex-start;gap:4px;";
@@ -2083,11 +2112,11 @@ if (toolbar) {
   // ---- Review controls live in the ribbon HEADER (right of the tab strip,
   //      by the collapse button) so the mode switch + pane toggle are reachable
   //      from any tab — not buried inside the View tab.
-  const MODE_LABELS: Array<[EditMode, string]> = [["edit", "Editing"], ["suggest", "Suggesting"], ["view", "Viewing"]];
+  const MODE_LABELS: Array<[EditMode, string]> = [["edit", t.review.modeEditing], ["suggest", t.review.modeSuggesting], ["view", t.review.modeViewing]];
   const allowedModesUi = runtime.allowedModes;
   const headerReview = el("div", "ked-header-review");
   const modeSel = el("select", "ked-mode-select");
-  modeSel.title = "Editing mode";
+  modeSel.title = t.review.editingMode;
   for (const [v, l] of MODE_LABELS) {
     if (allowedModesUi && !allowedModesUi.includes(v)) continue;
     const o = el("option");
@@ -2104,20 +2133,36 @@ if (toolbar) {
     modeSel.value = editor.getMode();
   };
   const reviewBtn = el("button", "ked-header-btn");
-  reviewBtn.textContent = "Review";
-  reviewBtn.title = "Suggestions & comments — review, accept, reject";
+  reviewBtn.textContent = t.review.reviewButton;
+  reviewBtn.title = t.review.reviewButtonTooltip;
   reviewBtn.addEventListener("mousedown", (e) => e.preventDefault());
   reviewBtn.addEventListener("click", () => toggleReview());
-  headerReview.append(modeSel, reviewBtn);
+  const commentBtn = el("button", "ked-header-btn");
+  commentBtn.textContent = t.review.addComment;
+  commentBtn.title = t.review.addCommentTooltip;
+  commentBtn.addEventListener("mousedown", (event) => event.preventDefault());
+  commentBtn.addEventListener("click", () => editor.startComment());
+  syncCommentAction = (): void => {
+    commentBtn.hidden = editor.getMode() === "view";
+    commentBtn.disabled = !editor.getSelection() || !editor.canReviewAction("comment.create");
+  };
+  syncCommentAction();
+  headerReview.append(modeSel, commentBtn, reviewBtn);
   tabsBar.appendChild(headerReview);
+  shell.root.addEventListener("keydown", (event) => {
+    const shortcut = event.altKey && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "m";
+    if (!shortcut) return;
+    event.preventDefault();
+    editor.startComment();
+  }, { capture: true, signal: teardown.signal });
 
-  group(view, "Zoom");
-  txtBtn("−", "Zoom out", () => editor.setZoom(editor.getZoom() / config.behavior.zoomStep), "font-size:15px;");
-  const zoomSel = select("Zoom level", 66);
+  group(view, t.view.groupZoom);
+  txtBtn("−", t.view.zoomOut, () => editor.setZoom(editor.getZoom() / config.behavior.zoomStep), "font-size:15px;");
+  const zoomSel = select(t.view.zoomLevel, 66);
   for (const z of [0.5, 0.75, 1, 1.25, 1.5, 2, 3]) opt(zoomSel, String(z), `${Math.round(z * 100)}%`);
   zoomSel.value = "1";
   zoomSel.addEventListener("change", () => editor.setZoom(parseFloat(zoomSel.value)));
-  txtBtn("+", "Zoom in", () => editor.setZoom(editor.getZoom() * config.behavior.zoomStep), "font-size:15px;");
+  txtBtn("+", t.view.zoomIn, () => editor.setZoom(editor.getZoom() * config.behavior.zoomStep), "font-size:15px;");
 
   // ---- Activity panel (who created/edited, when) — online only ------------
   if (online) {
@@ -2130,7 +2175,7 @@ if (toolbar) {
     ahead.style.cssText =
       "flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #e1dfdd;font-weight:600;color:#323130;";
     const atitle = el("span");
-    atitle.textContent = "Activity";
+    atitle.textContent = t.activity.title;
     const aclose = el("button");
     aclose.textContent = "×";
     aclose.style.cssText = "border:none;background:transparent;font-size:18px;cursor:pointer;color:#605e5c;";
@@ -2144,16 +2189,16 @@ if (toolbar) {
 
     const nameOf = (f: string, l: string): string => `${f} ${l}`.trim() || "Unknown";
     const kindLabel = (origin: string): string =>
-      origin === "typing" ? "typed"
-      : origin === "paste" ? "pasted"
-      : origin === "undo" ? "undo"
-      : origin === "redo" ? "redo"
-      : "edited";
+      origin === "typing" ? t.activity.originTyped
+      : origin === "paste" ? t.activity.originPasted
+      : origin === "undo" ? t.activity.originUndo
+      : origin === "redo" ? t.activity.originRedo
+      : t.activity.originEdited;
     const timeAgo = (ts: number): string => {
       const s = Math.max(0, (Date.now() - ts) / 1000);
-      if (s < 60) return "just now";
-      if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-      if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+      if (s < 60) return t.activity.justNow;
+      if (s < 3600) return `${Math.floor(s / 60)}${t.activity.minutesAgo}`;
+      if (s < 86400) return `${Math.floor(s / 3600)}${t.activity.hoursAgo}`;
       return new Date(ts).toLocaleDateString();
     };
 
@@ -2166,13 +2211,15 @@ if (toolbar) {
     }
     const render = (a: ActivityResp): void => {
       ameta.textContent = a.createdBy
-        ? `Created by ${nameOf(a.creatorFirstName, a.creatorLastName)} · ${timeAgo(a.createdAt)}`
-        : "Created locally";
+        ? t.activity.createdByTemplate
+            .replace("{name}", nameOf(a.creatorFirstName, a.creatorLastName))
+            .replace("{time}", timeAgo(a.createdAt))
+        : t.activity.createdLocally;
       alist.textContent = "";
       if (a.entries.length === 0) {
         const e = el("div");
         e.style.cssText = "padding:12px;color:#80868b;";
-        e.textContent = "No edits yet.";
+        e.textContent = t.activity.noEdits;
         alist.appendChild(e);
         return;
       }
@@ -2192,7 +2239,7 @@ if (toolbar) {
 
     const fetchActivity = async (): Promise<void> => {
       if (!collabId || !BACKEND_HTTP) {
-        ameta.textContent = "Share the document (or open one online) to track activity.";
+        ameta.textContent = t.activity.shareToTrack;
         alist.textContent = "";
         return;
       }
@@ -2241,10 +2288,10 @@ if (toolbar) {
   if (outlineEl) {
     const head = el("div", "outline-head");
     const title = el("span");
-    title.textContent = "Outline";
+    title.textContent = t.outline.title;
     const closeBtn = el("button");
     closeBtn.innerHTML = "×";
-    closeBtn.title = "Close";
+    closeBtn.title = t.common.close;
     head.append(title, closeBtn);
     const list = el("div");
     list.className = "ked-outline-list";
@@ -2309,7 +2356,7 @@ if (toolbar) {
         buttons.clear();
         if (collected.length === 0) {
           const empty = el("div", "outline-empty");
-          empty.textContent = "No headings yet. Apply a Heading style (Heading 1–9) to build an outline.";
+          empty.textContent = t.outline.noHeadings;
           list.appendChild(empty);
         } else {
           for (const c of collected) {
@@ -2350,14 +2397,14 @@ if (toolbar) {
       "box-shadow:-4px 0 16px rgba(0,0,0,0.08);display:none;flex-direction:column;font-size:13px;";
     const head = el("div", "outline-head");
     const title = el("span");
-    title.textContent = "Bookmarks";
+    title.textContent = t.view.bookmarks;
     const addBtn = el("button");
     addBtn.textContent = "+";
     addBtn.title = "Add a bookmark for the current selection";
     addBtn.style.cssText = "margin-left:auto;border:none;background:transparent;font-size:18px;cursor:pointer;color:#2b579a;";
     const closeBtn = el("button");
     closeBtn.innerHTML = "×";
-    closeBtn.title = "Close";
+    closeBtn.title = t.common.close;
     head.append(title, addBtn, closeBtn);
     const list = el("div");
     list.style.cssText = "flex:1 1 auto;overflow-y:auto;padding:2px 0;";
@@ -2465,9 +2512,11 @@ if (toolbar) {
     const head = el("div", "ked-review-head");
     const title = el("span", "ked-review-title");
     title.textContent = "Review";
+    const newCommentBtn = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "+ Comment", () => editor.startComment());
+    newCommentBtn.title = "Add comment at the selection (Ctrl+Alt+M)";
     const closeBtn = mkBtn("ked-review-close", "×", () => setOpen(false));
     closeBtn.title = "Close";
-    head.append(title, closeBtn);
+    head.append(title, newCommentBtn, closeBtn);
 
     // tabs
     const tabs = el("div", "ked-review-tabs");
@@ -2483,11 +2532,18 @@ if (toolbar) {
     reviewEl.append(head, tabs, body);
 
     let activeTab: "suggestions" | "comments" = "suggestions";
+    let commentFilter: "open" | "resolved" | "all" = "open";
+    let activeThreadId: string | null = null;
+    const reviewDisposers = new Set<() => void>();
+    const disposeReviewBindings = (): void => {
+      for (const dispose of reviewDisposers) dispose();
+      reviewDisposers.clear();
+    };
 
     const emptyState = (ico: string, text: string): HTMLElement => {
       const e = el("div", "ked-review-empty");
       const i = el("div", "ked-review-empty-ico");
-      i.textContent = ico;
+      i.innerHTML = ico;
       const t = el("div");
       t.textContent = text;
       e.append(i, t);
@@ -2496,7 +2552,7 @@ if (toolbar) {
 
     const renderSuggestions = (review: ReturnType<typeof editor.getReview>): void => {
       if (review.suggestions.length === 0) {
-        body.append(emptyState("✦", "No suggestions yet. Switch the mode to Suggesting and edit — your changes become tracked proposals here."));
+        body.append(emptyState(ICONS.marks, "No suggestions yet. Switch the mode to Suggesting and edit — your changes become tracked proposals here."));
         return;
       }
       const bar = el("div", "ked-review-actions");
@@ -2555,23 +2611,97 @@ if (toolbar) {
     };
 
     const renderComments = (review: ReturnType<typeof editor.getReview>): void => {
-      if (review.threads.length === 0) {
-        body.append(emptyState("💬", "No comments yet. Select text in the document and click 💬 in the toolbar to start a discussion."));
+      const filters = el("div", "ked-comment-filters");
+      for (const value of ["open", "resolved", "all"] as const) {
+        const label = value[0]!.toUpperCase() + value.slice(1);
+        const button = mkBtn("ked-comment-filter" + (commentFilter === value ? " active" : ""), label, () => {
+          commentFilter = value;
+          build();
+        });
+        filters.append(button);
+      }
+      body.append(filters);
+      const threads = review.threads.filter((thread) =>
+        commentFilter === "all" || thread.status === commentFilter,
+      );
+      if (threads.length === 0) {
+        body.append(emptyState(ICONS.comment, review.threads.length === 0
+          ? "No comments yet. Select text or place the caret, then use + Comment or Ctrl+Alt+M."
+          : `No ${commentFilter} discussions.`));
         return;
       }
-      for (const t of review.threads) {
-        const card = el("div", t.status === "resolved" ? "ked-thread resolved" : "ked-thread");
+      for (const t of threads) {
+        const active = activeThreadId === t.id;
+        const card = el("div", `ked-thread${t.status === "resolved" ? " resolved" : ""}${active ? " active" : ""}`);
+        card.dataset.threadId = t.id;
         for (const c of t.comments) {
           const cm = el("div", "ked-comment");
           const main = el("div", "ked-comment-main");
           const who = el("div", "ked-comment-who");
           who.textContent = authorName(c.author);
           const when = el("span", "ked-comment-when");
-          when.textContent = timeAgo(c.createdAt);
+          when.textContent = `${timeAgo(c.createdAt)}${c.editedAt ? " · edited" : ""}`;
           who.append(when);
           const text = el("div", "ked-comment-body");
-          renderCommentBody(text, c.body.map((r) => r.text).join(""), c.mentions);
+          if (c.deletedAt) {
+            text.classList.add("deleted");
+            text.textContent = "Comment deleted";
+          } else {
+            renderCommentBody(text, c.body.map((r) => r.text).join(""), c.mentions);
+          }
           main.append(who, text);
+          if (!c.deletedAt) {
+            const commentActions = el("div", "ked-comment-actions");
+            const actionMenu = el("details", "ked-comment-menu");
+            const actionSummary = el("summary");
+            actionSummary.textContent = "⋯";
+            actionSummary.title = "Comment actions";
+            actionSummary.setAttribute("aria-label", "Comment actions");
+            const actionItems = el("div", "ked-comment-menu-items");
+            actionItems.setAttribute("role", "menu");
+            actionMenu.append(actionSummary, actionItems);
+            if (editor.canReviewAction("comment.edit", t.id, c.id)) {
+              actionItems.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Edit", () => {
+                actionMenu.removeAttribute("open");
+                const editorBox = el("div", "ked-comment-edit");
+                const editTa = el("textarea") as HTMLTextAreaElement;
+                editTa.value = c.body.map((run) => run.text).join("");
+                const editMentions = attachMentionAutocomplete(editTa, () => editor.getKnownUsers(), {
+                  ...(runtime.mentionPicker ? { picker: runtime.mentionPicker } : {}),
+                  context: "edit-comment",
+                  documentId: () => collabId,
+                  threadId: t.id,
+                  initialMentions: c.mentions ?? [],
+                });
+                reviewDisposers.add(() => editMentions.destroy());
+                const cancelEdit = mkBtn("ked-btn ked-btn-sm", "Cancel", () => { editMentions.destroy(); editorBox.remove(); text.style.display = ""; });
+                const saveEdit = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "Save", () => {
+                  const value = editTa.value.trim();
+                  if (!value) return;
+                  editor.editComment(t.id, c.id, commentFragment(value), editMentions.getMentions());
+                  editMentions.destroy();
+                });
+                editTa.addEventListener("keydown", (event) => {
+                  if (event.key === "Escape") { event.preventDefault(); cancelEdit.click(); }
+                  else if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); saveEdit.click(); }
+                });
+                editorBox.append(editTa, cancelEdit, saveEdit);
+                text.style.display = "none";
+                main.append(editorBox);
+                editTa.focus();
+              }));
+            }
+            if (editor.canReviewAction("comment.delete", t.id, c.id)) {
+              actionItems.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm ked-danger", "Delete", () => {
+                actionMenu.removeAttribute("open");
+                if (confirm("Delete this comment? Replies will be preserved.")) editor.deleteComment(t.id, c.id);
+              }));
+            }
+            if (actionItems.childElementCount > 0) {
+              commentActions.append(actionMenu);
+              main.append(commentActions);
+            }
+          }
           cm.append(avatar(c.author), main);
           card.append(cm);
         }
@@ -2580,12 +2710,29 @@ if (toolbar) {
         const replyTa = el("textarea") as HTMLTextAreaElement;
         replyTa.placeholder = "Reply…";
         replyTa.style.cssText = "flex:1 1 auto;resize:none;min-height:34px;border:1px solid #dadce0;border-radius:6px;padding:6px 8px;font:13px/1.4 inherit;outline:none;";
-        const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers());
+        const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers(), {
+          ...(runtime.mentionPicker ? { picker: runtime.mentionPicker } : {}),
+          context: "reply",
+          documentId: () => collabId,
+          threadId: t.id,
+        });
+        reviewDisposers.add(() => replyMentions.destroy());
         const replySend = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "Reply", () => {
           const v = replyTa.value.trim();
           if (!v) return;
           editor.replyToComment(t.id, commentFragment(v), replyMentions.getMentions());
           editor.focus();
+        });
+        replyTa.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            replyTa.value = "";
+            replyBox.classList.remove("open");
+            editor.focus();
+          } else if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
+            replySend.click();
+          }
         });
         replyBox.append(replyTa, replySend);
         const actions = el("div", "ked-thread-actions");
@@ -2593,19 +2740,28 @@ if (toolbar) {
           const tag = el("span", "ked-resolved-tag");
           tag.textContent = "✓ Resolved";
           actions.append(tag);
-          actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reopen", () => { editor.resolveThread(t.id, false); editor.focus(); }));
+          if (editor.canReviewAction("thread.reopen", t.id)) {
+            actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reopen", () => { editor.resolveThread(t.id, false); editor.focus(); }));
+          }
         } else {
-          actions.append(
-            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reply", () => {
+          if (editor.canReviewAction("comment.reply", t.id)) {
+            actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reply", () => {
               replyBox.classList.add("open");
+              activeThreadId = t.id;
               replyTa.focus();
-            }),
-            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Resolve", () => { editor.resolveThread(t.id, true); editor.focus(); }),
-          );
+            }));
+          }
+          if (editor.canReviewAction("thread.resolve", t.id)) {
+            actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Resolve", () => { editor.resolveThread(t.id, true); editor.focus(); }));
+          }
         }
+        if (active && t.status === "open" && editor.canReviewAction("comment.reply", t.id)) replyBox.classList.add("open");
         card.append(replyBox, actions);
         card.addEventListener("click", (e) => {
-          if (!(e.target as HTMLElement).closest("button, textarea, .ked-reply-box")) editor.revealReview(t.id);
+          if (!(e.target as HTMLElement).closest("button, textarea, .ked-reply-box")) {
+            activeThreadId = t.id;
+            editor.openCommentThread(t.id);
+          }
         });
         body.append(card);
       }
@@ -2617,7 +2773,10 @@ if (toolbar) {
       comPill.textContent = String(review.threads.filter((t) => t.status === "open").length);
       tabSug.classList.toggle("active", activeTab === "suggestions");
       tabCom.classList.toggle("active", activeTab === "comments");
+      disposeReviewBindings();
       body.textContent = "";
+      newCommentBtn.hidden = editor.getMode() === "view";
+      newCommentBtn.disabled = !editor.getSelection() || !editor.canReviewAction("comment.create");
       if (activeTab === "suggestions") renderSuggestions(review);
       else renderComments(review);
     };
@@ -2630,8 +2789,20 @@ if (toolbar) {
       reviewEl.classList.toggle("open", v);
       reviewBtn.classList.toggle("active", v);
       if (v) build();
+      else disposeReviewBindings();
     };
     toggleReview = (): void => setOpen(!open);
+    focusCommentThread = (threadId: string): void => {
+      activeTab = "comments";
+      activeThreadId = threadId;
+      const thread = editor.getReview().threads.find((item) => item.id === threadId);
+      if (thread?.status === "resolved") commentFilter = "resolved";
+      else commentFilter = "open";
+      setOpen(true);
+      requestAnimationFrame(() => {
+        body.querySelector<HTMLElement>(`[data-thread-id="${CSS.escape(threadId)}"]`)?.scrollIntoView({ block: "nearest" });
+      });
+    };
     refreshReview = (): void => {
       if (open) build();
     };
@@ -3476,8 +3647,14 @@ const handle: EditorHandle = {
   acceptAllSuggestions: () => editor.acceptAllSuggestions(),
   rejectAllSuggestions: () => editor.rejectAllSuggestions(),
   addComment: (body, mentions) => editor.addComment(body, mentions),
+  startComment: () => editor.startComment(),
+  openCommentThread: (threadId) => editor.openCommentThread(threadId),
   replyToComment: (threadId, body, mentions) => editor.replyToComment(threadId, body, mentions),
+  editComment: (threadId, commentId, body, mentions) => editor.editComment(threadId, commentId, body, mentions),
+  deleteComment: (threadId, commentId) => editor.deleteComment(threadId, commentId),
   resolveThread: (threadId, resolved) => editor.resolveThread(threadId, resolved),
+  canReviewAction: (action, threadId, commentId) => editor.canReviewAction(action, threadId, commentId),
+  setReviewAccess: (access) => editor.setReviewAccess(access),
   destroy: () => {
     emitPublic("editor.destroyed", {}, { source: "system" });
     disposeAgentTools?.(); // unregister WebMCP tools before tearing the editor down

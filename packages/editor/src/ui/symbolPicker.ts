@@ -7,6 +7,8 @@
 
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
+import type { SymbolPickerMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 export interface SymbolPickerOptions {
   /** Called with the symbol font and the UPPER-CASE hex code point (e.g. "F0E0")
@@ -15,6 +17,7 @@ export interface SymbolPickerOptions {
   /** Called when the panel closes (×, Escape, or a programmatic close) so the
    *  opener can drop its retained handle. */
   onClose?: () => void;
+  messages?: SymbolPickerMessages;
 }
 
 export interface SymbolPickerHandle {
@@ -82,11 +85,12 @@ const writeRecent = (font: string, char: string): RecentSymbol[] => {
 
 const glyphOf = (charHex: string): string => {
   const cp = parseInt(charHex, 16);
-  return Number.isFinite(cp) && cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : "�";
+  return Number.isFinite(cp) && cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : "";
 };
 
 export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle {
   injectCssOnce("ked-symbol-picker", CSS);
+  const t = opts.messages ?? defaultMessages.symbolPicker;
   const ac = new AbortController();
 
   const backdrop = document.createElement("div");
@@ -98,7 +102,7 @@ export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle 
 
   const head = document.createElement("div");
   head.className = "ked-symp-head";
-  head.innerHTML = `<span class="t">Insert symbol</span>`;
+  head.innerHTML = `<span class="t">${t.title}</span>`;
   const x = document.createElement("button");
   x.className = "ked-symp-x";
   x.textContent = "×";
@@ -112,7 +116,7 @@ export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle 
   const fontRow = document.createElement("div");
   fontRow.className = "ked-symp-row";
   const fontLabel = document.createElement("label");
-  fontLabel.textContent = "Font";
+  fontLabel.textContent = t.font;
   const fontSel = document.createElement("select");
   for (const f of FONTS) {
     const o = document.createElement("option");
@@ -127,7 +131,7 @@ export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle 
   recentWrap.className = "ked-symp-recent-wrap";
   const recentLabel = document.createElement("div");
   recentLabel.className = "ked-symp-label";
-  recentLabel.textContent = "Recently used";
+  recentLabel.textContent = t.recentlyUsed;
   const recentRow = document.createElement("div");
   recentRow.className = "ked-symp-recent";
   recentWrap.append(recentLabel, recentRow);
@@ -135,7 +139,7 @@ export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle 
   // Glyph grid.
   const gridLabel = document.createElement("div");
   gridLabel.className = "ked-symp-label";
-  gridLabel.textContent = "Symbols";
+  gridLabel.textContent = t.symbols;
   const grid = document.createElement("div");
   grid.className = "ked-symp-grid";
 

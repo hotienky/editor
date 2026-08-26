@@ -137,6 +137,7 @@ export interface ReviewPin {
   color: string;
   threadId: string;
   resolved: boolean;
+  count: number;
 }
 
 /** Paint-only review decorations, computed from the review layer + layout tree.
@@ -245,8 +246,8 @@ const ADORNMENT_LABEL_OFFSET_Y = 11;
 
 // Review comment pin (right-margin marker). Radius + vertical offset are shared
 // between the painted disc and reviewPinAt's hit-testing so they stay aligned.
-const PIN_RADIUS_PX = 5;
-const PIN_OFFSET_PX = 6;
+const PIN_RADIUS_PX = 9;
+const PIN_OFFSET_PX = 10;
 
 /** Stroke a page's w:pgBorders box. Shares geometry with the PDF painter via
  *  pageBorderSegments so the two backends stay in lockstep. */
@@ -796,13 +797,28 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
     }
     for (const pin of reviewDecos.pins) {
       if (pin.pageIndex !== page.index) continue;
+      const cy = pin.y + PIN_OFFSET_PX;
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(pin.x, pin.y + PIN_OFFSET_PX, PIN_RADIUS_PX, 0, Math.PI * 2);
+      ctx.arc(pin.x, cy, PIN_RADIUS_PX, 0, Math.PI * 2);
       ctx.fillStyle = pin.resolved ? theme.reviewPinResolved : pin.color;
       ctx.fill();
       ctx.lineWidth = 1;
       ctx.strokeStyle = theme.reviewPinStroke;
       ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pin.x - 4, cy + 7);
+      ctx.lineTo(pin.x - 7, cy + 12);
+      ctx.lineTo(pin.x + 1, cy + 8);
+      ctx.closePath();
+      ctx.fillStyle = pin.resolved ? theme.reviewPinResolved : pin.color;
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 9px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(Math.min(99, pin.count)), pin.x, cy + 0.5);
+      ctx.restore();
     }
 
     // 5. story-edit affordance: dim the body, dash the band boundary.
@@ -1360,7 +1376,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
         const dx = pt.x - pin.x;
         const dy = pt.y - (pin.y + PIN_OFFSET_PX);
         const d2 = dx * dx + dy * dy;
-        if (d2 <= 100 && (!best || d2 < best.d2)) best = { id: pin.threadId, d2 }; // 10px hit radius (larger than the painted disc)
+        if (d2 <= 225 && (!best || d2 < best.d2)) best = { id: pin.threadId, d2 }; // 15px hit radius
       }
       return best ? best.id : null;
     },

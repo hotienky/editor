@@ -7,6 +7,8 @@ import type { CellBorder, CellMargin, RowProps, TableCell } from "@kindy/shared"
 import type { BorderEdgeFlags } from "../editor/commands";
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
+import type { DialogCommon, TablePropertiesMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 export type BorderStyleName = NonNullable<CellBorder["style"]> | "single";
 
@@ -77,6 +79,11 @@ export interface TablePropertiesCallbacks {
   applyTableDefaultCellMargin(margin: CellMargin | null): void;
 }
 
+export interface TablePropertiesOptions {
+  messages?: TablePropertiesMessages;
+  common?: DialogCommon;
+}
+
 export interface TablePropertiesHandle {
   close(): void;
 }
@@ -128,8 +135,10 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLEl
 const cssBorderStyle = (s: BorderStyleName): string =>
   s === "double" ? "double" : s === "dashed" ? "dashed" : s === "dotted" ? "dotted" : "solid";
 
-export function showTableProperties(init: TablePropertiesInit, cb: TablePropertiesCallbacks): TablePropertiesHandle {
+export function showTableProperties(init: TablePropertiesInit, cb: TablePropertiesCallbacks, opts: TablePropertiesOptions = {}): TablePropertiesHandle {
   injectCssOnce("ked-tbl-styles", TBL_CSS);
+  const t = opts.messages ?? defaultMessages.tableProperties;
+  const c = opts.common ?? defaultMessages.common;
 
   // Live border spec the buttons apply.
   let color = init.color;
@@ -161,12 +170,12 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   // Header
   const head = el("div", "ked-tbl-head");
   const h2 = el("h2");
-  h2.textContent = "Borders & Shading";
+  h2.textContent = t.title;
   const badge = el("span", "ked-tbl-badge");
   badge.textContent = init.rangeLabel;
   const xBtn = el("button", "ked-tbl-x");
   xBtn.textContent = "×";
-  xBtn.title = "Close (Esc)";
+  xBtn.title = t.closeTooltip;
   head.append(h2, badge, xBtn);
 
   const body = el("div", "ked-tbl-body");
@@ -174,7 +183,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   // ---- Borders section ----------------------------------------------------
   const bSection = el("div");
   const bTitle = el("div", "ked-tbl-section-title");
-  bTitle.textContent = "Borders";
+  bTitle.textContent = t.sectionBorders;
   bSection.appendChild(bTitle);
 
   // Spec controls: color, width, style + a live preview.
@@ -183,9 +192,9 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   colorInput.type = "color";
   colorInput.className = "ked-tbl-swatch";
   colorInput.value = toHexColor(color);
-  colorInput.title = "Line color";
+  colorInput.title = t.borderColor;
   const colorLabel = el("label");
-  colorLabel.append("Color", colorInput);
+  colorLabel.append(t.borderColor, colorInput);
 
   const widthInput = el("input");
   widthInput.type = "number";
@@ -194,7 +203,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   widthInput.step = "0.25";
   widthInput.value = String(widthPx);
   const widthLabel = el("label");
-  widthLabel.append("Width (px)", widthInput);
+  widthLabel.append(t.borderWidth, widthInput);
 
   const styleSelect = el("select");
   for (const s of STYLES) {
@@ -205,7 +214,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     styleSelect.appendChild(opt);
   }
   const styleLabel = el("label");
-  styleLabel.append("Style", styleSelect);
+  styleLabel.append(t.borderStyle, styleSelect);
 
   const preview = el("div", "ked-tbl-preview");
   const previewBox = el("div", "box");
@@ -245,10 +254,10 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     return b;
   };
   presetRow.append(
-    presetBtn("All", () => doBorders(spec(), allFlags)),
-    presetBtn("Outside", () => doBorders(spec(), { top: true, right: true, bottom: true, left: true })),
-    presetBtn("Inside", () => doBorders(spec(), { insideH: true, insideV: true }), init.multiCell),
-    presetBtn("None", () => doBorders(null, allFlags)),
+    presetBtn(t.presetAll, () => doBorders(spec(), allFlags)),
+    presetBtn(t.presetOutside, () => doBorders(spec(), { top: true, right: true, bottom: true, left: true })),
+    presetBtn(t.presetInside, () => doBorders(spec(), { insideH: true, insideV: true }), init.multiCell),
+    presetBtn(t.presetNone, () => doBorders(null, allFlags)),
   );
 
   // Individual edges.
@@ -256,26 +265,26 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   const edgeBtn = (label: string, flag: BorderEdgeFlags, enabled = true): HTMLButtonElement =>
     presetBtn(label, () => doBorders(spec(), flag), enabled);
   edgeRow.append(
-    edgeBtn("Top", { top: true }),
-    edgeBtn("Bottom", { bottom: true }),
-    edgeBtn("Left", { left: true }),
-    edgeBtn("Right", { right: true }),
-    edgeBtn("Inside H", { insideH: true }, init.multiCell),
-    edgeBtn("Inside V", { insideV: true }, init.multiCell),
+    edgeBtn(t.edgeTop, { top: true }),
+    edgeBtn(t.edgeBottom, { bottom: true }),
+    edgeBtn(t.edgeLeft, { left: true }),
+    edgeBtn(t.edgeRight, { right: true }),
+    edgeBtn(t.edgeInsideH, { insideH: true }, init.multiCell),
+    edgeBtn(t.edgeInsideV, { insideV: true }, init.multiCell),
   );
 
   const hint = el("div", "ked-tbl-hint");
-  hint.textContent = "Pick a target to apply now — or set the options above and click Done.";
+  hint.textContent = t.hint;
   const applyToCap = el("div", "ked-tbl-caption");
-  applyToCap.textContent = "Apply borders to";
+  applyToCap.textContent = t.borderApplyTo;
   const edgesCap = el("div", "ked-tbl-caption");
-  edgesCap.textContent = "Individual edges";
+  edgesCap.textContent = t.individualEdges;
   bSection.append(specRow, hint, applyToCap, presetRow, edgesCap, edgeRow);
 
   // ---- Shading section ----------------------------------------------------
   const sSection = el("div");
   const sTitle = el("div", "ked-tbl-section-title");
-  sTitle.textContent = "Shading (fill)";
+  sTitle.textContent = t.sectionShading;
   const sRow = el("div", "ked-tbl-row");
   const fillInput = el("input");
   fillInput.type = "color";
@@ -283,9 +292,9 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   fillInput.value = toHexColor(init.shading ?? "#ffffff");
   fillInput.addEventListener("input", () => { fillTouched = true; });
   const fillLabel = el("label");
-  fillLabel.append("Fill", fillInput);
-  const applyFill = presetBtn("Apply Fill", () => doShading(fillInput.value));
-  const noFill = presetBtn("No Fill", () => doShading(null));
+  fillLabel.append(t.fill, fillInput);
+  const applyFill = presetBtn(t.applyFill, () => doShading(fillInput.value));
+  const noFill = presetBtn(t.noFill, () => doShading(null));
   sRow.append(fillLabel, applyFill, noFill);
   sSection.append(sTitle, sRow);
 
@@ -294,11 +303,11 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   // undo step. Width is offered as % of page or inches; "Full width" clears it.
   const zSection = el("div");
   const zTitle = el("div", "ked-tbl-section-title");
-  zTitle.textContent = "Table size";
+  zTitle.textContent = t.sectionTableSize;
 
   const zRow = el("div", "ked-tbl-spec");
   const unitSelect = el("select");
-  for (const [val, lbl] of [["full", "Full width"], ["pct", "% of page"], ["in", "Inches"]] as const) {
+  for (const [val, lbl] of [["full", t.fullWidth], ["pct", t.unitPercent], ["in", t.unitInch]] as const) {
     const o = el("option");
     o.value = val;
     o.textContent = lbl;
@@ -335,11 +344,11 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   });
   widthValInput.addEventListener("change", applyWidth);
   const zWidthLabel = el("label");
-  zWidthLabel.append("Width", widthValInput, unitSelect);
+  zWidthLabel.append(t.tableWidth, widthValInput, unitSelect);
   zRow.append(zWidthLabel);
 
   const alignCap = el("div", "ked-tbl-caption");
-  alignCap.textContent = "Alignment";
+  alignCap.textContent = t.tableAlign;
   const alignRow = el("div", "ked-tbl-row");
   let curAlign: "left" | "center" | "right" = init.tableAlign;
   const alignBtns: Partial<Record<"left" | "center" | "right", HTMLButtonElement>> = {};
@@ -355,16 +364,16 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     alignBtns[a] = b;
     return b;
   };
-  alignRow.append(alignBtn("Left", "left"), alignBtn("Center", "center"), alignBtn("Right", "right"));
+  alignRow.append(alignBtn(t.tableAlignLeft, "left"), alignBtn(t.tableAlignCenter, "center"), alignBtn(t.tableAlignRight, "right"));
   refreshAlign();
   zSection.append(zTitle, zRow, alignCap, alignRow);
 
   // ---- Cell section (vAlign + text direction) — applies live ----------------
   const cSection = el("div");
   const cTitle = el("div", "ked-tbl-section-title");
-  cTitle.textContent = "Cell";
+  cTitle.textContent = t.sectionCell;
   const vCap = el("div", "ked-tbl-caption");
-  vCap.textContent = "Vertical alignment";
+  vCap.textContent = t.cellVAlign;
   const vRow = el("div", "ked-tbl-row");
   let curVAlign: CellVAlign = init.vAlign;
   const vBtns: Partial<Record<CellVAlign, HTMLButtonElement>> = {};
@@ -380,14 +389,14 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     vBtns[a] = b;
     return b;
   };
-  vRow.append(vBtn("Top", "top"), vBtn("Center", "center"), vBtn("Bottom", "bottom"));
+  vRow.append(vBtn(t.cellVAlignTop, "top"), vBtn(t.cellVAlignCenter, "center"), vBtn(t.cellVAlignBottom, "bottom"));
   refreshVAlign();
 
   const dCap = el("div", "ked-tbl-caption");
-  dCap.textContent = "Text direction";
+  dCap.textContent = t.cellTextDir;
   const dRow = el("div", "ked-tbl-row");
   const dirSelect = el("select");
-  for (const [val, lbl] of [["lrTb", "Horizontal"], ["tbRl", "Rotate 90°"], ["btLr", "Rotate 270°"]] as const) {
+  for (const [val, lbl] of [["lrTb", t.cellTextDirLrTb], ["tbRl", t.cellTextDirTbRl], ["btLr", t.cellTextDirBtLr]] as const) {
     const o = el("option");
     o.value = val;
     o.textContent = lbl;
@@ -396,17 +405,17 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   }
   dirSelect.addEventListener("change", () => cb.applyTextDir(dirSelect.value as CellTextDir));
   const dLabel = el("label");
-  dLabel.append("Direction", dirSelect);
+  dLabel.append(t.cellTextDir, dirSelect);
   dRow.append(dLabel);
   cSection.append(cTitle, vCap, vRow, dCap, dRow);
 
   // ---- Row section (height + cant-split + repeat-header) — applies live ------
   const rSection = el("div");
   const rTitle = el("div", "ked-tbl-section-title");
-  rTitle.textContent = "Row";
+  rTitle.textContent = t.sectionRow;
   const hRow = el("div", "ked-tbl-spec");
   const heightRule = el("select");
-  for (const [val, lbl] of [["none", "Auto"], ["atLeast", "At least"], ["exact", "Exactly"]] as const) {
+  for (const [val, lbl] of [["none", "Auto"], ["atLeast", t.rowHeightMin], ["exact", t.rowHeightExact]] as const) {
     const o = el("option");
     o.value = val;
     o.textContent = lbl;
@@ -437,7 +446,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   });
   heightVal.addEventListener("change", applyRowHeight);
   const hLabel = el("label");
-  hLabel.append("Height (px)", heightVal, heightRule);
+  hLabel.append(`${t.rowHeight} (${t.unitPx})`, heightVal, heightRule);
   hRow.append(hLabel);
 
   const flagRow = el("div", "ked-tbl-row");
@@ -451,15 +460,15 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     return lab;
   };
   flagRow.append(
-    flagCheck("Keep row together", init.cantSplit, "cantSplit"),
-    flagCheck("Repeat as header row", init.repeatHeader, "repeatHeader"),
+    flagCheck(t.rowKeepTogether, init.cantSplit, "cantSplit"),
+    flagCheck(t.rowRepeatHeader, init.repeatHeader, "repeatHeader"),
   );
   rSection.append(rTitle, hRow, flagRow);
 
   // ---- Table defaults (indent + table-level borders/shading/margins) ---------
   const dfSection = el("div");
   const dfTitle = el("div", "ked-tbl-section-title");
-  dfTitle.textContent = "Table defaults";
+  dfTitle.textContent = t.sectionTableDefaults;
   const indRow = el("div", "ked-tbl-spec");
   const indInput = el("input");
   indInput.type = "number";
@@ -471,36 +480,34 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     cb.applyTableIndent(Number.isFinite(v) && v > 0 ? v : 0);
   });
   const indLabel = el("label");
-  indLabel.append("Indent (px)", indInput);
+  indLabel.append(`${t.tableIndent} (${t.unitPx})`, indInput);
   indRow.append(indLabel);
 
   const dbCap = el("div", "ked-tbl-caption");
-  dbCap.textContent = init.hasTableDefaultBorders
-    ? "Default borders — all edges, from the Borders spec above (currently set)"
-    : "Default borders — all edges, from the Borders spec above";
+  dbCap.textContent = t.tableDefaultBorders;
   const dbRow = el("div", "ked-tbl-row");
   dbRow.append(
-    presetBtn("Apply", () => cb.applyTableDefaultBorders(spec())),
-    presetBtn("Clear", () => cb.applyTableDefaultBorders(null)),
+    presetBtn(c.apply, () => cb.applyTableDefaultBorders(spec())),
+    presetBtn(c.delete, () => cb.applyTableDefaultBorders(null)),
   );
 
   const dsCap = el("div", "ked-tbl-caption");
-  dsCap.textContent = "Default shading";
+  dsCap.textContent = t.tableDefaultShading;
   const dsRow = el("div", "ked-tbl-row");
   const dsInput = el("input");
   dsInput.type = "color";
   dsInput.className = "ked-tbl-swatch";
   dsInput.value = toHexColor(init.tableDefaultShading ?? "#ffffff");
   const dsLabel = el("label");
-  dsLabel.append("Fill", dsInput);
+  dsLabel.append(t.fill, dsInput);
   dsRow.append(
     dsLabel,
-    presetBtn("Apply", () => cb.applyTableDefaultShading(dsInput.value)),
-    presetBtn("Clear", () => cb.applyTableDefaultShading(null)),
+    presetBtn(c.apply, () => cb.applyTableDefaultShading(dsInput.value)),
+    presetBtn(c.delete, () => cb.applyTableDefaultShading(null)),
   );
 
   const dmCap = el("div", "ked-tbl-caption");
-  dmCap.textContent = "Default cell margins (px)";
+  dmCap.textContent = `${t.tableDefaultCellMargin} (${t.unitPx})`;
   const dmRow = el("div", "ked-tbl-spec");
   const m0 = init.tableDefaultCellMargin;
   const mkMargin = (lbl: string, v: number | undefined): HTMLInputElement => {
@@ -514,10 +521,10 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
     dmRow.appendChild(label);
     return input;
   };
-  const mTop = mkMargin("T", m0?.top);
-  const mRight = mkMargin("R", m0?.right);
-  const mBottom = mkMargin("B", m0?.bottom);
-  const mLeft = mkMargin("L", m0?.left);
+  const mTop = mkMargin(t.cellMarginTop, m0?.top);
+  const mRight = mkMargin(t.cellMarginRight, m0?.right);
+  const mBottom = mkMargin(t.cellMarginBottom, m0?.bottom);
+  const mLeft = mkMargin(t.cellMarginLeft, m0?.left);
   const applyMargins = (): void => {
     const num = (i: HTMLInputElement): number => {
       const v = Number(i.value);
@@ -527,7 +534,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   };
   for (const i of [mTop, mRight, mBottom, mLeft]) i.addEventListener("change", applyMargins);
   const dmBtnRow = el("div", "ked-tbl-row");
-  dmBtnRow.append(presetBtn("Clear margins", () => cb.applyTableDefaultCellMargin(null)));
+  dmBtnRow.append(presetBtn(c.delete, () => cb.applyTableDefaultCellMargin(null)));
   dfSection.append(dfTitle, indRow, dbCap, dbRow, dsCap, dsRow, dmCap, dmRow, dmBtnRow);
 
   body.append(bSection, sSection, zSection, cSection, rSection, dfSection);
@@ -535,7 +542,7 @@ export function showTableProperties(init: TablePropertiesInit, cb: TableProperti
   // Footer
   const foot = el("div", "ked-tbl-foot");
   const doneBtn = el("button", "ked-tbl-btn primary");
-  doneBtn.textContent = "Done";
+  doneBtn.textContent = t.done;
   foot.append(doneBtn);
 
   modal.append(head, body, foot);

@@ -1,14 +1,17 @@
-// Floating comment affordance — the 💬 chip beside a ranged suggest-mode selection
+// Floating comment affordance — the 💬 chip beside a ranged selection
 // and the inline composer it expands into. Extracted from createEditor (index.ts)
 // so the editor factory no longer owns this DOM + lifecycle. Pure presentation:
 // the host injects live selection/doc/layout/mode getters and the addComment sink.
 
-import type { CharStyle, Document, DocSelection, Fragment, UserInfo } from "@kindy/shared";
+import type { CharStyle, Document, DocSelection, Fragment, ReviewLayer, UserInfo } from "@kindy/shared";
 import { blockById, colorForId, isCollapsed, styleAtRuns } from "@kindy/shared";
 import { attachMentionAutocomplete } from "../review/mentions";
-import { selectionRects, type CaretRect, type GeoScope } from "../layout/geometry";
+import { caretRect, selectionRects, type CaretRect, type GeoScope } from "../layout/geometry";
 import type { LayoutTree } from "../layout/layoutTree";
 import type { CellSelection, EditMode } from "./state";
+import type { MentionPicker } from "../review/integration";
+import type { ReviewAction } from "../review/integration";
+import { ICONS } from "../ui/icons";
 
 export interface CommentControllerDeps {
   container: HTMLElement;
@@ -17,35 +20,48 @@ export interface CommentControllerDeps {
   getCellSelection: () => CellSelection | null | undefined;
   getTree: () => LayoutTree;
   getDoc: () => Document;
+  getReview: () => ReviewLayer;
   getMode: () => EditMode;
   scope: () => GeoScope | undefined;
   reviewAuthor: () => UserInfo;
   mentionableUsers: () => UserInfo[];
+  mentionPicker?: MentionPicker;
+  getDocumentId: () => string | null;
+  canCreateComment: () => boolean;
   addComment: (body: Fragment, mentions?: UserInfo[]) => string | null;
+  replyToComment: (threadId: string, body: Fragment, mentions?: UserInfo[]) => void;
+  resolveThread: (threadId: string, resolved?: boolean) => void;
+  canReviewAction: (action: ReviewAction, threadId?: string, commentId?: string) => boolean;
   focusProxy: () => void;
 }
 
 export interface CommentController {
   /** Expand the full composer at the current selection (chip click, or API). */
   openComposer(): void;
+  /** Open a compact anchored view of an existing discussion. */
+  openThread(threadId: string): void;
   /** Tear down the open composer, if any. */
   closeComposer(): void;
   /** Remove the floating chip, if shown. */
   hideChip(): void;
-  /** Show/hide the chip as the selection/mode changes (suggest mode only). */
+  /** Show/hide the chip as the selection/mode changes. */
   updateAffordance(): void;
 }
 
 export function createCommentController(deps: CommentControllerDeps): CommentController {
   const {
-    container, caretToContainer, getSelection, getCellSelection, getTree, getDoc, getMode,
-    scope, reviewAuthor, mentionableUsers, addComment, focusProxy,
+    container, caretToContainer, getSelection, getCellSelection, getTree, getDoc, getReview, getMode,
+    scope, reviewAuthor, mentionableUsers, mentionPicker, getDocumentId, canCreateComment,
+    addComment, replyToComment, resolveThread, canReviewAction, focusProxy,
   } = deps;
 
   let bubble: HTMLDivElement | null = null;
+  let bubbleCleanup: (() => void) | null = null;
   let chip: HTMLButtonElement | null = null;
 
   const closeComposer = (): void => {
+    bubbleCleanup?.();
+    bubbleCleanup = null;
     bubble?.remove();
     bubble = null;
   };
@@ -58,7 +74,13 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
    *  comment chip + composer, or null if there's no usable ranged selection. */
   const anchorAt = (): { left: number; top: number; lineH: number } | null => {
     const selection = getSelection();
-    if (!selection || isCollapsed(selection) || getCellSelection()) return null;
+    if (!selection || getCellSelection()) return null;
+    if (isCollapsed(selection)) {
+      const caret = caretRect(getTree(), selection.focus, scope());
+      if (!caret) return null;
+      const at = caretToContainer(caret);
+      return at ? { left: at.left, top: at.top, lineH: caret.height } : null;
+    }
     const rects = selectionRects(getTree(), selection, scope());
     if (rects.length === 0) return null;
     const r = rects[0]!;
@@ -76,8 +98,97 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     );
   };
 
+  const placeBubble = (el: HTMLElement, anchor: { left: number; top: number; lineH: number }): void => {
+    const maxLeft = container.clientWidth - 340;
+    el.style.left = `${Math.max(8, Math.min(anchor.left + 6, maxLeft))}px`;
+    el.style.top = `${anchor.top + anchor.lineH + 8}px`;
+  };
+
+  const openThread = (threadId: string): void => {
+    const thread = getReview().threads.find((item) => item.id === threadId);
+    const anchor = anchorAt();
+    if (!thread || !anchor) return;
+    hideChip();
+    closeComposer();
+    const el = document.createElement("div");
+    el.className = "ked-comment-bubble ked-comment-thread-popover";
+    placeBubble(el, anchor);
+    el.addEventListener("mousedown", (event) => event.stopPropagation());
+
+    const head = document.createElement("div");
+    head.className = "ked-thread-popover-head";
+    const title = document.createElement("strong");
+    title.textContent = `Discussion · ${thread.comments.length}`;
+    const close = document.createElement("button");
+    close.className = "ked-review-close";
+    close.textContent = "×";
+    close.addEventListener("click", () => { closeComposer(); focusProxy(); });
+    head.append(title, close);
+    el.append(head);
+
+    const list = document.createElement("div");
+    list.className = "ked-thread-popover-list";
+    for (const comment of thread.comments) {
+      const row = document.createElement("div");
+      row.className = "ked-thread-popover-comment";
+      const who = document.createElement("strong");
+      who.textContent = `${comment.author.firstName} ${comment.author.lastName}`.trim() || "Anonymous";
+      const text = document.createElement("div");
+      text.textContent = comment.deletedAt ? "Comment deleted" : comment.body.map((run) => run.text).join("");
+      if (comment.deletedAt) text.className = "deleted";
+      row.append(who, text);
+      list.append(row);
+    }
+    el.append(list);
+
+    if (thread.status === "open" && canReviewAction("comment.reply", threadId)) {
+      const reply = document.createElement("textarea");
+      reply.placeholder = "Reply… (@ to mention)";
+      const mentions = attachMentionAutocomplete(reply, mentionableUsers, {
+        ...(mentionPicker ? { picker: mentionPicker } : {}),
+        context: "reply",
+        documentId: getDocumentId,
+        threadId,
+      });
+      bubbleCleanup = () => mentions.destroy();
+      const send = document.createElement("button");
+      send.className = "ked-btn ked-btn-primary ked-btn-sm";
+      send.textContent = "Reply";
+      const submit = (): void => {
+        const text = reply.value.trim();
+        if (!text) return;
+        replyToComment(threadId, [{ text, style: styleForComment() }], mentions.getMentions());
+        mentions.destroy();
+        openThread(threadId);
+      };
+      send.addEventListener("click", submit);
+      reply.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") { event.preventDefault(); mentions.destroy(); closeComposer(); focusProxy(); }
+        else if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); submit(); }
+      });
+      const replyRow = document.createElement("div");
+      replyRow.className = "ked-thread-popover-reply";
+      replyRow.append(reply, send);
+      el.append(replyRow);
+    }
+
+    const statusAction = thread.status === "open" ? "thread.resolve" : "thread.reopen";
+    if (canReviewAction(statusAction, threadId)) {
+      const status = document.createElement("button");
+      status.className = "ked-btn ked-btn-ghost ked-btn-sm";
+      status.textContent = thread.status === "open" ? "Resolve" : "Reopen";
+      status.addEventListener("click", () => {
+        resolveThread(threadId, thread.status === "resolved");
+        openThread(threadId);
+      });
+      el.append(status);
+    }
+    container.appendChild(el);
+    bubble = el;
+  };
+
   const openComposer = (): void => {
-    if (getMode() === "view") return;
+    if (getMode() === "view" || !canCreateComment()) return;
     const anchor = anchorAt();
     if (!anchor) return;
     hideChip();
@@ -86,9 +197,7 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
 
     const el = document.createElement("div");
     el.className = "ked-comment-bubble";
-    const maxLeft = container.clientWidth - 312;
-    el.style.left = `${Math.max(8, Math.min(anchor.left + 6, maxLeft))}px`;
-    el.style.top = `${anchor.top + anchor.lineH + 8}px`;
+    placeBubble(el, anchor);
     el.addEventListener("mousedown", (e) => e.stopPropagation());
 
     const who = reviewAuthor();
@@ -101,7 +210,12 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     const ta = document.createElement("textarea");
     ta.placeholder = "Add a comment…  (@ to mention)";
     row.append(av, ta);
-    const mentions = attachMentionAutocomplete(ta, mentionableUsers);
+    const mentions = attachMentionAutocomplete(ta, mentionableUsers, {
+      ...(mentionPicker ? { picker: mentionPicker } : {}),
+      context: "new-comment",
+      documentId: getDocumentId,
+    });
+    bubbleCleanup = () => mentions.destroy();
 
     const actions = document.createElement("div");
     actions.className = "ked-bubble-actions";
@@ -124,10 +238,12 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     const send = (): void => {
       const text = ta.value.trim();
       if (!text) return;
-      addComment([{ text, style }], mentions.getMentions());
+      const selectedMentions = mentions.getMentions();
       mentions.destroy();
-      closeComposer();
-      focusProxy();
+      const threadId = addComment([{ text, style }], selectedMentions);
+      // The editor core opens/focuses the newly-created thread so the same
+      // behavior also applies to public addComment() calls.
+      if (!threadId) closeComposer();
     };
     ta.addEventListener("keydown", (e) => {
       if (e.key === "Escape") { e.preventDefault(); mentions.destroy(); closeComposer(); focusProxy(); }
@@ -139,7 +255,13 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
 
   const updateAffordance = (): void => {
     if (bubble) return; // composer open → leave it; chip is irrelevant
-    const anchor = getMode() === "suggest" ? anchorAt() : null;
+    const selection = getSelection();
+    // A caret remains a valid target for the toolbar/shortcut entry points, but
+    // the floating action is reserved for an explicit ranged selection so it
+    // does not follow every caret movement while the user is typing.
+    const anchor = selection && !isCollapsed(selection) && getMode() !== "view" && canCreateComment()
+      ? anchorAt()
+      : null;
     if (!anchor) {
       hideChip();
       return;
@@ -147,8 +269,8 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     if (!chip) {
       chip = document.createElement("button");
       chip.className = "ked-comment-chip";
-      chip.title = "Leave a comment";
-      chip.textContent = "💬";
+      chip.title = "Add comment (Ctrl+Alt+M)";
+      chip.innerHTML = ICONS.comment;
       // stopPropagation is essential: without it the selection controller sees the
       // mousedown and collapses the selection, so openComposer finds nothing.
       chip.addEventListener("mousedown", (e) => { e.preventDefault(); e.stopPropagation(); });
@@ -159,5 +281,5 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     chip.style.top = `${anchor.top - 4}px`;
   };
 
-  return { openComposer, closeComposer, hideChip, updateAffordance };
+  return { openComposer, openThread, closeComposer, hideChip, updateAffordance };
 }

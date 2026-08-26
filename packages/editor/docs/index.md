@@ -10,8 +10,8 @@ hero:
       text: Public Events API
       link: /public-events
     - theme: alt
-      text: HTTP Event Sink
-      link: /http-event-sink
+      text: Review Comments & Mentions
+      link: /review-comments
 
 features:
   - title: 📄 Canvas-based DOCX Engine
@@ -19,5 +19,5 @@ features:
   - title: ⚡ Real-time Event Stream
     details: Hệ thống event versioned mạnh mẽ cho autosave, audit log, workflow và tracking.
   - title: 🔌 Dễ dàng tích hợp
-    details: Hỗ trợ tích hợp đa nền tảng với đầy đủ TypeScript definitions.
+    details: Hỗ trợ TypeScript definitions, host-owned @mention picker, capability callbacks và notification events.
 ---

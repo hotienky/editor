@@ -77,6 +77,10 @@ export interface Comment {
   body: Fragment;
   createdAt: number;
   editedAt?: number;
+  /** Tombstone metadata. Deleted comments remain in the thread so replies and
+   * audit history never lose their conversational parent. */
+  deletedAt?: number;
+  deletedBy?: UserInfo;
   /** Users @-mentioned in this comment (structured, for notifications). The body
    *  text carries the "@Display Name" spans; this is the resolved identity list,
    *  drawn from the editor's `knownUsers`. */

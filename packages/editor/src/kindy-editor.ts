@@ -20,12 +20,15 @@ import type { DocSelection } from "@kindy/shared";
 import { BUNDLE_SHARE, type LoadProgress } from "./app/loadProgress";
 import { EditorEvents, type EditorEventsOptions } from "./events/eventHub";
 import type { PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType } from "@kindy/shared";
+import { resolveMessages } from "./i18n";
+import type { MentionPicker, MentionPickerRequest, ReviewAccess, ReviewAction, ReviewActionContext } from "./review/integration";
 
 export type { Document, UserInfo, Participant, EditMode, ReviewLayer, Fragment, FieldResolver, FieldResolveRequest, FieldResult, AgentToolsOptions, LoadProgress, KindyEditorViewOptions, SaveEvent, SaveFormat, SaveHandler };
 export type { ChildDocument, ChildContent, ChildRenderOptions, ChildEditorHandle };
 export type { EditorTheme, DefaultStyleOverrides, EditorBehavior, FontsConfig, CjkConfig, CustomFontDef, CustomFontFaces };
 export type { CustomizeRibbon, RibbonApi, RibbonButtonSpec, RibbonActionContext, DocSelection };
 export type { PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType, EditorEventsOptions };
+export type { MentionPicker, MentionPickerRequest, ReviewAccess, ReviewAction, ReviewActionContext };
 export { EditorEvents };
 export { darkCanvasTheme, makeFloatingDialog };
 
@@ -64,6 +67,10 @@ export interface KindyEditorOptions {
   /** Users that can be @-mentioned in comments. The embedder owns this roster;
    *  update it later with `setKnownUsers`. */
   knownUsers?: UserInfo[];
+  /** Host-owned async @mention picker. Omit to use the built-in knownUsers list. */
+  mentionPicker?: MentionPicker;
+  /** Client-side capability gate for comment and thread actions. */
+  reviewAccess?: ReviewAccess;
   /** Resolve a custom (developer-defined) field's content from your backend. When
    *  provided, right-clicking a custom field in the document offers "Update Field
    *  (<name>)"; this callback receives the field's name + verbatim instruction and
@@ -136,6 +143,10 @@ export interface KindyEditorOptions {
   /** Versioned integration events. Raw operations/selections are opt-in; attach
    * a sink to bridge events to an API, analytics bus, or audit pipeline. */
   events?: EditorEventsOptions;
+  /** UI locale (BCP-47). Currently supported: `"en"` (default) and `"vi"`.
+   *  Omitting this option auto-detects from `navigator.language`, falling back
+   *  to English. Custom strings can be supplied via a future `messages` option. */
+  locale?: string;
 }
 
 /** Event name → payload, for `on(...)`. */
@@ -178,6 +189,8 @@ export class KindyEditor {
         mode: opts.mode,
         allowedModes: opts.allowedModes,
         knownUsers: opts.knownUsers,
+        mentionPicker: opts.mentionPicker,
+        reviewAccess: opts.reviewAccess,
         resolveField: opts.resolveField,
         agentTools: opts.agentTools,
         view: opts.view,
@@ -191,6 +204,7 @@ export class KindyEditor {
         onLoadProgress: opts.onLoadProgress,
         eventDetail: this.events.detail,
         includeSelectionEvents: this.events.includeSelection,
+        messages: resolveMessages(opts.locale),
         onReady: (h) => {
           this.handle = h;
           resolve(h);
@@ -351,8 +365,23 @@ export class KindyEditor {
   async replyToComment(threadId: string, body: Fragment, mentions?: UserInfo[]): Promise<void> {
     (await this.ready).replyToComment(threadId, body, mentions);
   }
+  async startComment(): Promise<void> {
+    (await this.ready).startComment();
+  }
+  async openCommentThread(threadId: string): Promise<void> {
+    (await this.ready).openCommentThread(threadId);
+  }
+  async editComment(threadId: string, commentId: string, body: Fragment, mentions?: UserInfo[]): Promise<void> {
+    (await this.ready).editComment(threadId, commentId, body, mentions);
+  }
+  async deleteComment(threadId: string, commentId: string): Promise<void> {
+    (await this.ready).deleteComment(threadId, commentId);
+  }
   async resolveThread(threadId: string, resolved = true): Promise<void> {
     (await this.ready).resolveThread(threadId, resolved);
+  }
+  async setReviewAccess(access?: ReviewAccess): Promise<void> {
+    (await this.ready).setReviewAccess(access);
   }
 
   /** Current selection/caret. Returns null before the editor is ready or when

@@ -12,6 +12,8 @@
 import type { CharStyle, EmphasisMark, UnderlineStyle } from "@kindy/shared";
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
+import type { DialogCommon, FontDialogMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 /** The selection's effective run style, read from `editor.currentFormat()`. */
 export interface FontDialogInitial {
@@ -37,30 +39,32 @@ export interface FontDialogOptions {
   initial: FontDialogInitial;
   /** Apply the edited patch over the selection (one undoable edit). */
   onApply: (patch: Partial<CharStyle>) => void;
+  messages?: FontDialogMessages;
+  common?: DialogCommon;
 }
 
 export interface FontDialogHandle {
   close(): void;
 }
 
-const UNDERLINE_STYLES: { value: UnderlineStyle | "none"; label: string }[] = [
-  { value: "none", label: "(none)" },
-  { value: "single", label: "Single" },
-  { value: "double", label: "Double" },
-  { value: "thick", label: "Thick" },
-  { value: "dotted", label: "Dotted" },
-  { value: "dash", label: "Dashed" },
-  { value: "dotDash", label: "Dot dash" },
-  { value: "dotDotDash", label: "Dot dot dash" },
-  { value: "wave", label: "Wave" },
+const getUnderlineStyles = (t: FontDialogMessages): { value: UnderlineStyle | "none"; label: string }[] => [
+  { value: "none", label: t.ulNone },
+  { value: "single", label: t.ulSingle },
+  { value: "double", label: t.ulDouble },
+  { value: "thick", label: t.ulThick },
+  { value: "dotted", label: t.ulDotted },
+  { value: "dash", label: t.ulDashed },
+  { value: "dotDash", label: t.ulDotDash },
+  { value: "dotDotDash", label: t.ulDotDotDash },
+  { value: "wave", label: t.ulWave },
 ];
 
-const EMPHASIS_MARKS: { value: EmphasisMark | "none"; label: string }[] = [
-  { value: "none", label: "(none)" },
-  { value: "dot", label: "Dot (above)" },
-  { value: "comma", label: "Comma (above)" },
-  { value: "circle", label: "Circle (above)" },
-  { value: "underDot", label: "Dot (below)" },
+const getEmphasisMarks = (t: FontDialogMessages): { value: EmphasisMark | "none"; label: string }[] => [
+  { value: "none", label: t.emNone },
+  { value: "dot", label: t.emDot },
+  { value: "comma", label: t.emComma },
+  { value: "circle", label: t.emCircle },
+  { value: "underDot", label: t.emUnderDot },
 ];
 
 const CSS = `
@@ -133,6 +137,8 @@ const numOrUndef = (raw: string, min?: number, max?: number): number | undefined
 export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   injectCssOnce("ked-font-styles", CSS);
   const init = opts.initial;
+  const t = opts.messages ?? defaultMessages.fontDialog;
+  const c = opts.common ?? defaultMessages.common;
 
   const backdrop = el("div", "ked-font-backdrop");
   const modal = el("div", "ked-font-modal");
@@ -140,28 +146,28 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
 
   const head = el("div", "ked-font-head");
   const xBtn = el("button", "ked-font-x", "×");
-  head.append(el("h2", undefined, "Font"), xBtn);
+  head.append(el("h2", undefined, t.title), xBtn);
 
   const body = el("div", "ked-font-body");
 
   // ---- Effects (caps / small-caps / double-strike / outline / shadow / …) ----
   const effects = el("div", "ked-font-section");
-  const capsChk = checkbox("All caps", init.caps);
-  const smallChk = checkbox("Small caps", init.smallCaps);
-  const dstrikeChk = checkbox("Double strikethrough", init.doubleStrikethrough);
-  const outlineChk = checkbox("Outline", init.outline);
-  const shadowChk = checkbox("Shadow", init.shadow);
-  const embossChk = checkbox("Emboss", init.emboss);
-  const imprintChk = checkbox("Engrave (imprint)", init.imprint);
+  const capsChk = checkbox(t.allCaps, init.caps);
+  const smallChk = checkbox(t.smallCaps, init.smallCaps);
+  const dstrikeChk = checkbox(t.doubleStrikethrough, init.doubleStrikethrough);
+  const outlineChk = checkbox(t.outline, init.outline);
+  const shadowChk = checkbox(t.shadow, init.shadow);
+  const embossChk = checkbox(t.emboss, init.emboss);
+  const imprintChk = checkbox(t.engrave, init.imprint);
   const checks = el("div", "ked-font-checks");
   checks.append(capsChk.row, smallChk.row, dstrikeChk.row, outlineChk.row, shadowChk.row, embossChk.row, imprintChk.row);
-  effects.append(el("label", "head", "Effects"), checks);
+  effects.append(el("label", "head", t.sectionEffects), checks);
   body.append(effects);
 
   // ---- Underline (style + color) ----
   const underline = el("div", "ked-font-section");
   const uStyleSel = el("select");
-  for (const s of UNDERLINE_STYLES) {
+  for (const s of getUnderlineStyles(t)) {
     const o = el("option");
     o.value = s.value;
     o.textContent = s.label;
@@ -169,14 +175,14 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   }
   uStyleSel.value = init.underline ? (init.underlineStyle ?? "single") : "none";
   const uStyleRow = el("div", "ked-font-row");
-  uStyleRow.append(el("span", "lbl", "Underline style"), uStyleSel);
+  uStyleRow.append(el("span", "lbl", t.underlineStyle), uStyleSel);
   const uColorRow = el("div", "ked-font-row");
   const uColorIn = el("input");
   uColorIn.type = "color";
   uColorIn.value = init.underlineColor ?? "#000000";
-  const uAuto = checkbox("Automatic", init.underlineColor === null);
-  uColorRow.append(el("span", "lbl", "Underline color"), uColorIn, uAuto.row);
-  underline.append(el("label", "head", "Underline"), uStyleRow, uColorRow);
+  const uAuto = checkbox(t.automatic, init.underlineColor === null);
+  uColorRow.append(el("span", "lbl", t.underlineColor), uColorIn, uAuto.row);
+  underline.append(el("label", "head", t.sectionUnderline), uStyleRow, uColorRow);
   body.append(underline);
 
   // ---- Spacing / position / scaling / kerning ----
@@ -193,31 +199,31 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
     return r;
   };
   spacing.append(
-    el("label", "head", "Spacing & position"),
-    row("Position (raise/lower)", posIn, "px"),
-    row("Scale (width)", scaleIn, "%"),
-    row("Character spacing", spacingIn, "px"),
-    row("Kerning at/above", kernIn, "px"),
-    row("Fit text width", fitIn, "px"),
+    el("label", "head", t.sectionSpacing),
+    row(t.position, posIn, t.unitPx),
+    row(t.scale, scaleIn, t.unitPct),
+    row(t.charSpacing, spacingIn, t.unitPx),
+    row(t.kerning, kernIn, t.unitPx),
+    row(t.fitText, fitIn, t.unitPx),
   );
   body.append(spacing);
 
   // ---- Emphasis mark ----
   const emphasis = el("div", "ked-font-section");
   const emSel = el("select");
-  for (const m of EMPHASIS_MARKS) {
+  for (const m of getEmphasisMarks(t)) {
     const o = el("option");
     o.value = m.value;
     o.textContent = m.label;
     emSel.append(o);
   }
   emSel.value = init.emphasisMark ?? "none";
-  emphasis.append(el("label", "head", "Emphasis mark"), row("Mark", emSel));
+  emphasis.append(el("label", "head", t.sectionEmphasis), row(t.emphasisMark, emSel));
   body.append(emphasis);
 
   const foot = el("div", "ked-font-foot");
-  const cancel = el("button", "ked-font-btn", "Cancel");
-  const apply = el("button", "ked-font-btn primary", "Apply");
+  const cancel = el("button", "ked-font-btn", c.cancel);
+  const apply = el("button", "ked-font-btn primary", c.apply);
   foot.append(el("div", "spacer"), cancel, apply);
 
   modal.append(head, body, foot);

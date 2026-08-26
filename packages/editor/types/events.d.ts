@@ -72,8 +72,22 @@ export interface PublicEditorEventDataMap {
   "review.suggestion.removed": { suggestionId: string; remote: boolean };
   "review.thread.created": { threadId: string; remote: boolean };
   "review.thread.removed": { threadId: string; remote: boolean };
-  "review.comment.added": { threadId: string; commentId: string; remote: boolean };
-  "review.comment.edited": { threadId: string; commentId: string; remote: boolean };
+  "review.comment.added": {
+    threadId: string;
+    commentId: string;
+    authorId: string;
+    isReply: boolean;
+    mentionedUserIds: string[];
+    remote: boolean;
+  };
+  "review.comment.edited": {
+    threadId: string;
+    commentId: string;
+    mentionedUserIds: string[];
+    newlyMentionedUserIds: string[];
+    remote: boolean;
+  };
+  "review.comment.deleted": { threadId: string; commentId: string; deletedByUserId: string; remote: boolean };
   "review.comment.removed": { threadId: string; commentId: string; remote: boolean };
   "review.thread.status.changed": { threadId: string; status: "open" | "resolved"; remote: boolean };
   "collaboration.connecting": { docId: string };
@@ -127,4 +141,3 @@ export interface HttpEventSink extends EditorEventSink {
 }
 export declare function createHttpEventSink(options: HttpEventSinkOptions): HttpEventSink;
 export declare function affectedBlockIds(ops: readonly PublicOperation[]): string[];
-

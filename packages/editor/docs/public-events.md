@@ -102,8 +102,12 @@ general-purpose analytics services.
 | Other | `document.shared`, `selection.changed`, `custom` |
 
 Review emits both `review.operation.applied` (complete audit payload) and a derived
-semantic event. For example, `addComment` also emits `review.comment.added` with
-stable `threadId` and `commentId` fields.
+semantic event. A root comment emits both `review.thread.created` and
+`review.comment.added`; replies set `isReply: true`. Comment events include stable
+thread/comment/author ids and structured mention user ids. An edit additionally
+includes `newlyMentionedUserIds`, and tombstoning emits
+`review.comment.deleted`. See [Review comments and @mentions](./review-comments.md)
+for the integration and notification flow.
 
 ## What each layer owns
 
@@ -123,4 +127,3 @@ Event names and required envelope fields are stable for schema major version 1.
 New optional data fields and new event names may be added in minor releases.
 Consumers should ignore unknown fields/events. A breaking rename or semantic
 change requires a new schema major version.
-

@@ -90,8 +90,9 @@ export interface PublicEditorEventDataMap {
   "review.suggestion.removed": { suggestionId: string; remote: boolean };
   "review.thread.created": { threadId: string; remote: boolean };
   "review.thread.removed": { threadId: string; remote: boolean };
-  "review.comment.added": { threadId: string; commentId: string; remote: boolean };
-  "review.comment.edited": { threadId: string; commentId: string; remote: boolean };
+  "review.comment.added": { threadId: string; commentId: string; authorId: string; isReply: boolean; mentionedUserIds: string[]; remote: boolean };
+  "review.comment.edited": { threadId: string; commentId: string; mentionedUserIds: string[]; newlyMentionedUserIds: string[]; remote: boolean };
+  "review.comment.deleted": { threadId: string; commentId: string; deletedByUserId: string; remote: boolean };
   "review.comment.removed": { threadId: string; commentId: string; remote: boolean };
   "review.thread.status.changed": { threadId: string; status: "open" | "resolved"; remote: boolean };
 
@@ -176,16 +177,51 @@ export function projectReviewEvents(op: ReviewOp, remote: boolean): SemanticRevi
       return [base, { type: "review.suggestion.removed", data: { suggestionId: op.id, remote } }];
     case "growSuggestion":
       return [base];
-    case "addThread":
-      return [base, { type: "review.thread.created", data: { threadId: op.t.id, remote } }];
+    case "addThread": {
+      const root = op.t.comments[0];
+      return root
+        ? [
+            base,
+            { type: "review.thread.created", data: { threadId: op.t.id, remote } },
+            { type: "review.comment.added", data: {
+              threadId: op.t.id,
+              commentId: root.id,
+              authorId: root.author.id,
+              isReply: false,
+              mentionedUserIds: (root.mentions ?? []).map((user) => user.id),
+              remote,
+            } },
+          ]
+        : [base, { type: "review.thread.created", data: { threadId: op.t.id, remote } }];
+    }
     case "removeThread":
       return [base, { type: "review.thread.removed", data: { threadId: op.id, remote } }];
     case "addComment":
-      return [base, { type: "review.comment.added", data: { threadId: op.threadId, commentId: op.c.id, remote } }];
+      return [base, { type: "review.comment.added", data: {
+        threadId: op.threadId,
+        commentId: op.c.id,
+        authorId: op.c.author.id,
+        isReply: true,
+        mentionedUserIds: (op.c.mentions ?? []).map((user) => user.id),
+        remote,
+      } }];
     case "removeComment":
       return [base, { type: "review.comment.removed", data: { threadId: op.threadId, commentId: op.commentId, remote } }];
     case "editComment":
-      return [base, { type: "review.comment.edited", data: { threadId: op.threadId, commentId: op.commentId, remote } }];
+      return [base, { type: "review.comment.edited", data: {
+        threadId: op.threadId,
+        commentId: op.commentId,
+        mentionedUserIds: (op.mentions ?? []).map((user) => user.id),
+        newlyMentionedUserIds: op.newlyMentionedUserIds ?? [],
+        remote,
+      } }];
+    case "deleteComment":
+      return [base, { type: "review.comment.deleted", data: {
+        threadId: op.threadId,
+        commentId: op.commentId,
+        deletedByUserId: op.deletedBy.id,
+        remote,
+      } }];
     case "setThreadStatus":
       return [base, { type: "review.thread.status.changed", data: { threadId: op.threadId, status: op.status, remote } }];
   }

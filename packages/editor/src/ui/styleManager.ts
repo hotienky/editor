@@ -21,6 +21,8 @@ import { injectCssOnce } from "./styles";
 import { mountTextStyleEditor, type StyleEditorController } from "./styleEditorText";
 import { mountListStyleEditor, type ListStyleController } from "./styleEditorList";
 import { mountTableStyleEditor, type TableStyleController } from "./styleEditorTable";
+import type { DialogCommon, StyleManagerMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 export type StyleKind = "paragraph" | "character" | "list" | "table";
 
@@ -38,6 +40,8 @@ export interface StyleManagerOptions {
   /** Select this style when the dialog opens. */
   initialSelection?: { kind: StyleKind; id: string };
   onClose?: () => void;
+  messages?: StyleManagerMessages;
+  common?: DialogCommon;
 }
 
 export interface StyleManagerHandle {
@@ -46,12 +50,12 @@ export interface StyleManagerHandle {
   refresh(): void;
 }
 
-const KIND_LABELS: Record<StyleKind, string> = {
-  paragraph: "Paragraph styles",
-  character: "Character styles",
-  list: "List styles",
-  table: "Table styles",
-};
+const getKindLabels = (t: StyleManagerMessages): Record<StyleKind, string> => ({
+  paragraph: t.kindParagraph,
+  character: t.kindCharacter,
+  list: t.kindList,
+  table: t.kindTable,
+});
 
 const FALLBACK_CHAR: CharStyle = {
   fontFamily: "Georgia, serif", fontSizePx: 16, bold: false, italic: false,
@@ -105,6 +109,9 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle {
   injectCssOnce("ked-sm-styles", CSS);
   const { editor } = opts;
+  const t = opts.messages ?? defaultMessages.styleManager;
+  const c = opts.common ?? defaultMessages.common;
+  const kindLabels = getKindLabels(t);
   const child = editor.createChild();
 
   const sheet = (): Stylesheet => editor.getDocument().stylesheet ?? defaultStylesheet();
@@ -115,7 +122,7 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
   const head = el("div", "ked-sm-head");
-  const h2 = el("h2", undefined, "Manage Styles");
+  const h2 = el("h2", undefined, t.title);
   const xBtn = el("button", "ked-sm-x", "×");
   head.append(h2, xBtn);
 
@@ -124,16 +131,16 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
   const editorHost = el("div", "ked-sm-editor");
   const previewCol = el("div", "ked-sm-preview");
   const prevHost = el("div", "ked-sm-prevhost");
-  previewCol.append(el("div", "ttl", "Preview"), prevHost);
+  previewCol.append(el("div", "ttl", t.previewLabel), prevHost);
   body.append(listHost, editorHost, previewCol);
 
   const foot = el("div", "ked-sm-foot");
-  const newBtn = el("button", "ked-sm-btn", "New ▾");
-  const delBtn = el("button", "ked-sm-btn danger", "Delete");
-  const mergeBtn = el("button", "ked-sm-btn", "Merge duplicates");
-  mergeBtn.title = "Collapse styles that are identical except for their name";
-  const applyBtn = el("button", "ked-sm-btn primary", "Apply");
-  const closeBtn = el("button", "ked-sm-btn", "Close");
+  const newBtn = el("button", "ked-sm-btn", t.newStyle);
+  const delBtn = el("button", "ked-sm-btn danger", t.deleteStyle);
+  const mergeBtn = el("button", "ked-sm-btn", t.mergeDuplicates);
+  mergeBtn.title = t.mergeDuplicatesTooltip;
+  const applyBtn = el("button", "ked-sm-btn primary", c.apply);
+  const closeBtn = el("button", "ked-sm-btn", c.close);
   foot.append(newBtn, delBtn, mergeBtn, el("div", "spacer"), applyBtn, closeBtn);
 
   modal.append(head, body, foot);
@@ -307,11 +314,11 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     c.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       const entries: MenuEntry[] = [
-        { kind: "item", label: "Modify", onClick: () => selectStyle(kind, st.id) },
-        { kind: "item", label: "Duplicate", onClick: () => newStyle(kind, st) },
+        { kind: "item", label: t.ctxModify, onClick: () => selectStyle(kind, st.id) },
+        { kind: "item", label: t.ctxDuplicate, onClick: () => newStyle(kind, st) },
         { kind: "sep" },
-        { kind: "item", label: "Set as default", disabled: kind !== "paragraph" || isDefault, onClick: () => { editor.dispatch(setDefaultStyle(st.id)); rebuildList(); } },
-        { kind: "item", label: "Delete", danger: true, disabled: isDefault, onClick: () => deleteStyle(kind, st.id) },
+        { kind: "item", label: t.ctxSetDefault, disabled: kind !== "paragraph" || isDefault, onClick: () => { editor.dispatch(setDefaultStyle(st.id)); rebuildList(); } },
+        { kind: "item", label: t.ctxDelete, danger: true, disabled: isDefault, onClick: () => deleteStyle(kind, st.id) },
       ];
       showContextMenu(e.clientX, e.clientY, entries);
     });
@@ -330,8 +337,8 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     c.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       showContextMenu(e.clientX, e.clientY, [
-        { kind: "item", label: "Modify", onClick: () => selectStyle("list", def.id) },
-        { kind: "item", label: "Delete", danger: true, onClick: () => deleteStyle("list", def.id) },
+        { kind: "item", label: t.ctxModify, onClick: () => selectStyle("list", def.id) },
+        { kind: "item", label: t.ctxDelete, danger: true, onClick: () => deleteStyle("list", def.id) },
       ]);
     });
     return c;
@@ -349,8 +356,8 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     c.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       showContextMenu(e.clientX, e.clientY, [
-        { kind: "item", label: "Modify", onClick: () => selectStyle("table", st.id) },
-        { kind: "item", label: "Delete", danger: true, onClick: () => deleteStyle("table", st.id) },
+        { kind: "item", label: t.ctxModify, onClick: () => selectStyle("table", st.id) },
+        { kind: "item", label: t.ctxDelete, danger: true, onClick: () => deleteStyle("table", st.id) },
       ]);
     });
     return c;
@@ -361,18 +368,18 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     listHost.replaceChildren();
     for (const kind of ["paragraph", "character", "list", "table"] as StyleKind[]) {
       const sec = el("div", "ked-sm-sec");
-      sec.append(el("h4", undefined, KIND_LABELS[kind]));
+      sec.append(el("h4", undefined, kindLabels[kind]));
       if (kind === "paragraph" || kind === "character") {
         const rows = s.styles.filter((x) => styleType(x) === kind);
-        if (rows.length === 0) sec.append(el("div", "ked-sm-empty", "None yet"));
+        if (rows.length === 0) sec.append(el("div", "ked-sm-empty", t.noneYet));
         for (const st of rows) sec.append(card(kind, st, s.defaultStyleId === st.id));
       } else if (kind === "list") {
         const defs = Object.values(lists());
-        if (defs.length === 0) sec.append(el("div", "ked-sm-empty", "None yet"));
+        if (defs.length === 0) sec.append(el("div", "ked-sm-empty", t.noneYet));
         for (const def of defs) sec.append(listCard(def));
       } else {
         const defs = Object.values(tableStyles());
-        if (defs.length === 0) sec.append(el("div", "ked-sm-empty", "None yet"));
+        if (defs.length === 0) sec.append(el("div", "ked-sm-empty", t.noneYet));
         for (const st of defs) sec.append(tableCard(st));
       }
       listHost.append(sec);
@@ -420,17 +427,17 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     delBtn.disabled = selId === null || isDefault;
     const dupes = mergeDuplicateNamedStyles(sheet()).remap.size;
     mergeBtn.disabled = dupes === 0;
-    mergeBtn.textContent = dupes > 0 ? `Merge duplicates (${dupes})` : "Merge duplicates";
+    mergeBtn.textContent = dupes > 0 ? `${t.mergeDuplicates} (${dupes})` : t.mergeDuplicates;
   }
 
   newBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     const r = newBtn.getBoundingClientRect();
     const entries: MenuEntry[] = [
-      { kind: "item", label: "Paragraph style", onClick: () => newStyle("paragraph") },
-      { kind: "item", label: "Character style", onClick: () => newStyle("character") },
-      { kind: "item", label: "List style", onClick: () => newStyle("list") },
-      { kind: "item", label: "Table style", onClick: () => newStyle("table") },
+      { kind: "item", label: t.newParagraphStyle, onClick: () => newStyle("paragraph") },
+      { kind: "item", label: t.newCharacterStyle, onClick: () => newStyle("character") },
+      { kind: "item", label: t.newListStyle, onClick: () => newStyle("list") },
+      { kind: "item", label: t.newTableStyle, onClick: () => newStyle("table") },
     ];
     showContextMenu(r.left, r.bottom, entries);
   });

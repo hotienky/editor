@@ -119,6 +119,7 @@ const CSS = `
   display: inline-flex; align-items: center; gap: 5px;
   transition: border-color var(--ked-t-fast), background var(--ked-t-fast);
 }
+.ked-header-btn[hidden], .ked-review-head .ked-btn[hidden] { display: none; }
 .ked-header-btn:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.55); }
 .ked-header-btn.active {
   background: rgba(255,255,255,0.92); color: var(--ked-blue); border-color: transparent;
@@ -330,8 +331,9 @@ const CSS = `
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
 .ked-review-head .ked-review-title { font-size: 14px; font-weight: 600; color: #202124; }
+.ked-review-head .ked-review-title + .ked-btn { margin-left: auto; }
 .ked-review-head .ked-review-close {
-  margin-left: auto; border: none; background: transparent; cursor: pointer;
+  margin-left: 0; border: none; background: transparent; cursor: pointer;
   color: #5f6368; width: 28px; height: 28px; border-radius: 50%; font-size: 18px; line-height: 1;
   transition: background var(--ked-t-fast);
 }
@@ -362,7 +364,8 @@ const CSS = `
 }
 .ked-review-body { flex: 1 1 auto; overflow-y: auto; padding: 10px 12px; }
 .ked-review-empty { padding: 28px 16px; text-align: center; color: var(--ked-text-subtle); font-size: 12.5px; line-height: 1.5; }
-.ked-review-empty .ked-review-empty-ico { font-size: 26px; display: block; margin-bottom: 8px; opacity: .5; }
+.ked-review-empty .ked-review-empty-ico { width: 32px; height: 32px; display: block; margin: 0 auto 10px; opacity: .45; color: var(--ked-text-subtle); }
+.ked-review-empty .ked-review-empty-ico svg { width: 32px; height: 32px; }
 
 /* buttons */
 .ked-btn {
@@ -381,6 +384,7 @@ const CSS = `
 .ked-btn.ked-btn-ghost { border-color: transparent; background: transparent; color: var(--ked-blue); padding: 4px 6px; }
 .ked-btn.ked-btn-ghost:hover { background: var(--ked-blue-xlight); box-shadow: none; }
 .ked-btn-sm { padding: 4px 10px; font-size: 12px; }
+.ked-btn:disabled, .ked-header-btn:disabled { opacity: .45; cursor: default; pointer-events: none; }
 
 /* suggestion card */
 .ked-sug {
@@ -409,6 +413,7 @@ const CSS = `
   cursor: pointer; transition: border-color var(--ked-t-fast);
 }
 .ked-thread:hover { border-color: var(--ked-blue-light); }
+.ked-thread.active { border-color: var(--ked-blue); box-shadow: 0 0 0 1px var(--ked-blue-light), var(--ked-shadow-sm); }
 .ked-thread.resolved { opacity: .58; }
 .ked-comment { display: flex; gap: 9px; margin-bottom: 10px; }
 .ked-comment:last-of-type { margin-bottom: 6px; }
@@ -416,37 +421,61 @@ const CSS = `
 .ked-comment-who { font-weight: 600; font-size: 12.5px; color: #202124; }
 .ked-comment-when { color: var(--ked-text-subtle); font-size: 11px; margin-left: 6px; font-weight: 400; }
 .ked-comment-body { color: #3c4043; font-size: 13px; line-height: 1.45; white-space: pre-wrap; word-wrap: break-word; margin-top: 2px; }
+.ked-comment-body.deleted, .ked-thread-popover-comment .deleted { color: var(--ked-text-subtle); font-style: italic; }
+.ked-comment-actions { display: flex; gap: 2px; margin-top: 3px; }
+.ked-comment-menu { position: relative; }
+.ked-comment-menu > summary { list-style: none; cursor: pointer; width: 26px; height: 24px; border-radius: 5px; display: grid; place-items: center; color: var(--ked-text-subtle); font-weight: 700; }
+.ked-comment-menu > summary::-webkit-details-marker { display: none; }
+.ked-comment-menu > summary:hover, .ked-comment-menu > summary:focus-visible { background: var(--ked-blue-xlight); color: var(--ked-blue); outline: none; }
+.ked-comment-menu-items { position: absolute; right: 0; top: 26px; z-index: 5; min-width: 112px; padding: 4px; background: var(--ked-surface); border: 1px solid var(--ked-border); border-radius: 7px; box-shadow: var(--ked-shadow-md); }
+.ked-comment-menu-items .ked-btn { display: block; width: 100%; text-align: left; padding: 6px 8px; font-size: 11.5px; }
+.ked-comment-actions .ked-danger { color: var(--ked-danger); }
+.ked-comment-edit { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-top: 6px; }
+.ked-comment-edit textarea { grid-column: 1 / -1; resize: vertical; min-height: 54px; border: 1px solid var(--ked-border); border-radius: 6px; padding: 7px; font: 13px/1.4 inherit; }
 .ked-thread-actions { display: flex; gap: 4px; align-items: center; padding-top: 6px; border-top: 1px solid #f1f3f4; }
 .ked-thread-actions .ked-resolved-tag { color: var(--ked-success); font-size: 11.5px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 
 /* inline reply editor inside a thread */
 .ked-reply-box { display: none; gap: 8px; margin-top: 8px; }
 .ked-reply-box.open { display: flex; }
+.ked-comment-filters { display: flex; gap: 4px; margin: 0 0 9px; position: sticky; top: 0; z-index: 2; background: #f7f8fa; padding-bottom: 5px; }
+.ked-comment-filter { border: 1px solid transparent; background: transparent; color: var(--ked-text-subtle); padding: 4px 9px; border-radius: 12px; cursor: pointer; font: 600 11.5px/1 inherit; }
+.ked-comment-filter.active { color: var(--ked-blue); background: var(--ked-blue-xlight); border-color: var(--ked-blue-light); }
 
 /* ===== Comment composer bubble (Google-Docs style, floats by selection) === */
 .ked-comment-bubble {
-  position: absolute; z-index: 60; width: 308px;
+  position: absolute; z-index: 60; width: min(308px, calc(100% - 16px)); box-sizing: border-box;
   background: var(--ked-surface); border: 1px solid var(--ked-border); border-radius: 10px;
   box-shadow: var(--ked-shadow-lg); padding: 14px;
   display: flex; flex-direction: column; gap: 10px;
 }
-.ked-comment-bubble .ked-bubble-row { display: flex; gap: 9px; align-items: flex-start; }
+.ked-comment-bubble .ked-bubble-row { display: flex; gap: 9px; align-items: flex-start; min-width: 0; }
 .ked-comment-bubble textarea {
   flex: 1 1 auto; resize: none; min-height: 52px; max-height: 180px;
-  border: none; outline: none; font: 13px/1.45 inherit; color: #202124;
+  min-width: 0; box-sizing: border-box; border: none; outline: none;
+  font: inherit; font-size: 13px; line-height: 1.45; color: #202124;
   padding: 4px 0; background: transparent;
 }
 .ked-comment-bubble .ked-bubble-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .ked-comment-bubble .ked-btn.ked-btn-primary:disabled { opacity: .4; cursor: default; box-shadow: none; }
+.ked-comment-thread-popover { width: min(336px, calc(100% - 16px)); max-height: min(480px, 70vh); }
+.ked-thread-popover-head { display: flex; align-items: center; justify-content: space-between; }
+.ked-thread-popover-head .ked-review-close { border: 0; background: transparent; font-size: 20px; cursor: pointer; }
+.ked-thread-popover-list { overflow: auto; display: flex; flex-direction: column; gap: 9px; }
+.ked-thread-popover-comment { border-bottom: 1px solid var(--ked-border); padding-bottom: 8px; font-size: 12.5px; line-height: 1.4; white-space: pre-wrap; }
+.ked-thread-popover-comment strong { display: block; margin-bottom: 2px; font-size: 12px; }
+.ked-thread-popover-reply { display: grid; grid-template-columns: 1fr auto; gap: 7px; align-items: end; }
+.ked-thread-popover-reply textarea { min-height: 38px; resize: vertical; border: 1px solid var(--ked-border); border-radius: 6px; padding: 7px; font: inherit; font-size: 13px; line-height: 1.4; }
 
-/* floating "leave a comment" chip shown beside a suggest-mode selection */
+/* floating "leave a comment" chip shown beside an editable selection/caret */
 .ked-comment-chip {
   position: absolute; z-index: 55; width: 36px; height: 36px; border-radius: 50%;
-  border: 1px solid var(--ked-border); background: var(--ked-surface); cursor: pointer; font-size: 16px;
-  box-shadow: var(--ked-shadow-md);
+  border: 1px solid var(--ked-border); background: var(--ked-surface); cursor: pointer;
+  box-shadow: var(--ked-shadow-md); color: var(--ked-blue);
   display: flex; align-items: center; justify-content: center;
   padding: 0; line-height: 1; transition: transform var(--ked-t-fast), box-shadow var(--ked-t-fast), background var(--ked-t-fast);
 }
+.ked-comment-chip svg { width: 18px; height: 18px; }
 .ked-comment-chip:hover {
   transform: scale(1.1); box-shadow: var(--ked-shadow-lg);
   background: var(--ked-blue-xlight);
@@ -456,15 +485,17 @@ const CSS = `
 .ked-mention-menu {
   position: fixed; z-index: 70; background: var(--ked-surface);
   border: 1px solid var(--ked-border);
-  border-radius: 8px; box-shadow: var(--ked-shadow-lg); padding: 4px;
-  max-height: 240px; overflow-y: auto; font: 13px/1.3 inherit;
+  border-radius: 8px; box-shadow: var(--ked-shadow-lg); padding: 4px; box-sizing: border-box;
+  max-height: 220px; overflow-y: auto; overscroll-behavior: contain;
+  font: inherit; font-size: 13px; line-height: 1.3; color: var(--ked-text);
 }
 .ked-mention-item {
-  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 5px 8px; box-sizing: border-box;
   border-radius: 6px; cursor: pointer; color: var(--ked-text);
   transition: background var(--ked-t-fast);
 }
 .ked-mention-item:hover, .ked-mention-item.active { background: var(--ked-blue-xlight); }
+.ked-mention-empty { padding: 12px 10px; color: var(--ked-text-subtle); text-align: center; font-size: 12px; }
 .ked-mention-av {
   width: 24px; height: 24px; border-radius: 50%; flex: 0 0 24px;
   display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase;

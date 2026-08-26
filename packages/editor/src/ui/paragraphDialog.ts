@@ -7,6 +7,8 @@
 import type { CellBorder, ParaBorders, ParaStyle } from "@kindy/shared";
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
+import type { DialogCommon, ParagraphDialogMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 export type ParaBorderStyle = NonNullable<CellBorder["style"]>;
 export type LineSpacingRule = "auto" | "exact" | "atLeast";
@@ -34,13 +36,24 @@ export interface ParagraphDialogCallbacks {
   apply(patch: Partial<ParaStyle>): void;
 }
 
+export interface ParagraphDialogOptions {
+  messages?: ParagraphDialogMessages;
+  common?: DialogCommon;
+}
+
 export interface ParagraphDialogHandle {
   close(): void;
 }
 
 const EDGES = ["top", "right", "bottom", "left", "between"] as const;
 type Edge = (typeof EDGES)[number];
-const EDGE_LABEL: Record<Edge, string> = { top: "Top", right: "Right", bottom: "Bottom", left: "Left", between: "Between" };
+const getEdgeLabels = (t: ParagraphDialogMessages): Record<Edge, string> => ({
+  top: t.edgeTop,
+  right: t.edgeRight,
+  bottom: t.edgeBottom,
+  left: t.edgeLeft,
+  between: t.edgeBetween,
+});
 const STYLES: ParaBorderStyle[] = ["single", "double", "dashed", "dotted"];
 
 const PDLG_CSS = `
@@ -101,8 +114,11 @@ function checkRow(labelText: string, checked: boolean): { row: HTMLLabelElement;
   return { row, input };
 }
 
-export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDialogCallbacks): ParagraphDialogHandle {
+export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDialogCallbacks, opts: ParagraphDialogOptions = {}): ParagraphDialogHandle {
   injectCssOnce("ked-pdlg-styles", PDLG_CSS);
+  const t = opts.messages ?? defaultMessages.paragraphDialog;
+  const c = opts.common ?? defaultMessages.common;
+  const edgeLabels = getEdgeLabels(t);
 
   const backdrop = el("div", "ked-pdlg-backdrop");
   const modal = el("div", "ked-pdlg-modal");
@@ -111,10 +127,10 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   // Header
   const head = el("div", "ked-pdlg-head");
   const h2 = el("h2");
-  h2.textContent = "Paragraph";
+  h2.textContent = t.title;
   const xBtn = el("button", "ked-pdlg-x");
   xBtn.textContent = "×";
-  xBtn.title = "Close (Esc)";
+  xBtn.title = t.sectionSpacing;
   head.append(h2, xBtn);
 
   const body = el("div", "ked-pdlg-body");
@@ -128,7 +144,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
 
   const bSection = el("div");
   const bTitle = el("div", "ked-pdlg-section-title");
-  bTitle.textContent = "Borders";
+  bTitle.textContent = t.sectionBorders;
   bSection.appendChild(bTitle);
 
   const specRow = el("div", "ked-pdlg-row");
@@ -137,7 +153,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   colorInput.className = "ked-pdlg-swatch";
   colorInput.value = toHexColor(color);
   const colorLabel = el("label");
-  colorLabel.append("Color", colorInput);
+  colorLabel.append(t.borderColor, colorInput);
 
   const widthInput = el("input");
   widthInput.type = "number";
@@ -146,7 +162,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   widthInput.step = "0.25";
   widthInput.value = String(widthPx);
   const widthLabel = el("label");
-  widthLabel.append("Width (px)", widthInput);
+  widthLabel.append(t.borderWidth, widthInput);
 
   const styleSelect = el("select");
   for (const s of STYLES) {
@@ -157,7 +173,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
     styleSelect.appendChild(opt);
   }
   const styleLabel = el("label");
-  styleLabel.append("Style", styleSelect);
+  styleLabel.append(t.borderStyle, styleSelect);
 
   const preview = el("div", "ked-pdlg-preview");
   const previewBox = el("div", "box");
@@ -180,7 +196,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   const edgeRow = el("div", "ked-pdlg-edges");
   const edgeInputs: Record<Edge, HTMLInputElement> = {} as Record<Edge, HTMLInputElement>;
   for (const e of EDGES) {
-    const { row, input } = checkRow(EDGE_LABEL[e], !!init.borders?.[e]);
+    const { row, input } = checkRow(edgeLabels[e], !!init.borders?.[e]);
     edgeInputs[e] = input;
     edgeRow.append(row);
   }
@@ -189,9 +205,9 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   // ---- Shading ------------------------------------------------------------
   const sSection = el("div");
   const sTitle = el("div", "ked-pdlg-section-title");
-  sTitle.textContent = "Shading (fill)";
+  sTitle.textContent = t.sectionShading;
   const sRow = el("div", "ked-pdlg-row");
-  const { row: fillToggleRow, input: fillToggle } = checkRow("Fill", init.shading !== null);
+  const { row: fillToggleRow, input: fillToggle } = checkRow(t.fill, init.shading !== null);
   // Keep the ORIGINAL shading string (which may be a named/`rgb(...)` color the native
   // picker can't represent) and only overwrite it when the user actually edits the
   // swatch — so opening the dialog on an `rgb(...)`-shaded paragraph and changing an
@@ -208,11 +224,11 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   // ---- Spacing + flags ----------------------------------------------------
   const oSection = el("div");
   const oTitle = el("div", "ked-pdlg-section-title");
-  oTitle.textContent = "Spacing & line breaks";
+  oTitle.textContent = t.sectionSpacing;
 
   const lsRow = el("div", "ked-pdlg-row");
   const ruleSelect = el("select");
-  for (const [val, lbl] of [["auto", "Multiple"], ["atLeast", "At least"], ["exact", "Exactly"]] as const) {
+  for (const [val, lbl] of [["auto", t.lsMultiple], ["atLeast", t.lsAtLeast], ["exact", t.lsExactly]] as const) {
     const o = el("option");
     o.value = val;
     o.textContent = lbl;
@@ -220,7 +236,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
     ruleSelect.appendChild(o);
   }
   const ruleLabel = el("label");
-  ruleLabel.append("Line spacing", ruleSelect);
+  ruleLabel.append(t.lineSpacing, ruleSelect);
   // One numeric field, reinterpreted by the rule: a multiplier for "auto", px for fixed.
   const multInput = el("input");
   multInput.type = "number";
@@ -233,9 +249,9 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   multInput.value = String(init.lineHeight || 1);
   pxInput.value = String(Math.round(init.lineHeightPx || 16));
   const multLabel = el("label");
-  multLabel.append("At", multInput);
+  multLabel.append(t.lineSpacingAt, multInput);
   const pxLabel = el("label");
-  pxLabel.append("At (px)", pxInput);
+  pxLabel.append(t.lineSpacingAtPx, pxInput);
   const syncRuleInputs = (): void => {
     const auto = ruleSelect.value === "auto";
     multLabel.style.display = auto ? "" : "none";
@@ -247,7 +263,7 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
 
   const vaRow = el("div", "ked-pdlg-row");
   const vaSelect = el("select");
-  for (const [val, lbl] of [["baseline", "Baseline"], ["top", "Top"], ["center", "Center"], ["bottom", "Bottom"]] as const) {
+  for (const [val, lbl] of [["baseline", t.vaBaseline], ["top", t.vaTop], ["center", t.vaCenter], ["bottom", t.vaBottom]] as const) {
     const o = el("option");
     o.value = val;
     o.textContent = lbl;
@@ -255,15 +271,15 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
     vaSelect.appendChild(o);
   }
   const vaLabel = el("label");
-  vaLabel.append("Vertical alignment", vaSelect);
+  vaLabel.append(t.verticalAlignment, vaSelect);
   vaRow.append(vaLabel);
 
   const flagRow = el("div", "ked-pdlg-edges");
-  const { row: csRow, input: csInput } = checkRow("Contextual spacing", init.contextualSpacing);
-  const { row: wcRow, input: wcInput } = checkRow("Widow/orphan control", init.widowControl);
-  const { row: miRow, input: miInput } = checkRow("Mirror indents", init.mirrorIndents);
-  const { row: slRow, input: slInput } = checkRow("Suppress line numbers", init.suppressLineNumbers);
-  const { row: arRow, input: arInput } = checkRow("Adjust right indent", init.adjustRightInd);
+  const { row: csRow, input: csInput } = checkRow(t.contextualSpacing, init.contextualSpacing);
+  const { row: wcRow, input: wcInput } = checkRow(t.widowOrphan, init.widowControl);
+  const { row: miRow, input: miInput } = checkRow(t.mirrorIndents, init.mirrorIndents);
+  const { row: slRow, input: slInput } = checkRow(t.suppressLineNumbers, init.suppressLineNumbers);
+  const { row: arRow, input: arInput } = checkRow(t.adjustRightIndent, init.adjustRightInd);
   flagRow.append(csRow, wcRow, miRow, slRow, arRow);
 
   oSection.append(oTitle, lsRow, vaRow, flagRow);
@@ -273,9 +289,9 @@ export function showParagraphDialog(init: ParagraphDialogInit, cb: ParagraphDial
   // Footer
   const foot = el("div", "ked-pdlg-foot");
   const cancelBtn = el("button", "ked-pdlg-btn");
-  cancelBtn.textContent = "Cancel";
+  cancelBtn.textContent = c.cancel;
   const okBtn = el("button", "ked-pdlg-btn primary");
-  okBtn.textContent = "OK";
+  okBtn.textContent = c.ok;
   foot.append(cancelBtn, okBtn);
 
   modal.append(head, body, foot);

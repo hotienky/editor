@@ -7,11 +7,15 @@
 import type { TocSwitches } from "@kindy/shared";
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
+import type { DialogCommon, TocPropertiesMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 export interface TocPropertiesOptions {
   /** Current switches, parsed from the TOC field's instruction. */
   initial: TocSwitches;
   onApply: (sw: TocSwitches) => void;
+  messages?: TocPropertiesMessages;
+  common?: DialogCommon;
 }
 
 export interface TocPropertiesHandle {
@@ -62,50 +66,52 @@ const checkbox = (label: string, checked: boolean): { row: HTMLElement; input: H
 export function showTocProperties(opts: TocPropertiesOptions): TocPropertiesHandle {
   injectCssOnce("ked-toc-styles", CSS);
   const init = opts.initial;
+  const t = opts.messages ?? defaultMessages.tocProperties;
+  const c = opts.common ?? defaultMessages.common;
 
   const backdrop = el("div", "ked-toc-backdrop");
   const modal = el("div", "ked-toc-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
   const head = el("div", "ked-toc-head");
-  head.append(el("h2", undefined, "Table of contents — field options"), (() => { const x = el("button", "ked-toc-x", "×"); return x; })());
+  head.append(el("h2", undefined, t.title), (() => { const x = el("button", "ked-toc-x", "×"); return x; })());
   const xBtn = head.querySelector("button")!;
 
   const body = el("div", "ked-toc-body");
 
   // \o "from-to" — heading level range
   const oField = el("div", "ked-toc-field");
-  const oToggle = checkbox("Build from heading levels (\\o)", !!init.outlineRange);
+  const oToggle = checkbox(t.headingLevelsToggle, !!init.outlineRange);
   const oRange = el("div", "ked-toc-range");
   const fromIn = el("input"); fromIn.type = "number"; fromIn.min = "1"; fromIn.max = "9"; fromIn.value = String(init.outlineRange?.from ?? 1);
   const toIn = el("input"); toIn.type = "number"; toIn.min = "1"; toIn.max = "9"; toIn.value = String(init.outlineRange?.to ?? 3);
-  oRange.append(el("span", undefined, "Levels"), fromIn, el("span", undefined, "to"), toIn);
-  oField.append(el("label", undefined, "Heading levels"), oToggle.row, oRange);
+  oRange.append(el("span", undefined, t.levelsFrom), fromIn, el("span", undefined, t.levelsTo), toIn);
+  oField.append(el("label", undefined, t.headingLevelsLabel), oToggle.row, oRange);
   body.append(oField);
 
   // \u, \h, \z
-  const uChk = checkbox("Include paragraphs with a direct outline level (\\u)", init.useOutlineLevels);
-  const hChk = checkbox("Make entries hyperlinks to their heading (\\h)", init.hyperlinks);
-  const zChk = checkbox("Hide leader & page numbers in web view (\\z)", init.hideInWeb);
+  const uChk = checkbox(t.useOutlineLevels, init.useOutlineLevels);
+  const hChk = checkbox(t.makeHyperlinks, init.hyperlinks);
+  const zChk = checkbox(t.hideInWeb, init.hideInWeb);
   const flags = el("div", "ked-toc-field");
-  flags.append(el("label", undefined, "Options"), uChk.row, hChk.row, zChk.row);
+  flags.append(el("label", undefined, t.optionsLabel), uChk.row, hChk.row, zChk.row);
   body.append(flags);
 
   // \p separator
   const sepField = el("div", "ked-toc-field");
-  const sepIn = el("input"); sepIn.type = "text"; sepIn.placeholder = "tab (default)"; sepIn.value = init.separator ?? "";
-  sepField.append(el("label", undefined, "Label / page-number separator (\\p)"), sepIn);
+  const sepIn = el("input"); sepIn.type = "text"; sepIn.placeholder = t.separatorPlaceholder; sepIn.value = init.separator ?? "";
+  sepField.append(el("label", undefined, t.separatorLabel), sepIn);
   body.append(sepField);
 
   // Live instruction preview
   const instrField = el("div", "ked-toc-field");
   const instr = el("div", "ked-toc-instr");
-  instrField.append(el("label", undefined, "Field instruction"), instr);
+  instrField.append(el("label", undefined, t.fieldInstructionLabel), instr);
   body.append(instrField);
 
   const foot = el("div", "ked-toc-foot");
-  const cancel = el("button", "ked-toc-btn", "Cancel");
-  const apply = el("button", "ked-toc-btn primary", "Apply");
+  const cancel = el("button", "ked-toc-btn", c.cancel);
+  const apply = el("button", "ked-toc-btn primary", c.apply);
   foot.append(el("div", "spacer"), cancel, apply);
 
   modal.append(head, body, foot);

@@ -9,6 +9,8 @@ import type { ExportWarning } from "../export/exportDocument";
 import type { CjkConfig, DefaultStyleOverrides, EditorBehavior, EditorTheme, FontsConfig } from "../config";
 import type { CustomizeRibbon } from "../ribbon";
 import type { LoadProgress } from "./loadProgress";
+import type { MentionPicker, ReviewAccess, ReviewAction } from "../review/integration";
+import type { EditorMessages } from "../i18n/types";
 
 export type { EditMode, FieldResolver };
 
@@ -145,8 +147,14 @@ export interface EditorHandle {
   acceptAllSuggestions(): void;
   rejectAllSuggestions(): void;
   addComment(body: Fragment, mentions?: UserInfo[]): string | null;
+  startComment(): void;
+  openCommentThread(threadId: string): void;
   replyToComment(threadId: string, body: Fragment, mentions?: UserInfo[]): void;
+  editComment(threadId: string, commentId: string, body: Fragment, mentions?: UserInfo[]): void;
+  deleteComment(threadId: string, commentId: string): void;
   resolveThread(threadId: string, resolved?: boolean): void;
+  canReviewAction(action: ReviewAction, threadId?: string, commentId?: string): boolean;
+  setReviewAccess(access?: ReviewAccess): void;
   destroy(): void;
 }
 
@@ -173,6 +181,10 @@ export interface KindyEditorRuntime {
   allowedModes?: EditMode[] | undefined;
   /** Users that can be @-mentioned in comments (embedder-supplied roster). */
   knownUsers?: UserInfo[] | undefined;
+  /** Optional host-rendered @mention picker; knownUsers remains the fallback. */
+  mentionPicker?: MentionPicker | undefined;
+  /** Client-side review capability gate. */
+  reviewAccess?: ReviewAccess | undefined;
   /** Called once the editor is mounted and ready. */
   onReady?: ((handle: EditorHandle) => void) | undefined;
   /** First-load progress sink (JS-chunk download + font fetch). Lets the embedder
@@ -210,4 +222,8 @@ export interface KindyEditorRuntime {
   /** Customize the ribbon: reorder/remove built-ins by id and add custom tabs,
    *  groups, and buttons. Called once at mount with a mutation API. */
   customizeRibbon?: CustomizeRibbon | undefined;
+  /** Resolved UI message catalog (computed once by KindyEditor from the `locale`
+   *  option and threaded down to mountEditorApp). Never undefined at runtime —
+   *  KindyEditor defaults to English when omitted. */
+  messages?: EditorMessages | undefined;
 }

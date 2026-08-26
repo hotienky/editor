@@ -18,7 +18,7 @@
         "document.remoteChange.applied", "document.shared",
         "review.operation.applied", "review.suggestion.created", "review.suggestion.removed",
         "review.thread.created", "review.thread.removed", "review.comment.added",
-        "review.comment.edited", "review.comment.removed", "review.thread.status.changed",
+        "review.comment.edited", "review.comment.deleted", "review.comment.removed", "review.thread.status.changed",
         "collaboration.connecting", "collaboration.connected", "collaboration.disconnected",
         "collaboration.user.joined", "collaboration.user.left", "collaboration.presence.changed",
         "selection.changed", "custom"

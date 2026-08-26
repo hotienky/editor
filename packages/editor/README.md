@@ -34,7 +34,9 @@ const editor = new KindyEditor({
 
 Use the versioned `editor.events` API for autosave, audit bridges, workflow hooks,
 analytics, and external backends. See [Public events](./docs/public-events.md) and
-the [HTTP sink guide](./docs/http-event-sink.md).
+the [HTTP sink guide](./docs/http-event-sink.md). For complete anchored
+discussions, host-owned @mention UI, permission callbacks, and notification event
+payloads, see [Review comments and @mentions](./docs/review-comments.md).
 
 ## Architecture
 
