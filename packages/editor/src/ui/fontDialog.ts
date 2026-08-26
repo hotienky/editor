@@ -12,6 +12,8 @@
 import type { CharStyle, EmphasisMark, UnderlineStyle } from "@kindy/shared";
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
+import type { DialogCommon, FontDialogMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 /** The selection's effective run style, read from `editor.currentFormat()`. */
 export interface FontDialogInitial {
@@ -37,58 +39,60 @@ export interface FontDialogOptions {
   initial: FontDialogInitial;
   /** Apply the edited patch over the selection (one undoable edit). */
   onApply: (patch: Partial<CharStyle>) => void;
+  messages?: FontDialogMessages;
+  common?: DialogCommon;
 }
 
 export interface FontDialogHandle {
   close(): void;
 }
 
-const UNDERLINE_STYLES: { value: UnderlineStyle | "none"; label: string }[] = [
-  { value: "none", label: "(none)" },
-  { value: "single", label: "Single" },
-  { value: "double", label: "Double" },
-  { value: "thick", label: "Thick" },
-  { value: "dotted", label: "Dotted" },
-  { value: "dash", label: "Dashed" },
-  { value: "dotDash", label: "Dot dash" },
-  { value: "dotDotDash", label: "Dot dot dash" },
-  { value: "wave", label: "Wave" },
+const getUnderlineStyles = (t: FontDialogMessages): { value: UnderlineStyle | "none"; label: string }[] => [
+  { value: "none", label: t.ulNone },
+  { value: "single", label: t.ulSingle },
+  { value: "double", label: t.ulDouble },
+  { value: "thick", label: t.ulThick },
+  { value: "dotted", label: t.ulDotted },
+  { value: "dash", label: t.ulDashed },
+  { value: "dotDash", label: t.ulDotDash },
+  { value: "dotDotDash", label: t.ulDotDotDash },
+  { value: "wave", label: t.ulWave },
 ];
 
-const EMPHASIS_MARKS: { value: EmphasisMark | "none"; label: string }[] = [
-  { value: "none", label: "(none)" },
-  { value: "dot", label: "Dot (above)" },
-  { value: "comma", label: "Comma (above)" },
-  { value: "circle", label: "Circle (above)" },
-  { value: "underDot", label: "Dot (below)" },
+const getEmphasisMarks = (t: FontDialogMessages): { value: EmphasisMark | "none"; label: string }[] => [
+  { value: "none", label: t.emNone },
+  { value: "dot", label: t.emDot },
+  { value: "comma", label: t.emComma },
+  { value: "circle", label: t.emCircle },
+  { value: "underDot", label: t.emUnderDot },
 ];
 
 const CSS = `
-.cw-font-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);display:flex;align-items:center;justify-content:center;}
-.cw-font-modal{width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
+.ked-font-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);display:flex;align-items:center;justify-content:center;}
+.ked-font-modal{width:min(560px,94vw);max-height:88vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
   box-shadow:0 18px 56px rgba(0,0,0,.34);font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;}
-.cw-font-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
-.cw-font-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
-.cw-font-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
-.cw-font-x:hover{background:#e8eaed;}
-.cw-font-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:14px;}
-.cw-font-section{display:flex;flex-direction:column;gap:8px;}
-.cw-font-section>label.head{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
-.cw-font-check{display:flex;align-items:center;gap:8px;font-size:13px;color:#3c4043;}
-.cw-font-check input{width:16px;height:16px;}
-.cw-font-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;}
-.cw-font-row{display:flex;align-items:center;gap:8px;}
-.cw-font-row.dim{opacity:.45;}
-.cw-font-row>span.lbl{flex:0 0 150px;color:#3c4043;}
-.cw-font-body input[type=number],.cw-font-body select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
-.cw-font-body input[type=number]{width:88px;}
-.cw-font-body input[type=color]{width:42px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 2px;background:#fff;cursor:pointer;}
-.cw-font-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-font-foot .spacer{flex:1 1 auto;}
-.cw-font-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
-.cw-font-btn:hover{background:#f1f3f4;}
-.cw-font-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-font-btn.primary:hover{background:#1864cc;}`;
+.ked-font-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
+.ked-font-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
+.ked-font-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
+.ked-font-x:hover{background:#e8eaed;}
+.ked-font-body{padding:14px 16px;overflow:auto;display:flex;flex-direction:column;gap:14px;}
+.ked-font-section{display:flex;flex-direction:column;gap:8px;}
+.ked-font-section>label.head{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
+.ked-font-check{display:flex;align-items:center;gap:8px;font-size:13px;color:#3c4043;}
+.ked-font-check input{width:16px;height:16px;}
+.ked-font-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;}
+.ked-font-row{display:flex;align-items:center;gap:8px;}
+.ked-font-row.dim{opacity:.45;}
+.ked-font-row>span.lbl{flex:0 0 150px;color:#3c4043;}
+.ked-font-body input[type=number],.ked-font-body select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
+.ked-font-body input[type=number]{width:88px;}
+.ked-font-body input[type=color]{width:42px;height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 2px;background:#fff;cursor:pointer;}
+.ked-font-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-font-foot .spacer{flex:1 1 auto;}
+.ked-font-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
+.ked-font-btn:hover{background:#f1f3f4;}
+.ked-font-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-font-btn.primary:hover{background:#1864cc;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -98,7 +102,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 };
 
 const checkbox = (label: string, checked: boolean): { row: HTMLElement; input: HTMLInputElement } => {
-  const row = el("label", "cw-font-check");
+  const row = el("label", "ked-font-check");
   const input = el("input");
   input.type = "checkbox";
   input.checked = checked;
@@ -131,93 +135,95 @@ const numOrUndef = (raw: string, min?: number, max?: number): number | undefined
 };
 
 export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
-  injectCssOnce("cw-font-styles", CSS);
+  injectCssOnce("ked-font-styles", CSS);
   const init = opts.initial;
+  const t = opts.messages ?? defaultMessages.fontDialog;
+  const c = opts.common ?? defaultMessages.common;
 
-  const backdrop = el("div", "cw-font-backdrop");
-  const modal = el("div", "cw-font-modal");
+  const backdrop = el("div", "ked-font-backdrop");
+  const modal = el("div", "ked-font-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
-  const head = el("div", "cw-font-head");
-  const xBtn = el("button", "cw-font-x", "×");
-  head.append(el("h2", undefined, "Font"), xBtn);
+  const head = el("div", "ked-font-head");
+  const xBtn = el("button", "ked-font-x", "×");
+  head.append(el("h2", undefined, t.title), xBtn);
 
-  const body = el("div", "cw-font-body");
+  const body = el("div", "ked-font-body");
 
   // ---- Effects (caps / small-caps / double-strike / outline / shadow / …) ----
-  const effects = el("div", "cw-font-section");
-  const capsChk = checkbox("All caps", init.caps);
-  const smallChk = checkbox("Small caps", init.smallCaps);
-  const dstrikeChk = checkbox("Double strikethrough", init.doubleStrikethrough);
-  const outlineChk = checkbox("Outline", init.outline);
-  const shadowChk = checkbox("Shadow", init.shadow);
-  const embossChk = checkbox("Emboss", init.emboss);
-  const imprintChk = checkbox("Engrave (imprint)", init.imprint);
-  const checks = el("div", "cw-font-checks");
+  const effects = el("div", "ked-font-section");
+  const capsChk = checkbox(t.allCaps, init.caps);
+  const smallChk = checkbox(t.smallCaps, init.smallCaps);
+  const dstrikeChk = checkbox(t.doubleStrikethrough, init.doubleStrikethrough);
+  const outlineChk = checkbox(t.outline, init.outline);
+  const shadowChk = checkbox(t.shadow, init.shadow);
+  const embossChk = checkbox(t.emboss, init.emboss);
+  const imprintChk = checkbox(t.engrave, init.imprint);
+  const checks = el("div", "ked-font-checks");
   checks.append(capsChk.row, smallChk.row, dstrikeChk.row, outlineChk.row, shadowChk.row, embossChk.row, imprintChk.row);
-  effects.append(el("label", "head", "Effects"), checks);
+  effects.append(el("label", "head", t.sectionEffects), checks);
   body.append(effects);
 
   // ---- Underline (style + color) ----
-  const underline = el("div", "cw-font-section");
+  const underline = el("div", "ked-font-section");
   const uStyleSel = el("select");
-  for (const s of UNDERLINE_STYLES) {
+  for (const s of getUnderlineStyles(t)) {
     const o = el("option");
     o.value = s.value;
     o.textContent = s.label;
     uStyleSel.append(o);
   }
   uStyleSel.value = init.underline ? (init.underlineStyle ?? "single") : "none";
-  const uStyleRow = el("div", "cw-font-row");
-  uStyleRow.append(el("span", "lbl", "Underline style"), uStyleSel);
-  const uColorRow = el("div", "cw-font-row");
+  const uStyleRow = el("div", "ked-font-row");
+  uStyleRow.append(el("span", "lbl", t.underlineStyle), uStyleSel);
+  const uColorRow = el("div", "ked-font-row");
   const uColorIn = el("input");
   uColorIn.type = "color";
   uColorIn.value = init.underlineColor ?? "#000000";
-  const uAuto = checkbox("Automatic", init.underlineColor === null);
-  uColorRow.append(el("span", "lbl", "Underline color"), uColorIn, uAuto.row);
-  underline.append(el("label", "head", "Underline"), uStyleRow, uColorRow);
+  const uAuto = checkbox(t.automatic, init.underlineColor === null);
+  uColorRow.append(el("span", "lbl", t.underlineColor), uColorIn, uAuto.row);
+  underline.append(el("label", "head", t.sectionUnderline), uStyleRow, uColorRow);
   body.append(underline);
 
   // ---- Spacing / position / scaling / kerning ----
-  const spacing = el("div", "cw-font-section");
+  const spacing = el("div", "ked-font-section");
   const posIn = numberInput(init.positionPx, "1");
   const scaleIn = numberInput(init.widthScalePct, "1", "1", "600");
   const spacingIn = numberInput(init.letterSpacingPx, "0.5");
   const kernIn = numberInput(init.kerningMinPx, "0.5", "0");
   const fitIn = numberInput(init.fitTextPx, "1", "0");
   const row = (label: string, input: HTMLElement, suffix?: string): HTMLElement => {
-    const r = el("div", "cw-font-row");
+    const r = el("div", "ked-font-row");
     r.append(el("span", "lbl", label), input);
     if (suffix) r.append(el("span", undefined, suffix));
     return r;
   };
   spacing.append(
-    el("label", "head", "Spacing & position"),
-    row("Position (raise/lower)", posIn, "px"),
-    row("Scale (width)", scaleIn, "%"),
-    row("Character spacing", spacingIn, "px"),
-    row("Kerning at/above", kernIn, "px"),
-    row("Fit text width", fitIn, "px"),
+    el("label", "head", t.sectionSpacing),
+    row(t.position, posIn, t.unitPx),
+    row(t.scale, scaleIn, t.unitPct),
+    row(t.charSpacing, spacingIn, t.unitPx),
+    row(t.kerning, kernIn, t.unitPx),
+    row(t.fitText, fitIn, t.unitPx),
   );
   body.append(spacing);
 
   // ---- Emphasis mark ----
-  const emphasis = el("div", "cw-font-section");
+  const emphasis = el("div", "ked-font-section");
   const emSel = el("select");
-  for (const m of EMPHASIS_MARKS) {
+  for (const m of getEmphasisMarks(t)) {
     const o = el("option");
     o.value = m.value;
     o.textContent = m.label;
     emSel.append(o);
   }
   emSel.value = init.emphasisMark ?? "none";
-  emphasis.append(el("label", "head", "Emphasis mark"), row("Mark", emSel));
+  emphasis.append(el("label", "head", t.sectionEmphasis), row(t.emphasisMark, emSel));
   body.append(emphasis);
 
-  const foot = el("div", "cw-font-foot");
-  const cancel = el("button", "cw-font-btn", "Cancel");
-  const apply = el("button", "cw-font-btn primary", "Apply");
+  const foot = el("div", "ked-font-foot");
+  const cancel = el("button", "ked-font-btn", c.cancel);
+  const apply = el("button", "ked-font-btn primary", c.apply);
   foot.append(el("div", "spacer"), cancel, apply);
 
   modal.append(head, body, foot);
@@ -273,7 +279,7 @@ export function showFontDialog(opts: FontDialogOptions): FontDialogHandle {
   window.addEventListener("keydown", (ev: KeyboardEvent) => {
     if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); handle.close(); }
   }, { capture: true, signal: ac.signal });
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-font-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-font-x" });
   xBtn.addEventListener("click", () => handle.close());
   cancel.addEventListener("click", () => handle.close());
   apply.addEventListener("click", () => { opts.onApply(read()); handle.close(); });

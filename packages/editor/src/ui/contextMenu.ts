@@ -36,23 +36,23 @@ export interface ContextMenuHandle {
 }
 
 const MENU_CSS = `
-.cw-menu{position:fixed;z-index:1300;min-width:200px;max-width:320px;background:#fff;
+.ked-menu{position:fixed;z-index:1300;min-width:200px;max-width:320px;background:#fff;
   border:1px solid #c8ccd1;border-radius:8px;padding:5px;
   box-shadow:0 6px 22px rgba(0,0,0,.22);font:13px Arial,sans-serif;color:#2b2f33;
   user-select:none;}
-.cw-menu-item{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:5px;
+.ked-menu-item{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:5px;
   cursor:default;white-space:nowrap;}
-.cw-menu-item:hover:not(.cw-disabled){background:#e8eef9;}
-.cw-menu-item.cw-disabled{color:#9aa0a6;cursor:default;}
-.cw-menu-item.cw-danger:hover:not(.cw-disabled){background:#fce8e6;color:#c5221f;}
-.cw-menu-ico{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;
+.ked-menu-item:hover:not(.ked-disabled){background:#e8eef9;}
+.ked-menu-item.ked-disabled{color:#9aa0a6;cursor:default;}
+.ked-menu-item.ked-danger:hover:not(.ked-disabled){background:#fce8e6;color:#c5221f;}
+.ked-menu-ico{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;
   flex:0 0 16px;color:#5f6368;}
-.cw-menu-ico svg{width:16px;height:16px;}
-.cw-menu-lbl{flex:1 1 auto;}
-.cw-menu-acc{color:#9aa0a6;font-size:12px;margin-left:14px;}
-.cw-menu-arrow{color:#9aa0a6;margin-left:10px;}
-.cw-menu-sep{height:1px;background:#e6e8eb;margin:5px 8px;}
-.cw-menu-header{padding:5px 10px 2px;font-size:11px;color:#80868b;text-transform:uppercase;letter-spacing:.04em;}`;
+.ked-menu-ico svg{width:16px;height:16px;}
+.ked-menu-lbl{flex:1 1 auto;}
+.ked-menu-acc{color:#9aa0a6;font-size:12px;margin-left:14px;}
+.ked-menu-arrow{color:#9aa0a6;margin-left:10px;}
+.ked-menu-sep{height:1px;background:#e6e8eb;margin:5px 8px;}
+.ked-menu-header{padding:5px 10px 2px;font-size:11px;color:#80868b;text-transform:uppercase;letter-spacing:.04em;}`;
 
 /** Render `entries` as a popup at (clientX, clientY). */
 export function showContextMenu(
@@ -60,7 +60,7 @@ export function showContextMenu(
   clientY: number,
   entries: MenuEntry[],
 ): ContextMenuHandle {
-  injectCssOnce("cw-menu-styles", MENU_CSS);
+  injectCssOnce("ked-menu-styles", MENU_CSS);
   let submenuEl: HTMLElement | null = null;
 
   const root = buildPanel(entries, () => close(), true);
@@ -116,7 +116,7 @@ export function showContextMenu(
    *  (else hovering a sub-item would remove the very submenu it lives in). */
   function buildPanel(items: MenuEntry[], dismiss: () => void, isRoot: boolean): HTMLElement {
     const panel = document.createElement("div");
-    panel.className = "cw-menu";
+    panel.className = "ked-menu";
     panel.addEventListener("contextmenu", (e) => e.preventDefault());
     // Keep the editor's focus (its hidden IME proxy) while the menu is used:
     // items fire on mouseup, so suppressing the default mousedown stops the menu
@@ -127,41 +127,41 @@ export function showContextMenu(
     for (const entry of items) {
       if (entry.kind === "sep") {
         const s = document.createElement("div");
-        s.className = "cw-menu-sep";
+        s.className = "ked-menu-sep";
         panel.appendChild(s);
         continue;
       }
       if (entry.kind === "header") {
         const h = document.createElement("div");
-        h.className = "cw-menu-header";
+        h.className = "ked-menu-header";
         h.textContent = entry.label;
         panel.appendChild(h);
         continue;
       }
       const row = document.createElement("div");
-      row.className = "cw-menu-item";
+      row.className = "ked-menu-item";
       const ico = document.createElement("span");
-      ico.className = "cw-menu-ico";
+      ico.className = "ked-menu-ico";
       if (entry.icon) ico.innerHTML = entry.icon;
       const lbl = document.createElement("span");
-      lbl.className = "cw-menu-lbl";
+      lbl.className = "ked-menu-lbl";
       lbl.textContent = entry.label;
       row.append(ico, lbl);
       if (entry.kind === "submenu") {
         const arrow = document.createElement("span");
-        arrow.className = "cw-menu-arrow";
+        arrow.className = "ked-menu-arrow";
         arrow.textContent = "›";
         row.appendChild(arrow);
         attachSubmenu(row, entry);
       } else {
         if (entry.shortcut) {
           const acc = document.createElement("span");
-          acc.className = "cw-menu-acc";
+          acc.className = "ked-menu-acc";
           acc.textContent = entry.shortcut;
           row.appendChild(acc);
         }
-        if (entry.disabled) row.classList.add("cw-disabled");
-        if (entry.danger) row.classList.add("cw-danger");
+        if (entry.disabled) row.classList.add("ked-disabled");
+        if (entry.danger) row.classList.add("ked-danger");
         if (!entry.disabled) {
           row.addEventListener("mouseup", () => {
             dismiss();

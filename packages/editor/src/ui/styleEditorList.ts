@@ -27,13 +27,13 @@ const FORMATS: { value: ListNumberFormat; label: string }[] = [
 ];
 
 const CSS = `
-.cw-le{display:flex;flex-direction:column;gap:14px;}
-.cw-le-field{display:flex;flex-direction:column;gap:4px;}
-.cw-le-field>label{font-size:11px;color:#5f6368;}
-.cw-le-field input,.cw-le-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
-.cw-le-row{display:flex;gap:8px;flex-wrap:wrap;}
-.cw-le-row>*{flex:1 1 0;min-width:90px;}
-.cw-le-h3{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#80868b;font-weight:600;}`;
+.ked-le{display:flex;flex-direction:column;gap:14px;}
+.ked-le-field{display:flex;flex-direction:column;gap:4px;}
+.ked-le-field>label{font-size:11px;color:#5f6368;}
+.ked-le-field input,.ked-le-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;background:#fff;}
+.ked-le-row{display:flex;gap:8px;flex-wrap:wrap;}
+.ked-le-row>*{flex:1 1 0;min-width:90px;}
+.ked-le-h3{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#80868b;font-weight:600;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -42,7 +42,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 };
 const field = (label: string, control: HTMLElement): HTMLElement => {
-  const w = el("div", "cw-le-field");
+  const w = el("div", "ked-le-field");
   w.append(el("label", undefined, label), control);
   return w;
 };
@@ -51,14 +51,14 @@ const option = (sel: HTMLSelectElement, value: string, label: string): void => {
 };
 
 export function mountListStyleEditor(host: HTMLElement, init: ListStyleEditorInit): ListStyleController {
-  injectCssOnce("cw-le-styles", CSS);
+  injectCssOnce("ked-le-styles", CSS);
   // Deep-clone so edits don't mutate the document's definition before Apply.
   const def: ListDefinition = { id: init.def.id, levels: init.def.levels.map((l) => ({ ...l })) };
   let onChangeCb: () => void = () => {};
   const fire = (): void => onChangeCb();
   let active = 0;
 
-  const root = el("div", "cw-le");
+  const root = el("div", "ked-le");
 
   // Name → id (new lists only; existing id is the docx numId key and is fixed).
   const nameInput = el("input");
@@ -73,8 +73,8 @@ export function mountListStyleEditor(host: HTMLElement, init: ListStyleEditorIni
   levelSel.value = "0";
   root.append(field("Editing level", levelSel));
 
-  root.append(el("h3", "cw-le-h3", "Level format"));
-  const formHost = el("div", "cw-le");
+  root.append(el("h3", "ked-le-h3", "Level format"));
+  const formHost = el("div", "ked-le");
   root.append(formHost);
   host.append(root);
 
@@ -117,7 +117,7 @@ export function mountListStyleEditor(host: HTMLElement, init: ListStyleEditorIni
     hanging.type = "number"; hanging.step = "1";
     hanging.value = String(Math.round(lvl.hangingPx));
     hanging.addEventListener("input", () => { lvl.hangingPx = Number(hanging.value) || 0; fire(); });
-    const row = el("div", "cw-le-row");
+    const row = el("div", "ked-le-row");
     row.append(field("Indent (px)", indent), field("Marker hang (px)", hanging));
     formHost.append(row);
   };

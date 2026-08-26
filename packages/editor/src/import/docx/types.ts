@@ -55,7 +55,7 @@ export interface ImportResult {
 
 /** A collected embedded image (Node/backend path). */
 export interface ImportMedia {
-  /** The synthetic src the mapper put on the ImageBlock (e.g. "cw-media:0"). */
+  /** The synthetic src the mapper put on the ImageBlock (e.g. "ked-media:0"). */
   src: string;
   bytes: Uint8Array;
   mime: string;

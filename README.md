@@ -14,6 +14,11 @@ npm install
 npm run dev   # → http://localhost:5173/
 ```
 
+## Integration guides
+
+- [Public events](./packages/editor/docs/public-events.md)
+- [Review comments, discussions, and @mentions](./packages/editor/docs/review-comments.md)
+
 ## License
 
 MIT

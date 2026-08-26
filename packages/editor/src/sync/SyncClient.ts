@@ -15,11 +15,11 @@
 // roster/presence/leave → the editor (which owns + rebases peer caret positions)
 // plus userEntered/userLeave/presence callbacks for the embedder.
 
-import { currentSiteId, freshId, transformOps, WS_MSG, type Change, type DocSelection, type Op, type ReviewOp, type UserInfo } from "@kindy/shared";
+import { currentSiteId, transformOps, WS_MSG, type Change, type DocSelection, type Op, type ReviewOp, type UserInfo } from "@kindy/shared";
 import type { ReviewOpEnvelope } from "../index";
 
 export interface SyncEditor {
-  applyRemoteOps(ops: Op[]): void;
+  applyRemoteOps(ops: Op[], change?: Change): void;
   /** Apply a review op (suggestion/comment) from a collaborator. */
   applyRemoteReviewOp(op: ReviewOp): void;
   /** Upsert a peer's caret (the editor rebases it through edits + renders it). */
@@ -39,6 +39,10 @@ export interface SyncClientOptions {
   user?: UserInfo | undefined;
   /** Notified on every applied remote change (e.g. activity panel). */
   onRemote?: ((change: Change) => void) | undefined;
+  /** The server acknowledged a locally-applied optimistic change. */
+  onCommitted?: ((change: Change) => void) | undefined;
+  onConnected?: ((version: number) => void) | undefined;
+  onDisconnected?: ((reason?: string) => void) | undefined;
   onUserEntered?: ((siteId: string, user: UserInfo | undefined) => void) | undefined;
   onUserLeave?: ((siteId: string, user: UserInfo | undefined) => void) | undefined;
   onPresence?: ((participants: Array<{ siteId: string; user?: UserInfo | undefined }>) => void) | undefined;
@@ -59,8 +63,8 @@ const PRESENCE_THROTTLE_MS = 80;
 export class SyncClient {
   private ws: WebSocket | null = null;
   private version: number;
-  private inflight: { id: string; ops: Op[] } | null = null;
-  private buffer: Op[] = [];
+  private inflight: Change | null = null;
+  private buffer: Change[] = [];
   private readonly opts: SyncClientOptions;
   // Known peers (for entered/left dedup + the participants list).
   private readonly peers = new Map<string, UserInfo | undefined>();
@@ -93,6 +97,7 @@ export class SyncClient {
       ws.send(JSON.stringify({ type: WS_MSG.Hello, siteId: currentSiteId(), user: this.opts.user }));
       this.flush();
       this.opened = true;
+      this.opts.onConnected?.(this.version);
       for (const w of this.openWaiters) w();
       this.openWaiters = [];
     };
@@ -116,15 +121,18 @@ export class SyncClient {
           break;
       }
     };
-    ws.onclose = () => {
+    ws.onclose = (event?: CloseEvent) => {
       this.ws = null;
+      this.opened = false;
+      this.opts.onDisconnected?.(event?.reason || undefined);
     };
   }
 
-  /** Feed local edits (the editor's recorded ops) into the sync pipeline. */
-  localEdit(ops: Op[]): void {
-    if (ops.length === 0) return;
-    this.buffer.push(...ops);
+  /** Feed the exact optimistic Change into the sync pipeline. Its id is retained
+   * through submission and acknowledgement for end-to-end correlation. */
+  localEdit(change: Change): void {
+    if (change.ops.length === 0) return;
+    this.buffer.push(change);
     this.flush();
   }
 
@@ -205,20 +213,19 @@ export class SyncClient {
   private flush(): void {
     if (this.inflight || this.buffer.length === 0) return;
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    const id = freshId();
-    const ops = this.buffer;
-    this.buffer = [];
-    this.inflight = { id, ops };
+    const local = this.buffer.shift()!;
     const change: Change = {
-      id,
+      id: local.id,
       docId: this.opts.docId,
       baseVersion: this.version,
       siteId: currentSiteId(),
       ...(this.opts.user ? { userId: this.opts.user.id } : {}),
-      origin: "command",
-      ts: Date.now(),
-      ops,
+      origin: local.origin,
+      ts: local.ts,
+      ops: local.ops,
+      ...(local.selectionAfter !== undefined ? { selectionAfter: local.selectionAfter } : {}),
     };
+    this.inflight = change;
     this.ws.send(JSON.stringify({ type: WS_MSG.Submit, change }));
   }
 
@@ -229,20 +236,21 @@ export class SyncClient {
     if (this.inflight && change.id === this.inflight.id) {
       this.version = (change.seq ?? this.version) + 1;
       this.inflight = null;
+      this.opts.onCommitted?.(change);
       this.flush();
       this.flushReviewBuffer(); // version advanced → held review ops may be ready
       return;
     }
 
     // A remote change. Apply it on top of our un-acked ops, and rebase those ops.
-    const pending = [...(this.inflight?.ops ?? []), ...this.buffer];
+    const pending = [...(this.inflight?.ops ?? []), ...this.buffer.flatMap((entry) => entry.ops)];
     const remoteForLocal = transformOps(change.ops, pending, "left"); // remote keeps priority
-    this.opts.editor.applyRemoteOps(remoteForLocal);
+    this.opts.editor.applyRemoteOps(remoteForLocal, change);
 
     if (this.inflight) {
-      this.inflight = { id: this.inflight.id, ops: transformOps(this.inflight.ops, change.ops, "right") };
+      this.inflight = { ...this.inflight, ops: transformOps(this.inflight.ops, change.ops, "right") };
     }
-    this.buffer = transformOps(this.buffer, change.ops, "right");
+    this.buffer = this.buffer.map((entry) => ({ ...entry, ops: transformOps(entry.ops, change.ops, "right") }));
     this.version = (change.seq ?? this.version) + 1;
     this.flushReviewBuffer(); // version advanced → held review ops may be ready
     this.opts.onRemote?.(change);

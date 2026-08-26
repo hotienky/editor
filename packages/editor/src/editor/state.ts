@@ -40,6 +40,9 @@ export interface Transaction {
   ops: Op[];
   selectionAfter: DocSelection | null;
   origin: TransactionOrigin;
+  /** Optional semantic command name (e.g. insertText, mergeCells, acceptReview).
+   * Operation consumers must still support its absence for older commands. */
+  intent?: string;
 }
 
 /** Commands are pure (state) -> Transaction | null. Keymap entries and toolbar

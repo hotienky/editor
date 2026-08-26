@@ -1,7 +1,7 @@
 // A full-screen "busy" overlay shown while a blocking async action runs: opening
 // a .docx from disk, joining a shared document via a ?collab link, or publishing
 // a share link. Mirrors the modal pattern of identityPopup.ts and is styled by
-// ui/styles.ts (.cw-loading-*). Covering the screen also debounces double-clicks
+// ui/styles.ts (.ked-loading-*). Covering the screen also debounces double-clicks
 // for the duration of the operation, so callers need no extra button-disable.
 
 export interface BusyHandle {
@@ -13,23 +13,23 @@ export interface BusyHandle {
 
 export function showBusy(label: string): BusyHandle {
   const back = document.createElement("div");
-  back.className = "cw-loading-overlay";
+  back.className = "ked-loading-overlay";
 
   const card = document.createElement("div");
-  card.className = "cw-loading-card";
+  card.className = "ked-loading-card";
 
   const spinner = document.createElement("div");
-  spinner.className = "cw-spinner";
+  spinner.className = "ked-spinner";
 
   const text = document.createElement("div");
-  text.className = "cw-loading-label";
+  text.className = "ked-loading-label";
   text.textContent = label;
 
   const progress = document.createElement("div");
-  progress.className = "cw-progress";
+  progress.className = "ked-progress";
   progress.style.display = "none";
   const bar = document.createElement("div");
-  bar.className = "cw-progress-bar";
+  bar.className = "ked-progress-bar";
   progress.appendChild(bar);
 
   card.append(spinner, text, progress);

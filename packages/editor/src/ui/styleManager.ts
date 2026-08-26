@@ -21,6 +21,8 @@ import { injectCssOnce } from "./styles";
 import { mountTextStyleEditor, type StyleEditorController } from "./styleEditorText";
 import { mountListStyleEditor, type ListStyleController } from "./styleEditorList";
 import { mountTableStyleEditor, type TableStyleController } from "./styleEditorTable";
+import type { DialogCommon, StyleManagerMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 export type StyleKind = "paragraph" | "character" | "list" | "table";
 
@@ -38,6 +40,8 @@ export interface StyleManagerOptions {
   /** Select this style when the dialog opens. */
   initialSelection?: { kind: StyleKind; id: string };
   onClose?: () => void;
+  messages?: StyleManagerMessages;
+  common?: DialogCommon;
 }
 
 export interface StyleManagerHandle {
@@ -46,12 +50,12 @@ export interface StyleManagerHandle {
   refresh(): void;
 }
 
-const KIND_LABELS: Record<StyleKind, string> = {
-  paragraph: "Paragraph styles",
-  character: "Character styles",
-  list: "List styles",
-  table: "Table styles",
-};
+const getKindLabels = (t: StyleManagerMessages): Record<StyleKind, string> => ({
+  paragraph: t.kindParagraph,
+  character: t.kindCharacter,
+  list: t.kindList,
+  table: t.kindTable,
+});
 
 const FALLBACK_CHAR: CharStyle = {
   fontFamily: "Georgia, serif", fontSizePx: 16, bold: false, italic: false,
@@ -64,36 +68,36 @@ const FALLBACK_PARA: ParaStyle = {
 const B = { color: "#bfbfbf", widthPx: 1 } as const;
 
 const CSS = `
-.cw-sm-backdrop{position:fixed;inset:0;z-index:1100;}
-.cw-sm-modal{position:fixed;width:min(980px,96vw);height:min(640px,92vh);display:flex;flex-direction:column;background:#fff;border-radius:10px;
+.ked-sm-backdrop{position:fixed;inset:0;z-index:1100;}
+.ked-sm-modal{position:fixed;width:min(980px,96vw);height:min(640px,92vh);display:flex;flex-direction:column;background:#fff;border-radius:10px;
   box-shadow:0 18px 56px rgba(0,0,0,.34);font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;}
-.cw-sm-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;background:#f7f8fa;cursor:move;}
-.cw-sm-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
-.cw-sm-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
-.cw-sm-x:hover{background:#e8eaed;}
-.cw-sm-body{display:flex;min-height:0;flex:1 1 auto;}
-.cw-sm-list{flex:0 0 230px;border-right:1px solid #e6e8eb;overflow:auto;padding:8px;background:#fbfbfc;}
-.cw-sm-sec{margin-bottom:8px;}
-.cw-sm-sec>h4{margin:6px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#9aa0a6;}
-.cw-sm-card{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:1px solid transparent;border-radius:7px;background:transparent;cursor:pointer;padding:6px 8px;margin-bottom:2px;}
-.cw-sm-card:hover{background:#f1f3f4;}
-.cw-sm-card.sel{background:#e8f0fe;border-color:#1a73e8;}
-.cw-sm-card .nm{font-size:12px;color:#202124;display:flex;align-items:center;gap:6px;}
-.cw-sm-card .nm .def{font-size:9px;color:#1a73e8;border:1px solid #1a73e8;border-radius:8px;padding:0 5px;}
-.cw-sm-card .sw{min-height:20px;overflow:hidden;}
-.cw-sm-empty{font-size:11px;color:#9aa0a6;padding:6px 8px;}
-.cw-sm-editor{flex:1 1 auto;overflow:auto;padding:16px;}
-.cw-sm-preview{flex:0 0 270px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:16px;display:flex;flex-direction:column;gap:8px;overflow:auto;}
-.cw-sm-preview .ttl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
-.cw-sm-prevhost{border:1px solid #dadce0;border-radius:8px;background:#fff;padding:8px;min-height:60px;}
-.cw-sm-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-sm-foot .spacer{flex:1 1 auto;}
-.cw-sm-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
-.cw-sm-btn:hover{background:#f1f3f4;}
-.cw-sm-btn:disabled{opacity:.5;cursor:default;}
-.cw-sm-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-sm-btn.primary:hover{background:#1864cc;}
-.cw-sm-btn.danger:hover{background:#fce8e6;border-color:#d93025;color:#d93025;}`;
+.ked-sm-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;background:#f7f8fa;cursor:move;}
+.ked-sm-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
+.ked-sm-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
+.ked-sm-x:hover{background:#e8eaed;}
+.ked-sm-body{display:flex;min-height:0;flex:1 1 auto;}
+.ked-sm-list{flex:0 0 230px;border-right:1px solid #e6e8eb;overflow:auto;padding:8px;background:#fbfbfc;}
+.ked-sm-sec{margin-bottom:8px;}
+.ked-sm-sec>h4{margin:6px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#9aa0a6;}
+.ked-sm-card{display:flex;flex-direction:column;gap:3px;width:100%;text-align:left;border:1px solid transparent;border-radius:7px;background:transparent;cursor:pointer;padding:6px 8px;margin-bottom:2px;}
+.ked-sm-card:hover{background:#f1f3f4;}
+.ked-sm-card.sel{background:#e8f0fe;border-color:#1a73e8;}
+.ked-sm-card .nm{font-size:12px;color:#202124;display:flex;align-items:center;gap:6px;}
+.ked-sm-card .nm .def{font-size:9px;color:#1a73e8;border:1px solid #1a73e8;border-radius:8px;padding:0 5px;}
+.ked-sm-card .sw{min-height:20px;overflow:hidden;}
+.ked-sm-empty{font-size:11px;color:#9aa0a6;padding:6px 8px;}
+.ked-sm-editor{flex:1 1 auto;overflow:auto;padding:16px;}
+.ked-sm-preview{flex:0 0 270px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:16px;display:flex;flex-direction:column;gap:8px;overflow:auto;}
+.ked-sm-preview .ttl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
+.ked-sm-prevhost{border:1px solid #dadce0;border-radius:8px;background:#fff;padding:8px;min-height:60px;}
+.ked-sm-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-sm-foot .spacer{flex:1 1 auto;}
+.ked-sm-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
+.ked-sm-btn:hover{background:#f1f3f4;}
+.ked-sm-btn:disabled{opacity:.5;cursor:default;}
+.ked-sm-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-sm-btn.primary:hover{background:#1864cc;}
+.ked-sm-btn.danger:hover{background:#fce8e6;border-color:#d93025;color:#d93025;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -103,37 +107,40 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 };
 
 export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle {
-  injectCssOnce("cw-sm-styles", CSS);
+  injectCssOnce("ked-sm-styles", CSS);
   const { editor } = opts;
+  const t = opts.messages ?? defaultMessages.styleManager;
+  const c = opts.common ?? defaultMessages.common;
+  const kindLabels = getKindLabels(t);
   const child = editor.createChild();
 
   const sheet = (): Stylesheet => editor.getDocument().stylesheet ?? defaultStylesheet();
 
   // ---- DOM scaffold ---------------------------------------------------------
-  const backdrop = el("div", "cw-sm-backdrop");
-  const modal = el("div", "cw-sm-modal");
+  const backdrop = el("div", "ked-sm-backdrop");
+  const modal = el("div", "ked-sm-modal");
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
-  const head = el("div", "cw-sm-head");
-  const h2 = el("h2", undefined, "Manage Styles");
-  const xBtn = el("button", "cw-sm-x", "×");
+  const head = el("div", "ked-sm-head");
+  const h2 = el("h2", undefined, t.title);
+  const xBtn = el("button", "ked-sm-x", "×");
   head.append(h2, xBtn);
 
-  const body = el("div", "cw-sm-body");
-  const listHost = el("div", "cw-sm-list");
-  const editorHost = el("div", "cw-sm-editor");
-  const previewCol = el("div", "cw-sm-preview");
-  const prevHost = el("div", "cw-sm-prevhost");
-  previewCol.append(el("div", "ttl", "Preview"), prevHost);
+  const body = el("div", "ked-sm-body");
+  const listHost = el("div", "ked-sm-list");
+  const editorHost = el("div", "ked-sm-editor");
+  const previewCol = el("div", "ked-sm-preview");
+  const prevHost = el("div", "ked-sm-prevhost");
+  previewCol.append(el("div", "ttl", t.previewLabel), prevHost);
   body.append(listHost, editorHost, previewCol);
 
-  const foot = el("div", "cw-sm-foot");
-  const newBtn = el("button", "cw-sm-btn", "New ▾");
-  const delBtn = el("button", "cw-sm-btn danger", "Delete");
-  const mergeBtn = el("button", "cw-sm-btn", "Merge duplicates");
-  mergeBtn.title = "Collapse styles that are identical except for their name";
-  const applyBtn = el("button", "cw-sm-btn primary", "Apply");
-  const closeBtn = el("button", "cw-sm-btn", "Close");
+  const foot = el("div", "ked-sm-foot");
+  const newBtn = el("button", "ked-sm-btn", t.newStyle);
+  const delBtn = el("button", "ked-sm-btn danger", t.deleteStyle);
+  const mergeBtn = el("button", "ked-sm-btn", t.mergeDuplicates);
+  mergeBtn.title = t.mergeDuplicatesTooltip;
+  const applyBtn = el("button", "ked-sm-btn primary", c.apply);
+  const closeBtn = el("button", "ked-sm-btn", c.close);
   foot.append(newBtn, delBtn, mergeBtn, el("div", "spacer"), applyBtn, closeBtn);
 
   modal.append(head, body, foot);
@@ -158,7 +165,7 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     const draftSheet: Stylesheet = { ...s, styles: [...s.styles.filter((x) => x.id !== draftId), draft] };
     const def = resolveStyle(draftSheet, draftSheet.defaultStyleId);
     const para: ParaStyle = { ...FALLBACK_PARA, ...def.para };
-    const mkPara = (runs: Run[]): Paragraph => ({ kind: "paragraph", id: "cw-sm-prev", revision: 0, runs, style: para });
+    const mkPara = (runs: Run[]): Paragraph => ({ kind: "paragraph", id: "ked-sm-prev", revision: 0, runs, style: para });
     if (spec.type === "character") {
       const baseChar: CharStyle = { ...FALLBACK_CHAR, ...def.char };
       const styled: CharStyle = { ...baseChar, ...resolveCharStyle(draftSheet, draftId) };
@@ -171,7 +178,7 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     const r = resolveStyle(draftSheet, draftId);
     const char: CharStyle = { ...FALLBACK_CHAR, ...r.char };
     const pPara: ParaStyle = { ...FALLBACK_PARA, ...r.para };
-    return [{ kind: "paragraph", id: "cw-sm-prev", revision: 0, style: pPara, runs: [{ text: "The quick brown fox jumps over the lazy dog. 0123456789", style: char }] }];
+    return [{ kind: "paragraph", id: "ked-sm-prev", revision: 0, style: pPara, runs: [{ text: "The quick brown fox jumps over the lazy dog. 0123456789", style: char }] }];
   };
 
   const refreshPreview = (): void => {
@@ -295,7 +302,7 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
 
   // ---- List rail ------------------------------------------------------------
   const card = (kind: StyleKind, st: NamedStyle, isDefault: boolean): HTMLElement => {
-    const c = el("button", "cw-sm-card");
+    const c = el("button", "ked-sm-card");
     if (selKind === kind && selId === st.id) c.classList.add("sel");
     const nm = el("div", "nm");
     nm.append(document.createTextNode(st.name));
@@ -307,11 +314,11 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     c.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       const entries: MenuEntry[] = [
-        { kind: "item", label: "Modify", onClick: () => selectStyle(kind, st.id) },
-        { kind: "item", label: "Duplicate", onClick: () => newStyle(kind, st) },
+        { kind: "item", label: t.ctxModify, onClick: () => selectStyle(kind, st.id) },
+        { kind: "item", label: t.ctxDuplicate, onClick: () => newStyle(kind, st) },
         { kind: "sep" },
-        { kind: "item", label: "Set as default", disabled: kind !== "paragraph" || isDefault, onClick: () => { editor.dispatch(setDefaultStyle(st.id)); rebuildList(); } },
-        { kind: "item", label: "Delete", danger: true, disabled: isDefault, onClick: () => deleteStyle(kind, st.id) },
+        { kind: "item", label: t.ctxSetDefault, disabled: kind !== "paragraph" || isDefault, onClick: () => { editor.dispatch(setDefaultStyle(st.id)); rebuildList(); } },
+        { kind: "item", label: t.ctxDelete, danger: true, disabled: isDefault, onClick: () => deleteStyle(kind, st.id) },
       ];
       showContextMenu(e.clientX, e.clientY, entries);
     });
@@ -319,7 +326,7 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
   };
 
   const listCard = (def: ListDefinition): HTMLElement => {
-    const c = el("button", "cw-sm-card");
+    const c = el("button", "ked-sm-card");
     if (selKind === "list" && selId === def.id) c.classList.add("sel");
     const nm = el("div", "nm");
     nm.append(document.createTextNode(def.id));
@@ -330,15 +337,15 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     c.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       showContextMenu(e.clientX, e.clientY, [
-        { kind: "item", label: "Modify", onClick: () => selectStyle("list", def.id) },
-        { kind: "item", label: "Delete", danger: true, onClick: () => deleteStyle("list", def.id) },
+        { kind: "item", label: t.ctxModify, onClick: () => selectStyle("list", def.id) },
+        { kind: "item", label: t.ctxDelete, danger: true, onClick: () => deleteStyle("list", def.id) },
       ]);
     });
     return c;
   };
 
   const tableCard = (st: TableStyle): HTMLElement => {
-    const c = el("button", "cw-sm-card");
+    const c = el("button", "ked-sm-card");
     if (selKind === "table" && selId === st.id) c.classList.add("sel");
     const nm = el("div", "nm");
     nm.append(document.createTextNode(st.name));
@@ -349,8 +356,8 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     c.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       showContextMenu(e.clientX, e.clientY, [
-        { kind: "item", label: "Modify", onClick: () => selectStyle("table", st.id) },
-        { kind: "item", label: "Delete", danger: true, onClick: () => deleteStyle("table", st.id) },
+        { kind: "item", label: t.ctxModify, onClick: () => selectStyle("table", st.id) },
+        { kind: "item", label: t.ctxDelete, danger: true, onClick: () => deleteStyle("table", st.id) },
       ]);
     });
     return c;
@@ -360,19 +367,19 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     const s = sheet();
     listHost.replaceChildren();
     for (const kind of ["paragraph", "character", "list", "table"] as StyleKind[]) {
-      const sec = el("div", "cw-sm-sec");
-      sec.append(el("h4", undefined, KIND_LABELS[kind]));
+      const sec = el("div", "ked-sm-sec");
+      sec.append(el("h4", undefined, kindLabels[kind]));
       if (kind === "paragraph" || kind === "character") {
         const rows = s.styles.filter((x) => styleType(x) === kind);
-        if (rows.length === 0) sec.append(el("div", "cw-sm-empty", "None yet"));
+        if (rows.length === 0) sec.append(el("div", "ked-sm-empty", t.noneYet));
         for (const st of rows) sec.append(card(kind, st, s.defaultStyleId === st.id));
       } else if (kind === "list") {
         const defs = Object.values(lists());
-        if (defs.length === 0) sec.append(el("div", "cw-sm-empty", "None yet"));
+        if (defs.length === 0) sec.append(el("div", "ked-sm-empty", t.noneYet));
         for (const def of defs) sec.append(listCard(def));
       } else {
         const defs = Object.values(tableStyles());
-        if (defs.length === 0) sec.append(el("div", "cw-sm-empty", "None yet"));
+        if (defs.length === 0) sec.append(el("div", "ked-sm-empty", t.noneYet));
         for (const st of defs) sec.append(tableCard(st));
       }
       listHost.append(sec);
@@ -420,17 +427,17 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
     delBtn.disabled = selId === null || isDefault;
     const dupes = mergeDuplicateNamedStyles(sheet()).remap.size;
     mergeBtn.disabled = dupes === 0;
-    mergeBtn.textContent = dupes > 0 ? `Merge duplicates (${dupes})` : "Merge duplicates";
+    mergeBtn.textContent = dupes > 0 ? `${t.mergeDuplicates} (${dupes})` : t.mergeDuplicates;
   }
 
   newBtn.addEventListener("click", (e) => {
     e.stopPropagation();
     const r = newBtn.getBoundingClientRect();
     const entries: MenuEntry[] = [
-      { kind: "item", label: "Paragraph style", onClick: () => newStyle("paragraph") },
-      { kind: "item", label: "Character style", onClick: () => newStyle("character") },
-      { kind: "item", label: "List style", onClick: () => newStyle("list") },
-      { kind: "item", label: "Table style", onClick: () => newStyle("table") },
+      { kind: "item", label: t.newParagraphStyle, onClick: () => newStyle("paragraph") },
+      { kind: "item", label: t.newCharacterStyle, onClick: () => newStyle("character") },
+      { kind: "item", label: t.newListStyle, onClick: () => newStyle("list") },
+      { kind: "item", label: t.newTableStyle, onClick: () => newStyle("table") },
     ];
     showContextMenu(r.left, r.bottom, entries);
   });
@@ -458,7 +465,7 @@ export function showStyleManager(opts: StyleManagerOptions): StyleManagerHandle 
   window.addEventListener("keydown", (ev: KeyboardEvent) => {
     if (ev.key === "Escape") { ev.preventDefault(); ev.stopPropagation(); handle.close(); }
   }, { capture: true, signal: ac.signal });
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-sm-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-sm-x" });
   xBtn.addEventListener("click", () => handle.close());
   closeBtn.addEventListener("click", () => handle.close());
 

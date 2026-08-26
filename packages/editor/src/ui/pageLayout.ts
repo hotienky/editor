@@ -21,6 +21,8 @@ import { applyPageSetup, pageSetupAt, setBandVariantEnabled } from "../editor/co
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
 import { formatUnit, unitToPx, type LengthUnit } from "./units";
+import type { DialogCommon, PageLayoutMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 /** The slice of the editor the dialog needs (the full Editor satisfies it). */
 export interface PageLayoutEditor {
@@ -33,6 +35,8 @@ export interface PageLayoutEditor {
 export interface PageLayoutOptions {
   editor: PageLayoutEditor;
   onClose?: () => void;
+  messages?: PageLayoutMessages;
+  common?: DialogCommon;
 }
 
 export interface PageLayoutHandle {
@@ -52,41 +56,41 @@ const MARGINS: Record<string, { top: number; right: number; bottom: number; left
 const BORDER_STYLES = ["single", "double", "dashed", "dotted", "thick"] as const;
 
 const CSS = `
-.cw-pl-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.30);}
-.cw-pl-modal{position:fixed;width:min(640px,95vw);max-height:90vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
+.ked-pl-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.30);}
+.ked-pl-modal{position:fixed;width:min(640px,95vw);max-height:90vh;display:flex;flex-direction:column;background:#fff;border-radius:10px;
   box-shadow:0 18px 56px rgba(0,0,0,.34);font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;}
-.cw-pl-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e6e8eb;cursor:move;}
-.cw-pl-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
-.cw-pl-unit{display:flex;gap:4px;align-items:center;font-size:11px;color:#80868b;}
-.cw-pl-unit select{height:24px;border:1px solid #d0d4d9;border-radius:5px;font:12px Arial;}
-.cw-pl-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
-.cw-pl-x:hover{background:#e8eaed;}
-.cw-pl-body{display:flex;min-height:0;flex:1 1 auto;}
-.cw-pl-main{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;}
-.cw-pl-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid #e6e8eb;}
-.cw-pl-tab{border:none;background:transparent;padding:7px 11px;font-size:12px;color:#5f6368;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;}
-.cw-pl-tab.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600;}
-.cw-pl-pane{padding:14px 16px;overflow:auto;display:none;flex-direction:column;gap:12px;flex:1 1 auto;}
-.cw-pl-pane.active{display:flex;}
-.cw-pl-right{flex:0 0 200px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:14px 12px;display:flex;flex-direction:column;gap:8px;align-items:center;}
-.cw-pl-prev-ttl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;align-self:flex-start;}
-.cw-pl-prev{border:1px solid #dadce0;border-radius:6px;background:#eef0f2;display:flex;align-items:center;justify-content:center;width:100%;height:240px;}
-.cw-pl-field{display:flex;flex-direction:column;gap:4px;}
-.cw-pl-field label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
-.cw-pl-field input,.cw-pl-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;box-sizing:border-box;}
-.cw-pl-row{display:flex;gap:8px;}.cw-pl-row>*{flex:1 1 0;min-width:0;}
-.cw-pl-presets{display:flex;flex-wrap:wrap;gap:6px;}
-.cw-pl-chip{border:1px solid #d0d4d9;border-radius:14px;background:#fff;cursor:pointer;font-size:11px;padding:3px 10px;color:#3c4043;}
-.cw-pl-chip:hover{background:#f1f3f4;}
-.cw-pl-check{display:flex;align-items:center;gap:7px;font-size:13px;color:#3c4043;cursor:pointer;}
-.cw-pl-check input{width:16px;height:16px;}
-.cw-pl-cols{display:flex;flex-direction:column;gap:6px;}
-.cw-pl-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-pl-foot .spacer{flex:1 1 auto;}
-.cw-pl-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
-.cw-pl-btn:hover{background:#f1f3f4;}
-.cw-pl-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-pl-btn.primary:hover{background:#1864cc;}`;
+.ked-pl-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e6e8eb;cursor:move;}
+.ked-pl-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;}
+.ked-pl-unit{display:flex;gap:4px;align-items:center;font-size:11px;color:#80868b;}
+.ked-pl-unit select{height:24px;border:1px solid #d0d4d9;border-radius:5px;font:12px Arial;}
+.ked-pl-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;width:28px;height:28px;border-radius:6px;}
+.ked-pl-x:hover{background:#e8eaed;}
+.ked-pl-body{display:flex;min-height:0;flex:1 1 auto;}
+.ked-pl-main{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;}
+.ked-pl-tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid #e6e8eb;}
+.ked-pl-tab{border:none;background:transparent;padding:7px 11px;font-size:12px;color:#5f6368;cursor:pointer;border-radius:6px 6px 0 0;border-bottom:2px solid transparent;}
+.ked-pl-tab.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600;}
+.ked-pl-pane{padding:14px 16px;overflow:auto;display:none;flex-direction:column;gap:12px;flex:1 1 auto;}
+.ked-pl-pane.active{display:flex;}
+.ked-pl-right{flex:0 0 200px;border-left:1px solid #e6e8eb;background:#fbfbfc;padding:14px 12px;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.ked-pl-prev-ttl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;align-self:flex-start;}
+.ked-pl-prev{border:1px solid #dadce0;border-radius:6px;background:#eef0f2;display:flex;align-items:center;justify-content:center;width:100%;height:240px;}
+.ked-pl-field{display:flex;flex-direction:column;gap:4px;}
+.ked-pl-field label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;}
+.ked-pl-field input,.ked-pl-field select{height:30px;border:1px solid #d0d4d9;border-radius:6px;padding:0 8px;font:13px Arial,sans-serif;box-sizing:border-box;}
+.ked-pl-row{display:flex;gap:8px;}.ked-pl-row>*{flex:1 1 0;min-width:0;}
+.ked-pl-presets{display:flex;flex-wrap:wrap;gap:6px;}
+.ked-pl-chip{border:1px solid #d0d4d9;border-radius:14px;background:#fff;cursor:pointer;font-size:11px;padding:3px 10px;color:#3c4043;}
+.ked-pl-chip:hover{background:#f1f3f4;}
+.ked-pl-check{display:flex;align-items:center;gap:7px;font-size:13px;color:#3c4043;cursor:pointer;}
+.ked-pl-check input{width:16px;height:16px;}
+.ked-pl-cols{display:flex;flex-direction:column;gap:6px;}
+.ked-pl-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-pl-foot .spacer{flex:1 1 auto;}
+.ked-pl-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#3c4043;}
+.ked-pl-btn:hover{background:#f1f3f4;}
+.ked-pl-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-pl-btn.primary:hover{background:#1864cc;}`;
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] => {
   const e = document.createElement(tag);
@@ -96,7 +100,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 };
 
 const labelled = (label: string, control: HTMLElement): HTMLElement => {
-  const wrap = el("div", "cw-pl-field");
+  const wrap = el("div", "ked-pl-field");
   wrap.append(el("label", undefined, label), control);
   return wrap;
 };
@@ -118,34 +122,34 @@ interface NumField {
 }
 
 export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
-  injectCssOnce("cw-pl-styles", CSS);
+  injectCssOnce("ked-pl-styles", CSS);
   const { editor } = opts;
+  const t = opts.messages ?? defaultMessages.pageLayout;
+  const c = opts.common ?? defaultMessages.common;
 
   // ---- draft state (seeded from the caret's section) ------------------------
-  const geo0 = pageSetupAt({ doc: editor.getDocument(), selection: editor.getSelection() });
-  let unit: LengthUnit = "in";
+  const init = pageSetupAt({ doc: editor.getDocument(), selection: editor.getSelection() });
+  let unit: LengthUnit = "in"; // toggled by header unit picker
   const draft = {
-    pageWidthPx: geo0.pageWidthPx,
-    pageHeightPx: geo0.pageHeightPx,
-    margin: { ...geo0.marginPx },
-    columns: geo0.columns
-      ? { ...geo0.columns, ...(geo0.columns.cols ? { cols: geo0.columns.cols.map((c) => ({ ...c })) } : {}) }
-      : null,
-    pageNumberStart: geo0.pageNumberStart,
-    headerDistancePx: geo0.headerDistancePx,
-    footerDistancePx: geo0.footerDistancePx,
-    pageColorHex: geo0.pageColorHex,
-    pageBorders: geo0.pageBorders ? structuredCloneBorders(geo0.pageBorders) : null,
-    breakType: geo0.breakType,
-    lineNumbering: geo0.lineNumbering ? { ...geo0.lineNumbering } : null,
+    pageWidthPx: init.pageWidthPx,
+    pageHeightPx: init.pageHeightPx,
+    margin: { ...init.marginPx },
+    columns: init.columns ? { ...init.columns, ...(init.columns.cols ? { cols: init.columns.cols.map((c) => ({ ...c })) } : {}) } : null,
+    pageNumberStart: init.pageNumberStart,
+    headerDistancePx: init.headerDistancePx,
+    footerDistancePx: init.footerDistancePx,
+    pageColorHex: init.pageColorHex,
+    pageBorders: init.pageBorders ? structuredCloneBorders(init.pageBorders) : null,
+    breakType: init.breakType,
+    lineNumbering: init.lineNumbering ? { ...init.lineNumbering } : null,
   };
 
   const numFields: NumField[] = [];
-  const makeNum = (px: number, onChange: (px: number) => void, min = 0): NumField => {
+  const makeNum = (initialPx: number, onChange: (px: number) => void, min = 0): NumField => {
+    let px = initialPx;
     const input = el("input");
     input.type = "number";
-    input.step = "0.01";
-    input.min = String(min);
+    input.step = "0.05";
     input.value = formatUnit(px, unit);
     const read = (): number => {
       const v = Number(input.value);
@@ -177,27 +181,27 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   };
 
   // ---- scaffold -------------------------------------------------------------
-  const backdrop = el("div", "cw-pl-backdrop");
+  const backdrop = el("div", "ked-pl-backdrop");
   backdrop.style.pointerEvents = "none";
-  const modal = el("div", "cw-pl-modal");
+  const modal = el("div", "ked-pl-modal");
   modal.style.pointerEvents = "auto";
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
-  const head = el("div", "cw-pl-head");
-  const h2 = el("h2", undefined, "Page layout");
-  const unitWrap = el("div", "cw-pl-unit");
+  const head = el("div", "ked-pl-head");
+  const h2 = el("h2", undefined, t.title);
+  const unitWrap = el("div", "ked-pl-unit");
   const unitSel = el("select");
-  unitSel.append(option("in", "inches"), option("cm", "cm"));
+  unitSel.append(option("in", t.labelInches), option("cm", t.labelCm));
   unitWrap.append(el("span", undefined, "Units"), unitSel);
-  const xBtn = el("button", "cw-pl-x", "×");
+  const xBtn = el("button", "ked-pl-x", "×");
   head.append(h2, unitWrap, xBtn);
 
-  const bodyWrap = el("div", "cw-pl-body");
-  const mainCol = el("div", "cw-pl-main");
-  const tabsBar = el("div", "cw-pl-tabs");
-  const right = el("div", "cw-pl-right");
-  const prevTtl = el("div", "cw-pl-prev-ttl", "Preview");
-  const prevHost = el("div", "cw-pl-prev");
+  const bodyWrap = el("div", "ked-pl-body");
+  const mainCol = el("div", "ked-pl-main");
+  const tabsBar = el("div", "ked-pl-tabs");
+  const right = el("div", "ked-pl-right");
+  const prevTtl = el("div", "ked-pl-prev-ttl", "Preview");
+  const prevHost = el("div", "ked-pl-prev");
   const prevCanvas = el("canvas");
   prevHost.append(prevCanvas);
   right.append(prevTtl, prevHost);
@@ -206,11 +210,11 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   const panes: Record<string, HTMLElement> = {};
   const tabs: Record<string, HTMLButtonElement> = {};
   const addTab = (id: string, label: string): HTMLElement => {
-    const t = el("button", "cw-pl-tab", label);
-    t.addEventListener("click", () => selectTab(id));
-    tabsBar.append(t);
-    tabs[id] = t;
-    const pane = el("div", "cw-pl-pane");
+    const tBtn = el("button", "ked-pl-tab", label);
+    tBtn.addEventListener("click", () => selectTab(id));
+    tabsBar.append(tBtn);
+    tabs[id] = tBtn;
+    const pane = el("div", "ked-pl-pane");
     mainCol.append(pane);
     panes[id] = pane;
     return pane;
@@ -223,12 +227,12 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   };
 
   // Page tab: size preset + orientation + custom W×H.
-  const pagePane = addTab("page", "Page");
+  const pagePane = addTab("page", t.sectionSize);
   const sizeSel = el("select");
   for (const k of Object.keys(SIZES)) sizeSel.append(option(k, k));
-  sizeSel.append(option("Custom", "Custom"));
+  sizeSel.append(option("Custom", t.customSize));
   const orientSel = el("select");
-  orientSel.append(option("portrait", "Portrait"), option("landscape", "Landscape"));
+  orientSel.append(option("portrait", t.orientationPortrait), option("landscape", t.orientationLandscape));
   const widthNum = makeNum(draft.pageWidthPx, (px) => { draft.pageWidthPx = px; sizeSel.value = "Custom"; syncOrient(); });
   const heightNum = makeNum(draft.pageHeightPx, (px) => { draft.pageHeightPx = px; sizeSel.value = "Custom"; syncOrient(); });
   const syncOrient = (): void => { orientSel.value = draft.pageWidthPx > draft.pageHeightPx ? "landscape" : "portrait"; };
@@ -252,20 +256,25 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
     }
   });
   pagePane.append(
-    labelled("Paper size", sizeSel),
-    labelled("Orientation", orientSel),
-    rowOf(relabel(widthNum, "Width"), relabel(heightNum, "Height")),
+    labelled(t.paperSize, sizeSel),
+    labelled(t.orientation, orientSel),
+    rowOf(relabel(widthNum, t.width), relabel(heightNum, t.height)),
   );
 
   // Margins tab.
-  const marginsPane = addTab("margins", "Margins");
+  const marginsPane = addTab("margins", t.sectionMargins);
   const mTop = makeNum(draft.margin.top, (px) => { draft.margin.top = px; });
   const mBottom = makeNum(draft.margin.bottom, (px) => { draft.margin.bottom = px; });
   const mLeft = makeNum(draft.margin.left, (px) => { draft.margin.left = px; });
   const mRight = makeNum(draft.margin.right, (px) => { draft.margin.right = px; });
-  const marginPresets = el("div", "cw-pl-presets");
+  const marginPresets = el("div", "ked-pl-presets");
+  const marginPresetLabels: Record<string, string> = {
+    Normal: t.marginNormal,
+    Narrow: t.marginNarrow,
+    Wide: t.marginWide,
+  };
   for (const k of Object.keys(MARGINS)) {
-    const chip = el("button", "cw-pl-chip", k);
+    const chip = el("button", "ked-pl-chip", marginPresetLabels[k] ?? k);
     chip.type = "button";
     chip.addEventListener("click", () => {
       const m = MARGINS[k]!;
@@ -277,21 +286,21 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   }
   marginsPane.append(
     marginPresets,
-    rowOf(relabel(mTop, "Top"), relabel(mBottom, "Bottom")),
-    rowOf(relabel(mLeft, "Left"), relabel(mRight, "Right")),
+    rowOf(relabel(mTop, t.marginTop), relabel(mBottom, t.marginBottom)),
+    rowOf(relabel(mLeft, t.marginLeft), relabel(mRight, t.marginRight)),
   );
 
   // Columns tab.
-  const columnsPane = addTab("columns", "Columns");
+  const columnsPane = addTab("columns", t.sectionColumns);
   const countInput = el("input");
   countInput.type = "number";
   countInput.min = "1";
   countInput.max = "6";
   countInput.value = String(draft.columns?.count ?? 1);
-  const equalCheck = checkbox("Equal column width");
-  const sepCheck = checkbox("Line between columns");
+  const equalCheck = checkbox(t.columnCount);
+  const sepCheck = checkbox(t.columnSeparatorLine);
   const gapHost = el("div");
-  const colsHost = el("div", "cw-pl-cols");
+  const colsHost = el("div", "ked-pl-cols");
   const rebuildColumns = (): void => {
     const count = Math.max(1, Math.min(6, Number(countInput.value) || 1));
     gapHost.replaceChildren();
@@ -304,7 +313,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
     if (equal) {
       const gap = draft.columns?.gapPx ?? 24;
       const gapNum = makeNum(gap, (px) => { if (draft.columns) draft.columns.gapPx = px; });
-      gapHost.append(relabel(gapNum, "Spacing between columns"));
+      gapHost.append(relabel(gapNum, t.columnSpacing));
       draft.columns = { count, gapPx: gap, sep: sepCheck.input.checked };
     } else {
       // Per-column widths: seed from current content width split evenly.
@@ -323,8 +332,8 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
         const sNum = makeNum(c.spaceAfterPx, (px) => { c.spaceAfterPx = px; });
         colsHost.append(
           i < count - 1
-            ? rowOf(relabel(wNum, `Col ${i + 1} width`), relabel(sNum, `Col ${i + 1} spacing`))
-            : relabel(wNum, `Col ${i + 1} width`),
+            ? rowOf(relabel(wNum, `${t.columnCount} ${i + 1} ${t.width}`), relabel(sNum, `${t.columnCount} ${i + 1} ${t.columnSpacing}`))
+            : relabel(wNum, `${t.columnCount} ${i + 1} ${t.width}`),
         );
       });
     }
@@ -334,10 +343,10 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   sepCheck.input.addEventListener("change", () => { if (draft.columns) draft.columns.sep = sepCheck.input.checked; redrawPreview(); });
   equalCheck.input.checked = !draft.columns?.cols;
   sepCheck.input.checked = !!draft.columns?.sep;
-  columnsPane.append(labelled("Number of columns", countInput), equalCheck.row, gapHost, colsHost, sepCheck.row);
+  columnsPane.append(labelled(t.columnCount, countInput), equalCheck.row, gapHost, colsHost, sepCheck.row);
 
   // Layout tab: header/footer distance + page-number restart + band variants.
-  const layoutPane = addTab("layout", "Layout");
+  const layoutPane = addTab("layout", t.sectionHeaderFooter);
   const headerNum = makeNum(draft.headerDistancePx ?? 48, (px) => { draft.headerDistancePx = px; });
   const footerNum = makeNum(draft.footerDistancePx ?? 48, (px) => { draft.footerDistancePx = px; });
   const startInput = el("input");
@@ -346,8 +355,8 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   startInput.placeholder = "continue";
   startInput.value = draft.pageNumberStart === null ? "" : String(draft.pageNumberStart);
   startInput.addEventListener("input", () => {
-    const t = startInput.value.trim();
-    draft.pageNumberStart = t === "" ? null : Math.max(0, Number(t) || 0);
+    const textVal = startInput.value.trim();
+    draft.pageNumberStart = textVal === "" ? null : Math.max(0, Number(textVal) || 0);
   });
   const sec = editor.getDocument().section;
   const firstCheck = checkbox("Different first page");
@@ -362,13 +371,13 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   // and oddPage; Word's "Continuous" is flowed inline by the importer and so has
   // no breakType to set here.
   const sectionStartSel = el("select");
-  sectionStartSel.append(option("nextPage", "New page"), option("evenPage", "Even page"), option("oddPage", "Odd page"));
+  sectionStartSel.append(option("nextPage", t.sectionBreakNextPage), option("evenPage", t.sectionBreakEvenPage), option("oddPage", t.sectionBreakOddPage));
   sectionStartSel.value = draft.breakType ?? "nextPage";
   sectionStartSel.addEventListener("change", () => { draft.breakType = sectionStartSel.value as SectionBreakType; });
 
   // Line numbering (w:sectPr/w:lnNumType): an on/off toggle revealing count-by,
   // start-at, restart and the gap from the text edge.
-  const lineNumCheck = checkbox("Line numbering");
+  const lineNumCheck = checkbox(t.sectionLineNumbers);
   lineNumCheck.input.checked = draft.lineNumbering !== null;
   const lnCountBy = el("input");
   lnCountBy.type = "number";
@@ -379,12 +388,12 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   lnStart.min = "0";
   lnStart.value = String(draft.lineNumbering?.start ?? 1);
   const lnRestartSel = el("select");
-  lnRestartSel.append(option("newPage", "Each page"), option("newSection", "Each section"), option("continuous", "Continuous"));
+  lnRestartSel.append(option("newPage", t.lineNumberRestart), option("newSection", t.pageBorderApplySection), option("continuous", t.sectionBreakContinuous));
   lnRestartSel.value = draft.lineNumbering?.restart ?? "newPage";
   const lnDistance = makeNum(draft.lineNumbering?.distancePx ?? 0, () => syncLineNumbering(), 0);
-  const lnDetail = el("div", "cw-pl-cols");
+  const lnDetail = el("div", "ked-pl-cols");
   lnDetail.append(
-    rowOf(labelled("Count by", lnCountBy), labelled("Start at", lnStart)),
+    rowOf(labelled(t.lineNumberStep, lnCountBy), labelled(t.lineNumberStart, lnStart)),
     rowOf(labelled("Restart", lnRestartSel), relabel(lnDistance, "Distance from text")),
   );
   const syncLineNumbering = (): void => {
@@ -408,13 +417,13 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   };
   lnDetail.style.display = lineNumCheck.input.checked ? "" : "none";
   lineNumCheck.input.addEventListener("change", syncLineNumbering);
-  for (const c of [lnCountBy, lnStart]) c.addEventListener("input", syncLineNumbering);
+  for (const item of [lnCountBy, lnStart]) item.addEventListener("input", syncLineNumbering);
   lnRestartSel.addEventListener("change", syncLineNumbering);
 
   layoutPane.append(
-    rowOf(relabel(headerNum, "Header from top"), relabel(footerNum, "Footer from bottom")),
-    labelled("Start page number at", startInput),
-    labelled("Section start", sectionStartSel),
+    rowOf(relabel(headerNum, t.headerDistance), relabel(footerNum, t.footerDistance)),
+    labelled(t.lineNumberStart, startInput),
+    labelled(t.sectionBreakType, sectionStartSel),
     firstCheck.row,
     evenCheck.row,
     lineNumCheck.row,
@@ -422,8 +431,8 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   );
 
   // Background tab: page color + page borders.
-  const bgPane = addTab("background", "Background");
-  const colorCheck = checkbox("Page color");
+  const bgPane = addTab("background", t.sectionPageColor);
+  const colorCheck = checkbox(t.pageColor);
   const colorInput = el("input");
   colorInput.type = "color";
   colorInput.value = draft.pageColorHex ?? "#ffffff";
@@ -436,7 +445,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   colorCheck.input.addEventListener("change", onColor);
   colorInput.addEventListener("input", onColor);
 
-  const borderCheck = checkbox("Page border");
+  const borderCheck = checkbox(t.pageBorder);
   const borderStyleSel = el("select");
   for (const s of BORDER_STYLES) borderStyleSel.append(option(s, s[0]!.toUpperCase() + s.slice(1)));
   const borderWidthNum = makeNum((draft.pageBorders?.top?.widthPx ?? 1), (_px) => updateBorders(), 0);
@@ -445,7 +454,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   borderColorInput.value = draft.pageBorders?.top?.color ?? "#000000";
   borderColorInput.style.cssText = "height:30px;width:60px;padding:2px;border:1px solid #d0d4d9;border-radius:6px;";
   const offsetSel = el("select");
-  offsetSel.append(option("page", "From page edge"), option("text", "From text"));
+  offsetSel.append(option("page", t.pageBorderApplyPage), option("text", t.pageBorderApplySection));
   offsetSel.value = draft.pageBorders?.offsetFrom ?? "page";
   borderCheck.input.checked = draft.pageBorders !== null;
   if (draft.pageBorders?.top) borderStyleSel.value = draft.pageBorders.top.style;
@@ -465,15 +474,15 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
     }
     redrawPreview();
   };
-  for (const c of [borderStyleSel, borderColorInput, offsetSel]) c.addEventListener("change", updateBorders);
+  for (const item of [borderStyleSel, borderColorInput, offsetSel]) item.addEventListener("change", updateBorders);
   borderColorInput.addEventListener("input", updateBorders);
   borderCheck.input.addEventListener("change", updateBorders);
   bgPane.append(
     colorCheck.row,
-    labelled("Color", colorInput),
+    labelled(t.pageBorderColor, colorInput),
     borderCheck.row,
-    rowOf(labelled("Style", borderStyleSel), relabel(borderWidthNum, "Width")),
-    rowOf(labelled("Color", borderColorInput), labelled("Measure", offsetSel)),
+    rowOf(labelled(t.pageBorderStyle, borderStyleSel), relabel(borderWidthNum, t.pageBorderWidth)),
+    rowOf(labelled(t.pageBorderColor, borderColorInput), labelled(t.pageBorderApply, offsetSel)),
   );
 
   // ---- preview --------------------------------------------------------------
@@ -564,10 +573,10 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   });
 
   // ---- footer ---------------------------------------------------------------
-  const foot = el("div", "cw-pl-foot");
+  const foot = el("div", "ked-pl-foot");
   const spacer = el("div", "spacer");
-  const cancel = el("button", "cw-pl-btn", "Cancel");
-  const apply = el("button", "cw-pl-btn primary", "Apply to this section");
+  const cancel = el("button", "ked-pl-btn", c.cancel);
+  const apply = el("button", "ked-pl-btn primary", `${c.apply} (${t.pageBorderApplySection.toLowerCase()})`);
   foot.append(spacer, cancel, apply);
 
   bodyWrap.append(mainCol, right);
@@ -605,7 +614,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
   );
   // Exclude the unit dropdown from drag — otherwise the header's mousedown
   // preventDefault swallows the native <select> open.
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-pl-x, .cw-pl-unit" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-pl-x, .ked-pl-unit" });
   xBtn.addEventListener("click", () => handle.close());
   cancel.addEventListener("click", () => handle.close());
   apply.addEventListener("click", () => {
@@ -639,7 +648,7 @@ export function showPageLayout(opts: PageLayoutOptions): PageLayoutHandle {
 
 // --- small helpers ----------------------------------------------------------
 function rowOf(...kids: HTMLElement[]): HTMLElement {
-  const r = el("div", "cw-pl-row");
+  const r = el("div", "ked-pl-row");
   r.append(...kids);
   return r;
 }
@@ -649,7 +658,7 @@ interface Check {
   input: HTMLInputElement;
 }
 function checkbox(label: string): Check {
-  const row = el("label", "cw-pl-check");
+  const row = el("label", "ked-pl-check");
   const input = el("input");
   input.type = "checkbox";
   row.append(input, el("span", undefined, label));

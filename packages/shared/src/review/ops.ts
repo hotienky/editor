@@ -20,7 +20,18 @@ export type ReviewOp =
   | { type: "removeThread"; id: string }
   | { type: "addComment"; threadId: string; c: Comment }
   | { type: "removeComment"; threadId: string; commentId: string }
-  | { type: "editComment"; threadId: string; commentId: string; body: Fragment }
+  | {
+      type: "editComment";
+      threadId: string;
+      commentId: string;
+      body: Fragment;
+      /** null explicitly clears the field; undefined preserves it. */
+      mentions?: UserInfo[] | null;
+      editedAt?: number | null;
+      /** Notification projection: mentions newly introduced by this edit. */
+      newlyMentionedUserIds?: string[];
+    }
+  | { type: "deleteComment"; threadId: string; commentId: string; deletedAt: number; deletedBy: UserInfo }
   | { type: "setThreadStatus"; threadId: string; status: ThreadStatus };
 
 /** A review op as it travels for sync/persist: tagged with the core document
@@ -152,12 +163,47 @@ export function applyReviewOp(layer: ReviewLayer, op: ReviewOp): ReviewApplyResu
       if (!t || !prev) {
         return { layer, inverse: { type: "editComment", threadId: op.threadId, commentId: op.commentId, body: op.body } };
       }
+      const update = (c: Comment): Comment => {
+        const next: Comment = { ...c, body: op.body };
+        if (op.mentions !== undefined) {
+          if (op.mentions === null) delete next.mentions;
+          else next.mentions = op.mentions;
+        }
+        if (op.editedAt !== undefined) {
+          if (op.editedAt === null) delete next.editedAt;
+          else next.editedAt = op.editedAt;
+        }
+        return next;
+      };
       return {
         layer: replaceThread(layer, op.threadId, (th) => ({
           ...th,
-          comments: th.comments.map((c) => (c.id === op.commentId ? { ...c, body: op.body } : c)),
+          comments: th.comments.map((c) => (c.id === op.commentId ? update(c) : c)),
         })),
-        inverse: { type: "editComment", threadId: op.threadId, commentId: op.commentId, body: prev.body },
+        inverse: {
+          type: "editComment",
+          threadId: op.threadId,
+          commentId: op.commentId,
+          body: prev.body,
+          mentions: prev.mentions ?? null,
+          editedAt: prev.editedAt ?? null,
+        },
+      };
+    }
+
+    case "deleteComment": {
+      const t = findThread(layer, op.threadId);
+      const prev = t?.comments.find((c) => c.id === op.commentId);
+      if (!t || !prev) return { layer, inverse: op };
+      if (prev.deletedAt === op.deletedAt && prev.deletedBy?.id === op.deletedBy.id) return { layer, inverse: op };
+      return {
+        layer: replaceThread(layer, op.threadId, (th) => ({
+          ...th,
+          comments: th.comments.map((c) => c.id === op.commentId
+            ? { ...c, body: [], mentions: [], deletedAt: op.deletedAt, deletedBy: op.deletedBy }
+            : c),
+        })),
+        inverse: { type: "addComment", threadId: op.threadId, c: prev },
       };
     }
 

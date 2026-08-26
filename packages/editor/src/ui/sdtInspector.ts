@@ -60,51 +60,51 @@ const SDT_TYPE_LABEL: Record<SdtProps["type"], string> = {
 };
 
 const SDT_CSS = `
-.cw-sdt-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);
+.ked-sdt-backdrop{position:fixed;inset:0;z-index:1100;background:rgba(20,22,26,.38);
   display:flex;align-items:center;justify-content:center;}
-.cw-sdt-modal{width:min(960px,94vw);max-height:88vh;display:flex;flex-direction:column;
+.ked-sdt-modal{width:min(960px,94vw);max-height:88vh;display:flex;flex-direction:column;
   background:#fff;border-radius:10px;box-shadow:0 18px 56px rgba(0,0,0,.34);
   font:13px/1.5 Arial,sans-serif;color:#202124;overflow:hidden;}
-.cw-sdt-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
-.cw-sdt-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;white-space:nowrap;
+.ked-sdt-head{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid #e6e8eb;}
+.ked-sdt-head h2{margin:0;font-size:15px;font-weight:600;flex:1 1 auto;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;}
-.cw-sdt-badge{font-size:11px;font-weight:600;color:#0b57d0;background:#e8f0fe;border-radius:10px;padding:2px 9px;}
-.cw-sdt-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;
+.ked-sdt-badge{font-size:11px;font-weight:600;color:#0b57d0;background:#e8f0fe;border-radius:10px;padding:2px 9px;}
+.ked-sdt-x{border:none;background:transparent;font-size:20px;line-height:1;color:#5f6368;cursor:pointer;
   width:28px;height:28px;border-radius:6px;}
-.cw-sdt-x:hover{background:#e8eaed;}
+.ked-sdt-x:hover{background:#e8eaed;}
 /* Side-by-side: properties on the left, content on the right. */
-.cw-sdt-body{display:flex;min-height:0;flex:1 1 auto;}
-.cw-sdt-left{flex:0 0 300px;padding:12px 16px;overflow:auto;border-right:1px solid #e6e8eb;background:#fbfbfc;}
-.cw-sdt-right{flex:1 1 auto;display:flex;flex-direction:column;padding:12px 16px;min-width:0;}
-.cw-sdt-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;
+.ked-sdt-body{display:flex;min-height:0;flex:1 1 auto;}
+.ked-sdt-left{flex:0 0 300px;padding:12px 16px;overflow:auto;border-right:1px solid #e6e8eb;background:#fbfbfc;}
+.ked-sdt-right{flex:1 1 auto;display:flex;flex-direction:column;padding:12px 16px;min-width:0;}
+.ked-sdt-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#80868b;
   margin:0 0 8px;display:flex;align-items:center;gap:8px;}
-.cw-sdt-section-title .hint{font-weight:400;text-transform:none;letter-spacing:0;color:#9aa0a6;}
-.cw-sdt-props{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;}
-.cw-sdt-props dt{color:#5f6368;}
-.cw-sdt-props dd{margin:0;word-break:break-word;}
-.cw-sdt-props dd code{background:#eef0f2;border-radius:4px;padding:1px 5px;font-size:11px;
+.ked-sdt-section-title .hint{font-weight:400;text-transform:none;letter-spacing:0;color:#9aa0a6;}
+.ked-sdt-props{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;}
+.ked-sdt-props dt{color:#5f6368;}
+.ked-sdt-props dd{margin:0;word-break:break-word;}
+.ked-sdt-props dd code{background:#eef0f2;border-radius:4px;padding:1px 5px;font-size:11px;
   font-family:Consolas,monospace;word-break:break-all;}
-.cw-sdt-pill{display:inline-block;background:#eef0f2;border-radius:10px;padding:1px 8px;margin:0 4px 4px 0;}
-.cw-sdt-preview{flex:1 1 auto;border:1px solid #dadce0;border-radius:8px;padding:14px 16px;background:#fff;
+.ked-sdt-pill{display:inline-block;background:#eef0f2;border-radius:10px;padding:1px 8px;margin:0 4px 4px 0;}
+.ked-sdt-preview{flex:1 1 auto;border:1px solid #dadce0;border-radius:8px;padding:14px 16px;background:#fff;
   min-height:120px;overflow:auto;}
-.cw-sdt-preview.editable:focus{border-color:#1a73e8;box-shadow:0 0 0 2px rgba(26,115,232,.18);outline:none;}
-.cw-sdt-preview p{margin:0 0 .5em;}
-.cw-sdt-preview img{max-width:100%;height:auto;}
-.cw-sdt-empty{color:#80868b;font-style:italic;}
-.cw-sdt-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
-.cw-sdt-foot .spacer{flex:1 1 auto;}
-.cw-sdt-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;
+.ked-sdt-preview.editable:focus{border-color:#1a73e8;box-shadow:0 0 0 2px rgba(26,115,232,.18);outline:none;}
+.ked-sdt-preview p{margin:0 0 .5em;}
+.ked-sdt-preview img{max-width:100%;height:auto;}
+.ked-sdt-empty{color:#80868b;font-style:italic;}
+.ked-sdt-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;border-top:1px solid #e6e8eb;}
+.ked-sdt-foot .spacer{flex:1 1 auto;}
+.ked-sdt-btn{height:30px;padding:0 14px;border:1px solid #d0d4d9;border-radius:6px;background:#fff;
   cursor:pointer;font-size:13px;color:#3c4043;}
-.cw-sdt-btn:hover{background:#f1f3f4;}
-.cw-sdt-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
-.cw-sdt-btn.primary:hover{background:#1864cc;}
-.cw-sdt-btn:disabled{opacity:.5;cursor:default;}`;
+.ked-sdt-btn:hover{background:#f1f3f4;}
+.ked-sdt-btn.primary{border-color:#1a73e8;background:#1a73e8;color:#fff;}
+.ked-sdt-btn.primary:hover{background:#1864cc;}
+.ked-sdt-btn:disabled{opacity:.5;cursor:default;}`;
 
 export function showSdtInspector(
   data: SdtInspectorData,
   opts: SdtInspectorOptions = {},
 ): SdtInspectorHandle {
-  injectCssOnce("cw-sdt-styles", SDT_CSS);
+  injectCssOnce("ked-sdt-styles", SDT_CSS);
   const { props } = data;
   const editable =
     opts.editable === true && typeof opts.onSave === "function" && typeof opts.mountEditor === "function";
@@ -112,38 +112,38 @@ export function showSdtInspector(
   const title = props.alias?.trim() || SDT_TYPE_LABEL[props.type];
 
   const backdrop = document.createElement("div");
-  backdrop.className = "cw-sdt-backdrop";
+  backdrop.className = "ked-sdt-backdrop";
   const modal = document.createElement("div");
-  modal.className = "cw-sdt-modal";
+  modal.className = "ked-sdt-modal";
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
   // Header
   const head = document.createElement("div");
-  head.className = "cw-sdt-head";
+  head.className = "ked-sdt-head";
   const h2 = document.createElement("h2");
   h2.textContent = title;
   const badge = document.createElement("span");
-  badge.className = "cw-sdt-badge";
+  badge.className = "ked-sdt-badge";
   badge.textContent = SDT_TYPE_LABEL[props.type];
   const xBtn = document.createElement("button");
-  xBtn.className = "cw-sdt-x";
+  xBtn.className = "ked-sdt-x";
   xBtn.textContent = "×";
   xBtn.title = "Close (Esc)";
   head.append(h2, badge, xBtn);
 
   // Body: two columns — properties (left) and content (right).
   const body = document.createElement("div");
-  body.className = "cw-sdt-body";
+  body.className = "ked-sdt-body";
   const left = document.createElement("div");
-  left.className = "cw-sdt-left";
+  left.className = "ked-sdt-left";
   const right = document.createElement("div");
-  right.className = "cw-sdt-right";
+  right.className = "ked-sdt-right";
 
   const propsTitle = document.createElement("div");
-  propsTitle.className = "cw-sdt-section-title";
+  propsTitle.className = "ked-sdt-section-title";
   propsTitle.textContent = "Properties";
   const dl = document.createElement("dl");
-  dl.className = "cw-sdt-props";
+  dl.className = "ked-sdt-props";
   const addProp = (label: string, valueEl: Node | string): void => {
     const dt = document.createElement("dt");
     dt.textContent = label;
@@ -167,7 +167,7 @@ export function showSdtInspector(
     const wrap = document.createElement("div");
     for (const li of props.listItems) {
       const pill = document.createElement("span");
-      pill.className = "cw-sdt-pill";
+      pill.className = "ked-sdt-pill";
       pill.textContent = li.display + (li.value !== li.display ? ` (${li.value})` : "");
       wrap.appendChild(pill);
     }
@@ -182,7 +182,7 @@ export function showSdtInspector(
   addProp("Control id", codeEl(data.id));
 
   const contentTitle = document.createElement("div");
-  contentTitle.className = "cw-sdt-section-title";
+  contentTitle.className = "ked-sdt-section-title";
   contentTitle.textContent = "Content";
   const hint = document.createElement("span");
   hint.className = "hint";
@@ -190,7 +190,7 @@ export function showSdtInspector(
   contentTitle.appendChild(hint);
 
   const preview = document.createElement("div");
-  preview.className = "cw-sdt-preview";
+  preview.className = "ked-sdt-preview";
   if (editable) preview.classList.add("editable");
   // Content is painted (read-only) or an editor mounted (editable) AFTER the modal
   // is in the DOM, so the host has a measurable width — see the mount step below.
@@ -201,7 +201,7 @@ export function showSdtInspector(
 
   // Footer
   const foot = document.createElement("div");
-  foot.className = "cw-sdt-foot";
+  foot.className = "ked-sdt-foot";
   const copyBtn = mkBtn("Copy Text", false);
   copyBtn.addEventListener("click", () => {
     void navigator.clipboard?.writeText(data.text).then(
@@ -257,7 +257,7 @@ export function showSdtInspector(
   // Now that the preview host has a measurable width, paint the content (read-only)
   // or mount the canvas-native editor (editable).
   if (data.text.trim() === "" && !editable) {
-    preview.innerHTML = `<span class="cw-sdt-empty">(empty)</span>`;
+    preview.innerHTML = `<span class="ked-sdt-empty">(empty)</span>`;
   } else if (editable && opts.mountEditor) {
     childEditor = opts.mountEditor(preview);
   } else {
@@ -283,14 +283,14 @@ export function showSdtInspector(
     },
     { capture: true, signal: ac.signal },
   );
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-sdt-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-sdt-x" });
   xBtn.addEventListener("click", () => handle.close());
   return handle;
 }
 
 function mkBtn(label: string, primary: boolean): HTMLButtonElement {
   const b = document.createElement("button");
-  b.className = primary ? "cw-sdt-btn primary" : "cw-sdt-btn";
+  b.className = primary ? "ked-sdt-btn primary" : "ked-sdt-btn";
   b.textContent = label;
   return b;
 }

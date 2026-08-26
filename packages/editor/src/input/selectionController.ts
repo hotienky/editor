@@ -342,7 +342,7 @@ export function createSelectionController(deps: SelectionControllerDeps): Select
     if (!story) {
       // A resize handle runs its own pointer-capture loop; the synthetic mousedown
       // it also emits must not re-run selection/caret logic here.
-      if ((ev.target as HTMLElement | null)?.classList?.contains("cw-obj-handle")) return;
+      if ((ev.target as HTMLElement | null)?.classList?.contains("ked-obj-handle")) return;
       // Try to grab an object ONLY for a click genuinely inside the page (a gray-
       // area click is clamped onto the edge and must never "hit" a background
       // there — it should deselect, like Word). A background/floating image that

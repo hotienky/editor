@@ -53,6 +53,8 @@ import { showStyleManager, type StyleManagerHandle } from "./ui/styleManager";
 import { showTableProperties, type BorderStyleName, type CellTextDir, type TablePropertiesHandle } from "./ui/tableProperties";
 import { showImageDialog } from "./ui/imageDialog";
 import { emptyParagraphFor } from "./builder/blockFactory";
+import type { EditorMessages } from "./i18n/types";
+import { defaultMessages } from "./i18n";
 import { createA11yMirror } from "./a11y/mirror";
 import {
   changeListLevel,
@@ -143,6 +145,8 @@ import {
 import { intercept } from "./review/intercept";
 import { decorate } from "./review/decorate";
 import { acceptSuggestion, rejectSuggestion, acceptAllSuggestions, rejectAllSuggestions, type Resolution } from "@kindy/shared";
+import { defaultReviewAccessCan, type MentionPicker, type ReviewAccess, type ReviewAction } from "./review/integration";
+export type { MentionPicker, MentionPickerRequest, MentionPickerContext, ReviewAccess, ReviewAction, ReviewActionContext } from "./review/integration";
 
 /** Editor mode: edit (normal), suggest (edits become tracked-change records), or
  *  view (read-only — every mutation is a no-op; the old `readonly:true`).
@@ -236,6 +240,8 @@ export interface Editor {
   focus(): void;
   getDocument(): Document;
   getSelection(): DocSelection | null;
+  /** Active rectangular table-cell selection in span-aware grid coordinates. */
+  getCellSelection(): CellSelection | null;
   /** Move the caret/selection programmatically (null clears it). Unlike
    *  revealBlock/revealBookmark this does NOT scroll — it just sets the anchor so
    *  a following command (insert/format) targets the range. Used by agent tools. */
@@ -356,7 +362,7 @@ export interface Editor {
   getChangeHead(): number;
   /** Apply ops received from a remote collaborator: mutates the document and
    *  rebases the local caret, without recording to the change log or undo stack. */
-  applyRemoteOps(ops: Op[]): void;
+  applyRemoteOps(ops: Op[], change?: Change): void;
   /** Upsert a remote collaborator's caret (rebased through edits, rendered with
    *  their name). `selection` null hides their caret. */
   setPeerPresence(siteId: string, user: UserInfo | undefined, selection: DocSelection | null): void;
@@ -376,6 +382,8 @@ export interface Editor {
   seedReview(layer: ReviewLayer): void;
   /** Scroll to and select a suggestion or comment thread by id (panel "go to"). */
   revealReview(id: string): void;
+  /** Reveal a comment's anchor and notify the host UI to focus its discussion. */
+  openCommentThread(threadId: string): void;
   acceptSuggestion(id: string): void;
   rejectSuggestion(id: string): void;
   acceptAllSuggestions(): void;
@@ -392,7 +400,11 @@ export interface Editor {
    *  (Google-Docs-style bubble). No-op in view mode or with no selection. */
   startComment(): void;
   replyToComment(threadId: string, body: Fragment, mentions?: UserInfo[]): void;
+  editComment(threadId: string, commentId: string, body: Fragment, mentions?: UserInfo[]): void;
+  deleteComment(threadId: string, commentId: string): void;
   resolveThread(threadId: string, resolved?: boolean): void;
+  canReviewAction(action: ReviewAction, threadId?: string, commentId?: string): boolean;
+  setReviewAccess(access?: ReviewAccess): void;
   /** Apply a review op that arrived from a collaborator (already anchor-rebased
    *  to the local doc by the caller). Not recorded/broadcast. */
   applyRemoteReviewOp(op: ReviewOp): void;
@@ -412,6 +424,18 @@ export interface EditorOptions {
   /** Fires for each committed Change (the document-history log entry). The
    *  SyncClient subscribes here to ship edits to the server. */
   onChangeRecorded?: ChangeSink;
+  /** Public integration seam after an operation group has been applied. Local
+   * edits include their stable Change; remote edits include the server Change
+   * when supplied by SyncClient. */
+  onMutationApplied?: (event: {
+    source: "local" | "remote";
+    ops: Op[];
+    origin: ChangeOrigin;
+    intent?: string;
+    selectionBefore: DocSelection | null;
+    selectionAfter: DocSelection | null;
+    change?: Change;
+  }) => void;
   /** Fires whenever the local selection/caret moves (for presence broadcast). */
   onSelectionChange?: (selection: DocSelection | null) => void;
   /** View-only mode: the document renders and stays selectable/copyable, but
@@ -430,6 +454,14 @@ export interface EditorOptions {
   /** Users that can be @-mentioned in comments (the embedder owns the roster).
    *  Updatable at runtime via setKnownUsers. */
   knownUsers?: UserInfo[];
+  /** Optional host-rendered @mention picker; knownUsers remains the fallback. */
+  mentionPicker?: MentionPicker;
+  /** Client-side review capability gate. Backend authorization remains required. */
+  reviewAccess?: ReviewAccess;
+  /** Live document id for host mention/permission contexts. */
+  getDocumentId?: () => string | null;
+  /** UI hook used to focus the Comments panel/thread after creation or pin click. */
+  onCommentThreadActivated?: (threadId: string) => void;
   /** Seed the review overlay (e.g. a layer loaded from the backend). */
   review?: ReviewLayer;
   /** Fires after the review overlay changes (suggestion/comment added, resolved,
@@ -439,6 +471,8 @@ export interface EditorOptions {
    *  comments). The SyncClient ships these on the review channel; persistence
    *  appends them. */
   onReviewOpRecorded?: (env: ReviewOpEnvelope) => void;
+  /** Fires for every review operation after it is applied locally/remotely. */
+  onReviewOpApplied?: (op: ReviewOp, remote: boolean) => void;
   /** Fires when the mode changes (picker / setMode). */
   onModeChanged?: (mode: EditMode) => void;
   /** Resolve a custom field's content from the host (e.g. its backend). Invoked by
@@ -453,6 +487,8 @@ export interface EditorOptions {
   theme?: ResolvedTheme;
   /** Resolved behavior tuning (zoom step/clamp, indent step). Omit ⇒ defaults. */
   behavior?: ResolvedBehavior;
+  /** Localized message catalog. Defaults to built-in English. */
+  messages?: EditorMessages;
   /** Develop-mode hook: fires as the pointer moves over the page with the blockId
    *  of the top-level body block under the cursor (or null when over none). Only
    *  emitted while the Document-tree inspector is attached (see setInspectorActive)
@@ -535,6 +571,7 @@ export function createEditor(
   initialDoc: Document,
   options: EditorOptions = {},
 ): Editor {
+  const t = options.messages ?? defaultMessages;
   const engine = options.engine ?? createLayoutEngine();
   // Editor mode. "view" short-circuits the mutation pipeline (commit/undo/redo)
   // so the document can be read/selected/copied but never authored; remote ops
@@ -1439,8 +1476,10 @@ export function createEditor(
     review = rebaseReview(review, mapPosition);
   };
 
+  let refreshCommentOverlay: () => void = () => {};
   const notifyReviewChanged = (): void => {
     options.onReviewChanged?.(review);
+    refreshCommentOverlay();
   };
 
   const reviewAuthor = (): UserInfo => options.user ?? { id: "anon", firstName: "Anonymous", lastName: "" };
@@ -1452,6 +1491,7 @@ export function createEditor(
     const res = applyReviewOp(review, op);
     review = res.layer;
     options.onReviewOpRecorded?.({ op, dependsOnSeq: recorder.head(), ...(options.user ? { author: options.user } : {}) });
+    options.onReviewOpApplied?.(op, false);
     return res.inverse;
   };
 
@@ -1522,6 +1562,7 @@ export function createEditor(
   const commitCore = (trn: Transaction, reviewOps: ReviewOp[]): void => {
     const selectionBefore = selection;
     const inverses = runOps(trn.ops);
+    let recordedChange: Change | null = null;
     // Review ops apply AFTER core ops, so their anchors are in post-core coords.
     const reviewInverses: ReviewOp[] = [];
     for (const rop of reviewOps) reviewInverses.unshift(applyLocalReviewOp(rop));
@@ -1538,10 +1579,22 @@ export function createEditor(
       });
       // Mirror the core edit into the document-history log (empty for a pure
       // deletion-suggestion; the recorder no-ops on empty ops).
-      recorder.record(trn.ops, trn.origin as ChangeOrigin, trn.selectionAfter, Date.now());
+      recordedChange = recorder.record(trn.ops, trn.origin as ChangeOrigin, trn.selectionAfter, Date.now());
     }
     if (reviewOps.length > 0) notifyReviewChanged();
     afterMutation(trn.selectionAfter, trn.origin === "transient");
+    if (recordedChange) {
+      const inferredIntent = [...new Set(trn.ops.map((op) => op.type))].join("+");
+      options.onMutationApplied?.({
+        source: "local",
+        ops: trn.ops,
+        origin: trn.origin as ChangeOrigin,
+        ...((trn.intent ?? inferredIntent) ? { intent: trn.intent ?? inferredIntent } : {}),
+        selectionBefore,
+        selectionAfter: trn.selectionAfter,
+        change: recordedChange,
+      });
+    }
   };
 
   const commit = (trn: Transaction): void => {
@@ -1573,8 +1626,18 @@ export function createEditor(
     }
     // Undo is a real forward edit in history terms — record the inverse ops it
     // applied so the log faithfully replays the same end state.
-    recorder.record(entry.inverseOps, "undo", entry.selectionBefore, Date.now());
+    const selectionBefore = selection;
+    const change = recorder.record(entry.inverseOps, "undo", entry.selectionBefore, Date.now());
     afterMutation(entry.selectionBefore);
+    if (change) options.onMutationApplied?.({
+      source: "local",
+      ops: entry.inverseOps,
+      origin: "undo",
+      intent: "undo",
+      selectionBefore,
+      selectionAfter: entry.selectionBefore,
+      change,
+    });
   };
 
   const redo = (): void => {
@@ -1586,15 +1649,26 @@ export function createEditor(
       for (const rop of entry.reviewOps) applyLocalReviewOp(rop);
       notifyReviewChanged();
     }
-    recorder.record(entry.ops, "redo", entry.selectionAfter, Date.now());
+    const selectionBefore = selection;
+    const change = recorder.record(entry.ops, "redo", entry.selectionAfter, Date.now());
     afterMutation(entry.selectionAfter);
+    if (change) options.onMutationApplied?.({
+      source: "local",
+      ops: entry.ops,
+      origin: "redo",
+      intent: "redo",
+      selectionBefore,
+      selectionAfter: entry.selectionAfter,
+      change,
+    });
   };
 
   // Apply ops that arrived from another collaborator. Unlike commit(), these are
   // NOT recorded (the server's log already holds them) and do NOT enter the undo
   // stack (a user can't undo a peer's edit). The local caret is rebased through
   // each op's position mapper so it survives the remote insert/delete.
-  const applyRemoteOps = (ops: Op[]): void => {
+  const applyRemoteOps = (ops: Op[], change?: Change): void => {
+    const selectionBefore = selection;
     let sel = selection;
     for (const op of ops) {
       const res = applyOp(doc, op);
@@ -1613,6 +1687,15 @@ export function createEditor(
     review = gcStructuralReviewLayer(review, doc); // remote removeBlock kills its record
     if (ops.length > 0) notifyReviewChanged();
     afterMutation(sel);
+    if (ops.length > 0) options.onMutationApplied?.({
+      source: "remote",
+      ops,
+      origin: change?.origin ?? "command",
+      intent: [...new Set(ops.map((op) => op.type))].join("+"),
+      selectionBefore,
+      selectionAfter: sel,
+      ...(change ? { change } : {}),
+    });
   };
 
   // ---- review actions (track changes + comments) --------------------------
@@ -1655,6 +1738,7 @@ export function createEditor(
   // live-editing the document right now (reusing presence: remotePeers already
   // carries each peer's UserInfo, maintained by setPeerPresence/removePeer).
   let knownUsers: UserInfo[] = options.knownUsers ?? [];
+  let reviewAccess = options.reviewAccess;
   const dedupeById = (users: UserInfo[]): UserInfo[] => {
     const seen = new Map<string, UserInfo>();
     for (const u of users) if (u.id && !seen.has(u.id)) seen.set(u.id, u);
@@ -1667,8 +1751,51 @@ export function createEditor(
     ]);
   const mentionField = (mentions?: UserInfo[]) => (mentions && mentions.length > 0 ? { mentions } : {});
 
+  const reviewContext = (threadId?: string, commentId?: string) => {
+    const thread = threadId ? review.threads.find((item) => item.id === threadId) : undefined;
+    const comment = commentId ? thread?.comments.find((item) => item.id === commentId) : undefined;
+    return {
+      documentId: options.getDocumentId?.() ?? options.docId ?? null,
+      mode,
+      actor: reviewAuthor(),
+      ...(thread ? { thread } : {}),
+      ...(comment ? { comment } : {}),
+    };
+  };
+
+  const canReviewAction = (action: ReviewAction, threadId?: string, commentId?: string): boolean => {
+    if (mode === "view") return false;
+    const context = reviewContext(threadId, commentId);
+    if (reviewAccess) {
+      try {
+        return reviewAccess.can(action, context);
+      } catch (error) {
+        console.error("[kindy-editor:reviewAccess]", error);
+        return false;
+      }
+    }
+    return defaultReviewAccessCan(action, context);
+  };
+
+  const revealReviewAnchor = (id: string): void => {
+    const anchor = (review.suggestions.find((s) => s.id === id) ?? review.threads.find((t) => t.id === id))?.anchor;
+    if (!anchor || !blockById(doc, anchor.start.blockId)) return;
+    const rect = caretRect(tree, anchor.start, scope());
+    if (!rect) return;
+    setSelection({ anchor: anchor.start, focus: anchor.end });
+    paint.ensureVisible(rect, "center");
+  };
+
+  let openInlineThread: (threadId: string) => void = () => {};
+  const openCommentThread = (threadId: string): void => {
+    if (!review.threads.some((thread) => thread.id === threadId)) return;
+    revealReviewAnchor(threadId);
+    openInlineThread(threadId);
+    options.onCommentThreadActivated?.(threadId);
+  };
+
   const addComment = (body: Fragment, mentions?: UserInfo[]): string | null => {
-    if (mode === "view") return null;
+    if (!canReviewAction("comment.create")) return null;
     const range = orderedSelectionRange();
     if (!range) return null;
     const author = reviewAuthor();
@@ -1680,16 +1807,52 @@ export function createEditor(
       comments: [{ id: freshId(), author, body, createdAt: now, ...mentionField(mentions) }],
     };
     recordReviewOnly([{ type: "addThread", t: thread }]);
+    openInlineThread(thread.id);
+    options.onCommentThreadActivated?.(thread.id);
     return thread.id;
   };
 
   const replyToComment = (threadId: string, body: Fragment, mentions?: UserInfo[]): void => {
+    const thread = review.threads.find((item) => item.id === threadId);
+    if (!thread || thread.status !== "open" || !canReviewAction("comment.reply", threadId)) return;
     recordReviewOnly([
       { type: "addComment", threadId, c: { id: freshId(), author: reviewAuthor(), body, createdAt: Date.now(), ...mentionField(mentions) } },
     ]);
   };
 
+  const editComment = (threadId: string, commentId: string, body: Fragment, mentions?: UserInfo[]): void => {
+    const thread = review.threads.find((item) => item.id === threadId);
+    const comment = thread?.comments.find((item) => item.id === commentId);
+    if (!thread || !comment || comment.deletedAt || !canReviewAction("comment.edit", threadId, commentId)) return;
+    const oldIds = new Set((comment.mentions ?? []).map((user) => user.id));
+    const nextMentions = mentions ?? [];
+    recordReviewOnly([{
+      type: "editComment",
+      threadId,
+      commentId,
+      body,
+      mentions: nextMentions,
+      editedAt: Date.now(),
+      newlyMentionedUserIds: nextMentions.filter((user) => !oldIds.has(user.id)).map((user) => user.id),
+    }]);
+  };
+
+  const deleteComment = (threadId: string, commentId: string): void => {
+    const comment = review.threads.find((item) => item.id === threadId)?.comments.find((item) => item.id === commentId);
+    if (!comment || comment.deletedAt || !canReviewAction("comment.delete", threadId, commentId)) return;
+    recordReviewOnly([{
+      type: "deleteComment",
+      threadId,
+      commentId,
+      deletedAt: Date.now(),
+      deletedBy: reviewAuthor(),
+    }]);
+  };
+
   const resolveThread = (threadId: string, resolved = true): void => {
+    const thread = review.threads.find((item) => item.id === threadId);
+    const action: ReviewAction = resolved ? "thread.resolve" : "thread.reopen";
+    if (!thread || !canReviewAction(action, threadId)) return;
     recordReviewOnly([{ type: "setThreadStatus", threadId, status: resolved ? "resolved" : "open" }]);
   };
 
@@ -1703,20 +1866,39 @@ export function createEditor(
     getCellSelection: () => cellSelection,
     getTree: () => tree,
     getDoc: () => doc,
+    getReview: () => review,
     getMode: () => mode,
     scope,
     reviewAuthor,
     mentionableUsers,
+    ...(options.mentionPicker ? { mentionPicker: options.mentionPicker } : {}),
+    getDocumentId: () => options.getDocumentId?.() ?? options.docId ?? null,
+    canCreateComment: () => canReviewAction("comment.create"),
     addComment,
+    replyToComment,
+    resolveThread,
+    canReviewAction,
     focusProxy: () => proxy.focus(),
   });
   // Public: open the composer directly (kept for API parity).
   const startComment = comments.openComposer;
+  openInlineThread = comments.openThread;
+  refreshCommentOverlay = comments.refresh;
   // The chip refresh is forward-declared (called from refreshSelectionVisuals + setMode).
   updateCommentAffordance = comments.updateAffordance;
 
+  const onReviewPinPointerDown = (event: PointerEvent): void => {
+    const threadId = paint.reviewPinAt(event.clientX, event.clientY);
+    if (!threadId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openCommentThread(threadId);
+  };
+  container.addEventListener("pointerdown", onReviewPinPointerDown, true);
+
   const applyRemoteReviewOp = (op: ReviewOp): void => {
     review = applyReviewOp(review, op).layer;
+    options.onReviewOpApplied?.(op, true);
     notifyReviewChanged();
     refreshReviewDecorations();
   };
@@ -1735,7 +1917,7 @@ export function createEditor(
     if (objectFrame.isCropping()) exitCropMode(true);
     mode = next;
     pendingStyle = null; // clear pending preview on switch
-    if (mode !== "suggest") {
+    if (mode === "view") {
       comments.hideChip();
       comments.closeComposer();
     }
@@ -2313,7 +2495,7 @@ export function createEditor(
       .map((rr): import("@kindy/shared").Paragraph | null => {
         const block = blockById(doc, rr.blockId);
         return block
-          ? { kind: "paragraph", id: `cw-sdt-${rr.blockId}-${rr.start}`, revision: 0, runs: sliceRuns(block.runs, rr.start, rr.end), style: { ...block.style } }
+          ? { kind: "paragraph", id: `ked-sdt-${rr.blockId}-${rr.start}`, revision: 0, runs: sliceRuns(block.runs, rr.start, rr.end), style: { ...block.style } }
           : null;
       })
       .filter((b): b is import("@kindy/shared").Paragraph => b !== null);
@@ -2475,6 +2657,8 @@ export function createEditor(
         focus: () => proxy.focus(),
       },
       ...(initialSelection ? { initialSelection } : {}),
+      messages: t.styleManager,
+      common: t.common,
       onClose: () => { styleMgr = null; },
     });
   };
@@ -2611,6 +2795,10 @@ export function createEditor(
           keepCellSelection(captured);
         },
       },
+      {
+        messages: t.tableProperties,
+        common: t.common,
+      },
     );
   };
 
@@ -2637,9 +2825,9 @@ export function createEditor(
     if (mode === "view") {
       const url = linkAt(tree, pt.pageIndex, pt.x, pt.y, scope());
       const ro: MenuEntry[] = [
-        item("Copy", () => void copySelection(), { shortcut: "Ctrl+C", disabled: !hasSel }),
+        item(t.contextMenu.copy, () => void copySelection(), { shortcut: "Ctrl+C", disabled: !hasSel }),
       ];
-      if (url) ro.push(sep, item("Open Hyperlink", () => window.open(url, "_blank", "noopener"), { icon: ICONS.link }));
+      if (url) ro.push(sep, item(t.contextMenu.openHyperlink, () => window.open(url, "_blank", "noopener"), { icon: ICONS.link }));
       return ro;
     }
 
@@ -2650,12 +2838,12 @@ export function createEditor(
     if (mode === "suggest") {
       const url = linkAt(tree, pt.pageIndex, pt.x, pt.y, scope());
       const m: MenuEntry[] = [
-        item("Cut", () => void copySelection().then(() => dispatch(deleteBackward())), { shortcut: "Ctrl+X", disabled: !hasSel }),
-        item("Copy", () => void copySelection(), { shortcut: "Ctrl+C", disabled: !hasSel }),
+        item(t.contextMenu.cut, () => void copySelection().then(() => dispatch(deleteBackward())), { shortcut: "Ctrl+X", disabled: !hasSel }),
+        item(t.contextMenu.copy, () => void copySelection(), { shortcut: "Ctrl+C", disabled: !hasSel }),
         sep,
-        item("Comment", () => startComment(), { icon: ICONS.comment, disabled: !hasSel }),
+        item(t.contextMenu.comment, () => startComment(), { icon: ICONS.comment, disabled: !hasSel }),
       ];
-      if (url) m.push(sep, item("Open Hyperlink", () => window.open(url, "_blank", "noopener"), { icon: ICONS.link }));
+      if (url) m.push(sep, item(t.contextMenu.openHyperlink, () => window.open(url, "_blank", "noopener"), { icon: ICONS.link }));
       return m;
     }
 
@@ -2678,33 +2866,33 @@ export function createEditor(
 
     // Clipboard — always.
     entries.push(
-      item("Cut", () => void copySelection().then(() => dispatch(deleteBackward())), {
+      item(t.contextMenu.cut, () => void copySelection().then(() => dispatch(deleteBackward())), {
         shortcut: "Ctrl+X",
         disabled: !hasSel || sdtBlocksEdit(),
       }),
-      item("Copy", () => void copySelection(), { shortcut: "Ctrl+C", disabled: !hasSel }),
-      item("Paste", () => void pasteFromClipboard(), { shortcut: "Ctrl+V", disabled: sdtBlocksEdit() }),
+      item(t.contextMenu.copy, () => void copySelection(), { shortcut: "Ctrl+C", disabled: !hasSel }),
+      item(t.contextMenu.paste, () => void pasteFromClipboard(), { shortcut: "Ctrl+V", disabled: sdtBlocksEdit() }),
     );
 
     // Comment on the selection (edit mode has no floating chip — suggest mode does).
-    entries.push(sep, item("Comment", () => startComment(), { icon: ICONS.comment, disabled: !hasSel }));
+    entries.push(sep, item(t.contextMenu.comment, () => startComment(), { icon: ICONS.comment, disabled: !hasSel }));
 
     // Styles — open the manager, seeded to the caret paragraph's style.
     {
       const styleId = para?.kind === "paragraph" ? para.style.namedStyle : undefined;
-      entries.push(item("Styles…", () => openStyleManager(styleId ? { kind: "paragraph", id: styleId } : undefined), { icon: ICONS.stylePencil }));
+      entries.push(item(t.contextMenu.styles, () => openStyleManager(styleId ? { kind: "paragraph", id: styleId } : undefined), { icon: ICONS.stylePencil }));
     }
 
     // Link.
     if (linkUrl) {
       entries.push(
         sep,
-        item("Open Hyperlink", () => window.open(linkUrl, "_blank", "noopener"), { icon: ICONS.link }),
-        item("Edit Hyperlink…", () => {
+        item(t.contextMenu.openHyperlink, () => window.open(linkUrl, "_blank", "noopener"), { icon: ICONS.link }),
+        item(t.contextMenu.editHyperlink, () => {
           const u = prompt("Link URL:", linkUrl);
           if (u !== null) dispatch(setLinkCmd(u.trim() === "" ? null : u.trim()));
         }),
-        item("Remove Hyperlink", () => dispatch(setLinkCmd(null)), { danger: true }),
+        item(t.contextMenu.removeHyperlink, () => dispatch(setLinkCmd(null)), { danger: true }),
       );
     }
 
@@ -2719,6 +2907,8 @@ export function createEditor(
           showTocProperties({
             initial: parseTocInstruction(doc.tocInstruction ?? ' TOC \\o "1-3" \\h \\z '),
             onApply: (sw) => dispatch(setTocSwitchesCmd(sw)),
+            messages: t.tocProperties,
+            common: t.common,
           }),
         ),
       );
@@ -2788,7 +2978,7 @@ export function createEditor(
         const blk = eqBlock;
         entries.push(
           sep,
-          item("Edit Equation…", () =>
+          item(t.contextMenu.editEquation, () =>
             showEquationEditor({
               editing: true,
               initialDisplay: true, // a display-equation block
@@ -2798,15 +2988,15 @@ export function createEditor(
           ),
           {
             kind: "submenu",
-            label: "Align",
+            label: t.contextMenu.align,
             icon: ICONS.alignCenter,
             items: [
-              { kind: "item", label: "Left", icon: ICONS.alignLeft, onClick: () => dispatch(setEquationAlignCmd(blk.id, "left")) },
-              { kind: "item", label: "Center", icon: ICONS.alignCenter, onClick: () => dispatch(setEquationAlignCmd(blk.id, "center")) },
-              { kind: "item", label: "Right", icon: ICONS.alignRight, onClick: () => dispatch(setEquationAlignCmd(blk.id, "right")) },
+              { kind: "item", label: t.contextMenu.alignLeft, icon: ICONS.alignLeft, onClick: () => dispatch(setEquationAlignCmd(blk.id, "left")) },
+              { kind: "item", label: t.contextMenu.alignCenter, icon: ICONS.alignCenter, onClick: () => dispatch(setEquationAlignCmd(blk.id, "center")) },
+              { kind: "item", label: t.contextMenu.alignRight, icon: ICONS.alignRight, onClick: () => dispatch(setEquationAlignCmd(blk.id, "right")) },
             ],
           },
-          item("Delete Equation", () => { selectObject(null); dispatch(removeBlockObject(blk.id)); }, { danger: true }),
+          item(t.contextMenu.deleteEquation, () => { selectObject(null); dispatch(removeBlockObject(blk.id)); }, { danger: true }),
         );
       }
     } else {
@@ -2822,7 +3012,7 @@ export function createEditor(
         const equation = eqStyle.equation;
         entries.push(
           sep,
-          item("Edit Equation…", () =>
+          item(t.contextMenu.editEquation, () =>
             showEquationEditor({
               editing: true,
               initialDisplay: false, // an inline equation — don't flip it to display
@@ -2830,7 +3020,7 @@ export function createEditor(
               onApply: (eq) => dispatch(editInlineEquationCmd(blockId, off, eq)),
             }),
           ),
-          item("Delete Equation", () => dispatch(removeInlineEquationCmd(blockId, off)), { danger: true }),
+          item(t.contextMenu.deleteEquation, () => dispatch(removeInlineEquationCmd(blockId, off)), { danger: true }),
         );
       }
     }
@@ -2841,28 +3031,28 @@ export function createEditor(
         sep,
         {
           kind: "submenu",
-          label: "Wrap Text",
+          label: t.contextMenu.wrapText,
           icon: ICONS.wrapSquare,
           items: [
-            { kind: "item", label: "In Line with Text", icon: ICONS.wrapInline, onClick: () => dispatch(setImageProps(imgId, { wrap: "block", align: "center", anchor: null })) },
-            { kind: "item", label: "Square", icon: ICONS.wrapSquare, onClick: () => dispatch(setImageProps(imgId, { wrap: "square", align: "left", anchor: null })) },
+            { kind: "item", label: t.contextMenu.wrapInline, icon: ICONS.wrapInline, onClick: () => dispatch(setImageProps(imgId, { wrap: "block", align: "center", anchor: null })) },
+            { kind: "item", label: t.contextMenu.wrapSquare, icon: ICONS.wrapSquare, onClick: () => dispatch(setImageProps(imgId, { wrap: "square", align: "left", anchor: null })) },
             { kind: "sep" },
-            { kind: "item", label: "Behind Text", onClick: () => dispatch(setImageLayer(imgId, true)) },
-            { kind: "item", label: "In Front of Text", onClick: () => dispatch(setImageLayer(imgId, false)) },
+            { kind: "item", label: t.contextMenu.behindText, onClick: () => dispatch(setImageLayer(imgId, true)) },
+            { kind: "item", label: t.contextMenu.inFrontOfText, onClick: () => dispatch(setImageLayer(imgId, false)) },
           ],
         },
         {
           kind: "submenu",
-          label: "Align",
+          label: t.contextMenu.align,
           icon: ICONS.alignLeft,
           items: [
-            { kind: "item", label: "Left", icon: ICONS.alignLeft, onClick: () => dispatch(setImageProps(imgId, { align: "left" })) },
-            { kind: "item", label: "Center", icon: ICONS.alignCenter, onClick: () => dispatch(setImageProps(imgId, { align: "center" })) },
-            { kind: "item", label: "Right", icon: ICONS.alignRight, onClick: () => dispatch(setImageProps(imgId, { align: "right" })) },
+            { kind: "item", label: t.contextMenu.alignLeft, icon: ICONS.alignLeft, onClick: () => dispatch(setImageProps(imgId, { align: "left" })) },
+            { kind: "item", label: t.contextMenu.alignCenter, icon: ICONS.alignCenter, onClick: () => dispatch(setImageProps(imgId, { align: "center" })) },
+            { kind: "item", label: t.contextMenu.alignRight, icon: ICONS.alignRight, onClick: () => dispatch(setImageProps(imgId, { align: "right" })) },
           ],
         },
-        item("Crop", () => enterCropMode(imgId)),
-        ...(locateImage(doc, imgId)?.image.crop ? [item("Reset Crop", () => dispatch(setImageCropCmd(imgId, null)))] : []),
+        item(t.contextMenu.crop, () => enterCropMode(imgId)),
+        ...(locateImage(doc, imgId)?.image.crop ? [item(t.contextMenu.resetCrop, () => dispatch(setImageCropCmd(imgId, null)))] : []),
         item("Image Properties…", () => {
           const loc = locateImage(doc, imgId);
           if (!loc) return;
@@ -2878,10 +3068,10 @@ export function createEditor(
             },
           });
         }, { icon: ICONS.imageProps }),
-        item("Bring to Front", () => dispatch(bringImageToFront(imgId))),
-        item("Send to Back", () => dispatch(sendImageToBack(imgId))),
-        item("Wrap in Content Control", () => dispatch(wrapImageInContentControl(imgId, "richText", { alias: "Text" })), { icon: ICONS.sdtText }),
-        item("Delete Image", () => {
+        item(t.contextMenu.bringToFront, () => dispatch(bringImageToFront(imgId))),
+        item(t.contextMenu.sendToBack, () => dispatch(sendImageToBack(imgId))),
+        item(t.contextMenu.wrapInContentControl, () => dispatch(wrapImageInContentControl(imgId, "richText", { alias: "Text" })), { icon: ICONS.sdtText }),
+        item(t.contextMenu.deleteImage, () => {
           selectObject(null);
           dispatch(deleteImage(imgId));
         }, { icon: ICONS.image, danger: true }),
@@ -2894,21 +3084,21 @@ export function createEditor(
       if (props) {
         entries.push(sep);
         if (props.type === "checkbox") {
-          entries.push(item("Toggle Check Box", () => dispatch(toggleSdtCheckbox(sdtId)), { icon: ICONS.sdtCheckbox }));
+          entries.push(item(t.contextMenu.toggleCheckbox, () => dispatch(toggleSdtCheckbox(sdtId)), { icon: ICONS.sdtCheckbox }));
         }
         if ((props.type === "dropDown" || props.type === "comboBox") && (props.listItems?.length ?? 0) > 0) {
           entries.push({
             kind: "submenu",
-            label: "Choose Item",
+            label: t.contextMenu.chooseItem,
             icon: ICONS.sdtDropdown,
             items: props.listItems!.map((li) => ({ kind: "item", label: li.display, onClick: () => dispatch(setSdtContent(sdtId, li.display)) })),
           });
         }
         entries.push(
-          item("Properties & Edit Content…", () => openSdtInspector(sdtId), { icon: ICONS.sdtText }),
+          item(t.contextMenu.properties, () => openSdtInspector(sdtId), { icon: ICONS.sdtText }),
         );
         if (!props.lockControl) {
-          entries.push(item("Remove Content Control", () => dispatch(removeContentControl(sdtId, false)), { icon: ICONS.sdtRemove, danger: true }));
+          entries.push(item(t.contextMenu.removeContentControl, () => dispatch(removeContentControl(sdtId, false)), { icon: ICONS.sdtRemove, danger: true }));
         }
       }
     }
@@ -2917,30 +3107,30 @@ export function createEditor(
     if (!imgId && focus) {
       entries.push(
         sep,
-        item("Bold", () => toggleStyle("bold"), { shortcut: "Ctrl+B" }),
-        item("Italic", () => toggleStyle("italic"), { shortcut: "Ctrl+I" }),
-        item("Underline", () => toggleStyle("underline"), { shortcut: "Ctrl+U" }),
+        item(t.contextMenu.bold, () => toggleStyle("bold"), { shortcut: "Ctrl+B" }),
+        item(t.contextMenu.italic, () => toggleStyle("italic"), { shortcut: "Ctrl+I" }),
+        item(t.contextMenu.underline, () => toggleStyle("underline"), { shortcut: "Ctrl+U" }),
         {
           kind: "submenu",
-          label: "Alignment",
+          label: t.contextMenu.alignment,
           icon: ICONS.alignLeft,
           items: [
-            { kind: "item", label: "Left", icon: ICONS.alignLeft, onClick: () => dispatch(setAlignment("left")) },
-            { kind: "item", label: "Center", icon: ICONS.alignCenter, onClick: () => dispatch(setAlignment("center")) },
-            { kind: "item", label: "Right", icon: ICONS.alignRight, onClick: () => dispatch(setAlignment("right")) },
-            { kind: "item", label: "Justify", icon: ICONS.alignJustify, onClick: () => dispatch(setAlignment("justify")) },
+            { kind: "item", label: t.contextMenu.alignLeft, icon: ICONS.alignLeft, onClick: () => dispatch(setAlignment("left")) },
+            { kind: "item", label: t.contextMenu.alignCenter, icon: ICONS.alignCenter, onClick: () => dispatch(setAlignment("center")) },
+            { kind: "item", label: t.contextMenu.alignRight, icon: ICONS.alignRight, onClick: () => dispatch(setAlignment("right")) },
+            { kind: "item", label: t.contextMenu.alignJustify, icon: ICONS.alignJustify, onClick: () => dispatch(setAlignment("justify")) },
           ],
         },
-        item("Bullets", () => dispatch(toggleList("bullet")), { icon: ICONS.bullets }),
-        item("Numbering", () => dispatch(toggleList("decimal")), { icon: ICONS.numbering }),
+        item(t.contextMenu.bullets, () => dispatch(toggleList("bullet")), { icon: ICONS.bullets }),
+        item(t.contextMenu.numbering, () => dispatch(toggleList("decimal")), { icon: ICONS.numbering }),
         sep,
-        item("Insert Hyperlink…", () => {
+        item(t.contextMenu.insertHyperlink, () => {
           const u = prompt("Link URL:");
           if (u !== null && u.trim() !== "") dispatch(setLinkCmd(u.trim()));
         }, { icon: ICONS.link }),
         {
           kind: "submenu",
-          label: "Insert Content Control",
+          label: t.contextMenu.insertContentControl,
           icon: ICONS.sdtText,
           items: (["richText", "checkbox", "dropDown", "date"] as SdtType[]).map((type) => ({
             kind: "item" as const,
@@ -2966,9 +3156,9 @@ export function createEditor(
       const kind = listKindOf(para) ?? "bullet";
       entries.push(
         sep,
-        item("Increase List Level", () => dispatch(changeListLevel(1))),
-        item("Decrease List Level", () => dispatch(changeListLevel(-1))),
-        item("Remove List", () => dispatch(toggleList(kind)), { danger: true }),
+        item(t.contextMenu.increaseListLevel, () => dispatch(changeListLevel(1))),
+        item(t.contextMenu.decreaseListLevel, () => dispatch(changeListLevel(-1))),
+        item(t.contextMenu.removeList, () => dispatch(toggleList(kind)), { danger: true }),
       );
     }
 
@@ -2978,27 +3168,27 @@ export function createEditor(
         sep,
         {
           kind: "submenu",
-          label: "Insert",
+          label: t.contextMenu.insertTableElem,
           icon: ICONS.rowBelow,
           items: [
-            { kind: "item", label: "Row Above", icon: ICONS.rowAbove, onClick: () => dispatch(insertTableRowCmd("above")) },
-            { kind: "item", label: "Row Below", icon: ICONS.rowBelow, onClick: () => dispatch(insertTableRowCmd("below")) },
-            { kind: "item", label: "Column Left", icon: ICONS.colLeft, onClick: () => dispatch(insertTableColumnCmd("left")) },
-            { kind: "item", label: "Column Right", icon: ICONS.colRight, onClick: () => dispatch(insertTableColumnCmd("right")) },
+            { kind: "item", label: t.contextMenu.insertRowAbove, icon: ICONS.rowAbove, onClick: () => dispatch(insertTableRowCmd("above")) },
+            { kind: "item", label: t.contextMenu.insertRowBelow, icon: ICONS.rowBelow, onClick: () => dispatch(insertTableRowCmd("below")) },
+            { kind: "item", label: t.contextMenu.insertColLeft, icon: ICONS.colLeft, onClick: () => dispatch(insertTableColumnCmd("left")) },
+            { kind: "item", label: t.contextMenu.insertColRight, icon: ICONS.colRight, onClick: () => dispatch(insertTableColumnCmd("right")) },
           ],
         },
         {
           kind: "submenu",
-          label: "Delete",
+          label: t.contextMenu.deleteTableElem,
           icon: ICONS.deleteRow,
           items: [
-            { kind: "item", label: "Row", icon: ICONS.deleteRow, danger: true, onClick: () => dispatch(deleteTableRowCmd()) },
-            { kind: "item", label: "Column", icon: ICONS.deleteCol, danger: true, onClick: () => dispatch(deleteTableColumnCmd()) },
-            { kind: "item", label: "Table", icon: ICONS.deleteTable, danger: true, onClick: () => dispatch(deleteTableCmd()) },
+            { kind: "item", label: t.contextMenu.deleteRow, icon: ICONS.deleteRow, danger: true, onClick: () => dispatch(deleteTableRowCmd()) },
+            { kind: "item", label: t.contextMenu.deleteCol, icon: ICONS.deleteCol, danger: true, onClick: () => dispatch(deleteTableColumnCmd()) },
+            { kind: "item", label: t.contextMenu.deleteTable, icon: ICONS.deleteTable, danger: true, onClick: () => dispatch(deleteTableCmd()) },
           ],
         },
-        item("Merge Cells", () => dispatch(mergeCellsCmd()), { icon: ICONS.mergeCells, disabled: !hasSel && !hasCellSel }),
-        item("Unmerge Cell", () => dispatch(unmergeCellCmd()), { icon: ICONS.unmergeCells }),
+        item(t.contextMenu.mergeCells, () => dispatch(mergeCellsCmd()), { icon: ICONS.mergeCells, disabled: !hasSel && !hasCellSel }),
+        item(t.contextMenu.unmergeCell, () => dispatch(unmergeCellCmd()), { icon: ICONS.unmergeCells }),
         (() => {
           const captured = cellSelection ?? singleCellAtCaret();
           const tbl = captured ? findTableById(doc, captured.tableId)?.table : undefined;
@@ -3028,26 +3218,26 @@ export function createEditor(
           });
           return {
             kind: "submenu",
-            label: "AutoFit & Size",
+            label: t.contextMenu.autofitAndSize,
             icon: ICONS.table,
             items: [
-              fit("AutoFit to Contents", "autofitContents"),
-              fit("AutoFit to Window", "autofitWindow"),
-              fit("Fixed Column Width", "fixed"),
+              fit(t.tableTab.autoFitContents, "autofitContents"),
+              fit(t.tableTab.autoFitWindow, "autofitWindow"),
+              fit(t.tableTab.fixedColWidth, "fixed"),
               sep,
-              widthItem("Width: 25%", 25),
-              widthItem("Width: 50%", 50),
-              widthItem("Width: 75%", 75),
-              widthItem("Width: Full page", null),
+              widthItem(t.tableTab.width25, 25),
+              widthItem(t.tableTab.width50, 50),
+              widthItem(t.tableTab.width75, 75),
+              widthItem(t.tableTab.widthFull, null),
               sep,
-              alignItem("Align Left", "left"),
-              alignItem("Align Center", "center"),
-              alignItem("Align Right", "right"),
+              alignItem(t.tableTab.alignLeft, "left"),
+              alignItem(t.tableTab.alignCenter, "center"),
+              alignItem(t.tableTab.alignRight, "right"),
             ],
           } as MenuEntry;
         })(),
         sep,
-        item("Borders & Shading…", () => openTableProperties(), { icon: ICONS.borders }),
+        item(t.contextMenu.bordersAndShading, () => openTableProperties(), { icon: ICONS.borders }),
         // Quick cell vAlign + row toggles (issue #86); the dialog has the full set.
         (() => {
           const captured = cellSelection ?? singleCellAtCaret();
@@ -3066,9 +3256,9 @@ export function createEditor(
           });
           return {
             kind: "submenu",
-            label: "Cell Alignment",
+            label: t.contextMenu.cellAlignment,
             icon: ICONS.alignLeft,
-            items: [vItem("Align Top", "top"), vItem("Align Middle", "center"), vItem("Align Bottom", "bottom")],
+            items: [vItem(t.tableProperties.cellVAlignTop, "top"), vItem(t.tableProperties.cellVAlignCenter, "center"), vItem(t.tableProperties.cellVAlignBottom, "bottom")],
           } as MenuEntry;
         })(),
         (() => {
@@ -3086,13 +3276,13 @@ export function createEditor(
           const check = (label: string, active: boolean): string => (active ? `${label} ✓` : label);
           return {
             kind: "submenu",
-            label: "Row",
+            label: t.tableProperties.sectionRow,
             icon: ICONS.rowBelow,
             items: [
-              { kind: "item", label: check("Keep Row Together", cantSplit), onClick: () => dispatch(setRowPropsCmd({ cantSplit: !cantSplit }, captured)) },
-              { kind: "item", label: check("Repeat as Header Row", repeatHeader), onClick: () => dispatch(setRowPropsCmd({ repeatHeader: !repeatHeader }, captured)) },
+              { kind: "item", label: check(t.tableProperties.rowKeepTogether, cantSplit), onClick: () => dispatch(setRowPropsCmd({ cantSplit: !cantSplit }, captured)) },
+              { kind: "item", label: check(t.tableProperties.rowRepeatHeader, repeatHeader), onClick: () => dispatch(setRowPropsCmd({ repeatHeader: !repeatHeader }, captured)) },
               { kind: "sep" },
-              { kind: "item", label: "Table Properties…", onClick: () => openTableProperties() },
+              { kind: "item", label: t.contextMenu.tableProperties, onClick: () => openTableProperties() },
             ],
           } as MenuEntry;
         })(),
@@ -3348,6 +3538,9 @@ export function createEditor(
     getSelection(): DocSelection | null {
       return selection;
     },
+    getCellSelection(): CellSelection | null {
+      return cellSelection;
+    },
     setSelection(sel: DocSelection | null): void {
       setSelection(sel);
     },
@@ -3380,6 +3573,7 @@ export function createEditor(
     setMode,
     getReview: (): ReviewLayer => review,
     seedReview,
+    openCommentThread,
     // The effective roster: configured base + live editors (presence-merged).
     getKnownUsers: (): UserInfo[] => mentionableUsers(),
     setKnownUsers: (users: UserInfo[]): void => { knownUsers = users; },
@@ -3390,7 +3584,15 @@ export function createEditor(
     addComment,
     startComment,
     replyToComment,
+    editComment,
+    deleteComment,
     resolveThread,
+    canReviewAction,
+    setReviewAccess: (access?: ReviewAccess): void => {
+      reviewAccess = access;
+      updateCommentAffordance();
+      notifyReviewChanged();
+    },
     applyRemoteReviewOp,
     dispatch,
     toggleStyle,
@@ -3536,14 +3738,7 @@ export function createEditor(
       setSelection({ anchor: range.start, focus: range.end });
       paint.ensureVisible(rect, "center");
     },
-    revealReview: (id: string): void => {
-      const anchor = (review.suggestions.find((s) => s.id === id) ?? review.threads.find((t) => t.id === id))?.anchor;
-      if (!anchor || !blockById(doc, anchor.start.blockId)) return;
-      const rect = caretRect(tree, anchor.start, scope());
-      if (!rect) return; // anchored in unplaced content
-      setSelection({ anchor: anchor.start, focus: anchor.end });
-      paint.ensureVisible(rect, "center");
-    },
+    revealReview: revealReviewAnchor,
     selectAll: (): void => {
       const paras = doc.blocks.filter((b): b is import("@kindy/shared").Paragraph => b.kind === "paragraph");
       const first = paras[0];
@@ -3629,6 +3824,8 @@ export function createEditor(
       container.removeEventListener("pointermove", onPinchMove);
       container.removeEventListener("pointerup", onPinchUp);
       container.removeEventListener("pointercancel", onPinchUp);
+      container.removeEventListener("pointerdown", onReviewPinPointerDown, true);
+      comments.destroy();
       controller.destroy();
       objectFrame.destroy();
       mirror.destroy();
@@ -3637,3 +3834,15 @@ export function createEditor(
     },
   };
 }
+
+export { resolveMessages, defaultMessages, en, vi } from "./i18n";
+export type {
+  EditorMessages,
+  FontDialogMessages,
+  ParagraphDialogMessages,
+  PageLayoutMessages,
+  TablePropertiesMessages,
+  StyleManagerMessages,
+  TocPropertiesMessages,
+  SymbolPickerMessages,
+} from "./i18n";

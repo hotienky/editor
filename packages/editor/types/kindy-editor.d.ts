@@ -3,8 +3,11 @@
 // regardless of internal refactors — no dependency on internal workspace types.
 
 import type { Block, CharStyle, DocPosition, Document, ParaStyle, Run } from "./model";
+import type { EditorEvents, EditorEventsOptions } from "./events";
 
 export type { Document } from "./model";
+export { EditorEvents } from "./events";
+export type { EditorEventsOptions, PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType } from "./events";
 
 /** Caller-supplied identity, used for change attribution and presence. */
 export interface UserInfo {
@@ -84,6 +87,9 @@ export interface Comment {
   body: Fragment;
   createdAt: number;
   editedAt?: number;
+  /** Tombstone metadata. Deleted comments keep their position and replies. */
+  deletedAt?: number;
+  deletedBy?: UserInfo;
   /** Resolved identities of users @-mentioned in this comment. */
   mentions?: UserInfo[];
 }
@@ -106,6 +112,43 @@ export interface ReviewLayer {
   baseVersion: number;
   suggestions: Suggestion[];
   threads: CommentThread[];
+}
+
+/** Context in which the editor asks the host to resolve an @mention. */
+export type MentionPickerContext = "new-comment" | "reply" | "edit-comment";
+
+export interface MentionPickerRequest {
+  query: string;
+  anchorRect: DOMRectReadOnly;
+  context: MentionPickerContext;
+  documentId: string | null;
+  threadId?: string;
+  selectedUserIds: string[];
+  signal: AbortSignal;
+}
+
+/** The host renders and dismisses its own picker, then resolves a user or null. */
+export type MentionPicker = (request: MentionPickerRequest) => Promise<UserInfo | null>;
+
+export type ReviewAction =
+  | "comment.create"
+  | "comment.reply"
+  | "comment.edit"
+  | "comment.delete"
+  | "thread.resolve"
+  | "thread.reopen";
+
+export interface ReviewActionContext {
+  documentId: string | null;
+  mode: EditMode;
+  actor?: UserInfo;
+  thread?: CommentThread;
+  comment?: Comment;
+}
+
+/** Client-side visibility/enforcement hook. The backend must re-check access. */
+export interface ReviewAccess {
+  can(action: ReviewAction, context: ReviewActionContext): boolean;
 }
 
 // ===== Theming & behavior (see KindyEditorOptions.theme / .behavior) =========
@@ -333,6 +376,8 @@ export interface KindyEditorOptions {
    *  while you upload. Omit to keep the default download behaviour. (For a fully
    *  custom button, call `exportDocx()` / `exportPdf()` on the instance.) */
   onSave?: SaveHandler;
+  /** Versioned integration events, payload detail, redaction, and optional sink. */
+  events?: EditorEventsOptions;
   /** Mount as a view-only viewer: the document renders and stays selectable and
    *  copyable, but the editing chrome is hidden and every mutation is a no-op.
    *  In an online session a read-only client still receives live remote edits.
@@ -347,6 +392,10 @@ export interface KindyEditorOptions {
   /** Users that can be @-mentioned in comments. The embedder owns this roster;
    *  update it later with `setKnownUsers`. */
   knownUsers?: UserInfo[];
+  /** Host-owned async @mention picker. Omit to use `knownUsers`. */
+  mentionPicker?: MentionPicker;
+  /** Client-side review capability callback; the backend remains authoritative. */
+  reviewAccess?: ReviewAccess;
   /** Resolve a custom (developer-defined) field's content from your backend. When
    *  set, right-clicking a custom field offers "Update Field (<name>)"; the
    *  callback receives the field's name + verbatim instruction and returns the new
@@ -634,12 +683,22 @@ export interface EditorHandle {
   /** Add a comment thread anchored to the current selection. Returns the thread
    *  id, or null if there's no selection. */
   addComment(body: Fragment, mentions?: UserInfo[]): string | null;
+  /** Open the comment composer at the current range or caret. */
+  startComment(): void;
+  /** Reveal the anchor and open the matching inline + Review-panel thread. */
+  openCommentThread(threadId: string): void;
   replyToComment(threadId: string, body: Fragment, mentions?: UserInfo[]): void;
+  editComment(threadId: string, commentId: string, body: Fragment, mentions?: UserInfo[]): void;
+  /** Tombstone a comment while preserving its replies and sync history. */
+  deleteComment(threadId: string, commentId: string): void;
   resolveThread(threadId: string, resolved?: boolean): void;
+  canReviewAction(action: ReviewAction, threadId?: string, commentId?: string): boolean;
+  setReviewAccess(access?: ReviewAccess): void;
   destroy(): void;
 }
 
 export declare class KindyEditor {
+  readonly events: EditorEvents;
   constructor(opts: KindyEditorOptions);
   /** Subscribe to a collaboration event. Returns an unsubscribe function. */
   on<E extends keyof KindyEditorEventMap>(event: E, handler: (data: KindyEditorEventMap[E]) => void): () => void;
@@ -693,8 +752,13 @@ export declare class KindyEditor {
   /** Add a comment thread anchored to the current selection. Resolves to the
    *  thread id, or null if there's no selection. */
   addComment(body: Fragment, mentions?: UserInfo[]): Promise<string | null>;
+  startComment(): Promise<void>;
+  openCommentThread(threadId: string): Promise<void>;
   replyToComment(threadId: string, body: Fragment, mentions?: UserInfo[]): Promise<void>;
+  editComment(threadId: string, commentId: string, body: Fragment, mentions?: UserInfo[]): Promise<void>;
+  deleteComment(threadId: string, commentId: string): Promise<void>;
   resolveThread(threadId: string, resolved?: boolean): Promise<void>;
+  setReviewAccess(access?: ReviewAccess): Promise<void>;
   /** Current selection/caret. Returns null before ready or when unfocused. */
   getSelection(): DocSelection | null;
   /** Insert plain text at the caret (replacing any selection). */

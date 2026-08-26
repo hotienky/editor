@@ -1,4 +1,41 @@
-import { bakeReview, collectMediaIds, colorForId, configureIds, dataUrlToMedia, deserializeDocument, forEachImage, freshId, mediaToDataUrl, reconstruct, serializeDocument, serializeFullDocument, textOfRuns, DEFAULT_CHAR_STYLE, DOCX_MIME, PDF_MIME, PX_PER_INCH, ptToPx as sharedPtToPx, pxToPt as sharedPxToPt, type Change, type DocSelection, type Document, type Fragment, type FullDocumentExport, type ImageBlock, type ParaStyle, type ReviewLayer, type Run, type SerializedDocument } from "@kindy/shared";
+import {
+  EDITOR_EVENT_SCHEMA_VERSION,
+  affectedBlockIds,
+  bakeReview,
+  collectMediaIds,
+  colorForId,
+  configureIds,
+  dataUrlToMedia,
+  deserializeDocument,
+  forEachImage,
+  freshId,
+  mediaToDataUrl,
+  projectReviewEvents,
+  reconstruct,
+  serializeDocument,
+  serializeFullDocument,
+  textOfRuns,
+  DEFAULT_CHAR_STYLE,
+  DOCX_MIME,
+  PDF_MIME,
+  PX_PER_INCH,
+  ptToPx as sharedPtToPx,
+  pxToPt as sharedPxToPt,
+  type Change,
+  type DocSelection,
+  type Document,
+  type EditorEventSource,
+  type Fragment,
+  type FullDocumentExport,
+  type ImageBlock,
+  type ParaStyle,
+  type PublicEditorEvent,
+  type PublicEditorEventDataMap,
+  type PublicEditorEventType,
+  type ReviewLayer,
+  type Run,
+  type SerializedDocument,
+} from "@kindy/shared";
 import { resolveConfig } from "./config";
 import { emptyParagraphFor } from "./builder/blockFactory";
 import { mediaStore, mediaUrl, registerMediaBytes, rehydrateDocMedia } from "./media/store";
@@ -87,6 +124,7 @@ import {
 import { defaultStylesheet, styleById, styleType } from "@kindy/shared";
 import { bulletListDefinition, numberListDefinition, paragraphsOf, textOfRuns } from "@kindy/shared";
 import { ICONS } from "./ui/icons";
+import { defaultMessages } from "./i18n";
 
 // Dev hook for in-browser verification (break-rule scans, perf probes, and the
 // snapshot/replay round-trip). Assigned near the end of mountEditorApp.
@@ -121,6 +159,9 @@ export async function mountEditorApp(runtime: KindyEditorRuntime): Promise<void>
     ...(runtime.cjk ? { cjk: runtime.cjk } : {}),
     ...(runtime.develop !== undefined ? { develop: runtime.develop } : {}),
   });
+  // Resolve the i18n message catalog. Falls back to English when the runtime
+  // doesn't carry a catalog (legacy test harnesses, direct mountEditorApp calls).
+  const t = runtime.messages ?? defaultMessages;
   // This editor instance's own font registry — threaded into its layout engine and
   // paint layer (below) so its custom fonts can't be clobbered by another KindyEditor
   // instance on the page, and into its exports via config.fonts.
@@ -152,7 +193,7 @@ export async function mountEditorApp(runtime: KindyEditorRuntime): Promise<void>
   // built-in look. Theme + behavior thread into the editor via editorOpts; the
   // typography override seeds new/blank docs (a loaded .docx keeps its own).
   // Recolor the gray gutter behind the pages + the ruler troughs (inline overrides
-  // the static .cw-app/.cw-ruler stylesheet rules, so it stays per-instance).
+  // the static .ked-app/.ked-ruler stylesheet rules, so it stays per-instance).
   app.style.background = config.theme.canvasBackground;
   shell.ruler.style.background = config.theme.canvasBackground;
   shell.vruler.style.background = config.theme.canvasBackground;
@@ -194,6 +235,36 @@ const IMPORT_PHASE_LABEL: Record<ImportPhase, string> = {
 
 let collabVersion = 0;
 let sync: SyncClient | null = null;
+type PublicEmitOptions = {
+  source?: EditorEventSource;
+  transaction?: PublicEditorEvent["transaction"];
+  version?: number;
+  metadata?: Record<string, unknown>;
+};
+const emitPublic = <K extends PublicEditorEventType>(
+  type: K,
+  data: PublicEditorEventDataMap[K],
+  options: PublicEmitOptions = {},
+): void => {
+  if (!runtime.onPublicEvent) return;
+  const baseVersion = sync?.getVersion() ?? collabVersion;
+  runtime.onPublicEvent({
+    schemaVersion: EDITOR_EVENT_SCHEMA_VERSION,
+    id: freshId(),
+    type,
+    occurredAt: new Date().toISOString(),
+    source: options.source ?? "system",
+    ...(runtime.user ? { actor: runtime.user } : {}),
+    document: {
+      id: collabId,
+      baseVersion,
+      ...(options.version !== undefined ? { version: options.version } : {}),
+    },
+    ...(options.transaction ? { transaction: options.transaction } : {}),
+    data,
+    ...(options.metadata ? { metadata: options.metadata } : {}),
+  } as PublicEditorEvent);
+};
 let doc: Document;
 if (collabId !== null && BACKEND_HTTP) {
   const busy = showBusy("Loading shared document…");
@@ -261,7 +332,9 @@ let refreshBookmarks: () => void = () => {};
 let toggleBookmarks: () => void = () => {};
 let refreshReview: () => void = () => {};
 let toggleReview: () => void = () => {};
+let focusCommentThread: (threadId: string) => void = () => {};
 let syncMode: () => void = () => {};
+let syncCommentAction: () => void = () => {};
 // Develop-mode Document-tree inspector hooks (assigned when the panel is open;
 // no-ops otherwise, so non-develop mounts pay nothing). refreshDevPanel re-reads
 // the tree on edits; inspectorHoverSink routes the canvas→tree hover signal.
@@ -282,6 +355,7 @@ let onLocalReviewOp: (env: ReviewOpEnvelope) => void = () => {};
 // helpers). Assigned once the editor handle is built; custom buttons can't fire
 // before mount completes, so it's always set by click time.
 let ribbonCtx: RibbonActionContext | null = null;
+let publicMode: EditMode = runtime.mode ?? (readonly ? "view" : "edit");
 const editorOpts = {
   engine,
   paintOptions: { fontRegistry },
@@ -292,11 +366,49 @@ const editorOpts = {
   ...(runtime.allowedModes ? { allowedModes: runtime.allowedModes } : {}),
   ...(runtime.user ? { user: runtime.user } : {}),
   ...(runtime.knownUsers ? { knownUsers: runtime.knownUsers } : {}),
+  ...(runtime.mentionPicker ? { mentionPicker: runtime.mentionPicker } : {}),
+  ...(runtime.reviewAccess ? { reviewAccess: runtime.reviewAccess } : {}),
+  getDocumentId: () => collabId,
+  onCommentThreadActivated: (threadId: string) => focusCommentThread(threadId),
   ...(runtime.resolveField ? { resolveField: runtime.resolveField } : {}),
   ...(collabId !== null ? { docId: collabId } : {}),
   // In a collab session, ship each recorded local edit to the server.
   onChangeRecorded: (change: Change) => {
-    sync?.localEdit(change.ops);
+    sync?.localEdit(change);
+  },
+  onMutationApplied: (event: {
+    source: "local" | "remote";
+    ops: import("@kindy/shared").Op[];
+    origin: import("@kindy/shared").ChangeOrigin;
+    intent?: string;
+    selectionBefore: DocSelection | null;
+    selectionAfter: DocSelection | null;
+    change?: Change;
+  }) => {
+    const detail = runtime.eventDetail ?? "metadata";
+    const data: PublicEditorEventDataMap["document.change.applied"] = {
+      origin: event.origin,
+      ...(event.intent ? { intent: event.intent } : {}),
+      operationCount: event.ops.length,
+      affectedBlockIds: affectedBlockIds(event.ops),
+      ...(detail !== "metadata" ? { operations: event.ops } : {}),
+      ...(detail === "full" ? {
+        selectionBefore: event.selectionBefore,
+        selectionAfter: event.selectionAfter,
+        ...(event.change ? { change: event.change } : {}),
+      } : {}),
+    };
+    const changeId = event.change?.id ?? freshId();
+    const source: EditorEventSource = event.source === "remote"
+      ? "remote"
+      : event.origin === "undo" || event.origin === "redo"
+        ? event.origin
+        : "local";
+    emitPublic(event.source === "remote" ? "document.remoteChange.applied" : "document.change.applied", data, {
+      source,
+      transaction: { id: changeId, status: event.source === "remote" ? "committed" : "optimistic" },
+      ...(event.change?.seq !== undefined ? { version: event.change.seq + 1 } : {}),
+    });
   },
   // Review overlay: re-emit changes to the embedder + ship review ops to peers.
   onReviewChanged: (review: ReviewLayer) => {
@@ -305,13 +417,29 @@ const editorOpts = {
   },
   onModeChanged: (mode: EditMode) => {
     runtime.onEvent?.({ type: "modeChanged", mode });
+    emitPublic("editor.mode.changed", { mode, previousMode: publicMode }, { source: "local" });
+    publicMode = mode;
     syncMode();
+    syncCommentAction();
+    refreshReview();
   },
   onReviewOpRecorded: (env: ReviewOpEnvelope) => onLocalReviewOp(env),
+  onReviewOpApplied: (op: import("@kindy/shared").ReviewOp, remote: boolean) => {
+    const transactionId = freshId();
+    for (const projected of projectReviewEvents(op, remote)) {
+      emitPublic(projected.type, projected.data as never, {
+        source: remote ? "remote" : "local",
+        transaction: { id: transactionId, status: remote ? "committed" : "optimistic" },
+      });
+    }
+  },
   // Broadcast the local caret to collaborators on every move.
   onSelectionChange: (sel: DocSelection | null) => {
     sync?.localPresence(sel);
+    if (runtime.includeSelectionEvents) emitPublic("selection.changed", { selection: sel }, { source: "local" });
     refreshDevPanel();
+    syncCommentAction();
+    refreshReview();
   },
   // Develop mode only: the inspector turns this signal on while open (dormant
   // otherwise) — route the hovered block id to the tree for the reverse highlight.
@@ -334,6 +462,7 @@ const editorOpts = {
     refreshVRuler();
     refreshImageBar();
   },
+  messages: t,
 };
 let editor = createEditor(app, doc, editorOpts);
 
@@ -408,15 +537,50 @@ const remoteChangeListeners: Array<(change: Change) => void> = [];
 // Build a SyncClient for `docId` wired to the current editor + identity + the
 // presence/event callbacks. Used by both the join path and goOnline.
 const connectSync = (docId: string, startVersion: number): SyncClient => {
+  emitPublic("collaboration.connecting", { docId }, { source: "system" });
   const s = new SyncClient({
     wsUrl: BACKEND_WS!,
     docId,
     editor,
     startVersion,
     user: runtime.user,
-    onUserEntered: (siteId, user) => runtime.onEvent?.({ type: "userEntered", siteId, user }),
-    onUserLeave: (siteId, user) => runtime.onEvent?.({ type: "userLeave", siteId, user }),
-    onPresence: (participants) => runtime.onEvent?.({ type: "presence", participants }),
+    onConnected: (version) => {
+      collabVersion = version;
+      emitPublic("collaboration.connected", { docId, version }, { source: "system", version });
+    },
+    onDisconnected: (reason) => emitPublic("collaboration.disconnected", {
+      docId,
+      ...(reason ? { reason } : {}),
+    }, { source: "system" }),
+    onCommitted: (change) => {
+      collabVersion = (change.seq ?? collabVersion) + 1;
+      const detail = runtime.eventDetail ?? "metadata";
+      emitPublic("document.change.committed", {
+        origin: change.origin,
+        operationCount: change.ops.length,
+        affectedBlockIds: affectedBlockIds(change.ops),
+        ...(detail !== "metadata" ? { operations: change.ops } : {}),
+        ...(detail === "full" ? { selectionAfter: change.selectionAfter ?? null, change } : {}),
+      }, {
+        source: change.origin === "undo" || change.origin === "redo" ? change.origin : "local",
+        transaction: { id: change.id, status: "committed" },
+        ...(change.seq !== undefined ? { version: change.seq + 1 } : {}),
+      });
+    },
+    onUserEntered: (siteId, user) => {
+      runtime.onEvent?.({ type: "userEntered", siteId, user });
+      emitPublic("collaboration.user.joined", { siteId, ...(user ? { user } : {}) }, { source: "remote" });
+    },
+    onUserLeave: (siteId, user) => {
+      runtime.onEvent?.({ type: "userLeave", siteId, user });
+      emitPublic("collaboration.user.left", { siteId, ...(user ? { user } : {}) }, { source: "remote" });
+    },
+    onPresence: (participants) => {
+      runtime.onEvent?.({ type: "presence", participants });
+      emitPublic("collaboration.presence.changed", {
+        participants: participants.map(({ siteId, user }) => ({ siteId, ...(user ? { user } : {}) })),
+      }, { source: "remote" });
+    },
     onRemote: (change: Change) => {
       for (const l of remoteChangeListeners) l(change);
     },
@@ -476,6 +640,7 @@ const goOnlineWithCurrentDoc = async (): Promise<string> => {
   if (!BACKEND_HTTP || !BACKEND_WS) throw new Error("cannot share: offline (no backendUrl)");
   // Already shared — reuse the existing link instead of forking a new document.
   if (collabId && shareLink) {
+    emitPublic("document.shared", { docId: collabId, url: shareLink, reused: true }, { source: "api" });
     surfaceShareLink(shareLink, collabId);
     return shareLink;
   }
@@ -502,6 +667,7 @@ const goOnlineWithCurrentDoc = async (): Promise<string> => {
   }
   console.log(`[collab] published, sharing ${docId}`);
   runtime.onEvent?.({ type: "shared", docId, url: shareLink });
+  emitPublic("document.shared", { docId, url: shareLink, reused: false }, { source: "api" });
   surfaceShareLink(shareLink, docId);
   return shareLink;
 };
@@ -553,23 +719,37 @@ const detachCollabSession = (): void => {
 // later caller-side mutations (or a re-used builder) can't alias editor state,
 // and preserve the viewport (zoom + scroll) so live rebuilds don't jump.
 const setDocumentFromApi = (next: Document): void => {
-  const clone = structuredClone(next);
-  // A doc with no stylesheet adopts the configured defaults before we mint any
-  // empty paragraph from it (a real .docx always brings its own — see config).
-  if (!clone.stylesheet) clone.stylesheet = config.stylesheet;
-  if (clone.blocks.length === 0) clone.blocks.push(emptyParagraphFor(clone, freshId()));
-  const scrollTop = app.scrollTop;
-  const zoom = editor.getZoom();
-  replaceDocument(clone);
-  editor.setZoom(zoom);
-  requestAnimationFrame(() => {
-    app.scrollTop = Math.min(scrollTop, Math.max(0, app.scrollHeight - app.clientHeight));
-  });
-  detachCollabSession();
+  const startedAt = performance.now();
+  emitPublic("document.open.started", { method: "api" }, { source: "api" });
+  try {
+    const clone = structuredClone(next);
+    // A doc with no stylesheet adopts the configured defaults before we mint any
+    // empty paragraph from it (a real .docx always brings its own — see config).
+    if (!clone.stylesheet) clone.stylesheet = config.stylesheet;
+    if (clone.blocks.length === 0) clone.blocks.push(emptyParagraphFor(clone, freshId()));
+    const scrollTop = app.scrollTop;
+    const zoom = editor.getZoom();
+    replaceDocument(clone);
+    editor.setZoom(zoom);
+    requestAnimationFrame(() => {
+      app.scrollTop = Math.min(scrollTop, Math.max(0, app.scrollHeight - app.clientHeight));
+    });
+    detachCollabSession();
+    emitPublic("document.open.completed", { method: "api", durationMs: performance.now() - startedAt }, { source: "api" });
+  } catch (error) {
+    const durationMs = performance.now() - startedAt;
+    const message = error instanceof Error ? error.message : String(error);
+    emitPublic("document.open.failed", { method: "api", durationMs, message }, { source: "api" });
+    emitPublic("editor.error", { scope: "document.open", message, recoverable: true }, { source: "api" });
+    throw error;
+  }
 };
 
 const openDocxFile = async (file: File | ArrayBuffer): Promise<void> => {
   const i0 = performance.now();
+  const fileName = file instanceof File ? file.name : undefined;
+  emitPublic("document.open.started", { method: "docx" }, { source: "import" });
+  emitPublic("document.import.started", { format: "docx", ...(fileName ? { fileName } : {}) }, { source: "import" });
   const busy = showBusy("Opening document…");
   try {
     const result = await importDocx(file, {
@@ -581,9 +761,27 @@ const openDocxFile = async (file: File | ArrayBuffer): Promise<void> => {
       editor.seedReview(result.review);
     }
     detachCollabSession();
+    const durationMs = performance.now() - i0;
+    emitPublic("document.import.completed", {
+      format: "docx",
+      ...(fileName ? { fileName } : {}),
+      durationMs,
+      warningCount: result.warnings.length,
+    }, { source: "import" });
+    emitPublic("document.open.completed", { method: "docx", durationMs }, { source: "import" });
   } catch (e) {
     console.error("[docx-import]", e);
     const name = file instanceof File ? file.name : "document";
+    const durationMs = performance.now() - i0;
+    const message = e instanceof Error ? e.message : String(e);
+    emitPublic("document.import.failed", {
+      format: "docx",
+      ...(fileName ? { fileName } : {}),
+      durationMs,
+      message,
+    }, { source: "import" });
+    emitPublic("document.open.failed", { method: "docx", durationMs, message }, { source: "import" });
+    emitPublic("editor.error", { scope: "document.import", message, recoverable: true }, { source: "import" });
     alert(`Could not open "${name}": ${e instanceof Error ? e.message : String(e)}`);
   } finally {
     busy.done();
@@ -739,6 +937,34 @@ const exportBaked = (format: ExportFormat): Promise<{ bytes: Uint8Array; warning
   const baked = bakeReview(editor.getDocument(), editor.getReview(), "reject");
   return exportDocument(baked, format, config.fonts, config.cjk, format === "docx" ? editor.getReview() : undefined);
 };
+const exportTracked = async (
+  format: ExportFormat,
+  trigger: "api" | "toolbar",
+): Promise<{ bytes: Uint8Array; warnings: ExportWarning[] }> => {
+  const startedAt = performance.now();
+  emitPublic("document.export.started", { format, trigger }, { source: trigger === "api" ? "api" : "local" });
+  try {
+    const result = await exportBaked(format);
+    emitPublic("document.export.completed", {
+      format,
+      trigger,
+      durationMs: performance.now() - startedAt,
+      byteLength: result.bytes.byteLength,
+      warningCount: result.warnings.length,
+    }, { source: trigger === "api" ? "api" : "local" });
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitPublic("document.export.failed", {
+      format,
+      trigger,
+      durationMs: performance.now() - startedAt,
+      message,
+    }, { source: trigger === "api" ? "api" : "local" });
+    emitPublic("editor.error", { scope: "document.export", message, recoverable: true }, { source: trigger === "api" ? "api" : "local" });
+    throw error;
+  }
+};
 const blobFor = (format: ExportFormat | "json", bytes: Uint8Array): Blob =>
   new Blob([bytes as BlobPart], {
     type: format === "pdf" ? PDF_MIME : format === "json" ? JSON_MIME : DOCX_MIME,
@@ -749,7 +975,7 @@ const exportBlob = async (format: ExportFormat | "json"): Promise<Blob> => {
     const { bytes } = exportFullJsonBytes();
     return blobFor("json", bytes);
   }
-  const { bytes } = await exportBaked(format);
+  const { bytes } = await exportTracked(format, "api");
   return blobFor(format, bytes);
 };
 
@@ -976,8 +1202,8 @@ if (toolbar) {
   const ribTabsById = new Map<string, { btn: HTMLButtonElement; panel: HTMLDivElement }>();
   const ribGroupsById = new Map<string, { tabId: string; groupEl: HTMLElement; container: HTMLElement }>();
   const ribItemsById = new Map<string, { groupId: string; el: HTMLElement }>();
-  const ribSlug = (s: string): string =>
-    s.toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "item";
+  const ribSlug = (s?: string | null): string =>
+    (s ?? "").toLowerCase().replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "item";
   const ribUniqueId = (root: string, taken: { has: (k: string) => boolean }): string => {
     let id = root;
     for (let n = 2; taken.has(id); n++) id = `${root}-${n}`;
@@ -1012,7 +1238,7 @@ if (toolbar) {
   /** Open `content` in a popover anchored under `anchor`, clamped on-screen. */
   const openPop = (anchor: HTMLElement, content: HTMLElement): HTMLElement => {
     closePop();
-    const pop = el("div", "cw-pop");
+    const pop = el("div", "ked-pop");
     pop.addEventListener("mousedown", (e) => e.preventDefault()); // keep editor focus
     pop.appendChild(content);
     document.body.appendChild(pop);
@@ -1033,7 +1259,7 @@ if (toolbar) {
   const menu = (
     items: { label: string; sample?: string; current?: boolean; onClick: () => void }[],
   ): HTMLElement => {
-    const m = el("div", "cw-menu");
+    const m = el("div", "ked-menu");
     for (const it of items) {
       const b = el("button");
       const check = el("span", "check");
@@ -1080,7 +1306,7 @@ if (toolbar) {
     onClear: (() => void) | null,
   ): void => {
     const wrap = el("div");
-    const grid = el("div", "cw-swatches");
+    const grid = el("div", "ked-swatches");
     for (const c of PALETTE) {
       const s = el("button");
       s.style.background = c;
@@ -1207,9 +1433,9 @@ if (toolbar) {
     const ROWS = 8;
     const COLS = 10;
     const wrap = el("div");
-    const grid = el("div", "cw-grid");
+    const grid = el("div", "ked-grid");
     grid.style.gridTemplateColumns = `repeat(${COLS}, 15px)`;
-    const label = el("div", "cw-grid-label");
+    const label = el("div", "ked-grid-label");
     label.textContent = "Insert table";
     const cells: HTMLElement[][] = [];
     const highlight = (R: number, C: number): void => {
@@ -1240,7 +1466,7 @@ if (toolbar) {
 
   /** Hyperlink dialog: URL field + Apply / Remove, applied to the selection. */
   const linkDialog = (anchor: HTMLElement): void => {
-    const wrap = el("div", "cw-dialog");
+    const wrap = el("div", "ked-dialog");
     const lab = el("label");
     lab.textContent = "Address";
     const input = el("input");
@@ -1303,6 +1529,8 @@ if (toolbar) {
         editor.setCharStyle(patch);
         editor.focus();
       },
+      messages: t.fontDialog,
+      common: t.common,
     });
   };
 
@@ -1310,7 +1538,7 @@ if (toolbar) {
     // Rendering (especially PDF) can take a few seconds; show the busy overlay so
     // the app doesn't look hung. Dropped before any onSave dialog / download so it
     // doesn't sit behind a native Save sheet.
-    const busy = showBusy(`Exporting ${format.toUpperCase()}…`);
+    const busy = showBusy(t.busy.exporting);
     try {
       let bytes: Uint8Array;
       let warnings: ExportWarning[] = [];
@@ -1318,7 +1546,7 @@ if (toolbar) {
         const res = exportFullJsonBytes();
         bytes = res.bytes;
       } else {
-        const res = await exportBaked(format);
+        const res = await exportTracked(format, "toolbar");
         bytes = res.bytes;
         warnings = res.warnings;
       }
@@ -1347,7 +1575,7 @@ if (toolbar) {
     editor.getDocument().stylesheet ?? defaultStylesheet();
 
   // ===== File tab (simplified backstage: open / export / undo) =============
-  const fileTab = tab("file", "File", "file");
+  const fileTab = tab("file", t.ribbon.file, "file");
   group(fileTab, "Open");
   bigBtn(ICONS.open, "Open<br>.docx", "Open a Word document", () => {
     const input = el("input");
@@ -1366,7 +1594,7 @@ if (toolbar) {
     const back = el("div");
     back.style.cssText =
       "position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;";
-    const wrap = el("div", "cw-dialog");
+    const wrap = el("div", "ked-dialog");
     wrap.style.cssText = "background:#fff;border:1px solid #c8c6c4;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.25);";
     const lab = el("label");
     lab.textContent = "Share this document — anyone with the link can join and edit live";
@@ -1377,7 +1605,7 @@ if (toolbar) {
     lab.appendChild(input);
     const row = el("div", "row");
     const closeBtn = el("button");
-    closeBtn.textContent = "Close";
+    closeBtn.textContent = t.common.close;
     closeBtn.addEventListener("click", () => back.remove());
     const copyBtn = el("button", "primary");
     copyBtn.textContent = "Copy link";
@@ -1409,36 +1637,36 @@ if (toolbar) {
   const showExportPdf = runtime.view?.exportPdf ?? true;
   const showExportDocx = runtime.view?.exportDocx ?? true;
   if (showExportPdf || showExportDocx) {
-    group(fileTab, "Export");
-    if (showExportPdf) txtBtn("PDF", "Export to PDF", () => void exportAs("pdf"), "font-size:11px;font-weight:600;");
-    if (showExportDocx) txtBtn("DOCX", "Export to .docx", () => void exportAs("docx"), "font-size:11px;font-weight:600;");
+    group(fileTab, t.fileGroup.groupExport);
+    if (showExportPdf) txtBtn("PDF", t.fileGroup.exportPdf, () => void exportAs("pdf"), "font-size:11px;font-weight:600;");
+    if (showExportDocx) txtBtn("DOCX", t.fileGroup.exportDocx, () => void exportAs("docx"), "font-size:11px;font-weight:600;");
   }
-  group(fileTab, "Undo");
-  btn(ICONS.undo, "Undo (Ctrl+Z)", () => editor.undo());
-  btn(ICONS.redo, "Redo (Ctrl+Y)", () => editor.redo());
+  group(fileTab, t.fileGroup.groupUndo);
+  btn(ICONS.undo, t.fileGroup.undo, () => editor.undo());
+  btn(ICONS.redo, t.fileGroup.redo, () => editor.redo());
 
   // ===== Home tab ==========================================================
-  const home = tab("home", "Home");
+  const home = tab("home", t.ribbon.home);
 
   // ---- Clipboard ----
-  group(home, "Clipboard");
-  bigBtn(ICONS.paste, "Paste", "Paste (Ctrl+V)", () => editor.paste(), true);
+  group(home, t.clipboard.groupLabel);
+  bigBtn(ICONS.paste, t.clipboard.paste, t.clipboard.pasteTooltip, () => editor.paste(), true);
   {
     const stack = el("div");
     stack.style.cssText = "display:flex;flex-direction:column;gap:1px;";
     const prev = controls;
     controls = stack;
-    btn(ICONS.cut, "Cut (Ctrl+X)", () => editor.cut());
-    btn(ICONS.copy, "Copy (Ctrl+C)", () => editor.copy());
-    btn(ICONS.painter, "Format painter (double-click = sticky)", () => editor.armFormatPainter(false));
+    btn(ICONS.cut, t.clipboard.cutTooltip, () => editor.cut());
+    btn(ICONS.copy, t.clipboard.copyTooltip, () => editor.copy());
+    btn(ICONS.painter, t.clipboard.formatPainterTooltip, () => editor.armFormatPainter(false));
     controls = prev;
     controls.appendChild(stack);
   }
 
   // ---- Font ----
-  const fontRow = groupRows(home, "Font");
+  const fontRow = groupRows(home, t.font.groupLabel);
   fontRow();
-  const fontSelect = select("Font family", 150);
+  const fontSelect = select(t.font.fontFamily, 150);
   // Labels show the bundled clone we actually render — e.g. "Calibri (Carlito)".
   // Per-instance: built-ins minus disableBuiltin, plus this mount's custom fonts.
   for (const f of toolbarFonts(config.fonts)) opt(fontSelect, f.value, f.label);
@@ -1455,7 +1683,7 @@ if (toolbar) {
   sizeInput.min = "1";
   sizeInput.max = "72";
   sizeInput.step = "0.5";
-  sizeInput.title = "Font size (pt)";
+  sizeInput.title = t.font.fontSize;
   sizeInput.style.cssText = "width:46px;padding:0 4px;";
   sizeInput.addEventListener("mousedown", (e) => e.stopPropagation());
   /** Apply a size given in POINTS (clamped to the model's 6–96px range). */
@@ -1473,7 +1701,7 @@ if (toolbar) {
   const sizeWrap = el("div");
   sizeWrap.style.cssText = "display:inline-flex;align-items:stretch;";
   const sizeCaret = el("button", "rib-btn");
-  sizeCaret.title = "Font size presets";
+  sizeCaret.title = t.font.fontSizePresets;
   sizeCaret.innerHTML = CARET;
   sizeCaret.style.cssText = "padding:0 1px;min-width:14px;";
   sizeCaret.addEventListener("mousedown", (e) => e.preventDefault());
@@ -1493,16 +1721,16 @@ if (toolbar) {
   controls.appendChild(sizeWrap);
   ribRegister(sizeWrap, "font-size");
   const curPt = (): number => pxToPt(editor.currentFormat().fontSizePx ?? 16);
-  txtBtn("A", "Grow font", () => setSizePt(curPt() + 1), "font-size:15px;font-weight:600;");
-  txtBtn("A", "Shrink font", () => setSizePt(curPt() - 1), "font-size:10px;font-weight:600;");
+  txtBtn("A", t.font.growFont, () => setSizePt(curPt() + 1), "font-size:15px;font-weight:600;");
+  txtBtn("A", t.font.shrinkFont, () => setSizePt(curPt() - 1), "font-size:10px;font-weight:600;");
   const CASES: { label: string; mode: CaseMode }[] = [
-    { label: "Sentence case", mode: "sentence" },
-    { label: "lowercase", mode: "lower" },
-    { label: "UPPERCASE", mode: "upper" },
-    { label: "Capitalize Each Word", mode: "title" },
-    { label: "tOGGLE cASE", mode: "toggle" },
+    { label: t.font.caseSentence, mode: "sentence" },
+    { label: t.font.caseLower, mode: "lower" },
+    { label: t.font.caseUpper, mode: "upper" },
+    { label: t.font.caseTitle, mode: "title" },
+    { label: t.font.caseToggle, mode: "toggle" },
   ];
-  const caseBtn = txtBtn("Aa", "Change case", () => {}, "font-weight:600;", true);
+  const caseBtn = txtBtn("Aa", t.font.changeCase, () => {}, "font-weight:600;", true);
   caseBtn.addEventListener("click", () =>
     openPop(
       caseBtn,
@@ -1517,34 +1745,34 @@ if (toolbar) {
       ),
     ),
   );
-  btn(ICONS.clearFormat, "Clear all formatting", () => {
+  btn(ICONS.clearFormat, t.font.clearFormatting, () => {
     editor.dispatch(clearCharFormatting());
     editor.dispatch(applyNamedStyle("Normal"));
     editor.focus();
   });
 
   fontRow();
-  toggle(txtBtn("B", "Bold (Ctrl+B)", () => editor.toggleStyle("bold"), "font-weight:700;"), (f) => f.bold);
-  toggle(txtBtn("I", "Italic (Ctrl+I)", () => editor.toggleStyle("italic"), "font-style:italic;font-family:Georgia,serif;"), (f) => f.italic);
-  toggle(txtBtn("U", "Underline (Ctrl+U)", () => editor.toggleStyle("underline"), "text-decoration:underline;"), (f) => f.underline);
-  toggle(txtBtn("ab", "Strikethrough", () => editor.toggleStyle("strikethrough"), "text-decoration:line-through;"), (f) => f.strikethrough);
-  toggle(txtBtn("x²", "Superscript", () => editor.dispatch(toggleVerticalAlign("super"))), (f) => f.superscript);
-  toggle(txtBtn("x₂", "Subscript", () => editor.dispatch(toggleVerticalAlign("sub"))), (f) => f.subscript);
-  toggle(txtBtn("AB", "All caps", () => editor.toggleStyle("caps"), "font-size:11px;font-weight:600;letter-spacing:.5px;"), (f) => f.caps);
-  toggle(txtBtn("Ab", "Small caps", () => editor.toggleStyle("smallCaps"), "font-variant:small-caps;font-size:12px;font-weight:600;"), (f) => f.smallCaps);
-  toggle(txtBtn("ab", "Double strikethrough", () => editor.toggleStyle("doubleStrikethrough"), "text-decoration:line-through double;"), (f) => f.doubleStrikethrough);
+  toggle(txtBtn("B", t.font.bold, () => editor.toggleStyle("bold"), "font-weight:700;"), (f) => f.bold);
+  toggle(txtBtn("I", t.font.italic, () => editor.toggleStyle("italic"), "font-style:italic;font-family:Georgia,serif;"), (f) => f.italic);
+  toggle(txtBtn("U", t.font.underline, () => editor.toggleStyle("underline"), "text-decoration:underline;"), (f) => f.underline);
+  toggle(txtBtn("ab", t.font.strikethrough, () => editor.toggleStyle("strikethrough"), "text-decoration:line-through;"), (f) => f.strikethrough);
+  toggle(txtBtn("x²", t.font.superscript, () => editor.dispatch(toggleVerticalAlign("super"))), (f) => f.superscript);
+  toggle(txtBtn("x₂", t.font.subscript, () => editor.dispatch(toggleVerticalAlign("sub"))), (f) => f.subscript);
+  toggle(txtBtn("AB", t.font.allCaps, () => editor.toggleStyle("caps"), "font-size:11px;font-weight:600;letter-spacing:.5px;"), (f) => f.caps);
+  toggle(txtBtn("Ab", t.font.smallCaps, () => editor.toggleStyle("smallCaps"), "font-variant:small-caps;font-size:12px;font-weight:600;"), (f) => f.smallCaps);
+  toggle(txtBtn("ab", t.font.doubleStrikethrough, () => editor.toggleStyle("doubleStrikethrough"), "text-decoration:line-through double;"), (f) => f.doubleStrikethrough);
   sep();
   // Home-tab dialog-launcher for the full Font dialog (caps, underline style +
   // colour, raise/lower, scaling, spacing, kerning, emphasis, text effects).
-  btn(`<span style="color:#2b579a;font-weight:700;">A</span>`, "Font — effects, caps, underline style, spacing", () => openFontDialog());
+  btn(`<span style="color:#2b579a;font-weight:700;">A</span>`, t.font.fontEffects, () => openFontDialog());
   // Highlight: face toggles the last colour (re-click clears); caret opens the
   // palette, where "No Color" strips the highlight.
   swatch({
     face: ICONS.highlight,
     initial: "#ffeb3b",
-    title: "Text highlight colour",
+    title: t.font.highlightColor,
     apply: (c) => editor.dispatch(toggleHighlight(c)),
-    clearLabel: "No Color",
+    clearLabel: t.font.noColor,
     onClear: () => editor.setCharStyle({ highlightColor: undefined }),
     active: (f) => f.highlight,
   });
@@ -1552,48 +1780,48 @@ if (toolbar) {
   swatch({
     face: `<span style="font-weight:700;">A</span>`,
     initial: "#e00000",
-    title: "Font colour",
+    title: t.font.fontColor,
     apply: (c) => editor.setCharStyle({ color: c }),
-    clearLabel: "Automatic",
+    clearLabel: t.font.automatic,
     onClear: () => editor.setCharStyle({ color: "#202124" }),
   });
   // Hyperlink lives on Insert ▸ Links (the canonical spot, like Word) — not
   // duplicated here in the Font group.
 
   // ---- Paragraph ----
-  const paraRow = groupRows(home, "Paragraph");
+  const paraRow = groupRows(home, t.paragraph.groupLabel);
   paraRow();
-  listSplit(ICONS.bullets, "Bulleted list", () => toggleList("bullet"), (f) => f.listKind === "bullet", [
-    { label: "•   Filled circle", cmd: () => toggleList("bullet") },
-    { label: "◦   Hollow circle", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-circle", "◦")) },
-    { label: "▪   Filled square", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-square", "▪")) },
-    { label: "–   Dash", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-dash", "–")) },
-    { label: "➤   Arrow", cmd: () => applyListStyleCmd(bulletListDefinition("bullets-arrow", "➤")) },
+  listSplit(ICONS.bullets, t.paragraph.bulletedList, () => toggleList("bullet"), (f) => f.listKind === "bullet", [
+    { label: t.paragraph.bulletFilledCircle, cmd: () => toggleList("bullet") },
+    { label: t.paragraph.bulletHollowCircle, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-circle", "◦")) },
+    { label: t.paragraph.bulletFilledSquare, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-square", "▪")) },
+    { label: t.paragraph.bulletDash, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-dash", "–")) },
+    { label: t.paragraph.bulletArrow, cmd: () => applyListStyleCmd(bulletListDefinition("bullets-arrow", "➤")) },
   ]);
-  listSplit(ICONS.numbering, "Numbered list (Tab/Shift+Tab change level)", () => toggleList("decimal"), (f) => f.listKind === "number", [
-    { label: "1.   Decimal", cmd: () => toggleList("decimal") },
-    { label: "1)   Decimal, parenthesis", cmd: () => applyListStyleCmd(numberListDefinition("numbers-paren", "decimal", ")")) },
-    { label: "a.   Lower letter", cmd: () => applyListStyleCmd(numberListDefinition("numbers-lalpha", "lowerLetter", ".")) },
-    { label: "A.   Upper letter", cmd: () => applyListStyleCmd(numberListDefinition("numbers-ualpha", "upperLetter", ".")) },
-    { label: "i.   Lower roman", cmd: () => applyListStyleCmd(numberListDefinition("numbers-lroman", "lowerRoman", ".")) },
-    { label: "I.   Upper roman", cmd: () => applyListStyleCmd(numberListDefinition("numbers-uroman", "upperRoman", ".")) },
+  listSplit(ICONS.numbering, t.paragraph.numberedList, () => toggleList("decimal"), (f) => f.listKind === "number", [
+    { label: t.paragraph.numberDecimal, cmd: () => toggleList("decimal") },
+    { label: t.paragraph.numberParen, cmd: () => applyListStyleCmd(numberListDefinition("numbers-paren", "decimal", ")")) },
+    { label: t.paragraph.numberLowerLetter, cmd: () => applyListStyleCmd(numberListDefinition("numbers-lalpha", "lowerLetter", ".")) },
+    { label: t.paragraph.numberUpperLetter, cmd: () => applyListStyleCmd(numberListDefinition("numbers-ualpha", "upperLetter", ".")) },
+    { label: t.paragraph.numberLowerRoman, cmd: () => applyListStyleCmd(numberListDefinition("numbers-lroman", "lowerRoman", ".")) },
+    { label: t.paragraph.numberUpperRoman, cmd: () => applyListStyleCmd(numberListDefinition("numbers-uroman", "upperRoman", ".")) },
   ]);
-  btn(ICONS.multilevel, "Multilevel list (1, 1.1, 1.1.1 — Tab / Shift+Tab change level)", () => editor.dispatch(toggleMultilevelList()));
+  btn(ICONS.multilevel, t.paragraph.multilevelList, () => editor.dispatch(toggleMultilevelList()));
   sep();
-  btn(ICONS.indentDecrease, "Decrease indent", () => editor.dispatch(adjustIndentCmd(-config.behavior.indentStepPx)));
-  btn(ICONS.indentIncrease, "Increase indent", () => editor.dispatch(adjustIndentCmd(config.behavior.indentStepPx)));
-  stub(ICONS.sort, "Sort");
+  btn(ICONS.indentDecrease, t.paragraph.decreaseIndent, () => editor.dispatch(adjustIndentCmd(-config.behavior.indentStepPx)));
+  btn(ICONS.indentIncrease, t.paragraph.increaseIndent, () => editor.dispatch(adjustIndentCmd(config.behavior.indentStepPx)));
+  stub(ICONS.sort, t.paragraph.sort);
   marksToggleBtn();
 
   paraRow();
-  toggle(btn(ICONS.alignLeft, "Align left", () => editor.align("left")), (f) => f.align === "left");
-  toggle(btn(ICONS.alignCenter, "Center", () => editor.align("center")), (f) => f.align === "center");
-  toggle(btn(ICONS.alignRight, "Align right", () => editor.align("right")), (f) => f.align === "right");
-  toggle(btn(ICONS.alignJustify, "Justify", () => editor.align("justify")), (f) => f.align === "justify");
+  toggle(btn(ICONS.alignLeft, t.paragraph.alignLeft, () => editor.align("left")), (f) => f.align === "left");
+  toggle(btn(ICONS.alignCenter, t.paragraph.alignCenter, () => editor.align("center")), (f) => f.align === "center");
+  toggle(btn(ICONS.alignRight, t.paragraph.alignRight, () => editor.align("right")), (f) => f.align === "right");
+  toggle(btn(ICONS.alignJustify, t.paragraph.alignJustify, () => editor.align("justify")), (f) => f.align === "justify");
   sep();
   // Paragraph writing direction (OOXML w:bidi). RTL right-aligns + reorders.
-  toggle(txtBtn("LTR", "Left-to-right paragraph", () => editor.dispatch(setDirection("ltr"))), (f) => f.direction !== "rtl");
-  toggle(txtBtn("RTL", "Right-to-left paragraph", () => editor.dispatch(setDirection("rtl"))), (f) => f.direction === "rtl");
+  toggle(txtBtn("LTR", t.paragraph.ltr, () => editor.dispatch(setDirection("ltr"))), (f) => f.direction !== "rtl");
+  toggle(txtBtn("RTL", t.paragraph.rtl, () => editor.dispatch(setDirection("rtl"))), (f) => f.direction === "rtl");
   sep();
   const SPACINGS = [
     { v: 1, l: "1.0" },
@@ -1633,11 +1861,15 @@ if (toolbar) {
           editor.focus();
         },
       },
+      {
+        messages: t.paragraphDialog,
+        common: t.common,
+      },
     );
     // Let replaceDocument() tear this dialog down if the editor is rebuilt while it's open.
     closeParaDialog = () => { paraDlg?.close(); paraDlg = null; closeParaDialog = () => {}; };
   };
-  const spacingBtn = btn(ICONS.lineSpacing, "Line spacing", () => {}, true);
+  const spacingBtn = btn(ICONS.lineSpacing, t.paragraph.lineSpacing, () => {}, true);
   spacingBtn.addEventListener("click", () =>
     openPop(
       spacingBtn,
@@ -1655,16 +1887,16 @@ if (toolbar) {
             editor.focus();
           },
         })),
-        { label: "Line Spacing Options…", onClick: openParagraphDialog },
+        { label: t.paragraph.lineSpacingOptions, onClick: openParagraphDialog },
       ]),
     ),
   );
   // One entry point to the Paragraph dialog, which covers both borders and
   // shading (was two separate buttons opening the identical dialog).
-  btn(ICONS.borders, "Borders & shading", openParagraphDialog, true);
+  btn(ICONS.borders, t.paragraph.borders, openParagraphDialog, true);
 
   // ---- Styles (visual gallery) ----
-  group(home, "Styles");
+  group(home, t.styles.groupLabel);
   const styleGallery = el("div", "rib-gallery");
   const styleCards = new Map<string, HTMLButtonElement>();
   // One child document renders every card's swatch — a real, document-styled
@@ -1722,7 +1954,7 @@ if (toolbar) {
   rebuildStyleGallery();
   controls.appendChild(styleGallery);
   ribRegister(styleGallery, "gallery");
-  btn(ICONS.stylePencil, "Update current style to match selection", () => {
+  btn(ICONS.stylePencil, t.styles.updateStyle, () => {
     const id = editor.currentFormat().styleId;
     if (id) editor.dispatch(updateStyleToSelection(id));
   });
@@ -1731,22 +1963,24 @@ if (toolbar) {
     styleMgr = showStyleManager({
       editor,
       ...(sel ? { initialSelection: sel } : {}),
+      messages: t.styleManager,
+      common: t.common,
       onClose: () => { styleMgr = null; },
     });
   };
-  btn(ICONS.styleNew, "Manage styles…", () => {
+  btn(ICONS.styleNew, t.styles.manageStyles, () => {
     const id = editor.currentFormat().styleId;
     openStyleManager(id ? { kind: "paragraph", id } : undefined);
   });
-  const filterBtn = btn(ICONS.filter, "Show only styles in use", () => {
+  const filterBtn = btn(ICONS.filter, t.styles.showOnlyUsed, () => {
     hideUnusedStyles = !hideUnusedStyles;
     filterBtn.classList.toggle("active", hideUnusedStyles);
-    filterBtn.title = hideUnusedStyles ? "Show all styles" : "Show only styles in use";
+    filterBtn.title = hideUnusedStyles ? t.styles.showAllStyles : t.styles.showOnlyUsed;
     rebuildStyleGallery();
   });
 
   // ---- Editing ----
-  group(home, "Editing");
+  group(home, t.editing.groupLabel);
   {
     const col = el("div");
     col.style.cssText = "display:flex;flex-direction:column;gap:1px;";
@@ -1757,28 +1991,28 @@ if (toolbar) {
       const b = btn(icon + `<span>${label}</span>`, title, onClick);
       b.style.cssText = wide;
     };
-    ed(ICONS.find, "Find", "Find & replace (Ctrl+F)", () => openFind());
-    ed(ICONS.replace, "Replace", "Replace (Ctrl+F)", () => openFind());
-    ed(ICONS.select, "Select All", "Select all (Ctrl+A)", () => editor.selectAll());
+    ed(ICONS.find, t.editing.find, t.editing.findTooltip, () => openFind());
+    ed(ICONS.replace, t.editing.replace, t.editing.replaceTooltip, () => openFind());
+    ed(ICONS.select, t.editing.selectAll, t.editing.selectAllTooltip, () => editor.selectAll());
     controls = prev;
     controls.appendChild(col);
   }
 
   // ===== Insert tab ========================================================
-  const insert = tab("insert", "Insert");
-  group(insert, "Pages");
-  btn(ICONS.pageBreak, "Page break (Ctrl+Enter)", () => {
+  const insert = tab("insert", t.ribbon.insert);
+  group(insert, t.insert.groupPages);
+  btn(ICONS.pageBreak, t.insert.pageBreak, () => {
     editor.dispatch(insertPageBreak());
     editor.focus();
   });
-  btn(ICONS.sectionBreak, "Section break — next page", () => {
+  btn(ICONS.sectionBreak, t.insert.sectionBreak, () => {
     editor.dispatch(insertSectionBreak());
     editor.focus();
   });
-  group(insert, "Tables");
-  const insTableBtn = btn(ICONS.table, "Insert table", () => {}, true);
+  group(insert, t.insert.groupTables);
+  const insTableBtn = btn(ICONS.table, t.insert.insertTable, () => {}, true);
   insTableBtn.addEventListener("click", () => tableGridPopover(insTableBtn));
-  group(insert, "Illustrations");
+  group(insert, t.insert.groupIllustrations);
   // Pick an image from the device, register its bytes in the shared media store
   // (content-addressed, so it persists + exports), then insert it at the caret at
   // its natural size (capped to a sensible width). Both dispatches run — only the
@@ -1820,7 +2054,7 @@ if (toolbar) {
     });
     input.click();
   };
-  btn(ICONS.image, "Insert image from your device", () => pickAndInsertImage());
+  btn(ICONS.image, t.insert.insertImage, () => pickAndInsertImage());
 
   // Insert image from a URL — opens a small inline prompt, fetches the image,
   // registers its bytes in the media store, and inserts it at the caret.
@@ -1869,22 +2103,22 @@ if (toolbar) {
     return found;
   };
 
-  group(insert, "Picture"); // acts on the selected image
+  group(insert, t.insert.groupPicture); // acts on the selected image
   enable(
-    btn(ICONS.wrapSquare, "Wrap text around image (square)", () => {
+    btn(ICONS.wrapSquare, t.insert.wrapSquare, () => {
       const id = editor.getSelectedObject();
       if (id) editor.dispatch(setImageProps(id, { wrap: "square", align: "left" }));
     }),
     (f) => f.imageSelected,
-    "select an image first",
+    t.insert.selectImageFirst,
   );
   enable(
-    btn(ICONS.wrapInline, "Image in line with text (block)", () => {
+    btn(ICONS.wrapInline, t.insert.wrapInline, () => {
       const id = editor.getSelectedObject();
       if (id) editor.dispatch(setImageProps(id, { wrap: "block", align: "center" }));
     }),
     (f) => f.imageSelected,
-    "select an image first",
+    t.insert.selectImageFirst,
   );
   // Image Properties… — opens the floating size/wrap/align/alt dialog.
   enable(
@@ -1902,11 +2136,11 @@ if (toolbar) {
       });
     }),
     (f) => f.imageSelected,
-    "select an image first",
+    t.insert.selectImageFirst,
   );
 
-  group(insert, "Equation");
-  txtBtn("√x", "Insert equation (MathML)", () => {
+  group(insert, t.insert.groupEquation);
+  txtBtn("√x", t.insert.insertEquation, () => {
     showEquationEditor({
       onApply: (eq) => {
         editor.dispatch(eq.display ? insertEquation(eq) : insertInlineEquation(eq));
@@ -1915,39 +2149,40 @@ if (toolbar) {
     });
   }, "font-family:Georgia,serif;font-style:italic;");
 
-  group(insert, "Symbols");
+  group(insert, t.insert.groupSymbols);
   // Single floating picker (toggle on re-click); closed on teardown so its
   // backdrop + document-level Escape listener never leak. Mirrors pageLayoutDlg.
-  btn(ICONS.symbol, "Insert symbol or special character", () => {
+  btn(ICONS.symbol, t.insert.insertSymbol, () => {
     if (symbolPicker) { symbolPicker.close(); return; }
     symbolPicker = showSymbolPicker({
       onPick: (font, char) => {
         editor.dispatch(insertSymbolCmd(font, char));
         editor.focus();
       },
+      messages: t.symbolPicker,
       onClose: () => { symbolPicker = null; },
     });
   });
   teardown.signal.addEventListener("abort", () => symbolPicker?.close(), { once: true });
 
-  group(insert, "Links");
-  const insLinkBtn = btn(ICONS.link, "Insert/remove hyperlink", () => {});
+  group(insert, t.insert.groupLinks);
+  const insLinkBtn = btn(ICONS.link, t.insert.insertLink, () => {});
   insLinkBtn.addEventListener("click", () => linkDialog(insLinkBtn));
-  group(insert, "References");
-  btn(ICONS.toc, "Insert / update table of contents (Ctrl+click an entry jumps to it)", () => {
+  group(insert, t.insert.groupReferences);
+  btn(ICONS.toc, t.insert.insertToc, () => {
     editor.dispatch(insertTocCmd());
     editor.focus();
   });
-  btn(ICONS.tocRefresh, "Recalculate TOC page numbers from the current layout", () => {
+  btn(ICONS.tocRefresh, t.insert.recalcToc, () => {
     const n = editor.recalculateToc();
     console.log(n > 0 ? `[toc] updated ${n} page number${n === 1 ? "" : "s"}` : "[toc] page numbers already current");
     editor.focus();
   });
-  txtBtn("ab¹", "Insert footnote", () => {
+  txtBtn("ab¹", t.insert.insertFootnote, () => {
     editor.dispatch(insertFootnoteCmd());
     editor.focus();
   }, "font-size:11px;");
-  txtBtn("abⁱ", "Insert endnote", () => {
+  txtBtn("abⁱ", t.insert.insertEndnote, () => {
     editor.dispatch(insertEndnoteCmd());
     editor.focus();
   }, "font-size:11px;");
@@ -1964,8 +2199,8 @@ if (toolbar) {
     editor.dispatch(insertFieldCmd({ type: "PAGE" }));
     editor.focus();
   });
-  group(insert, "Controls");
-  btn(ICONS.sdtText, "Rich text content control (wraps the selection or selected image)", () => {
+  group(insert, t.insert.groupControls);
+  btn(ICONS.sdtText, t.insert.richTextControl, () => {
     // A selected image is an object selection (no text caret), so route it to the
     // image-wrapping command; otherwise wrap the text selection/caret as before.
     const imgId = editor.getSelectedObject();
@@ -1978,12 +2213,12 @@ if (toolbar) {
       editor.focus();
     }
   });
-  btn(ICONS.sdtCheckbox, "Check box content control", () => {
+  btn(ICONS.sdtCheckbox, t.insert.checkboxControl, () => {
     editor.dispatch(insertContentControl("checkbox", { alias: "Check Box" }));
     editor.focus();
   });
-  btn(ICONS.sdtDropdown, "Drop-down list content control", () => {
-    const raw = prompt("List items (comma-separated):", "Yes, No, N/A");
+  btn(ICONS.sdtDropdown, t.insert.dropdownControl, () => {
+    const raw = prompt(t.insert.dropdownPrompt, t.insert.dropdownDefault);
     if (raw === null) return;
     const listItems = raw
       .split(",")
@@ -1993,53 +2228,63 @@ if (toolbar) {
     editor.dispatch(insertContentControl("dropDown", { alias: "Drop-Down List", listItems }));
     editor.focus();
   });
-  btn(ICONS.sdtDate, "Date picker content control", () => {
+  btn(ICONS.sdtDate, t.insert.datePickerControl, () => {
     editor.dispatch(insertContentControl("date", { alias: "Date", dateFormat: "M/d/yyyy" }));
     editor.focus();
   });
   enable(
-    btn(ICONS.sdtProps, "Content control properties & content (inspect the control at the caret)", () => {
-      if (!editor.inspectContentControl()) alert("Place the caret inside a content control first.");
+    btn(ICONS.sdtProps, t.insert.contentControlProps, () => {
+      if (!editor.inspectContentControl()) alert(t.insert.noContentControl);
     }),
     (f) => f.inContentControl,
-    "place the caret in a content control",
+    t.insert.placeCaretInControl,
   );
   enable(
-    btn(ICONS.sdtRemove, "Remove the content control at the caret or around the selected image (keeps its content)", () => {
+    btn(ICONS.sdtRemove, t.insert.removeContentControl, () => {
       const id = editor.activeContentControlId();
       if (id) editor.dispatch(removeContentControl(id, false));
       // Don't force focus to the doc — that would drop an active image selection.
     }),
     (f) => f.inContentControl,
-    "place the caret in a content control",
+    t.insert.placeCaretInControl,
   );
 
   // ===== Layout tab ========================================================
-  const layout = tab("layout", "Layout");
-  group(layout, "Page Setup");
-  btn(ICONS.pageSetup, "Page layout (size, orientation, margins, columns, header/footer distance, page color & borders — applies to the caret's section)", () => {
+  const layout = tab("layout", t.ribbon.layout);
+  group(layout, t.layout.groupPageSetup);
+  btn(ICONS.pageSetup, t.layout.pageSetup, () => {
     if (pageLayoutDlg) { pageLayoutDlg.close(); pageLayoutDlg = null; return; }
-    pageLayoutDlg = showPageLayout({ editor, onClose: () => { pageLayoutDlg = null; } });
+    pageLayoutDlg = showPageLayout({
+      editor,
+      messages: t.pageLayout,
+      common: t.common,
+      onClose: () => { pageLayoutDlg = null; },
+    });
   });
 
   // ===== Table tab (acts on the cell containing the caret) =================
-  const tableTab = tab("table", "Table");
-  group(tableTab, "Rows & Columns");
-  btn(ICONS.rowAbove, "Insert row above", () => editor.dispatch(insertTableRowCmd("above")));
-  btn(ICONS.rowBelow, "Insert row below", () => editor.dispatch(insertTableRowCmd("below")));
-  btn(ICONS.colLeft, "Insert column left", () => editor.dispatch(insertTableColumnCmd("left")));
-  btn(ICONS.colRight, "Insert column right", () => editor.dispatch(insertTableColumnCmd("right")));
-  btn(ICONS.deleteRow, "Delete row", () => editor.dispatch(deleteTableRowCmd()));
-  btn(ICONS.deleteCol, "Delete column", () => editor.dispatch(deleteTableColumnCmd()));
-  btn(ICONS.deleteTable, "Delete table", () => editor.dispatch(deleteTableCmd()));
-  group(tableTab, "Merge");
-  btn(ICONS.mergeCells, "Merge cells (select across cells in one row)", () => editor.dispatch(mergeCellsCmd()));
-  btn(ICONS.unmergeCells, "Unmerge cell", () => editor.dispatch(unmergeCellCmd()));
-  group(tableTab, "Size");
-  const autofitBtn = txtBtn("AutoFit", "AutoFit columns to contents or window, or use fixed widths", () => {}, "", true);
+  const tableTab = tab("table", t.ribbon.table);
+  group(tableTab, t.table.groupRowsCols);
+  const inTable = (f: CurrentFormat): boolean => f.inTable;
+  enable(btn(ICONS.rowAbove, t.table.insertRowAbove, () => editor.dispatch(insertTableRowCmd("above"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.rowBelow, t.table.insertRowBelow, () => editor.dispatch(insertTableRowCmd("below"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.colLeft, t.table.insertColLeft, () => editor.dispatch(insertTableColumnCmd("left"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.colRight, t.table.insertColRight, () => editor.dispatch(insertTableColumnCmd("right"))), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteRow, t.table.deleteRow, () => editor.dispatch(deleteTableRowCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteCol, t.table.deleteCol, () => editor.dispatch(deleteTableColumnCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteTable, t.table.deleteTable, () => editor.dispatch(deleteTableCmd())), inTable, t.table.placeCaretInTable);
+  group(tableTab, t.table.groupMerge);
+  enable(btn(ICONS.mergeCells, t.table.mergeCells, () => editor.dispatch(mergeCellsCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.unmergeCells, t.table.unmergeCells, () => editor.dispatch(unmergeCellCmd())), inTable, t.table.placeCaretInTable);
+  group(tableTab, t.table.groupSize);
+  const autofitBtn = txtBtn("AutoFit", t.table.autofitTooltip, () => {}, "", true);
   autofitBtn.addEventListener("click", () => {
     // Tick the active mode (resolved against the table the caret is in right now).
-    const tbl = tableAtSelection({ doc: editor.getDocument(), selection: editor.getSelection() });
+    const tbl = tableAtSelection({
+      doc: editor.getDocument(),
+      selection: editor.getSelection(),
+      cellSelection: editor.getCellSelection(),
+    });
     const cur = tbl?.widthMode ?? "fixed";
     const pref = tbl?.preferredWidth;
     const curAlign = tbl?.align ?? "left";
@@ -2062,43 +2307,43 @@ if (toolbar) {
     openPop(
       autofitBtn,
       menu([
-        fit("AutoFit to Contents", "autofitContents"),
-        fit("AutoFit to Window", "autofitWindow"),
-        fit("Fixed Column Width", "fixed"),
-        widthItem("Width: 25%", 25),
-        widthItem("Width: 50%", 50),
-        widthItem("Width: 75%", 75),
-        widthItem("Width: Full page", null),
-        alignItem("Align Left", "left"),
-        alignItem("Align Center", "center"),
-        alignItem("Align Right", "right"),
+        fit(t.table.autofitContents, "autofitContents"),
+        fit(t.table.autofitWindow, "autofitWindow"),
+        fit(t.table.fixedWidth, "fixed"),
+        widthItem(t.table.width25, 25),
+        widthItem(t.table.width50, 50),
+        widthItem(t.table.width75, 75),
+        widthItem(t.table.widthFull, null),
+        alignItem(t.table.alignLeft, "left"),
+        alignItem(t.table.alignCenter, "center"),
+        alignItem(t.table.alignRight, "right"),
       ]),
     );
   });
 
   // ===== View tab ==========================================================
-  const view = tab("view", "View");
-  group(view, "Show");
+  const view = tab("view", t.ribbon.view);
+  group(view, t.view.groupShow);
   let outlineToggle = (): void => {};
-  const outlineBtn = btn(ICONS.outline, "Outline / navigation pane (jump to any heading)", () => outlineToggle());
-  const bookmarksBtn = btn(ICONS.bookmark, "Bookmarks — list, go to, add, rename, delete", () => toggleBookmarks());
-  const rulerBtn = btn(ICONS.ruler, "Horizontal ruler", () => rulerBtn.classList.toggle("active", toggleRuler()));
+  const outlineBtn = btn(ICONS.outline, t.view.outline, () => outlineToggle());
+  const bookmarksBtn = btn(ICONS.bookmark, t.view.bookmarks, () => toggleBookmarks());
+  const rulerBtn = btn(ICONS.ruler, t.view.horizontalRuler, () => rulerBtn.classList.toggle("active", toggleRuler()));
   rulerBtn.classList.toggle("active", showHRuler);
-  const vrulerBtn = btn(ICONS.rulerV, "Vertical ruler", () => vrulerBtn.classList.toggle("active", toggleVRuler()));
+  const vrulerBtn = btn(ICONS.rulerV, t.view.verticalRuler, () => vrulerBtn.classList.toggle("active", toggleVRuler()));
   vrulerBtn.classList.toggle("active", showVRuler);
-  const gridBtn = btn(ICONS.grid, "Show grid — a light mesh for aligning objects", () => {
+  const gridBtn = btn(ICONS.grid, t.view.showGrid, () => {
     gridView.show = !gridView.show;
     editor.setShowGrid(gridView.show);
     gridBtn.classList.toggle("active", gridView.show);
   });
   gridBtn.classList.toggle("active", gridView.show);
-  const snapBtn = btn(ICONS.snap, "Snap to grid — anchored objects snap to grid lines while dragging", () => {
+  const snapBtn = btn(ICONS.snap, t.view.snapToGrid, () => {
     gridView.snap = !gridView.snap;
     editor.setSnapToGrid(gridView.snap);
     snapBtn.classList.toggle("active", gridView.snap);
   });
   snapBtn.classList.toggle("active", gridView.snap);
-  const gridSpacingSel = select("Grid spacing", 92);
+  const gridSpacingSel = select(t.view.gridSpacing, 92);
   for (const [px, label] of [
     [12, 'Grid: 1/8"'],
     [24, 'Grid: 1/4"'],
@@ -2112,15 +2357,15 @@ if (toolbar) {
     editor.setGridSpacing(gridView.spacingPx);
   });
   marksToggleBtn();
-  if (online) btn(ICONS.activity, "Activity — who created/edited this document and when", () => toggleActivity());
+  if (online) btn(ICONS.activity, t.view.activity, () => toggleActivity());
 
   // ===== Developer tab (develop mode only) =================================
   // Gated on the `develop` config flag: the tab only EXISTS when the embedder
   // opts in, and even then nothing dev-related runs until the developer clicks
   // "Inspect document tree" to open the floating Document-tree inspector.
   if (config.develop) {
-    const dev = tab("developer", "Developer");
-    group(dev, "Inspect");
+    const dev = tab("developer", t.ribbon.developer);
+    group(dev, t.developer.groupInspect);
     const toggleDevPanel = (): void => {
       if (devPanel) { devPanel.close(); return; } // toggle: a second click closes it
       devPanel = showDevPanel({
@@ -2142,8 +2387,8 @@ if (toolbar) {
       devBtn.classList.add("active");
     };
     const devBtn = btn(
-      ICONS.devtools + "<span>Inspect document tree</span>",
-      "Open the Document-tree inspector — browse the parsed model, highlight nodes on the page, and read each node's JSON",
+      ICONS.devtools + `<span>${t.developer.inspectTree}</span>`,
+      t.developer.inspectTreeTooltip,
       toggleDevPanel,
     );
     devBtn.style.cssText = "width:100%;justify-content:flex-start;gap:4px;";
@@ -2152,11 +2397,11 @@ if (toolbar) {
   // ---- Review controls live in the ribbon HEADER (right of the tab strip,
   //      by the collapse button) so the mode switch + pane toggle are reachable
   //      from any tab — not buried inside the View tab.
-  const MODE_LABELS: Array<[EditMode, string]> = [["edit", "Editing"], ["suggest", "Suggesting"], ["view", "Viewing"]];
+  const MODE_LABELS: Array<[EditMode, string]> = [["edit", t.review.modeEditing], ["suggest", t.review.modeSuggesting], ["view", t.review.modeViewing]];
   const allowedModesUi = runtime.allowedModes;
-  const headerReview = el("div", "cw-header-review");
-  const modeSel = el("select", "cw-mode-select");
-  modeSel.title = "Editing mode";
+  const headerReview = el("div", "ked-header-review");
+  const modeSel = el("select", "ked-mode-select");
+  modeSel.title = t.review.editingMode;
   for (const [v, l] of MODE_LABELS) {
     if (allowedModesUi && !allowedModesUi.includes(v)) continue;
     const o = el("option");
@@ -2172,26 +2417,42 @@ if (toolbar) {
   syncMode = (): void => {
     modeSel.value = editor.getMode();
   };
-  const reviewBtn = el("button", "cw-header-btn");
-  reviewBtn.textContent = "Review";
-  reviewBtn.title = "Suggestions & comments — review, accept, reject";
+  const reviewBtn = el("button", "ked-header-btn");
+  reviewBtn.textContent = t.review.reviewButton;
+  reviewBtn.title = t.review.reviewButtonTooltip;
   reviewBtn.addEventListener("mousedown", (e) => e.preventDefault());
   reviewBtn.addEventListener("click", () => toggleReview());
-  headerReview.append(modeSel, reviewBtn);
+  const commentBtn = el("button", "ked-header-btn");
+  commentBtn.textContent = t.review.addComment;
+  commentBtn.title = t.review.addCommentTooltip;
+  commentBtn.addEventListener("mousedown", (event) => event.preventDefault());
+  commentBtn.addEventListener("click", () => editor.startComment());
+  syncCommentAction = (): void => {
+    commentBtn.hidden = editor.getMode() === "view";
+    commentBtn.disabled = !editor.getSelection() || !editor.canReviewAction("comment.create");
+  };
+  syncCommentAction();
+  headerReview.append(modeSel, commentBtn, reviewBtn);
   tabsBar.appendChild(headerReview);
+  shell.root.addEventListener("keydown", (event) => {
+    const shortcut = event.altKey && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "m";
+    if (!shortcut) return;
+    event.preventDefault();
+    editor.startComment();
+  }, { capture: true, signal: teardown.signal });
 
-  group(view, "Zoom");
-  txtBtn("−", "Zoom out", () => editor.setZoom(editor.getZoom() / config.behavior.zoomStep), "font-size:15px;");
-  const zoomSel = select("Zoom level", 66);
+  group(view, t.view.groupZoom);
+  txtBtn("−", t.view.zoomOut, () => editor.setZoom(editor.getZoom() / config.behavior.zoomStep), "font-size:15px;");
+  const zoomSel = select(t.view.zoomLevel, 66);
   for (const z of [0.5, 0.75, 1, 1.25, 1.5, 2, 3]) opt(zoomSel, String(z), `${Math.round(z * 100)}%`);
   zoomSel.value = "1";
   zoomSel.addEventListener("change", () => editor.setZoom(parseFloat(zoomSel.value)));
-  txtBtn("+", "Zoom in", () => editor.setZoom(editor.getZoom() * config.behavior.zoomStep), "font-size:15px;");
+  txtBtn("+", t.view.zoomIn, () => editor.setZoom(editor.getZoom() * config.behavior.zoomStep), "font-size:15px;");
 
   // ---- Activity panel (who created/edited, when) — online only ------------
   if (online) {
     const panel = el("div");
-    panel.className = "cw-float-drawer";
+    panel.className = "ked-float-drawer";
     panel.style.cssText =
       "position:fixed;top:0;right:0;width:300px;height:100%;z-index:45;background:#fff;border-left:1px solid #e1dfdd;" +
       "box-shadow:-4px 0 16px rgba(0,0,0,0.08);display:none;flex-direction:column;font-size:13px;";
@@ -2199,7 +2460,7 @@ if (toolbar) {
     ahead.style.cssText =
       "flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #e1dfdd;font-weight:600;color:#323130;";
     const atitle = el("span");
-    atitle.textContent = "Activity";
+    atitle.textContent = t.activity.title;
     const aclose = el("button");
     aclose.textContent = "×";
     aclose.style.cssText = "border:none;background:transparent;font-size:18px;cursor:pointer;color:#605e5c;";
@@ -2213,16 +2474,16 @@ if (toolbar) {
 
     const nameOf = (f: string, l: string): string => `${f} ${l}`.trim() || "Unknown";
     const kindLabel = (origin: string): string =>
-      origin === "typing" ? "typed"
-      : origin === "paste" ? "pasted"
-      : origin === "undo" ? "undo"
-      : origin === "redo" ? "redo"
-      : "edited";
+      origin === "typing" ? t.activity.originTyped
+      : origin === "paste" ? t.activity.originPasted
+      : origin === "undo" ? t.activity.originUndo
+      : origin === "redo" ? t.activity.originRedo
+      : t.activity.originEdited;
     const timeAgo = (ts: number): string => {
       const s = Math.max(0, (Date.now() - ts) / 1000);
-      if (s < 60) return "just now";
-      if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-      if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+      if (s < 60) return t.activity.justNow;
+      if (s < 3600) return `${Math.floor(s / 60)}${t.activity.minutesAgo}`;
+      if (s < 86400) return `${Math.floor(s / 3600)}${t.activity.hoursAgo}`;
       return new Date(ts).toLocaleDateString();
     };
 
@@ -2235,13 +2496,15 @@ if (toolbar) {
     }
     const render = (a: ActivityResp): void => {
       ameta.textContent = a.createdBy
-        ? `Created by ${nameOf(a.creatorFirstName, a.creatorLastName)} · ${timeAgo(a.createdAt)}`
-        : "Created locally";
+        ? t.activity.createdByTemplate
+            .replace("{name}", nameOf(a.creatorFirstName, a.creatorLastName))
+            .replace("{time}", timeAgo(a.createdAt))
+        : t.activity.createdLocally;
       alist.textContent = "";
       if (a.entries.length === 0) {
         const e = el("div");
         e.style.cssText = "padding:12px;color:#80868b;";
-        e.textContent = "No edits yet.";
+        e.textContent = t.activity.noEdits;
         alist.appendChild(e);
         return;
       }
@@ -2261,7 +2524,7 @@ if (toolbar) {
 
     const fetchActivity = async (): Promise<void> => {
       if (!collabId || !BACKEND_HTTP) {
-        ameta.textContent = "Share the document (or open one online) to track activity.";
+        ameta.textContent = t.activity.shareToTrack;
         alist.textContent = "";
         return;
       }
@@ -2310,13 +2573,13 @@ if (toolbar) {
   if (outlineEl) {
     const head = el("div", "outline-head");
     const title = el("span");
-    title.textContent = "Outline";
+    title.textContent = t.outline.title;
     const closeBtn = el("button");
     closeBtn.innerHTML = "×";
-    closeBtn.title = "Close";
+    closeBtn.title = t.common.close;
     head.append(title, closeBtn);
     const list = el("div");
-    list.className = "cw-outline-list";
+    list.className = "ked-outline-list";
     outlineEl.append(head, list);
 
     // Detect a heading + its outline level. Real .docx files name their styles
@@ -2378,7 +2641,7 @@ if (toolbar) {
         buttons.clear();
         if (collected.length === 0) {
           const empty = el("div", "outline-empty");
-          empty.textContent = "No headings yet. Apply a Heading style (Heading 1–9) to build an outline.";
+          empty.textContent = t.outline.noHeadings;
           list.appendChild(empty);
         } else {
           for (const c of collected) {
@@ -2413,20 +2676,20 @@ if (toolbar) {
 
   // ---- Bookmarks panel (list + Go To + add/rename/delete) -----------------
   {
-    const panel = el("div", "cw-float-drawer");
+    const panel = el("div", "ked-float-drawer");
     panel.style.cssText =
       "position:fixed;top:0;right:0;width:300px;height:100%;z-index:45;background:#fff;border-left:1px solid #e1dfdd;" +
       "box-shadow:-4px 0 16px rgba(0,0,0,0.08);display:none;flex-direction:column;font-size:13px;";
     const head = el("div", "outline-head");
     const title = el("span");
-    title.textContent = "Bookmarks";
+    title.textContent = t.view.bookmarks;
     const addBtn = el("button");
     addBtn.textContent = "+";
     addBtn.title = "Add a bookmark for the current selection";
     addBtn.style.cssText = "margin-left:auto;border:none;background:transparent;font-size:18px;cursor:pointer;color:#2b579a;";
     const closeBtn = el("button");
     closeBtn.innerHTML = "×";
-    closeBtn.title = "Close";
+    closeBtn.title = t.common.close;
     head.append(title, addBtn, closeBtn);
     const list = el("div");
     list.style.cssText = "flex:1 1 auto;overflow-y:auto;padding:2px 0;";
@@ -2547,39 +2810,48 @@ if (toolbar) {
       return b;
     };
     const avatar = (a: { id: string; firstName: string; lastName: string }): HTMLElement => {
-      const av = el("div", "cw-avatar");
+      const av = el("div", "ked-avatar");
       av.style.background = colorForId(a.id);
       av.textContent = initials(a);
       return av;
     };
 
     // header
-    const head = el("div", "cw-review-head");
-    const title = el("span", "cw-review-title");
+    const head = el("div", "ked-review-head");
+    const title = el("span", "ked-review-title");
     title.textContent = "Review";
-    const closeBtn = mkBtn("cw-review-close", "×", () => setOpen(false));
+    const newCommentBtn = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "+ Comment", () => editor.startComment());
+    newCommentBtn.title = "Add comment at the selection (Ctrl+Alt+M)";
+    const closeBtn = mkBtn("ked-review-close", "×", () => setOpen(false));
     closeBtn.title = "Close";
-    head.append(title, closeBtn);
+    head.append(title, newCommentBtn, closeBtn);
 
     // tabs
-    const tabs = el("div", "cw-review-tabs");
-    const tabSug = el("button", "cw-review-tab") as HTMLButtonElement;
-    const tabCom = el("button", "cw-review-tab") as HTMLButtonElement;
-    const sugPill = el("span", "cw-pill");
-    const comPill = el("span", "cw-pill");
+    const tabs = el("div", "ked-review-tabs");
+    const tabSug = el("button", "ked-review-tab") as HTMLButtonElement;
+    const tabCom = el("button", "ked-review-tab") as HTMLButtonElement;
+    const sugPill = el("span", "ked-pill");
+    const comPill = el("span", "ked-pill");
     tabSug.append(document.createTextNode("Suggestions "), sugPill);
     tabCom.append(document.createTextNode("Comments "), comPill);
     tabs.append(tabSug, tabCom);
 
-    const body = el("div", "cw-review-body");
+    const body = el("div", "ked-review-body");
     reviewEl.append(head, tabs, body);
 
     let activeTab: "suggestions" | "comments" = "suggestions";
+    let commentFilter: "open" | "resolved" | "all" = "open";
+    let activeThreadId: string | null = null;
+    const reviewDisposers = new Set<() => void>();
+    const disposeReviewBindings = (): void => {
+      for (const dispose of reviewDisposers) dispose();
+      reviewDisposers.clear();
+    };
 
     const emptyState = (ico: string, text: string): HTMLElement => {
-      const e = el("div", "cw-review-empty");
-      const i = el("div", "cw-review-empty-ico");
-      i.textContent = ico;
+      const e = el("div", "ked-review-empty");
+      const i = el("div", "ked-review-empty-ico");
+      i.innerHTML = ico;
       const t = el("div");
       t.textContent = text;
       e.append(i, t);
@@ -2588,31 +2860,31 @@ if (toolbar) {
 
     const renderSuggestions = (review: ReturnType<typeof editor.getReview>): void => {
       if (review.suggestions.length === 0) {
-        body.append(emptyState("✦", "No suggestions yet. Switch the mode to Suggesting and edit — your changes become tracked proposals here."));
+        body.append(emptyState(ICONS.marks, "No suggestions yet. Switch the mode to Suggesting and edit — your changes become tracked proposals here."));
         return;
       }
-      const bar = el("div", "cw-review-actions");
+      const bar = el("div", "ked-review-actions");
       bar.append(
-        mkBtn("cw-btn cw-btn-accept cw-btn-sm", "✓ Accept all", () => { editor.acceptAllSuggestions(); editor.focus(); }),
-        mkBtn("cw-btn cw-btn-reject cw-btn-sm", "✗ Reject all", () => { editor.rejectAllSuggestions(); editor.focus(); }),
+        mkBtn("ked-btn ked-btn-accept ked-btn-sm", "✓ Accept all", () => { editor.acceptAllSuggestions(); editor.focus(); }),
+        mkBtn("ked-btn ked-btn-reject ked-btn-sm", "✗ Reject all", () => { editor.rejectAllSuggestions(); editor.focus(); }),
       );
       body.append(bar);
       for (const s of review.suggestions) {
-        const card = el("div", "cw-sug");
-        card.style.setProperty("--cw-author", colorForId(s.author.id));
-        const top = el("div", "cw-sug-top");
-        const kind = el("div", "cw-sug-kind");
-        const dot = el("span", "cw-dot");
+        const card = el("div", "ked-sug");
+        card.style.setProperty("--ked-author", colorForId(s.author.id));
+        const top = el("div", "ked-sug-top");
+        const kind = el("div", "ked-sug-kind");
+        const dot = el("span", "ked-dot");
         const verb = s.kind === "insert" ? "Insertion" : s.kind === "delete" ? "Deletion" : "Formatting";
         kind.append(dot, document.createTextNode(verb));
-        const meta = el("div", "cw-sug-meta");
+        const meta = el("div", "ked-sug-meta");
         meta.textContent = `${authorName(s.author)} · ${formatDateTime(s.createdAt)}`;
         meta.title = new Date(s.createdAt).toLocaleString();
         top.append(kind, meta);
-        const actions = el("div", "cw-sug-actions");
+        const actions = el("div", "ked-sug-actions");
         actions.append(
-          mkBtn("cw-btn cw-btn-accept cw-btn-sm", "✓ Accept", () => { editor.acceptSuggestion(s.id); editor.focus(); }),
-          mkBtn("cw-btn cw-btn-reject cw-btn-sm", "✗ Reject", () => { editor.rejectSuggestion(s.id); editor.focus(); }),
+          mkBtn("ked-btn ked-btn-accept ked-btn-sm", "✓ Accept", () => { editor.acceptSuggestion(s.id); editor.focus(); }),
+          mkBtn("ked-btn ked-btn-reject ked-btn-sm", "✗ Reject", () => { editor.rejectSuggestion(s.id); editor.focus(); }),
         );
         card.append(top, actions);
         card.addEventListener("click", (e) => {
@@ -2640,7 +2912,7 @@ if (toolbar) {
         }
         if (at < 0) { host.appendChild(document.createTextNode(rest)); break; }
         if (at > 0) host.appendChild(document.createTextNode(rest.slice(0, at)));
-        const chip = el("span", "cw-mention");
+        const chip = el("span", "ked-mention");
         chip.textContent = tok;
         host.appendChild(chip);
         rest = rest.slice(at + tok.length);
@@ -2648,25 +2920,40 @@ if (toolbar) {
     };
 
     const renderComments = (review: ReturnType<typeof editor.getReview>): void => {
-      if (review.threads.length === 0) {
-        body.append(emptyState("💬", "No comments yet. Select text in the document and click 💬 in the toolbar to start a discussion."));
+      const filters = el("div", "ked-comment-filters");
+      for (const value of ["open", "resolved", "all"] as const) {
+        const label = value[0]!.toUpperCase() + value.slice(1);
+        const button = mkBtn("ked-comment-filter" + (commentFilter === value ? " active" : ""), label, () => {
+          commentFilter = value;
+          build();
+        });
+        filters.append(button);
+      }
+      body.append(filters);
+      const threads = review.threads.filter((thread) =>
+        commentFilter === "all" || thread.status === commentFilter,
+      );
+      if (threads.length === 0) {
+        body.append(emptyState(ICONS.comment, review.threads.length === 0
+          ? "No comments yet. Select text or place the caret, then use + Comment or Ctrl+Alt+M."
+          : `No ${commentFilter} discussions.`));
         return;
       }
-      for (const t of review.threads) {
-        const card = el("div", t.status === "resolved" ? "cw-thread resolved" : "cw-thread");
-        
+      for (const t of threads) {
+        const card = el("div", t.status === "resolved" ? "ked-thread resolved" : "ked-thread");
+
         // Level 1: Root Comment (Parent)
         const rootComment = t.comments[0];
         if (rootComment) {
-          const cm = el("div", "cw-comment cw-root");
-          const main = el("div", "cw-comment-main");
-          const who = el("div", "cw-comment-who");
+          const cm = el("div", "ked-comment ked-root");
+          const main = el("div", "ked-comment-main");
+          const who = el("div", "ked-comment-who");
           who.textContent = authorName(rootComment.author);
-          const when = el("span", "cw-comment-when");
+          const when = el("span", "ked-comment-when");
           when.textContent = formatDateTime(rootComment.createdAt);
           when.title = new Date(rootComment.createdAt).toLocaleString();
           who.append(when);
-          const text = el("div", "cw-comment-body");
+          const text = el("div", "ked-comment-body");
           renderCommentBody(text, rootComment.body.map((r) => r.text).join(""), rootComment.mentions);
           main.append(who, text);
           cm.append(avatar(rootComment.author), main);
@@ -2676,17 +2963,17 @@ if (toolbar) {
         // Level 2: Replies (Child comments)
         const replies = t.comments.slice(1);
         if (replies.length > 0) {
-          const repliesWrap = el("div", "cw-replies-wrap");
+          const repliesWrap = el("div", "ked-replies-wrap");
           for (const c of replies) {
-            const cm = el("div", "cw-comment cw-reply");
-            const main = el("div", "cw-comment-main");
-            const who = el("div", "cw-comment-who");
+            const cm = el("div", "ked-comment ked-reply");
+            const main = el("div", "ked-comment-main");
+            const who = el("div", "ked-comment-who");
             who.textContent = authorName(c.author);
-            const when = el("span", "cw-comment-when");
+            const when = el("span", "ked-comment-when");
             when.textContent = formatDateTime(c.createdAt);
             when.title = new Date(c.createdAt).toLocaleString();
             who.append(when);
-            const text = el("div", "cw-comment-body");
+            const text = el("div", "ked-comment-body");
             renderCommentBody(text, c.body.map((r) => r.text).join(""), c.mentions);
             main.append(who, text);
             cm.append(avatar(c.author), main);
@@ -2696,11 +2983,11 @@ if (toolbar) {
         }
 
         if (t.status === "resolved") {
-          const actions = el("div", "cw-thread-actions");
-          const tag = el("span", "cw-resolved-tag");
+          const actions = el("div", "ked-thread-actions");
+          const tag = el("span", "ked-resolved-tag");
           tag.textContent = "✓ Resolved";
           actions.append(tag);
-          actions.append(mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Reopen", () => {
+          actions.append(mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reopen", () => {
             editor.resolveThread(t.id, false);
             editor.focus();
           }));
@@ -2709,25 +2996,25 @@ if (toolbar) {
           const curUser = runtime.user ?? { id: "current-user", firstName: "You", lastName: "" };
 
           // 1. Collapsed prompt button
-          const promptRow = el("div", "cw-reply-prompt");
+          const promptRow = el("div", "ked-reply-prompt");
           const pAv = avatar(curUser);
           pAv.style.cssText = "width:20px;height:20px;font-size:9px;flex:0 0 20px;";
-          const pText = el("span", "cw-reply-prompt-text");
+          const pText = el("span", "ked-reply-prompt-text");
           pText.textContent = "Reply… (@ to mention)";
           promptRow.append(pAv, pText);
 
           // 2. Expanded reply composer box
-          const replyBox = el("div", "cw-reply-box");
-          const replyRow = el("div", "cw-reply-row");
+          const replyBox = el("div", "ked-reply-box");
+          const replyRow = el("div", "ked-reply-row");
           const userAv = avatar(curUser);
-          const replyTa = el("textarea", "cw-reply-textarea") as HTMLTextAreaElement;
+          const replyTa = el("textarea", "ked-reply-textarea") as HTMLTextAreaElement;
           replyTa.placeholder = "Write a reply… (@ to mention)";
           replyRow.append(userAv, replyTa);
 
           const replyMentions = attachMentionAutocomplete(replyTa, () => editor.getKnownUsers());
 
-          const replyActions = el("div", "cw-reply-actions");
-          const cancelBtn = mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Cancel", () => {
+          const replyActions = el("div", "ked-reply-actions");
+          const cancelBtn = mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Cancel", () => {
             replyTa.value = "";
             replyMentions.destroy();
             replyBox.classList.remove("open");
@@ -2735,7 +3022,7 @@ if (toolbar) {
             actions.style.display = "flex";
             editor.focus();
           });
-          const sendBtn = mkBtn("cw-btn cw-btn-primary cw-btn-sm", "Reply", () => {
+          const sendBtn = mkBtn("ked-btn ked-btn-primary ked-btn-sm", "Reply", () => {
             const v = replyTa.value.trim();
             if (!v) return;
             editor.replyToComment(t.id, commentFragment(v), replyMentions.getMentions());
@@ -2767,7 +3054,7 @@ if (toolbar) {
           replyActions.append(cancelBtn, sendBtn);
           replyBox.append(replyRow, replyActions);
 
-          const actions = el("div", "cw-thread-actions");
+          const actions = el("div", "ked-thread-actions");
           const openReplyComposer = (): void => {
             promptRow.style.display = "none";
             actions.style.display = "none";
@@ -2776,10 +3063,10 @@ if (toolbar) {
           };
 
           actions.append(
-            mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Reply", () => {
+            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Reply", () => {
               openReplyComposer();
             }),
-            mkBtn("cw-btn cw-btn-ghost cw-btn-sm", "Resolve", () => {
+            mkBtn("ked-btn ked-btn-ghost ked-btn-sm", "Resolve", () => {
               editor.resolveThread(t.id, true);
               editor.focus();
             }),
@@ -2794,7 +3081,7 @@ if (toolbar) {
         }
 
         card.addEventListener("click", (e) => {
-          if (!(e.target as HTMLElement).closest("button, textarea, .cw-reply-box, .cw-reply-prompt")) {
+          if (!(e.target as HTMLElement).closest("button, textarea, .ked-reply-box, .ked-reply-prompt")) {
             editor.revealReview(t.id);
           }
         });
@@ -2808,7 +3095,10 @@ if (toolbar) {
       comPill.textContent = String(review.threads.filter((t) => t.status === "open").length);
       tabSug.classList.toggle("active", activeTab === "suggestions");
       tabCom.classList.toggle("active", activeTab === "comments");
+      disposeReviewBindings();
       body.textContent = "";
+      newCommentBtn.hidden = editor.getMode() === "view";
+      newCommentBtn.disabled = !editor.getSelection() || !editor.canReviewAction("comment.create");
       if (activeTab === "suggestions") renderSuggestions(review);
       else renderComments(review);
     };
@@ -2821,8 +3111,20 @@ if (toolbar) {
       reviewEl.classList.toggle("open", v);
       reviewBtn.classList.toggle("active", v);
       if (v) build();
+      else disposeReviewBindings();
     };
     toggleReview = (): void => setOpen(!open);
+    focusCommentThread = (threadId: string): void => {
+      activeTab = "comments";
+      activeThreadId = threadId;
+      const thread = editor.getReview().threads.find((item) => item.id === threadId);
+      if (thread?.status === "resolved") commentFilter = "resolved";
+      else commentFilter = "open";
+      setOpen(true);
+      requestAnimationFrame(() => {
+        body.querySelector<HTMLElement>(`[data-thread-id="${CSS.escape(threadId)}"]`)?.scrollIntoView({ block: "nearest" });
+      });
+    };
     refreshReview = (): void => {
       if (open) build();
     };
@@ -3170,12 +3472,12 @@ if (toolbar) {
 {
   // View-only: the ruler's only interactions are draggable indent markers, so
   // hide it (refreshRuler also early-returns while hidden).
-  const rulerRow = shell.ruler.parentElement as HTMLElement; // .cw-ruler-row
-  const rulerCorner = rulerRow.firstElementChild as HTMLElement; // .cw-ruler-corner (spacer over the vruler)
+  const rulerRow = shell.ruler.parentElement as HTMLElement; // .ked-ruler-row
+  const rulerCorner = rulerRow.firstElementChild as HTMLElement; // .ked-ruler-corner (spacer over the vruler)
   const ruler = readonly ? null : shell.ruler;
   // Apply initial visibility: hide the whole ruler-row when the horizontal ruler
   // is off (otherwise it leaves an empty 22px bar), and hide the corner spacer
-  // when the vertical ruler is off so the horizontal ruler aligns with .cw-app.
+  // when the vertical ruler is off so the horizontal ruler aligns with .ked-app.
   if (!showHRuler) {
     rulerRow.classList.add("hidden");
     shell.ruler.classList.add("hidden");
@@ -3472,7 +3774,7 @@ if (toolbar) {
 // Skipped in view-only mode — images can't be selected there.
 if (!readonly) {
   const bar = document.createElement("div");
-  bar.className = "cw-img-toolbar";
+  bar.className = "ked-img-toolbar";
   document.body.appendChild(bar);
   detachables.push(bar);
   const ibtn = (icon: string, title: string, onClick: () => void, cls = ""): void => {
@@ -3564,7 +3866,7 @@ if (!readonly) {
 // ---- find & replace bar (Ctrl+F) -------------------------------------------
 {
   const bar = document.createElement("div");
-  bar.className = "cw-float-panel";
+  bar.className = "ked-float-panel";
   bar.style.cssText =
     "position:fixed;top:46px;right:24px;display:none;gap:4px;align-items:center;" +
     "background:#fff;border:1px solid #dadce0;border-radius:8px;padding:6px 8px;" +
@@ -3703,9 +4005,16 @@ const handle: EditorHandle = {
   acceptAllSuggestions: () => editor.acceptAllSuggestions(),
   rejectAllSuggestions: () => editor.rejectAllSuggestions(),
   addComment: (body, mentions) => editor.addComment(body, mentions),
+  startComment: () => editor.startComment(),
+  openCommentThread: (threadId) => editor.openCommentThread(threadId),
   replyToComment: (threadId, body, mentions) => editor.replyToComment(threadId, body, mentions),
+  editComment: (threadId, commentId, body, mentions) => editor.editComment(threadId, commentId, body, mentions),
+  deleteComment: (threadId, commentId) => editor.deleteComment(threadId, commentId),
   resolveThread: (threadId, resolved) => editor.resolveThread(threadId, resolved),
+  canReviewAction: (action, threadId, commentId) => editor.canReviewAction(action, threadId, commentId),
+  setReviewAccess: (access) => editor.setReviewAccess(access),
   destroy: () => {
+    emitPublic("editor.destroyed", {}, { source: "system" });
     disposeAgentTools?.(); // unregister WebMCP tools before tearing the editor down
     closeDevPanel(); // remove the floating inspector (body-level) if it's open
     teardown.abort(); // drop every global window/document listener this instance added
@@ -3720,7 +4029,10 @@ const handle: EditorHandle = {
 // insertText live on the handle) plus an event emitter and a teardown hook.
 ribbonCtx = {
   ...handle,
-  emit: (name, payload) => runtime.onEvent?.({ type: "custom", name, payload }),
+  emit: (name, payload) => {
+    runtime.onEvent?.({ type: "custom", name, payload });
+    emitPublic("custom", { name, ...(payload !== undefined ? { payload } : {}) }, { source: "local" });
+  },
   registerCleanup: (target) => {
     if (typeof target === "function") teardown.signal.addEventListener("abort", () => target(), { once: true });
     else detachables.push(target);
@@ -3730,6 +4042,7 @@ ribbonCtx = {
 runtime.onLoadProgress?.({ phase: "ready", percent: 1, loaded: 0, total: 0 });
 runtime.onReady?.(handle);
 runtime.onEvent?.({ type: "ready" });
+emitPublic("editor.ready", { mode: editor.getMode() }, { source: "system" });
 
 // WebMCP agent tooling (opt-in). Lazy-load the polyfill + bridge so non-agent
 // embedders never pull them into their bundle; initialize navigator.modelContext,

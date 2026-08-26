@@ -30,6 +30,7 @@ export * from "./fields";
 export * from "./fieldEval";
 export * from "./replay";
 export * from "./transform";
+export * from "./events";
 
 // Review layer (track changes + comments) — an isomorphic OVERLAY extension. A
 // sibling of ./model, never imported by it, so the OOXML-faithful core stays

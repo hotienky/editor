@@ -19,7 +19,7 @@ export function prepareTemplate(
   const result = runImport(bytes, undefined, { collectMediaBytes: true });
   const doc = result.doc;
 
-  // cw-media:N → data: URL (collector mode never minted blob: URLs).
+  // ked-media:N → data: URL (collector mode never minted blob: URLs).
   const remap = new Map(result.media.map((m) => [m.src, bytesToDataUrl(m.bytes, m.mime)]));
   if (remap.size > 0) {
     const rewrite = (blocks: Block[] | undefined): void => {

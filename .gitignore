@@ -4,3 +4,6 @@ dist-lib/
 dist-node/
 *.log
 .DS_Store
+.vitepress/cache
+.vitepress/dist
+

@@ -137,6 +137,7 @@ export interface ReviewPin {
   color: string;
   threadId: string;
   resolved: boolean;
+  count: number;
 }
 
 /** Paint-only review decorations, computed from the review layer + layout tree.
@@ -245,8 +246,8 @@ const ADORNMENT_LABEL_OFFSET_Y = 11;
 
 // Review comment pin (right-margin marker). Radius + vertical offset are shared
 // between the painted disc and reviewPinAt's hit-testing so they stay aligned.
-const PIN_RADIUS_PX = 5;
-const PIN_OFFSET_PX = 6;
+const PIN_RADIUS_PX = 9;
+const PIN_OFFSET_PX = 10;
 
 /** Stroke a page's w:pgBorders box. Shares geometry with the PDF painter via
  *  pageBorderSegments so the two backends stay in lockstep. */
@@ -299,13 +300,13 @@ function injectCaretCss(): void {
   caretCssInjected = true;
   const style = document.createElement("style");
   style.textContent =
-    "@keyframes cw-caret-blink{0%,55%{opacity:1}56%,100%{opacity:0}}" +
+    "@keyframes ked-caret-blink{0%,55%{opacity:1}56%,100%{opacity:0}}" +
     // Caret color is set per-instance inline (caretEl.style.background = theme.caret).
-    ".cw-caret{position:absolute;width:2px;pointer-events:none;animation:cw-caret-blink 1.06s step-end infinite;}" +
-    ".cw-rcaret{position:absolute;width:2px;pointer-events:none;z-index:3;}" +
-    ".cw-rcaret .flag{position:absolute;top:-13px;left:-1px;height:13px;display:flex;align-items:center;" +
+    ".ked-caret{position:absolute;width:2px;pointer-events:none;animation:ked-caret-blink 1.06s step-end infinite;}" +
+    ".ked-rcaret{position:absolute;width:2px;pointer-events:none;z-index:3;}" +
+    ".ked-rcaret .flag{position:absolute;top:-13px;left:-1px;height:13px;display:flex;align-items:center;" +
     "font:600 10px/1 'Segoe UI',Roboto,sans-serif;color:#fff;padding:0 4px;border-radius:3px 3px 3px 0;white-space:nowrap;}" +
-    ".cw-rsel{position:absolute;pointer-events:none;z-index:2;opacity:0.24;border-radius:1px;}";
+    ".ked-rsel{position:absolute;pointer-events:none;z-index:2;opacity:0.24;border-radius:1px;}";
   document.head.appendChild(style);
 }
 
@@ -362,7 +363,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
   container.appendChild(pagesWrap);
 
   const caretEl = document.createElement("div");
-  caretEl.className = "cw-caret";
+  caretEl.className = "ked-caret";
   caretEl.style.background = theme.caret;
   caretEl.style.display = "none";
 
@@ -515,7 +516,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
       let entry = remoteCaretEls.get(c.siteId);
       if (!entry) {
         const caret = document.createElement("div");
-        caret.className = "cw-rcaret";
+        caret.className = "ked-rcaret";
         caret.appendChild(Object.assign(document.createElement("div"), { className: "flag" }));
         entry = { caret, sels: [] };
         remoteCaretEls.set(c.siteId, entry);
@@ -544,7 +545,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
         const rph = placeholders[r.pageIndex];
         if (!rph) continue;
         const sd = document.createElement("div");
-        sd.className = "cw-rsel";
+        sd.className = "ked-rsel";
         sd.style.background = c.color;
         sd.style.left = `${r.x * zoom}px`;
         sd.style.top = `${r.y * zoom}px`;
@@ -796,13 +797,28 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
     }
     for (const pin of reviewDecos.pins) {
       if (pin.pageIndex !== page.index) continue;
+      const cy = pin.y + PIN_OFFSET_PX;
+      ctx.save();
       ctx.beginPath();
-      ctx.arc(pin.x, pin.y + PIN_OFFSET_PX, PIN_RADIUS_PX, 0, Math.PI * 2);
+      ctx.arc(pin.x, cy, PIN_RADIUS_PX, 0, Math.PI * 2);
       ctx.fillStyle = pin.resolved ? theme.reviewPinResolved : pin.color;
       ctx.fill();
       ctx.lineWidth = 1;
       ctx.strokeStyle = theme.reviewPinStroke;
       ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pin.x - 4, cy + 7);
+      ctx.lineTo(pin.x - 7, cy + 12);
+      ctx.lineTo(pin.x + 1, cy + 8);
+      ctx.closePath();
+      ctx.fillStyle = pin.resolved ? theme.reviewPinResolved : pin.color;
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 9px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(Math.min(99, pin.count)), pin.x, cy + 0.5);
+      ctx.restore();
     }
 
     // 5. story-edit affordance: dim the body, dash the band boundary.
@@ -1360,7 +1376,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
         const dx = pt.x - pin.x;
         const dy = pt.y - (pin.y + PIN_OFFSET_PX);
         const d2 = dx * dx + dy * dy;
-        if (d2 <= 100 && (!best || d2 < best.d2)) best = { id: pin.threadId, d2 }; // 10px hit radius (larger than the painted disc)
+        if (d2 <= 225 && (!best || d2 < best.d2)) best = { id: pin.threadId, d2 }; // 15px hit radius
       }
       return best ? best.id : null;
     },

@@ -19,7 +19,7 @@ export interface EditorShell {
 
 export function buildShell(container: HTMLElement): EditorShell {
   // Class-based (not id-based) so multiple editors can share one page — see
-  // ui/styles.ts. Every structural node is keyed by a `cw-*` class the shared
+  // ui/styles.ts. Every structural node is keyed by a `ked-*` class the shared
   // stylesheet targets under `.kindy-editor-root`.
   const div = (cls?: string, tag: keyof HTMLElementTagNameMap = "div"): HTMLElement => {
     const e = document.createElement(tag);
@@ -29,21 +29,21 @@ export function buildShell(container: HTMLElement): EditorShell {
 
   const root = div("kindy-editor-root") as HTMLDivElement;
 
-  const toolbar = div("cw-toolbar") as HTMLDivElement;
-  const workarea = div("cw-workarea") as HTMLDivElement;
-  const outline = div("cw-outline", "aside");
-  const editorpane = div("cw-editorpane") as HTMLDivElement;
+  const toolbar = div("ked-toolbar") as HTMLDivElement;
+  const workarea = div("ked-workarea") as HTMLDivElement;
+  const outline = div("ked-outline", "aside");
+  const editorpane = div("ked-editorpane") as HTMLDivElement;
   // Two rows: a top ruler-row (corner spacer + horizontal ruler) and a main row
   // (vertical ruler + scroll area). The corner keeps the horizontal ruler's left
   // edge aligned with the scroll area, so its pageLeft math needs no change.
-  const rulerRow = div("cw-ruler-row") as HTMLDivElement;
-  const rulerCorner = div("cw-ruler-corner") as HTMLDivElement;
-  const ruler = div("cw-ruler") as HTMLDivElement;
-  const mainRow = div("cw-main-row") as HTMLDivElement;
-  const vruler = div("cw-vruler") as HTMLDivElement;
-  const app = div("cw-app") as HTMLDivElement;
-  const review = div("cw-review", "aside");
-  const statusbar = div("cw-statusbar") as HTMLDivElement;
+  const rulerRow = div("ked-ruler-row") as HTMLDivElement;
+  const rulerCorner = div("ked-ruler-corner") as HTMLDivElement;
+  const ruler = div("ked-ruler") as HTMLDivElement;
+  const mainRow = div("ked-main-row") as HTMLDivElement;
+  const vruler = div("ked-vruler") as HTMLDivElement;
+  const app = div("ked-app") as HTMLDivElement;
+  const review = div("ked-review", "aside");
+  const statusbar = div("ked-statusbar") as HTMLDivElement;
 
   rulerRow.append(rulerCorner, ruler);
   mainRow.append(vruler, app);

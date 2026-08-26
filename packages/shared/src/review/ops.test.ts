@@ -76,6 +76,43 @@ describe("applyReviewOp — apply + inverse round-trip", () => {
     roundtrip(r1, { type: "editComment", threadId: "t1", commentId: "c1", body: cmt("x", "edited").body });
   });
 
+  it("edits body and structured mentions, then restores both on undo", () => {
+    const root = { ...cmt("c1", "hello @Bob B"), mentions: [bob] };
+    const r0 = applyReviewOp(emptyReview("d"), { type: "addThread", t: thread("t1", root) }).layer;
+    const nextBody = cmt("x", "hello").body;
+    const { layer, inverse } = applyReviewOp(r0, {
+      type: "editComment",
+      threadId: "t1",
+      commentId: "c1",
+      body: nextBody,
+      mentions: [],
+      editedAt: 10,
+      newlyMentionedUserIds: [],
+    });
+    expect(layer.threads[0]!.comments[0]).toMatchObject({ body: nextBody, mentions: [], editedAt: 10 });
+    expect(applyReviewOp(layer, inverse).layer).toEqual(r0);
+  });
+
+  it("tombstones a comment without removing replies and is replay-idempotent", () => {
+    const root = { ...cmt("c1", "root"), mentions: [bob] };
+    const r0 = applyReviewOp(emptyReview("d"), {
+      type: "addThread",
+      t: thread("t1", root, { ...cmt("c2", "reply"), author: bob }),
+    }).layer;
+    const op: ReviewOp = {
+      type: "deleteComment",
+      threadId: "t1",
+      commentId: "c1",
+      deletedAt: 20,
+      deletedBy: alice,
+    };
+    const { layer, inverse } = applyReviewOp(r0, op);
+    expect(layer.threads[0]!.comments).toHaveLength(2);
+    expect(layer.threads[0]!.comments[0]).toMatchObject({ body: [], mentions: [], deletedAt: 20, deletedBy: alice });
+    expect(applyReviewOp(layer, op).layer).toEqual(layer);
+    expect(applyReviewOp(layer, inverse).layer).toEqual(r0);
+  });
+
   it("addComment is idempotent (re-delivered reply replaces in place)", () => {
     const r1 = applyReviewOp(emptyReview("d"), { type: "addThread", t: thread("t1", cmt("c1", "first")) }).layer;
     const reply = cmt("c2", "reply");

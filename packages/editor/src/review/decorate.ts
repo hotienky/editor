@@ -64,6 +64,7 @@ export function decorate(review: ReviewLayer, tree: LayoutTree, scope?: GeoScope
   }
 
   for (const t of review.threads) {
+    if (t.status === "resolved") continue;
     const color = colorForId(t.comments[0]?.author.id ?? "thread");
     const point = collapsed(t.anchor.start, t.anchor.end);
     let rects: Rect[];
@@ -84,7 +85,8 @@ export function decorate(review: ReviewLayer, tree: LayoutTree, scope?: GeoScope
         y: first.y,
         color,
         threadId: t.id,
-        resolved: t.status === "resolved",
+        resolved: false,
+        count: Math.max(1, t.comments.filter((comment) => !comment.deletedAt).length),
       });
     }
   }

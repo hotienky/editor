@@ -28,13 +28,13 @@ export function runImport(
   const warnings = new WarningSink();
 
   // Node/backend path: collect raw image bytes instead of minting blob: URLs.
-  // Each call returns a synthetic src ("cw-media:N") the mapper stamps on the
+  // Each call returns a synthetic src ("ked-media:N") the mapper stamps on the
   // ImageBlock, so the caller can match bytes → block and swap in a mediaId.
   const mediaRecords: ImportMedia[] = [];
   const collector: MediaCollector | undefined = opts?.collectMediaBytes
     ? {
         add(b, mime) {
-          const src = `cw-media:${mediaRecords.length}`;
+          const src = `ked-media:${mediaRecords.length}`;
           mediaRecords.push({ src, bytes: b, mime });
           return src;
         },

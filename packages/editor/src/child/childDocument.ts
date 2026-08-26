@@ -200,7 +200,7 @@ export function createChildDocument(deps: ChildDeps): ChildDocument {
     delete style.outlineLevel;
     delete style.tocEntry;
     delete style.sectionBreak;
-    return para("cw-child-sample", [{ text: sampleText ?? "AaBbCcDd", style: char }], style);
+    return para("ked-child-sample", [{ text: sampleText ?? "AaBbCcDd", style: char }], style);
   };
 
   const tableSampleBlock = (style: TableStyle, rowN: number, colN: number, ctx: StyleContext): TableBlock => {
@@ -216,8 +216,8 @@ export function createChildDocument(deps: ChildDeps): ChildDocument {
         const char: CharStyle = { ...fallbackChar(), ...base.char, ...props.char };
         const text = r === 0 ? `Head ${c + 1}` : `R${r}C${c + 1}`;
         const cell: TableCell = {
-          id: `cw-tbl-${r}-${c}`,
-          blocks: [para(`cw-tbl-p-${r}-${c}`, [{ text, style: char }], { ...fallbackPara(), spaceAfterPx: 0, spaceBeforePx: 0 })],
+          id: `ked-tbl-${r}-${c}`,
+          blocks: [para(`ked-tbl-p-${r}-${c}`, [{ text, style: char }], { ...fallbackPara(), spaceAfterPx: 0, spaceBeforePx: 0 })],
         };
         if (props.shading !== undefined) cell.shading = props.shading;
         if (props.borders && Object.keys(props.borders).length > 0) cell.borders = props.borders;
@@ -226,7 +226,7 @@ export function createChildDocument(deps: ChildDeps): ChildDocument {
       }
       rows.push({ cells });
     }
-    return { kind: "table", id: "cw-child-tbl", revision: 0, rows, colFractions: Array.from({ length: colN }, () => 1 / colN) };
+    return { kind: "table", id: "ked-child-tbl", revision: 0, rows, colFractions: Array.from({ length: colN }, () => 1 / colN) };
   };
 
   const contentToBlocks = (content: ChildContent, ctx: StyleContext): Block[] => {
@@ -236,9 +236,9 @@ export function createChildDocument(deps: ChildDeps): ChildDocument {
       case "ooxml":
         return parseOoxmlFragment(content.ooxml);
       case "fragment":
-        return content.fragment.blocks.map((b, i) => para(`cw-child-${i}`, b.runs, b.style));
+        return content.fragment.blocks.map((b, i) => para(`ked-child-${i}`, b.runs, b.style));
       case "runs":
-        return [para("cw-child-0", content.runs, content.paraStyle ?? fallbackPara())];
+        return [para("ked-child-0", content.runs, content.paraStyle ?? fallbackPara())];
       case "styleSample":
         return [styleSampleBlock(content.styleId, content.sampleText, ctx)];
       case "tableSample":
@@ -249,7 +249,7 @@ export function createChildDocument(deps: ChildDeps): ChildDocument {
         const base = resolveStyle(ctx.stylesheet ?? defaultStylesheet(), ctx.defaultStyleId ?? (ctx.stylesheet ?? defaultStylesheet()).defaultStyleId);
         const char: CharStyle = { ...fallbackChar(), ...base.char };
         return Array.from({ length: count }, (_, i) =>
-          para(`cw-child-list-${i}`, [{ text: `List item at level ${i + 1}`, style: char }], {
+          para(`ked-child-list-${i}`, [{ text: `List item at level ${i + 1}`, style: char }], {
             ...fallbackPara(),
             ...base.para,
             spaceBeforePx: 0,

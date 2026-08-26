@@ -10,8 +10,8 @@
 import { injectCssOnce } from "./styles";
 
 const DRAG_CSS = `
-.cw-drag-handle{cursor:move;user-select:none;}
-.cw-drag-handle::before{content:"⠿";color:#b0b4ba;font-size:14px;line-height:1;margin-right:4px;flex:0 0 auto;}`;
+.ked-drag-handle{cursor:move;user-select:none;}
+.ked-drag-handle::before{content:"⠿";color:#b0b4ba;font-size:14px;line-height:1;margin-right:4px;flex:0 0 auto;}`;
 
 export interface FloatingDialogOptions {
   /** The full-screen backdrop element (made click-through). */
@@ -30,7 +30,7 @@ export interface FloatingDialogOptions {
 /** Make a backdrop+modal dialog a draggable, non-blocking floating panel. Call once
  *  after the dialog is in the DOM (it reads the modal's measured width to place it). */
 export function makeFloatingDialog(o: FloatingDialogOptions): void {
-  injectCssOnce("cw-drag-handle-styles", DRAG_CSS);
+  injectCssOnce("ked-drag-handle-styles", DRAG_CSS);
   const { backdrop, modal, handle, signal } = o;
 
   // Non-blocking layer: the page shows through and stays interactive; clicking
@@ -43,7 +43,7 @@ export function makeFloatingDialog(o: FloatingDialogOptions): void {
   modal.style.position = "fixed";
   modal.style.margin = "0";
   modal.style.pointerEvents = "auto";
-  handle.classList.add("cw-drag-handle");
+  handle.classList.add("ked-drag-handle");
 
   const place = (left: number, top: number): void => {
     const maxLeft = Math.max(4, window.innerWidth - modal.offsetWidth - 6);

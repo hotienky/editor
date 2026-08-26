@@ -7,6 +7,8 @@
 
 import { injectCssOnce } from "./styles";
 import { makeFloatingDialog } from "./floatingDialog";
+import type { SymbolPickerMessages } from "../i18n/types";
+import { defaultMessages } from "../i18n";
 
 export interface SymbolPickerOptions {
   /** Called with the symbol font and the UPPER-CASE hex code point (e.g. "F0E0")
@@ -15,6 +17,7 @@ export interface SymbolPickerOptions {
   /** Called when the panel closes (×, Escape, or a programmatic close) so the
    *  opener can drop its retained handle. */
   onClose?: () => void;
+  messages?: SymbolPickerMessages;
 }
 
 export interface SymbolPickerHandle {
@@ -29,7 +32,7 @@ const FONTS = ["Symbol", "Wingdings", "Wingdings 2", "Wingdings 3", "Webdings"];
 const FIRST_CP = 0xf020;
 const LAST_CP = 0xf0ff;
 
-const RECENT_KEY = "cw-symbol-recent";
+const RECENT_KEY = "ked-symbol-recent";
 const RECENT_MAX = 16;
 
 interface RecentSymbol {
@@ -38,24 +41,24 @@ interface RecentSymbol {
 }
 
 const CSS = `
-.cw-symp{position:fixed;z-index:1002;width:360px;max-width:94vw;background:#fff;border:1px solid #d0d5dd;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.22);font:13px/1.4 system-ui,sans-serif;color:#1a1a2e;display:flex;flex-direction:column;overflow:hidden;}
-.cw-symp-head{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#f5f7fa;border-bottom:1px solid #e6e9ee;font-weight:600;}
-.cw-symp-head .t{flex:1;}
-.cw-symp-x{cursor:pointer;border:none;background:none;font-size:18px;line-height:1;color:#8a9099;padding:2px 4px;border-radius:4px;}
-.cw-symp-x:hover{background:#e6e9ee;color:#1a1a2e;}
-.cw-symp-body{padding:12px;display:flex;flex-direction:column;gap:10px;}
-.cw-symp-row{display:flex;align-items:center;gap:8px;}
-.cw-symp-row label{font-size:11px;color:#8a9099;font-weight:600;}
-.cw-symp-row select{flex:1;border:1px solid #d0d5dd;border-radius:6px;padding:5px 7px;font:13px system-ui,sans-serif;}
-.cw-symp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;max-height:260px;overflow-y:auto;padding:2px;}
-.cw-symp-grid button{cursor:pointer;border:1px solid #e1e4ea;background:#fff;border-radius:5px;height:34px;font-size:18px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;}
-.cw-symp-grid button:hover{background:#eef2f7;border-color:#9aa4b2;}
-.cw-symp-label{font-size:11px;color:#8a9099;font-weight:600;}
-.cw-symp-recent:empty{display:none;}
-.cw-symp-recent-wrap:has(.cw-symp-recent:empty){display:none;}
-.cw-symp-recent{display:flex;flex-wrap:wrap;gap:3px;}
-.cw-symp-recent button{cursor:pointer;border:1px solid #e1e4ea;background:#fafbfc;border-radius:5px;width:34px;height:34px;font-size:18px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;}
-.cw-symp-recent button:hover{background:#eef2f7;border-color:#9aa4b2;}
+.ked-symp{position:fixed;z-index:1002;width:360px;max-width:94vw;background:#fff;border:1px solid #d0d5dd;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.22);font:13px/1.4 system-ui,sans-serif;color:#1a1a2e;display:flex;flex-direction:column;overflow:hidden;}
+.ked-symp-head{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#f5f7fa;border-bottom:1px solid #e6e9ee;font-weight:600;}
+.ked-symp-head .t{flex:1;}
+.ked-symp-x{cursor:pointer;border:none;background:none;font-size:18px;line-height:1;color:#8a9099;padding:2px 4px;border-radius:4px;}
+.ked-symp-x:hover{background:#e6e9ee;color:#1a1a2e;}
+.ked-symp-body{padding:12px;display:flex;flex-direction:column;gap:10px;}
+.ked-symp-row{display:flex;align-items:center;gap:8px;}
+.ked-symp-row label{font-size:11px;color:#8a9099;font-weight:600;}
+.ked-symp-row select{flex:1;border:1px solid #d0d5dd;border-radius:6px;padding:5px 7px;font:13px system-ui,sans-serif;}
+.ked-symp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;max-height:260px;overflow-y:auto;padding:2px;}
+.ked-symp-grid button{cursor:pointer;border:1px solid #e1e4ea;background:#fff;border-radius:5px;height:34px;font-size:18px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;}
+.ked-symp-grid button:hover{background:#eef2f7;border-color:#9aa4b2;}
+.ked-symp-label{font-size:11px;color:#8a9099;font-weight:600;}
+.ked-symp-recent:empty{display:none;}
+.ked-symp-recent-wrap:has(.ked-symp-recent:empty){display:none;}
+.ked-symp-recent{display:flex;flex-wrap:wrap;gap:3px;}
+.ked-symp-recent button{cursor:pointer;border:1px solid #e1e4ea;background:#fafbfc;border-radius:5px;width:34px;height:34px;font-size:18px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;}
+.ked-symp-recent button:hover{background:#eef2f7;border-color:#9aa4b2;}
 `;
 
 const readRecent = (): RecentSymbol[] => {
@@ -82,37 +85,38 @@ const writeRecent = (font: string, char: string): RecentSymbol[] => {
 
 const glyphOf = (charHex: string): string => {
   const cp = parseInt(charHex, 16);
-  return Number.isFinite(cp) && cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : "�";
+  return Number.isFinite(cp) && cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : "";
 };
 
 export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle {
-  injectCssOnce("cw-symbol-picker", CSS);
+  injectCssOnce("ked-symbol-picker", CSS);
+  const t = opts.messages ?? defaultMessages.symbolPicker;
   const ac = new AbortController();
 
   const backdrop = document.createElement("div");
   backdrop.style.cssText = "position:fixed;inset:0;z-index:1001;";
   const modal = document.createElement("div");
-  modal.className = "cw-symp";
+  modal.className = "ked-symp";
   // Keep canvas selection/focus from being stolen when interacting with the panel.
   modal.addEventListener("mousedown", (e) => e.stopPropagation());
 
   const head = document.createElement("div");
-  head.className = "cw-symp-head";
-  head.innerHTML = `<span class="t">Insert symbol</span>`;
+  head.className = "ked-symp-head";
+  head.innerHTML = `<span class="t">${t.title}</span>`;
   const x = document.createElement("button");
-  x.className = "cw-symp-x";
+  x.className = "ked-symp-x";
   x.textContent = "×";
   x.title = "Close";
   head.appendChild(x);
 
   const body = document.createElement("div");
-  body.className = "cw-symp-body";
+  body.className = "ked-symp-body";
 
   // Font selector.
   const fontRow = document.createElement("div");
-  fontRow.className = "cw-symp-row";
+  fontRow.className = "ked-symp-row";
   const fontLabel = document.createElement("label");
-  fontLabel.textContent = "Font";
+  fontLabel.textContent = t.font;
   const fontSel = document.createElement("select");
   for (const f of FONTS) {
     const o = document.createElement("option");
@@ -124,20 +128,20 @@ export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle 
 
   // Recently used.
   const recentWrap = document.createElement("div");
-  recentWrap.className = "cw-symp-recent-wrap";
+  recentWrap.className = "ked-symp-recent-wrap";
   const recentLabel = document.createElement("div");
-  recentLabel.className = "cw-symp-label";
-  recentLabel.textContent = "Recently used";
+  recentLabel.className = "ked-symp-label";
+  recentLabel.textContent = t.recentlyUsed;
   const recentRow = document.createElement("div");
-  recentRow.className = "cw-symp-recent";
+  recentRow.className = "ked-symp-recent";
   recentWrap.append(recentLabel, recentRow);
 
   // Glyph grid.
   const gridLabel = document.createElement("div");
-  gridLabel.className = "cw-symp-label";
-  gridLabel.textContent = "Symbols";
+  gridLabel.className = "ked-symp-label";
+  gridLabel.textContent = t.symbols;
   const grid = document.createElement("div");
-  grid.className = "cw-symp-grid";
+  grid.className = "ked-symp-grid";
 
   body.append(fontRow, recentWrap, gridLabel, grid);
   modal.append(head, body);
@@ -191,7 +195,7 @@ export function showSymbolPicker(opts: SymbolPickerOptions): SymbolPickerHandle 
 
   renderRecent(readRecent());
   renderGrid();
-  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".cw-symp-x" });
+  makeFloatingDialog({ backdrop, modal, handle: head, signal: ac.signal, noDrag: ".ked-symp-x" });
 
   return { close };
 }

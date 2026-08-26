@@ -12,11 +12,15 @@
     "dev": "npm run dev --workspace kindy-editor",
     "build": "npm run build --workspace kindy-editor",
     "typecheck": "npm run typecheck --workspace @kindy/shared && npm run typecheck --workspace kindy-editor",
-    "test": "npm run test --workspace @kindy/shared && npm run test --workspace kindy-editor"
+    "test": "npm run test --workspace @kindy/shared && npm run test --workspace kindy-editor",
+    "docs:dev": "vitepress dev packages/editor/docs --port 9001 --open",
+    "docs:build": "vitepress build packages/editor/docs",
+    "docs:preview": "vitepress preview packages/editor/docs"
   },
   "devDependencies": {
     "@mcp-b/global": "^5.0.1",
     "patch-package": "^8.0.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitepress": "^1.6.4"
   }
 }
