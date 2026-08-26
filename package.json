@@ -1,15 +1,17 @@
 {
   "name": "kindy-editor-monorepo",
-  "version": "3.0.0",
+  "version": "3.2.0",
   "private": true,
   "type": "module",
   "workspaces": [
     "packages/shared",
-    "packages/editor"
+    "packages/editor",
+    "examples/*"
   ],
   "scripts": {
     "postinstall": "patch-package --patch-dir pretext-patch",
     "dev": "npm run dev --workspace kindy-editor",
+    "demo": "npm run dev --workspace demo-app",
     "build": "npm run build --workspace kindy-editor",
     "typecheck": "npm run typecheck --workspace @kindy/shared && npm run typecheck --workspace kindy-editor",
     "test": "npm run test --workspace @kindy/shared && npm run test --workspace kindy-editor",
