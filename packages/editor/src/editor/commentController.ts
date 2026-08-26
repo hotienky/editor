@@ -46,6 +46,8 @@ export interface CommentController {
   hideChip(): void;
   /** Show/hide the chip as the selection/mode changes. */
   updateAffordance(): void;
+  /** Re-render the active inline thread after a local/remote review mutation. */
+  refresh(): void;
   /** Remove popovers and viewport observers. */
   destroy(): void;
 }
@@ -60,12 +62,14 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
   let bubble: HTMLDivElement | null = null;
   let bubbleCleanup: (() => void) | null = null;
   let chip: HTMLButtonElement | null = null;
+  let activeThreadId: string | null = null;
 
   const closeComposer = (): void => {
     bubbleCleanup?.();
     bubbleCleanup = null;
     bubble?.remove();
     bubble = null;
+    activeThreadId = null;
   };
   const hideChip = (): void => {
     chip?.remove();
@@ -133,6 +137,7 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     if (!thread || !anchor) return;
     hideChip();
     closeComposer();
+    activeThreadId = threadId;
     const el = document.createElement("div");
     el.className = "ked-comment-bubble ked-comment-thread-popover";
     placeBubble(el, anchor);
@@ -201,8 +206,7 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
       status.className = "ked-btn ked-btn-ghost ked-btn-sm";
       status.textContent = thread.status === "open" ? "Resolve" : "Reopen";
       status.addEventListener("click", () => {
-        resolveThread(threadId, thread.status === "resolved");
-        openThread(threadId);
+        resolveThread(threadId, thread.status === "open");
       });
       el.append(status);
     }
@@ -309,6 +313,12 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     chip.style.top = `${anchor.top - 4}px`;
   };
 
+  const refresh = (): void => {
+    if (!activeThreadId) return;
+    const threadId = activeThreadId;
+    openThread(threadId);
+  };
+
   const destroy = (): void => {
     closeComposer();
     hideChip();
@@ -317,5 +327,5 @@ export function createCommentController(deps: CommentControllerDeps): CommentCon
     window.removeEventListener("resize", repositionBubble);
   };
 
-  return { openComposer, openThread, closeComposer, hideChip, updateAffordance, destroy };
+  return { openComposer, openThread, closeComposer, hideChip, updateAffordance, refresh, destroy };
 }

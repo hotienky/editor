@@ -1433,8 +1433,10 @@ export function createEditor(
     review = rebaseReview(review, mapPosition);
   };
 
+  let refreshCommentOverlay: () => void = () => {};
   const notifyReviewChanged = (): void => {
     options.onReviewChanged?.(review);
+    refreshCommentOverlay();
   };
 
   const reviewAuthor = (): UserInfo => options.user ?? { id: "anon", firstName: "Anonymous", lastName: "" };
@@ -1838,6 +1840,7 @@ export function createEditor(
   // Public: open the composer directly (kept for API parity).
   const startComment = comments.openComposer;
   openInlineThread = comments.openThread;
+  refreshCommentOverlay = comments.refresh;
   // The chip refresh is forward-declared (called from refreshSelectionVisuals + setMode).
   updateCommentAffordance = comments.updateAffordance;
 
