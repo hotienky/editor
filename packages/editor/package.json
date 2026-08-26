@@ -25,11 +25,20 @@
     "./export": {
       "types": "./types/export.d.ts",
       "default": "./dist-lib/export.js"
+    },
+    "./events": {
+      "types": "./types/events.d.ts",
+      "import": "./dist-lib/events.js"
+    },
+    "./events/schema": {
+      "default": "./types/event.schema.json"
     }
   },
   "files": [
     "dist-lib",
-    "types"
+    "types",
+    "docs",
+    "README.md"
   ],
   "scripts": {
     "dev": "vite",

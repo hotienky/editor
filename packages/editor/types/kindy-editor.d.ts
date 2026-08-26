@@ -3,8 +3,11 @@
 // regardless of internal refactors — no dependency on internal workspace types.
 
 import type { Block, CharStyle, DocPosition, Document, ParaStyle, Run } from "./model";
+import type { EditorEvents, EditorEventsOptions } from "./events";
 
 export type { Document } from "./model";
+export { EditorEvents } from "./events";
+export type { EditorEventsOptions, PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType } from "./events";
 
 /** Caller-supplied identity, used for change attribution and presence. */
 export interface UserInfo {
@@ -333,6 +336,8 @@ export interface KindyEditorOptions {
    *  while you upload. Omit to keep the default download behaviour. (For a fully
    *  custom button, call `exportDocx()` / `exportPdf()` on the instance.) */
   onSave?: SaveHandler;
+  /** Versioned integration events, payload detail, redaction, and optional sink. */
+  events?: EditorEventsOptions;
   /** Mount as a view-only viewer: the document renders and stays selectable and
    *  copyable, but the editing chrome is hidden and every mutation is a no-op.
    *  In an online session a read-only client still receives live remote edits.
@@ -634,6 +639,7 @@ export interface EditorHandle {
 }
 
 export declare class KindyEditor {
+  readonly events: EditorEvents;
   constructor(opts: KindyEditorOptions);
   /** Subscribe to a collaboration event. Returns an unsubscribe function. */
   on<E extends keyof KindyEditorEventMap>(event: E, handler: (data: KindyEditorEventMap[E]) => void): () => void;

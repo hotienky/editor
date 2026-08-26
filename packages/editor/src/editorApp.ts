@@ -1,4 +1,4 @@
-import { bakeReview, colorForId, configureIds, deserializeDocument, freshId, reconstruct, serializeDocument, DEFAULT_CHAR_STYLE, DOCX_MIME, PDF_MIME, PX_PER_INCH, ptToPx as sharedPtToPx, pxToPt as sharedPxToPt, type Change, type DocSelection, type Document, type Fragment, type ParaStyle, type ReviewLayer } from "@kindy/shared";
+import { EDITOR_EVENT_SCHEMA_VERSION, affectedBlockIds, bakeReview, colorForId, configureIds, deserializeDocument, freshId, projectReviewEvents, reconstruct, serializeDocument, DEFAULT_CHAR_STYLE, DOCX_MIME, PDF_MIME, PX_PER_INCH, ptToPx as sharedPtToPx, pxToPt as sharedPxToPt, type Change, type DocSelection, type Document, type EditorEventSource, type Fragment, type ParaStyle, type PublicEditorEvent, type PublicEditorEventDataMap, type PublicEditorEventType, type ReviewLayer } from "@kindy/shared";
 import { resolveConfig } from "./config";
 import { emptyParagraphFor } from "./builder/blockFactory";
 import { mediaStore, mediaUrl, registerMediaBytes, rehydrateDocMedia } from "./media/store";
@@ -192,6 +192,36 @@ const IMPORT_PHASE_LABEL: Record<ImportPhase, string> = {
 
 let collabVersion = 0;
 let sync: SyncClient | null = null;
+type PublicEmitOptions = {
+  source?: EditorEventSource;
+  transaction?: PublicEditorEvent["transaction"];
+  version?: number;
+  metadata?: Record<string, unknown>;
+};
+const emitPublic = <K extends PublicEditorEventType>(
+  type: K,
+  data: PublicEditorEventDataMap[K],
+  options: PublicEmitOptions = {},
+): void => {
+  if (!runtime.onPublicEvent) return;
+  const baseVersion = sync?.getVersion() ?? collabVersion;
+  runtime.onPublicEvent({
+    schemaVersion: EDITOR_EVENT_SCHEMA_VERSION,
+    id: freshId(),
+    type,
+    occurredAt: new Date().toISOString(),
+    source: options.source ?? "system",
+    ...(runtime.user ? { actor: runtime.user } : {}),
+    document: {
+      id: collabId,
+      baseVersion,
+      ...(options.version !== undefined ? { version: options.version } : {}),
+    },
+    ...(options.transaction ? { transaction: options.transaction } : {}),
+    data,
+    ...(options.metadata ? { metadata: options.metadata } : {}),
+  } as PublicEditorEvent);
+};
 let doc: Document;
 if (collabId !== null && BACKEND_HTTP) {
   const busy = showBusy("Loading shared document…");
@@ -280,6 +310,7 @@ let onLocalReviewOp: (env: ReviewOpEnvelope) => void = () => {};
 // helpers). Assigned once the editor handle is built; custom buttons can't fire
 // before mount completes, so it's always set by click time.
 let ribbonCtx: RibbonActionContext | null = null;
+let publicMode: EditMode = runtime.mode ?? (readonly ? "view" : "edit");
 const editorOpts = {
   engine,
   paintOptions: { fontRegistry },
@@ -294,7 +325,41 @@ const editorOpts = {
   ...(collabId !== null ? { docId: collabId } : {}),
   // In a collab session, ship each recorded local edit to the server.
   onChangeRecorded: (change: Change) => {
-    sync?.localEdit(change.ops);
+    sync?.localEdit(change);
+  },
+  onMutationApplied: (event: {
+    source: "local" | "remote";
+    ops: import("@kindy/shared").Op[];
+    origin: import("@kindy/shared").ChangeOrigin;
+    intent?: string;
+    selectionBefore: DocSelection | null;
+    selectionAfter: DocSelection | null;
+    change?: Change;
+  }) => {
+    const detail = runtime.eventDetail ?? "metadata";
+    const data: PublicEditorEventDataMap["document.change.applied"] = {
+      origin: event.origin,
+      ...(event.intent ? { intent: event.intent } : {}),
+      operationCount: event.ops.length,
+      affectedBlockIds: affectedBlockIds(event.ops),
+      ...(detail !== "metadata" ? { operations: event.ops } : {}),
+      ...(detail === "full" ? {
+        selectionBefore: event.selectionBefore,
+        selectionAfter: event.selectionAfter,
+        ...(event.change ? { change: event.change } : {}),
+      } : {}),
+    };
+    const changeId = event.change?.id ?? freshId();
+    const source: EditorEventSource = event.source === "remote"
+      ? "remote"
+      : event.origin === "undo" || event.origin === "redo"
+        ? event.origin
+        : "local";
+    emitPublic(event.source === "remote" ? "document.remoteChange.applied" : "document.change.applied", data, {
+      source,
+      transaction: { id: changeId, status: event.source === "remote" ? "committed" : "optimistic" },
+      ...(event.change?.seq !== undefined ? { version: event.change.seq + 1 } : {}),
+    });
   },
   // Review overlay: re-emit changes to the embedder + ship review ops to peers.
   onReviewChanged: (review: ReviewLayer) => {
@@ -303,12 +368,24 @@ const editorOpts = {
   },
   onModeChanged: (mode: EditMode) => {
     runtime.onEvent?.({ type: "modeChanged", mode });
+    emitPublic("editor.mode.changed", { mode, previousMode: publicMode }, { source: "local" });
+    publicMode = mode;
     syncMode();
   },
   onReviewOpRecorded: (env: ReviewOpEnvelope) => onLocalReviewOp(env),
+  onReviewOpApplied: (op: import("@kindy/shared").ReviewOp, remote: boolean) => {
+    const transactionId = freshId();
+    for (const projected of projectReviewEvents(op, remote)) {
+      emitPublic(projected.type, projected.data as never, {
+        source: remote ? "remote" : "local",
+        transaction: { id: transactionId, status: remote ? "committed" : "optimistic" },
+      });
+    }
+  },
   // Broadcast the local caret to collaborators on every move.
   onSelectionChange: (sel: DocSelection | null) => {
     sync?.localPresence(sel);
+    if (runtime.includeSelectionEvents) emitPublic("selection.changed", { selection: sel }, { source: "local" });
     refreshDevPanel();
   },
   // Develop mode only: the inspector turns this signal on while open (dormant
@@ -406,15 +483,50 @@ const remoteChangeListeners: Array<(change: Change) => void> = [];
 // Build a SyncClient for `docId` wired to the current editor + identity + the
 // presence/event callbacks. Used by both the join path and goOnline.
 const connectSync = (docId: string, startVersion: number): SyncClient => {
+  emitPublic("collaboration.connecting", { docId }, { source: "system" });
   const s = new SyncClient({
     wsUrl: BACKEND_WS!,
     docId,
     editor,
     startVersion,
     user: runtime.user,
-    onUserEntered: (siteId, user) => runtime.onEvent?.({ type: "userEntered", siteId, user }),
-    onUserLeave: (siteId, user) => runtime.onEvent?.({ type: "userLeave", siteId, user }),
-    onPresence: (participants) => runtime.onEvent?.({ type: "presence", participants }),
+    onConnected: (version) => {
+      collabVersion = version;
+      emitPublic("collaboration.connected", { docId, version }, { source: "system", version });
+    },
+    onDisconnected: (reason) => emitPublic("collaboration.disconnected", {
+      docId,
+      ...(reason ? { reason } : {}),
+    }, { source: "system" }),
+    onCommitted: (change) => {
+      collabVersion = (change.seq ?? collabVersion) + 1;
+      const detail = runtime.eventDetail ?? "metadata";
+      emitPublic("document.change.committed", {
+        origin: change.origin,
+        operationCount: change.ops.length,
+        affectedBlockIds: affectedBlockIds(change.ops),
+        ...(detail !== "metadata" ? { operations: change.ops } : {}),
+        ...(detail === "full" ? { selectionAfter: change.selectionAfter ?? null, change } : {}),
+      }, {
+        source: change.origin === "undo" || change.origin === "redo" ? change.origin : "local",
+        transaction: { id: change.id, status: "committed" },
+        ...(change.seq !== undefined ? { version: change.seq + 1 } : {}),
+      });
+    },
+    onUserEntered: (siteId, user) => {
+      runtime.onEvent?.({ type: "userEntered", siteId, user });
+      emitPublic("collaboration.user.joined", { siteId, ...(user ? { user } : {}) }, { source: "remote" });
+    },
+    onUserLeave: (siteId, user) => {
+      runtime.onEvent?.({ type: "userLeave", siteId, user });
+      emitPublic("collaboration.user.left", { siteId, ...(user ? { user } : {}) }, { source: "remote" });
+    },
+    onPresence: (participants) => {
+      runtime.onEvent?.({ type: "presence", participants });
+      emitPublic("collaboration.presence.changed", {
+        participants: participants.map(({ siteId, user }) => ({ siteId, ...(user ? { user } : {}) })),
+      }, { source: "remote" });
+    },
     onRemote: (change: Change) => {
       for (const l of remoteChangeListeners) l(change);
     },
@@ -474,6 +586,7 @@ const goOnlineWithCurrentDoc = async (): Promise<string> => {
   if (!BACKEND_HTTP || !BACKEND_WS) throw new Error("cannot share: offline (no backendUrl)");
   // Already shared — reuse the existing link instead of forking a new document.
   if (collabId && shareLink) {
+    emitPublic("document.shared", { docId: collabId, url: shareLink, reused: true }, { source: "api" });
     surfaceShareLink(shareLink, collabId);
     return shareLink;
   }
@@ -500,6 +613,7 @@ const goOnlineWithCurrentDoc = async (): Promise<string> => {
   }
   console.log(`[collab] published, sharing ${docId}`);
   runtime.onEvent?.({ type: "shared", docId, url: shareLink });
+  emitPublic("document.shared", { docId, url: shareLink, reused: false }, { source: "api" });
   surfaceShareLink(shareLink, docId);
   return shareLink;
 };
@@ -551,23 +665,37 @@ const detachCollabSession = (): void => {
 // later caller-side mutations (or a re-used builder) can't alias editor state,
 // and preserve the viewport (zoom + scroll) so live rebuilds don't jump.
 const setDocumentFromApi = (next: Document): void => {
-  const clone = structuredClone(next);
-  // A doc with no stylesheet adopts the configured defaults before we mint any
-  // empty paragraph from it (a real .docx always brings its own — see config).
-  if (!clone.stylesheet) clone.stylesheet = config.stylesheet;
-  if (clone.blocks.length === 0) clone.blocks.push(emptyParagraphFor(clone, freshId()));
-  const scrollTop = app.scrollTop;
-  const zoom = editor.getZoom();
-  replaceDocument(clone);
-  editor.setZoom(zoom);
-  requestAnimationFrame(() => {
-    app.scrollTop = Math.min(scrollTop, Math.max(0, app.scrollHeight - app.clientHeight));
-  });
-  detachCollabSession();
+  const startedAt = performance.now();
+  emitPublic("document.open.started", { method: "api" }, { source: "api" });
+  try {
+    const clone = structuredClone(next);
+    // A doc with no stylesheet adopts the configured defaults before we mint any
+    // empty paragraph from it (a real .docx always brings its own — see config).
+    if (!clone.stylesheet) clone.stylesheet = config.stylesheet;
+    if (clone.blocks.length === 0) clone.blocks.push(emptyParagraphFor(clone, freshId()));
+    const scrollTop = app.scrollTop;
+    const zoom = editor.getZoom();
+    replaceDocument(clone);
+    editor.setZoom(zoom);
+    requestAnimationFrame(() => {
+      app.scrollTop = Math.min(scrollTop, Math.max(0, app.scrollHeight - app.clientHeight));
+    });
+    detachCollabSession();
+    emitPublic("document.open.completed", { method: "api", durationMs: performance.now() - startedAt }, { source: "api" });
+  } catch (error) {
+    const durationMs = performance.now() - startedAt;
+    const message = error instanceof Error ? error.message : String(error);
+    emitPublic("document.open.failed", { method: "api", durationMs, message }, { source: "api" });
+    emitPublic("editor.error", { scope: "document.open", message, recoverable: true }, { source: "api" });
+    throw error;
+  }
 };
 
 const openDocxFile = async (file: File | ArrayBuffer): Promise<void> => {
   const i0 = performance.now();
+  const fileName = file instanceof File ? file.name : undefined;
+  emitPublic("document.open.started", { method: "docx" }, { source: "import" });
+  emitPublic("document.import.started", { format: "docx", ...(fileName ? { fileName } : {}) }, { source: "import" });
   const busy = showBusy("Opening document…");
   try {
     const result = await importDocx(file, {
@@ -576,9 +704,27 @@ const openDocxFile = async (file: File | ArrayBuffer): Promise<void> => {
     reportImport(result, performance.now() - i0);
     replaceDocument(result.doc);
     detachCollabSession();
+    const durationMs = performance.now() - i0;
+    emitPublic("document.import.completed", {
+      format: "docx",
+      ...(fileName ? { fileName } : {}),
+      durationMs,
+      warningCount: result.warnings.length,
+    }, { source: "import" });
+    emitPublic("document.open.completed", { method: "docx", durationMs }, { source: "import" });
   } catch (e) {
     console.error("[docx-import]", e);
     const name = file instanceof File ? file.name : "document";
+    const durationMs = performance.now() - i0;
+    const message = e instanceof Error ? e.message : String(e);
+    emitPublic("document.import.failed", {
+      format: "docx",
+      ...(fileName ? { fileName } : {}),
+      durationMs,
+      message,
+    }, { source: "import" });
+    emitPublic("document.open.failed", { method: "docx", durationMs, message }, { source: "import" });
+    emitPublic("editor.error", { scope: "document.import", message, recoverable: true }, { source: "import" });
     alert(`Could not open "${name}": ${e instanceof Error ? e.message : String(e)}`);
   } finally {
     busy.done();
@@ -593,11 +739,39 @@ const exportBaked = (format: ExportFormat): Promise<{ bytes: Uint8Array; warning
   const baked = bakeReview(editor.getDocument(), editor.getReview(), "reject");
   return exportDocument(baked, format, config.fonts, config.cjk);
 };
+const exportTracked = async (
+  format: ExportFormat,
+  trigger: "api" | "toolbar",
+): Promise<{ bytes: Uint8Array; warnings: ExportWarning[] }> => {
+  const startedAt = performance.now();
+  emitPublic("document.export.started", { format, trigger }, { source: trigger === "api" ? "api" : "local" });
+  try {
+    const result = await exportBaked(format);
+    emitPublic("document.export.completed", {
+      format,
+      trigger,
+      durationMs: performance.now() - startedAt,
+      byteLength: result.bytes.byteLength,
+      warningCount: result.warnings.length,
+    }, { source: trigger === "api" ? "api" : "local" });
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitPublic("document.export.failed", {
+      format,
+      trigger,
+      durationMs: performance.now() - startedAt,
+      message,
+    }, { source: trigger === "api" ? "api" : "local" });
+    emitPublic("editor.error", { scope: "document.export", message, recoverable: true }, { source: trigger === "api" ? "api" : "local" });
+    throw error;
+  }
+};
 const blobFor = (format: ExportFormat, bytes: Uint8Array): Blob =>
   new Blob([bytes as BlobPart], { type: format === "pdf" ? PDF_MIME : DOCX_MIME });
 /** Export to a Blob — backs the public handle's exportDocx()/exportPdf(). */
 const exportBlob = async (format: ExportFormat): Promise<Blob> => {
-  const { bytes } = await exportBaked(format);
+  const { bytes } = await exportTracked(format, "api");
   return blobFor(format, bytes);
 };
 
@@ -1160,7 +1334,7 @@ if (toolbar) {
     // doesn't sit behind a native Save sheet.
     const busy = showBusy(`Exporting ${format.toUpperCase()}…`);
     try {
-      const { bytes, warnings } = await exportBaked(format);
+      const { bytes, warnings } = await exportTracked(format, "toolbar");
       busy.done();
       if (warnings.length > 0) console.warn(`[export-${format}] warnings`, warnings);
       const blob = blobFor(format, bytes);
@@ -3305,6 +3479,7 @@ const handle: EditorHandle = {
   replyToComment: (threadId, body, mentions) => editor.replyToComment(threadId, body, mentions),
   resolveThread: (threadId, resolved) => editor.resolveThread(threadId, resolved),
   destroy: () => {
+    emitPublic("editor.destroyed", {}, { source: "system" });
     disposeAgentTools?.(); // unregister WebMCP tools before tearing the editor down
     closeDevPanel(); // remove the floating inspector (body-level) if it's open
     teardown.abort(); // drop every global window/document listener this instance added
@@ -3319,7 +3494,10 @@ const handle: EditorHandle = {
 // insertText live on the handle) plus an event emitter and a teardown hook.
 ribbonCtx = {
   ...handle,
-  emit: (name, payload) => runtime.onEvent?.({ type: "custom", name, payload }),
+  emit: (name, payload) => {
+    runtime.onEvent?.({ type: "custom", name, payload });
+    emitPublic("custom", { name, ...(payload !== undefined ? { payload } : {}) }, { source: "local" });
+  },
   registerCleanup: (target) => {
     if (typeof target === "function") teardown.signal.addEventListener("abort", () => target(), { once: true });
     else detachables.push(target);
@@ -3329,6 +3507,7 @@ ribbonCtx = {
 runtime.onLoadProgress?.({ phase: "ready", percent: 1, loaded: 0, total: 0 });
 runtime.onReady?.(handle);
 runtime.onEvent?.({ type: "ready" });
+emitPublic("editor.ready", { mode: editor.getMode() }, { source: "system" });
 
 // WebMCP agent tooling (opt-in). Lazy-load the polyfill + bridge so non-agent
 // embedders never pull them into their bundle; initialize navigator.modelContext,

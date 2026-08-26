@@ -347,7 +347,7 @@ export interface Editor {
   getChangeHead(): number;
   /** Apply ops received from a remote collaborator: mutates the document and
    *  rebases the local caret, without recording to the change log or undo stack. */
-  applyRemoteOps(ops: Op[]): void;
+  applyRemoteOps(ops: Op[], change?: Change): void;
   /** Upsert a remote collaborator's caret (rebased through edits, rendered with
    *  their name). `selection` null hides their caret. */
   setPeerPresence(siteId: string, user: UserInfo | undefined, selection: DocSelection | null): void;
@@ -403,6 +403,18 @@ export interface EditorOptions {
   /** Fires for each committed Change (the document-history log entry). The
    *  SyncClient subscribes here to ship edits to the server. */
   onChangeRecorded?: ChangeSink;
+  /** Public integration seam after an operation group has been applied. Local
+   * edits include their stable Change; remote edits include the server Change
+   * when supplied by SyncClient. */
+  onMutationApplied?: (event: {
+    source: "local" | "remote";
+    ops: Op[];
+    origin: ChangeOrigin;
+    intent?: string;
+    selectionBefore: DocSelection | null;
+    selectionAfter: DocSelection | null;
+    change?: Change;
+  }) => void;
   /** Fires whenever the local selection/caret moves (for presence broadcast). */
   onSelectionChange?: (selection: DocSelection | null) => void;
   /** View-only mode: the document renders and stays selectable/copyable, but
@@ -430,6 +442,8 @@ export interface EditorOptions {
    *  comments). The SyncClient ships these on the review channel; persistence
    *  appends them. */
   onReviewOpRecorded?: (env: ReviewOpEnvelope) => void;
+  /** Fires for every review operation after it is applied locally/remotely. */
+  onReviewOpApplied?: (op: ReviewOp, remote: boolean) => void;
   /** Fires when the mode changes (picker / setMode). */
   onModeChanged?: (mode: EditMode) => void;
   /** Resolve a custom field's content from the host (e.g. its backend). Invoked by
@@ -1411,6 +1425,7 @@ export function createEditor(
     const res = applyReviewOp(review, op);
     review = res.layer;
     options.onReviewOpRecorded?.({ op, dependsOnSeq: recorder.head(), ...(options.user ? { author: options.user } : {}) });
+    options.onReviewOpApplied?.(op, false);
     return res.inverse;
   };
 
@@ -1481,6 +1496,7 @@ export function createEditor(
   const commitCore = (trn: Transaction, reviewOps: ReviewOp[]): void => {
     const selectionBefore = selection;
     const inverses = runOps(trn.ops);
+    let recordedChange: Change | null = null;
     // Review ops apply AFTER core ops, so their anchors are in post-core coords.
     const reviewInverses: ReviewOp[] = [];
     for (const rop of reviewOps) reviewInverses.unshift(applyLocalReviewOp(rop));
@@ -1497,10 +1513,22 @@ export function createEditor(
       });
       // Mirror the core edit into the document-history log (empty for a pure
       // deletion-suggestion; the recorder no-ops on empty ops).
-      recorder.record(trn.ops, trn.origin as ChangeOrigin, trn.selectionAfter, Date.now());
+      recordedChange = recorder.record(trn.ops, trn.origin as ChangeOrigin, trn.selectionAfter, Date.now());
     }
     if (reviewOps.length > 0) notifyReviewChanged();
     afterMutation(trn.selectionAfter, trn.origin === "transient");
+    if (recordedChange) {
+      const inferredIntent = [...new Set(trn.ops.map((op) => op.type))].join("+");
+      options.onMutationApplied?.({
+        source: "local",
+        ops: trn.ops,
+        origin: trn.origin as ChangeOrigin,
+        ...((trn.intent ?? inferredIntent) ? { intent: trn.intent ?? inferredIntent } : {}),
+        selectionBefore,
+        selectionAfter: trn.selectionAfter,
+        change: recordedChange,
+      });
+    }
   };
 
   const commit = (trn: Transaction): void => {
@@ -1532,8 +1560,18 @@ export function createEditor(
     }
     // Undo is a real forward edit in history terms — record the inverse ops it
     // applied so the log faithfully replays the same end state.
-    recorder.record(entry.inverseOps, "undo", entry.selectionBefore, Date.now());
+    const selectionBefore = selection;
+    const change = recorder.record(entry.inverseOps, "undo", entry.selectionBefore, Date.now());
     afterMutation(entry.selectionBefore);
+    if (change) options.onMutationApplied?.({
+      source: "local",
+      ops: entry.inverseOps,
+      origin: "undo",
+      intent: "undo",
+      selectionBefore,
+      selectionAfter: entry.selectionBefore,
+      change,
+    });
   };
 
   const redo = (): void => {
@@ -1545,15 +1583,26 @@ export function createEditor(
       for (const rop of entry.reviewOps) applyLocalReviewOp(rop);
       notifyReviewChanged();
     }
-    recorder.record(entry.ops, "redo", entry.selectionAfter, Date.now());
+    const selectionBefore = selection;
+    const change = recorder.record(entry.ops, "redo", entry.selectionAfter, Date.now());
     afterMutation(entry.selectionAfter);
+    if (change) options.onMutationApplied?.({
+      source: "local",
+      ops: entry.ops,
+      origin: "redo",
+      intent: "redo",
+      selectionBefore,
+      selectionAfter: entry.selectionAfter,
+      change,
+    });
   };
 
   // Apply ops that arrived from another collaborator. Unlike commit(), these are
   // NOT recorded (the server's log already holds them) and do NOT enter the undo
   // stack (a user can't undo a peer's edit). The local caret is rebased through
   // each op's position mapper so it survives the remote insert/delete.
-  const applyRemoteOps = (ops: Op[]): void => {
+  const applyRemoteOps = (ops: Op[], change?: Change): void => {
+    const selectionBefore = selection;
     let sel = selection;
     for (const op of ops) {
       const res = applyOp(doc, op);
@@ -1572,6 +1621,15 @@ export function createEditor(
     review = gcStructuralReviewLayer(review, doc); // remote removeBlock kills its record
     if (ops.length > 0) notifyReviewChanged();
     afterMutation(sel);
+    if (ops.length > 0) options.onMutationApplied?.({
+      source: "remote",
+      ops,
+      origin: change?.origin ?? "command",
+      intent: [...new Set(ops.map((op) => op.type))].join("+"),
+      selectionBefore,
+      selectionAfter: sel,
+      ...(change ? { change } : {}),
+    });
   };
 
   // ---- review actions (track changes + comments) --------------------------
@@ -1676,6 +1734,7 @@ export function createEditor(
 
   const applyRemoteReviewOp = (op: ReviewOp): void => {
     review = applyReviewOp(review, op).layer;
+    options.onReviewOpApplied?.(op, true);
     notifyReviewChanged();
     refreshReviewDecorations();
   };

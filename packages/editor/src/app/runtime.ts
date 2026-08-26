@@ -3,7 +3,7 @@
 // which mounts one editor and calls onReady with a handle. The runtime is a plain
 // per-call value (no module singleton), so multiple editors coexist on one page.
 
-import type { DocSelection, Document, Fragment, ReviewLayer, UserInfo } from "@kindy/shared";
+import type { DocSelection, Document, EditorEventDetail, Fragment, PublicEditorEvent, ReviewLayer, UserInfo } from "@kindy/shared";
 import type { ChildDocument, EditMode, FieldResolver } from "../index";
 import type { ExportWarning } from "../export/exportDocument";
 import type { CjkConfig, DefaultStyleOverrides, EditorBehavior, EditorTheme, FontsConfig } from "../config";
@@ -180,6 +180,10 @@ export interface KindyEditorRuntime {
   onLoadProgress?: ((p: LoadProgress) => void) | undefined;
   /** Sink for collaboration events (presence, share, ready) → KindyEditor.on(...). */
   onEvent?: ((ev: KindyEditorEvent) => void) | undefined;
+  /** Versioned event envelope sink → KindyEditor.events. */
+  onPublicEvent?: ((event: PublicEditorEvent) => void) | undefined;
+  eventDetail?: EditorEventDetail | undefined;
+  includeSelectionEvents?: boolean | undefined;
   /** Resolve a custom field's content from the host backend. When set, right-
    *  clicking a custom field offers "Update Field (<name>)", which calls this and
    *  splices the returned OOXML in as the field's new result. */

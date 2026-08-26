@@ -27,6 +27,14 @@ const editor = new KindyEditor({
 | `kindy-editor/builder` | Fluent document composer |
 | `kindy-editor/import` | .docx → document model |
 | `kindy-editor/export` | Document → .docx/.pdf |
+| `kindy-editor/events` | Typed public events + optional HTTP sink |
+| `kindy-editor/events/schema` | JSON Schema for envelope v1 |
+
+## Integrations
+
+Use the versioned `editor.events` API for autosave, audit bridges, workflow hooks,
+analytics, and external backends. See [Public events](./docs/public-events.md) and
+the [HTTP sink guide](./docs/http-event-sink.md).
 
 ## Architecture
 

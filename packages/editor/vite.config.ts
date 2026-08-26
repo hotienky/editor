@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
               builder: fileURLToPath(new URL("src/builder/index.ts", import.meta.url)),
               import: fileURLToPath(new URL("src/import/docx/pipeline.ts", import.meta.url)),
               export: fileURLToPath(new URL("src/export/pipeline.ts", import.meta.url)),
+              events: fileURLToPath(new URL("src/events/index.ts", import.meta.url)),
               measure: fileURLToPath(new URL("src/export/shared/measureHost.ts", import.meta.url)),
               "recalc-docx": fileURLToPath(new URL("src/recalc/patchTocDocx.ts", import.meta.url)),
               "generate-toc": fileURLToPath(new URL("src/recalc/generateTocDocx.ts", import.meta.url)),

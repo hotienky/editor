@@ -18,11 +18,15 @@ import type { CustomizeRibbon, RibbonActionContext, RibbonApi, RibbonButtonSpec 
 import { makeFloatingDialog } from "./ui/floatingDialog";
 import type { DocSelection } from "@kindy/shared";
 import { BUNDLE_SHARE, type LoadProgress } from "./app/loadProgress";
+import { EditorEvents, type EditorEventsOptions } from "./events/eventHub";
+import type { PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType } from "@kindy/shared";
 
 export type { Document, UserInfo, Participant, EditMode, ReviewLayer, Fragment, FieldResolver, FieldResolveRequest, FieldResult, AgentToolsOptions, LoadProgress, KindyEditorViewOptions, SaveEvent, SaveFormat, SaveHandler };
 export type { ChildDocument, ChildContent, ChildRenderOptions, ChildEditorHandle };
 export type { EditorTheme, DefaultStyleOverrides, EditorBehavior, FontsConfig, CjkConfig, CustomFontDef, CustomFontFaces };
 export type { CustomizeRibbon, RibbonApi, RibbonButtonSpec, RibbonActionContext, DocSelection };
+export type { PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType, EditorEventsOptions };
+export { EditorEvents };
 export { darkCanvasTheme, makeFloatingDialog };
 
 export interface KindyEditorOptions {
@@ -129,6 +133,9 @@ export interface KindyEditorOptions {
    *  ~9 MB cost — a smooth, size-weighted bar), then once at `phase: "ready"`
    *  with `percent: 1`. Read `percent` (0..1, monotonic) to drive a progress bar. */
   onLoadProgress?: (progress: LoadProgress) => void;
+  /** Versioned integration events. Raw operations/selections are opt-in; attach
+   * a sink to bridge events to an API, analytics bus, or audit pipeline. */
+  events?: EditorEventsOptions;
 }
 
 /** Event name → payload, for `on(...)`. */
@@ -150,11 +157,14 @@ export interface KindyEditorEventMap {
 type Handler<E extends keyof KindyEditorEventMap> = (data: KindyEditorEventMap[E]) => void;
 
 export class KindyEditor {
+  /** Namespaced, typed public integration events. Legacy on()/off() remains. */
+  readonly events: EditorEvents;
   private handle: EditorHandle | null = null;
   private readonly ready: Promise<EditorHandle>;
   private readonly handlers = new Map<string, Set<(data: unknown) => void>>();
 
   constructor(opts: KindyEditorOptions) {
+    this.events = new EditorEvents(opts.events);
     this.ready = new Promise<EditorHandle>((resolve) => {
       const runtime: KindyEditorRuntime = {
         container: opts.container,
@@ -179,11 +189,14 @@ export class KindyEditor {
         cjk: opts.cjk,
         customizeRibbon: opts.customizeRibbon,
         onLoadProgress: opts.onLoadProgress,
+        eventDetail: this.events.detail,
+        includeSelectionEvents: this.events.includeSelection,
         onReady: (h) => {
           this.handle = h;
           resolve(h);
         },
         onEvent: (ev) => this.emit(ev),
+        onPublicEvent: (event) => this.events.dispatch(event),
       };
       // Lazy-load the editor chunk, then mount this instance. Each call mounts an
       // independent editor (the chunk's module-eval cost is shared, the mount is
@@ -365,5 +378,6 @@ export class KindyEditor {
     this.handle?.destroy();
     this.handle = null;
     this.handlers.clear();
+    this.events.destroy();
   }
 }
