@@ -6,7 +6,7 @@ Canvas-rendered Word-accurate document editor.
 ## Packages
 
 - `@kindy/shared` — Document model, ops, OT (pure data, no DOM)
-- `@kindy/docx-editor` — Embeddable canvas-based Word document editor library
+- `kindy-editor` — Embeddable editor library
 
 ## Development
 

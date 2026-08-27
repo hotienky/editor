@@ -8,7 +8,7 @@ không chỉ cần hiển thị được trong CSS: exporter còn phải đọc 
 ## Khai báo nhiều font trực tiếp
 
 ```ts
-import { KindyEditor, type FontsConfig } from "@kindy/docx-editor";
+import { KindyEditor, type FontsConfig } from "kindy-editor";
 
 const fonts: FontsConfig = {
   // Các URL tương đối bên dưới được ghép với thư mục CDN có version.
