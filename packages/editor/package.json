@@ -1,9 +1,12 @@
 {
-  "name": "kindy-editor",
+  "name": "@kindy/docx-editor",
   "version": "3.1.0",
   "type": "module",
   "description": "Trình soạn thảo tài liệu Word chính xác, vẽ bằng canvas",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "module": "./dist-lib/kindy-editor.js",
   "types": "./types/kindy-editor.d.ts",
   "exports": {

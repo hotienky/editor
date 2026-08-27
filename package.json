@@ -10,11 +10,11 @@
   ],
   "scripts": {
     "postinstall": "patch-package --patch-dir pretext-patch",
-    "dev": "npm run dev --workspace kindy-editor",
+    "dev": "npm run dev --workspace @kindy/docx-editor",
     "demo": "npm run dev --workspace demo-app",
-    "build": "npm run build --workspace kindy-editor",
-    "typecheck": "npm run typecheck --workspace @kindy/shared && npm run typecheck --workspace kindy-editor",
-    "test": "npm run test --workspace @kindy/shared && npm run test --workspace kindy-editor",
+    "build": "npm run build --workspace @kindy/docx-editor",
+    "typecheck": "npm run typecheck --workspace @kindy/shared && npm run typecheck --workspace @kindy/docx-editor",
+    "test": "npm run test --workspace @kindy/shared && npm run test --workspace @kindy/docx-editor",
     "docs:dev": "vitepress dev packages/editor/docs --port 9001 --open",
     "docs:build": "vitepress build packages/editor/docs",
     "docs:preview": "vitepress preview packages/editor/docs"

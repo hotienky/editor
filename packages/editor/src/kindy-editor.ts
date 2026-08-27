@@ -1,6 +1,6 @@
 // KindyEditor — the embeddable package entry.
 //
-//   import { KindyEditor } from "kindy-editor";
+//   import { KindyEditor } from "@kindy/docx-editor";
 //   const ed = new KindyEditor({ container, backendUrl: "https://…", user });
 //   ed.on("userEntered", ({ user }) => showAvatar(user));
 //

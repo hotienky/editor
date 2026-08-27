@@ -9,7 +9,7 @@ envelope.
 ## Quick start
 
 ```ts
-import { KindyEditor } from "kindy-editor";
+import { KindyEditor } from "@kindy/docx-editor";
 
 const editor = new KindyEditor({
   container: document.querySelector("#editor")!,
@@ -62,7 +62,7 @@ Every event has the same outer shape:
 - `document.change.rejected` is reserved in v1; it will be emitted once the sync
   protocol returns an explicit rejection message.
 
-The distributable JSON Schema is exported as `kindy-editor/events/schema` and is
+The distributable JSON Schema is exported as `@kindy/docx-editor/events/schema` and is
 also available at `types/event.schema.json` in the package.
 
 ## Payload detail and privacy

@@ -1,18 +1,17 @@
-# kindy-editor
+# @kindy/docx-editor
 
 Canvas-rendered Word-accurate document editor — an embeddable library.
 
 ## Quick Start
 
 ```bash
-npm install
-npm run dev   # → http://localhost:5173/
+npm install @kindy/docx-editor
 ```
 
 ## Embed
 
 ```js
-import { KindyEditor } from "kindy-editor";
+import { KindyEditor } from "@kindy/docx-editor";
 
 const editor = new KindyEditor({
   container: document.getElementById("editor"),
@@ -45,12 +44,12 @@ asset hosts can be integrated through `fonts.loader`. See
 
 | Path | Description |
 |---|---|
-| `kindy-editor` | Main editor (KindyEditor class) |
-| `kindy-editor/builder` | Fluent document composer |
-| `kindy-editor/import` | .docx → document model |
-| `kindy-editor/export` | Document → .docx/.pdf |
-| `kindy-editor/events` | Typed public events + optional HTTP sink |
-| `kindy-editor/events/schema` | JSON Schema for envelope v1 |
+| `@kindy/docx-editor` | Main editor (KindyEditor class) |
+| `@kindy/docx-editor/builder` | Fluent document composer |
+| `@kindy/docx-editor/import` | .docx → document model |
+| `@kindy/docx-editor/export` | Document → .docx/.pdf |
+| `@kindy/docx-editor/events` | Typed public events + optional HTTP sink |
+| `@kindy/docx-editor/events/schema` | JSON Schema for envelope v1 |
 
 ## Integrations
 
@@ -69,5 +68,5 @@ documented in [Table editing](./docs/table-editing.md).
 ```
 packages/
 ├── shared/    → @kindy/shared (document model, ops, OT)
-└── editor/    → kindy-editor (embeddable library)
+└── editor/    → @kindy/docx-editor (embeddable library)
 ```
