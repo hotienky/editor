@@ -3506,7 +3506,7 @@ export function createEditor(
     target: TableQuickActionTarget,
     pageX: number,
     pageY: number,
-  ): { left: number; top: number; right: number; bottom: number } | null => {
+  ): { left: number; top: number; right: number; bottom: number; tableLeft: number; tableRight: number } | null => {
     const page = tree.pages[pageIndex];
     const pageEl = paint.getPageElement(pageIndex);
     if (!page || !pageEl) return null;
@@ -3524,6 +3524,8 @@ export function createEditor(
             top: rect.top + cell.y * zoom,
             right: rect.left + (cell.x + cell.width) * zoom,
             bottom: rect.top + (cell.y + cell.height) * zoom,
+            tableLeft: rect.left + table.x * zoom,
+            tableRight: rect.left + (table.x + table.width) * zoom,
           };
         }
       }

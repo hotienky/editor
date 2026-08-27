@@ -11,6 +11,8 @@ export interface TableQuickActionAnchor {
   top: number;
   right: number;
   bottom: number;
+  tableLeft: number;
+  tableRight: number;
 }
 
 export interface TableQuickActionsOptions {
@@ -36,15 +38,15 @@ export interface TableQuickActionsHandle {
 }
 
 const CSS = `
-.ked-table-quick{position:fixed;z-index:1250;display:none;align-items:center;gap:2px;
-  height:34px;padding:3px;background:#fff;border:1px solid #c7d2e3;border-radius:9px;
+.ked-table-quick{position:fixed;z-index:1250;display:none;flex-direction:column;align-items:center;gap:2px;
+  width:36px;padding:3px;background:#fff;border:1px solid #c7d2e3;border-radius:9px;
   box-shadow:0 4px 14px rgba(31,41,55,.18);font:12px Arial,sans-serif;user-select:none;}
 .ked-table-quick.ked-open{display:flex;}
-.ked-table-quick button{height:28px;min-width:30px;padding:0 8px;border:0;border-radius:6px;
+.ked-table-quick button{width:30px;height:28px;min-width:30px;padding:0;border:0;border-radius:6px;
   background:transparent;color:#314158;display:inline-flex;align-items:center;justify-content:center;
   gap:5px;cursor:pointer;white-space:nowrap;}
 .ked-table-quick button:hover,.ked-table-quick button:focus-visible{background:#e8f0fe;color:#0b57d0;outline:none;}
-.ked-table-quick button+button{border-left:1px solid #e2e7ef;border-top-left-radius:0;border-bottom-left-radius:0;}
+.ked-table-quick button+button{border-top:1px solid #e2e7ef;border-top-left-radius:0;border-top-right-radius:0;}
 .ked-table-quick svg{width:16px;height:16px;display:block;}
 .ked-table-quick .ked-table-more{font-size:18px;line-height:1;padding:0 7px;}
 `;
@@ -64,6 +66,7 @@ export function createTableQuickActions(options: TableQuickActionsOptions): Tabl
   let current: TableQuickActionTarget | null = null;
   let currentKey = "";
   let hideTimer: number | null = null;
+  let targetTimer: number | null = null;
 
   const button = (label: string, icon: string, className = ""): HTMLButtonElement => {
     const el = document.createElement("button");
@@ -86,8 +89,13 @@ export function createTableQuickActions(options: TableQuickActionsOptions): Tabl
     if (hideTimer !== null) window.clearTimeout(hideTimer);
     hideTimer = null;
   };
+  const cancelTargetUpdate = (): void => {
+    if (targetTimer !== null) window.clearTimeout(targetTimer);
+    targetTimer = null;
+  };
   const hide = (): void => {
     cancelHide();
+    cancelTargetUpdate();
     current = null;
     currentKey = "";
     root.classList.remove("ked-open");
@@ -97,7 +105,13 @@ export function createTableQuickActions(options: TableQuickActionsOptions): Tabl
     hideTimer = window.setTimeout(hide, 140);
   };
 
-  root.addEventListener("mouseenter", cancelHide);
+  root.addEventListener("mouseenter", () => {
+    cancelHide();
+    // Crossing the row horizontally toward this rail may pass through other
+    // columns. Keep the cell originally hovered instead of retargeting the
+    // column action to whichever cell happened to be crossed last.
+    cancelTargetUpdate();
+  });
   root.addEventListener("mouseleave", scheduleHide);
   // Do not move the editor caret before the action's click fires.
   root.addEventListener("mousedown", (event) => event.preventDefault());
@@ -109,15 +123,21 @@ export function createTableQuickActions(options: TableQuickActionsOptions): Tabl
   });
 
   const place = (anchor: TableQuickActionAnchor): void => {
-    // Prefer the cell's top-right corner. If that would sit under the ribbon or
-    // outside the viewport, flip inside/below and clamp. Controls are screen-size
-    // UI and must never inherit the document zoom.
-    const width = root.offsetWidth || 142;
-    const height = root.offsetHeight || 34;
-    let left = anchor.right - width;
-    let top = anchor.top - height - 6;
-    if (top < 8) top = anchor.top + 6;
-    if (left < 8) left = anchor.left + 6;
+    // Keep the toolbar beside the table and vertically centred on the hovered
+    // row. Reaching it is a horizontal move, so the pointer cannot cross a
+    // neighbouring row; a vertical rail also avoids covering narrow row content.
+    const width = root.offsetWidth || 42;
+    const height = root.offsetHeight || 94;
+    const cellHeight = Math.max(0, anchor.bottom - anchor.top);
+    const roomLeft = anchor.tableLeft - width - 8;
+    const roomRight = window.innerWidth - anchor.tableRight - width - 8;
+    let left = roomLeft >= 8 || roomLeft >= roomRight
+      ? anchor.tableLeft - width - 6
+      : anchor.tableRight + 6;
+    // The first (row) action's centre sits on the hovered row centre. Users can
+    // travel horizontally into the rail; once inside, moving down to column / …
+    // stays over the rail and cannot re-hit another canvas row.
+    let top = anchor.top + cellHeight / 2 - 17;
     left = Math.max(8, Math.min(left, window.innerWidth - width - 8));
     top = Math.max(8, Math.min(top, window.innerHeight - height - 8));
     root.style.left = `${Math.round(left)}px`;
@@ -130,8 +150,22 @@ export function createTableQuickActions(options: TableQuickActionsOptions): Tabl
   return {
     show(target, anchor): void {
       cancelHide();
-      const key = `${target.tableId}:${target.row}:${target.col}`;
-      current = target;
+      // Row actions stay in one screen position while the user moves across the
+      // cells of that row. `current` still tracks the latest column so column
+      // insertion uses the cell actually hovered, without visual jitter.
+      const key = `${target.tableId}:${target.row}`;
+      if (current && key === currentKey && target.col !== current.col) {
+        // A deliberate hover over another column eventually retargets, while a
+        // quick pass toward the rail remains locked to the original column.
+        cancelTargetUpdate();
+        targetTimer = window.setTimeout(() => {
+          current = target;
+          targetTimer = null;
+        }, 180);
+      } else {
+        cancelTargetUpdate();
+        current = target;
+      }
       root.classList.add("ked-open");
       if (key !== currentKey) {
         currentKey = key;

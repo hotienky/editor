@@ -15,7 +15,7 @@ Vì vậy thao tác chèn/xóa hàng hoặc cột, merge/unmerge và undo đều
 ## Thao tác trên giao diện
 
 - Kéo qua nhiều ô để tạo cell selection hình chữ nhật.
-- Di chuột vào một ô để hiện thanh thao tác nhanh ở góc ô: **chèn hàng phía dưới**, **chèn cột bên phải** và nút **…** mở toàn bộ thao tác bảng. Thanh này là DOM overlay kích thước màn hình, không bị phóng/co theo zoom của trang canvas.
+- Di chuột vào một ô để hiện rail thao tác nhanh ngoài mép bảng, căn giữa theo hàng đang trỏ: **chèn hàng phía dưới**, **chèn cột bên phải** và nút **…** mở toàn bộ thao tác bảng. Rail là DOM overlay kích thước màn hình, không che nội dung và không bị phóng/co theo zoom của trang canvas.
 - Bấm dải mỏng phía trái bảng để chọn cả hàng.
 - Bấm dải mỏng phía trên bảng để chọn cả cột.
 - Bấm góc trên-trái của bảng để chọn cả bảng.
