@@ -28,7 +28,16 @@ import { INDENT_STEP_PX, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from "./uiConstants";
  *  the fallback stylesheet — NOT a loaded .docx's own w:docDefaults / Normal. */
 export type DefaultStyleOverrides = EditorTypography;
 
-export type { CustomFontDef, CustomFontFaces, FontsConfig, ResolvedFontsConfig } from "./fonts/customRegistry";
+export type {
+  CustomFontDef,
+  CustomFontFaces,
+  FontAssetLoader,
+  FontAssetRequest,
+  FontManifestSource,
+  FontsConfig,
+  KindyFontManifest,
+  ResolvedFontsConfig,
+} from "./fonts/customRegistry";
 
 /** Ruler band styling (the strip the horizontal + vertical rulers paint). */
 export interface RulerTheme {
@@ -217,6 +226,11 @@ export function resolveFonts(f?: FontsConfig): ResolvedFontsConfig {
   return {
     disableBuiltin: f.disableBuiltin ? [...f.disableBuiltin] : [],
     fonts: f.fonts ? f.fonts.map((d) => ({ ...d, faces: { ...d.faces }, sizing: { ...d.sizing } })) : [],
+    ...(f.baseUrl ? { baseUrl: f.baseUrl } : {}),
+    ...(f.manifests
+      ? { manifests: f.manifests.map((source) => (typeof source === "string" ? { url: source } : { ...source })) }
+      : {}),
+    ...(f.loader ? { loader: f.loader } : {}),
   };
 }
 

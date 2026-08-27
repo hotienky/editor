@@ -160,6 +160,8 @@ export interface PaintScheduler {
   setBandEditMode(band: "header" | "footer" | null): void;
   /** Precomputed highlight rects (geometry.selectionRects). Repaints affected pages. */
   setSelectionRects(rects: Rect[]): void;
+  /** Canvas-native row/column/table selector chrome for a semantic selection. */
+  setTableSelectionHandles(rects: Rect[]): void;
   /** Find-bar match highlights — painted under the selection. */
   setSearchRects(rects: Rect[]): void;
   /** Track-changes + comment overlays (insertion underline, deletion strike,
@@ -348,6 +350,7 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
   const gap = chrome ? theme.pageGapPx : 0;
   let tree: LayoutTree | null = null;
   let selectionRects: Rect[] = [];
+  let tableSelectionHandles: Rect[] = [];
   let searchRects: Rect[] = [];
   let reviewDecos: ReviewDecorations = EMPTY_REVIEW_DECOS;
   let sdtAdorn: { rects: Rect[]; label: string }[] | null = null;
@@ -634,6 +637,16 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
       if (r.pageIndex === page.index) ctx.fillRect(r.x, r.y, r.width, r.height);
     }
     ctx.restore();
+
+    // Semantic table selector chrome. Kept outside the document grid, matching
+    // Word's row/column selectors without changing layout or exported content.
+    ctx.fillStyle = "#1a73e8";
+    for (const r of tableSelectionHandles) {
+      if (r.pageIndex !== page.index) continue;
+      ctx.beginPath();
+      ctx.roundRect(r.x, r.y, r.width, r.height, 2);
+      ctx.fill();
+    }
 
     // 2c. comment highlight bands (under text, author-tinted)
     ctx.globalAlpha = 0.16;
@@ -1342,6 +1355,13 @@ export function createPaintLayer(container: HTMLElement, opts: PaintLayerOptions
     setSelectionRects(rects: Rect[]): void {
       const affected = new Set([...pagesOf(selectionRects), ...pagesOf(rects)]);
       selectionRects = rects;
+      for (const i of affected) if (liveCanvases.has(i)) dirty.add(i);
+      schedule();
+    },
+
+    setTableSelectionHandles(rects: Rect[]): void {
+      const affected = new Set([...pagesOf(tableSelectionHandles), ...pagesOf(rects)]);
+      tableSelectionHandles = rects;
       for (const i of affected) if (liveCanvases.has(i)) dirty.add(i);
       schedule();
     },

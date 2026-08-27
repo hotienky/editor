@@ -12,7 +12,19 @@
 import type { AgentToolsOptions, EditMode, EditorHandle, FieldResolver, Participant, SaveEvent, SaveFormat, SaveHandler, KindyEditorEvent, KindyEditorRuntime, KindyEditorViewOptions } from "./app/runtime";
 import type { ChildContent, ChildDocument, ChildEditorHandle, ChildRenderOptions, FieldResolveRequest, FieldResult } from "./index";
 import type { Document, Fragment, ReviewLayer, UserInfo } from "@kindy/shared";
-import type { CjkConfig, CustomFontDef, CustomFontFaces, DefaultStyleOverrides, EditorBehavior, EditorTheme, FontsConfig } from "./config";
+import type {
+  CjkConfig,
+  CustomFontDef,
+  CustomFontFaces,
+  DefaultStyleOverrides,
+  EditorBehavior,
+  EditorTheme,
+  FontAssetLoader,
+  FontAssetRequest,
+  FontManifestSource,
+  FontsConfig,
+  KindyFontManifest,
+} from "./config";
 import { darkCanvasTheme } from "./config";
 import type { CustomizeRibbon, RibbonActionContext, RibbonApi, RibbonButtonSpec } from "./ribbon";
 import { makeFloatingDialog } from "./ui/floatingDialog";
@@ -22,13 +34,29 @@ import { EditorEvents, type EditorEventsOptions } from "./events/eventHub";
 import type { PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType } from "@kindy/shared";
 import { resolveMessages } from "./i18n";
 import type { MentionPicker, MentionPickerRequest, ReviewAccess, ReviewAction, ReviewActionContext } from "./review/integration";
+import type { TableSelection } from "./editor/state";
+import type { TableAction } from "./editor/commands";
 
 export type { Document, UserInfo, Participant, EditMode, ReviewLayer, Fragment, FieldResolver, FieldResolveRequest, FieldResult, AgentToolsOptions, LoadProgress, KindyEditorViewOptions, SaveEvent, SaveFormat, SaveHandler };
 export type { ChildDocument, ChildContent, ChildRenderOptions, ChildEditorHandle };
-export type { EditorTheme, DefaultStyleOverrides, EditorBehavior, FontsConfig, CjkConfig, CustomFontDef, CustomFontFaces };
+export type {
+  EditorTheme,
+  DefaultStyleOverrides,
+  EditorBehavior,
+  FontsConfig,
+  CjkConfig,
+  CustomFontDef,
+  CustomFontFaces,
+  FontAssetLoader,
+  FontAssetRequest,
+  FontManifestSource,
+  KindyFontManifest,
+};
 export type { CustomizeRibbon, RibbonApi, RibbonButtonSpec, RibbonActionContext, DocSelection };
 export type { PublicEditorEvent, PublicEditorEventDataMap, PublicEditorEventType, EditorEventsOptions };
 export type { MentionPicker, MentionPickerRequest, ReviewAccess, ReviewAction, ReviewActionContext };
+export type { TableSelection, TablePath, TableStoryPath, TableGridPoint } from "./editor/state";
+export type { TableAction } from "./editor/commands";
 export { EditorEvents };
 export { darkCanvasTheme, makeFloatingDialog };
 
@@ -113,7 +141,11 @@ export interface KindyEditorOptions {
    *  Purely a debugging aid — it adds no chrome and runs nothing until the
    *  developer opens it from that tab. Leave off for production embeds. */
   develop?: boolean;
-  /** Supply your OWN fonts, loaded from URLs at runtime. Each custom font needs a
+  /** Supply your OWN fonts, loaded from URLs or versioned CDN manifests at runtime.
+   *  Any number of families can be combined from inline `fonts` and `manifests`;
+   *  relative inline URLs resolve against `baseUrl`. A custom `loader` can add
+   *  authorization headers or signed URLs and is shared by preview + export.
+   *  Each custom font needs a
    *  `family` (stored in the model + shown in the toolbar), per-style face URLs
    *  (`regular` required; bold/italic/boldItalic optional, falling back to regular),
    *  and REQUIRED `sizing` ({ ascent, descent } as fractions of em) so the editor
@@ -398,6 +430,22 @@ export class KindyEditor {
   /** Insert plain text at the caret (replacing any selection). */
   async insertText(text: string): Promise<void> {
     (await this.ready).insertText(text);
+  }
+
+  getTableSelection(): TableSelection | null {
+    return this.handle?.getTableSelection() ?? null;
+  }
+
+  async setTableSelection(selection: TableSelection | null): Promise<void> {
+    (await this.ready).setTableSelection(selection);
+  }
+
+  canExecuteTableAction(action: TableAction): boolean {
+    return this.handle?.canExecuteTableAction(action) ?? false;
+  }
+
+  async executeTableAction(action: TableAction): Promise<boolean> {
+    return (await this.ready).executeTableAction(action);
   }
 
   getDocId(): string | null {

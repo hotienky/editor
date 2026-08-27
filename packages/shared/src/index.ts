@@ -15,6 +15,7 @@ export * from "./model/ops";
 export * from "./model/sdt";
 export * from "./model/math";
 export * from "./model/tableGrid";
+export * from "./model/tableGridMutation";
 
 // Collaboration foundations: unique ids, content-addressed media, document <->
 // snapshot serialization, the change log, and replay.

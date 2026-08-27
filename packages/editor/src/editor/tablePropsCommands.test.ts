@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Document, Paragraph, SectionProps, TableBlock, TableCell } from "@kindy/shared";
-import { applyOp } from "@kindy/shared";
+import { applyOp, buildTableGrid } from "@kindy/shared";
 import {
+  canExecuteTableAction,
   deleteTableColumnCmd,
   deleteTableCmd,
   deleteTableRowCmd,
@@ -143,11 +144,16 @@ describe("table commands from caret and cell selection", () => {
     const table = contractTable();
     const state = selectedCells(table, [2, 5]);
 
-    const del = deleteTableColumnCmd()(state);
-    expect(del?.ops[0]).toMatchObject({ type: "removeTableColumn", colIndex: 5 });
+    // Structural commands now emit one validated setTableStructure transaction;
+    // assert the semantic result instead of coupling this regression to the old
+    // single-column op implementation.
+    const deleted = applyWithUndo(state, deleteTableColumnCmd()).doc;
+    expect(buildTableGrid(tableOf(deleted)).cols).toBe(5);
+    expect((tableOf(deleted).rows[0]!.cells.at(-1)!.blocks[0] as Paragraph).runs[0]!.text).toBe("h4");
 
-    const add = insertTableColumnCmd("right")(state);
-    expect(add?.ops[0]).toMatchObject({ type: "insertTableColumn", colIndex: 6 });
+    const added = applyWithUndo(state, insertTableColumnCmd("right")).doc;
+    expect(buildTableGrid(tableOf(added)).cols).toBe(7);
+    expect((tableOf(added).rows[0]!.cells[5]!.blocks[0] as Paragraph).runs[0]!.text).toBe("h5");
   });
 
   it("inserts a structurally valid six-cell row below a merged summary row", () => {
@@ -163,6 +169,29 @@ describe("table commands from caret and cell selection", () => {
     const { doc } = applyWithUndo(selectedCells(table, [1, 3]), deleteTableRowCmd());
     expect(tableOf(doc).rows).toHaveLength(2);
     expect((tableOf(doc).rows[1]!.cells[0]!.blocks[0] as { runs: { text: string }[] }).runs[0]!.text).toBe("TỔNG");
+  });
+
+  it("repairs a legacy ragged DOCX table before row/column editing", () => {
+    const table: TableBlock = {
+      kind: "table",
+      id: "legacy",
+      revision: 0,
+      rows: [
+        { cells: [cell("a"), cell("b")] },
+        { cells: [cell("c")] },
+      ],
+      colFractions: [0.2, 0.3, 0.5],
+    };
+    const state = caretInCell(table, 1, 0);
+    expect(canExecuteTableAction(state, "insertColumnRight")).toBe(true);
+    expect(canExecuteTableAction(state, "deleteRow")).toBe(true);
+
+    const inserted = applyWithUndo(state, insertTableColumnCmd("right")).doc;
+    expect(buildTableGrid(tableOf(inserted)).cols).toBe(4);
+
+    const rowDeleted = applyWithUndo(state, deleteTableRowCmd()).doc;
+    expect(tableOf(rowDeleted).rows).toHaveLength(1);
+    expect(buildTableGrid(tableOf(rowDeleted)).cols).toBe(3);
   });
 });
 

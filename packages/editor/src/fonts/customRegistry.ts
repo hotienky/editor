@@ -40,6 +40,39 @@ export interface CustomFontDef {
   label?: string;
 }
 
+/** One font catalog hosted by the application or a CDN. Relative face URLs in
+ *  the manifest resolve against `baseUrl`, then the manifest file's directory. */
+export interface FontManifestSource {
+  /** URL of a JSON {@link KindyFontManifest}. Relative URLs resolve against the
+   *  host page URL in a browser. */
+  url: string;
+  /** Optional override for resolving relative face URLs from this manifest. */
+  baseUrl?: string;
+}
+
+/** Versioned JSON format for publishing any number of font families on a CDN. */
+export interface KindyFontManifest {
+  schemaVersion: "1.0";
+  /** Optional face base URL, resolved relative to the manifest URL. */
+  baseUrl?: string;
+  fonts: CustomFontDef[];
+}
+
+/** Request passed to a host-provided font transport. The hook can add auth
+ *  headers, signed URLs, observability or an application cache while keeping the
+ *  editor and export pipeline on the same byte source. */
+export interface FontAssetRequest {
+  kind: "manifest" | "font";
+  url: string;
+  family?: string;
+  style?: FontStyleName;
+}
+
+export type FontAssetLoader = (
+  request: Readonly<FontAssetRequest>,
+  signal: AbortSignal,
+) => Promise<ArrayBuffer | Uint8Array>;
+
 /** Public `fonts` option shape. */
 export interface FontsConfig {
   /** Original family names (e.g. "Calibri") to hide from the toolbar. Hidden
@@ -48,12 +81,26 @@ export interface FontsConfig {
   disableBuiltin?: string[];
   /** Custom fonts to register. */
   fonts?: CustomFontDef[];
+  /** Base URL for relative face URLs declared directly in `fonts`. This is useful
+   *  for a versioned CDN directory such as
+   *  `https://cdn.example.com/kindy-fonts/v1/`. */
+  baseUrl?: string;
+  /** Font catalogs to load before first layout. Manifest failures are isolated:
+   *  built-ins and inline `fonts` continue to work. */
+  manifests?: Array<string | FontManifestSource>;
+  /** Optional transport for both manifests and font files. Omit to use `fetch`.
+   *  The transport runs on the main thread; fetched bytes are passed into the
+   *  export worker, so credentials and functions never cross worker boundaries. */
+  loader?: FontAssetLoader;
 }
 
 /** Fully-populated `fonts` config (no optional arrays) — what the app threads down. */
 export interface ResolvedFontsConfig {
   disableBuiltin: string[];
   fonts: CustomFontDef[];
+  baseUrl?: string;
+  manifests?: FontManifestSource[];
+  loader?: FontAssetLoader;
 }
 
 /** A single fetched custom face's bytes, ready to register with fontkit/pdfkit.

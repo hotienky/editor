@@ -17,6 +17,7 @@ import {
   type CustomFontPayload,
   type ResolvedFontsConfig,
 } from "../fonts/customRegistry";
+import { loadFontAssetBytes } from "../fonts/fontAssets";
 
 export type { ExportFormat, ExportResult, ExportWarning } from "./types";
 
@@ -25,7 +26,6 @@ const IDLE_TERMINATE_MS = 30_000;
 
 // Bound main-thread custom-font fetches so a slow or oversized URL can't stall an
 // export (it blocks Promise.all([resolveImages, resolveFonts])) or balloon memory.
-const FONT_FETCH_TIMEOUT_MS = 15_000;
 const FONT_FETCH_MAX_BYTES = 10 * 1024 * 1024;
 
 interface Pending {
@@ -147,23 +147,14 @@ async function resolveImages(doc: Document): Promise<ImageBytes> {
 async function resolveFonts(cfg: ResolvedFontsConfig | undefined): Promise<CustomFontPayload | undefined> {
   if (!cfg || cfg.fonts.length === 0) return undefined;
   const cache = new Map<string, Promise<Uint8Array | null>>();
-  const fetchBytes = (url: string): Promise<Uint8Array | null> => {
+  const fetchBytes = (url: string, family: string, style: (typeof CUSTOM_FONT_STYLES)[number]): Promise<Uint8Array | null> => {
     let p = cache.get(url);
     if (!p) {
       p = (async () => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), FONT_FETCH_TIMEOUT_MS);
         try {
-          const r = await fetch(url, { signal: controller.signal });
-          if (!r.ok) return null;
-          const declared = Number(r.headers.get("content-length"));
-          if (Number.isFinite(declared) && declared > FONT_FETCH_MAX_BYTES) return null;
-          const bytes = new Uint8Array(await r.arrayBuffer());
-          return bytes.byteLength > FONT_FETCH_MAX_BYTES ? null : bytes;
+          return await loadFontAssetBytes(cfg, { kind: "font", url, family, style }, FONT_FETCH_MAX_BYTES);
         } catch {
           return null; // network error / timeout / abort — drop the face (resolveFonts handles it)
-        } finally {
-          clearTimeout(timer);
         }
       })();
       cache.set(url, p);
@@ -175,7 +166,7 @@ async function resolveFonts(cfg: ResolvedFontsConfig | undefined): Promise<Custo
   await Promise.all(
     cfg.fonts.flatMap((f) =>
       CUSTOM_FONT_STYLES.map(async (style) => {
-        const bytes = await fetchBytes(faceUrlForStyle(f.faces, style));
+        const bytes = await fetchBytes(faceUrlForStyle(f.faces, style), f.family, style);
         if (!bytes) return;
         faces.push({ family: f.family, style, bytes });
         if (style === "Regular") regularOk.add(f.family);

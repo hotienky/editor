@@ -1,16 +1,17 @@
 // Commands: pure (state) -> Transaction | null. The keymap, the IME proxy, and
 // (later) toolbar buttons all dispatch through these.
 
-import type { Block, CellBorder, CellBorders, CharStyle, Container, EquationBlock, FieldDef, FieldSpec, GridSlot, ImageBlock, MathEquation, ParaStyle, Paragraph, Run, RowProps, SdtProps, SdtType, TableBlock, TableCell, TableGrid, TableRow, TableStyle, TocOptions, TocSwitches } from "@kindy/shared";
+import type { Block, CellBorder, CellBorders, CharStyle, EquationBlock, FieldDef, FieldSpec, GridSlot, ImageBlock, MathEquation, ParaStyle, Paragraph, Run, RowProps, SdtProps, SdtType, TableBlock, TableCell, TableGrid, TableRow, TableStyle, TocOptions, TocSwitches } from "@kindy/shared";
 import { bakeTableStyleRows, DEFAULT_TBL_LOOK } from "@kindy/shared";
 import { buildTocParagraphs, buildTocInstruction, buildInstruction, evaluateField } from "@kindy/shared";
 import type { BookmarkRange, DocPosition, DocSelection, GridRect } from "@kindy/shared";
-import { isCollapsed, BAND_CONTAINERS } from "@kindy/shared";
+import { isCollapsed } from "@kindy/shared";
 import type { Container, ImagePropsPatch, Op, SectionGeometry, TablePropsPatch } from "@kindy/shared";
-import { sliceRuns, applyStylePatchToRuns, mapTextInRuns, splitRunsAt, normalizeRuns, containerOf, containerBlocks, containerListOf, locateImage, locateEquation, freshId } from "@kindy/shared";
+import { sliceRuns, applyStylePatchToRuns, mapTextInRuns, splitRunsAt, normalizeRuns, containerOf, containerBlocks, locateImage, locateEquation, freshId } from "@kindy/shared";
 import { inSdt, innermostSdtId, pushSdt, removeSdt, ancestryThrough } from "@kindy/shared";
-import { buildTableGrid, cellsInRect, gridOriginOfCell, mergeRows, normalizeRect, rebuildRows, unmergeRows } from "@kindy/shared";
+import { buildTableGrid, gridOriginOfCell, isRepairableTableGrid, normalizeRect, rebuildRows, repairTableGrid, tableGridMutations, validateTableGrid } from "@kindy/shared";
 import type { CellSelection } from "./state";
+import { findTablePathById, tableTargetResolver } from "./tableTargetResolver";
 import {
   blockById,
   blockIndexOf,
@@ -1911,51 +1912,54 @@ interface CellContext {
   grid: TableGrid;
 }
 
-function cellContext(state: EditorState): CellContext | null {
-  // A live rectangular selection wins over the stale text caret retained while
-  // dragging across cells. Previously the stale caret made Delete/Insert operate
-  // on the wrong cell, or silently return null when no caret existed.
-  const cs = state.cellSelection;
-  if (cs) {
-    const found = findTableById(state.doc, cs.tableId);
-    if (!found) return null;
-    const grid = buildTableGrid(found.table);
-    if (grid.rows === 0 || grid.cols === 0) return null;
-    const gridRow = Math.max(0, Math.min(grid.rows - 1, cs.focus.row));
-    const gridCol = Math.max(0, Math.min(grid.cols - 1, cs.focus.col));
-    const slot = grid.slots[gridRow]?.[gridCol];
-    if (!slot) return null;
-    const bi = containerListOf(state.doc, found.where).findIndex((b) => b.id === found.table.id);
-    if (bi < 0) return null;
-    return {
-      table: found.table,
-      where: found.where,
-      bi,
-      ri: slot.ri,
-      ci: slot.ci,
-      gridRow,
-      gridCol,
-      grid,
-    };
-  }
+export type TableAction =
+  | "insertRowAbove"
+  | "insertRowBelow"
+  | "insertColumnLeft"
+  | "insertColumnRight"
+  | "deleteRow"
+  | "deleteColumn"
+  | "deleteTable"
+  | "mergeCells"
+  | "unmergeCell";
 
-  const sel = state.selection;
-  if (!sel) return null;
-  const loc = locateParagraph(state.doc, sel.focus.blockId);
-  if (loc?.kind !== "cell") return null;
-  const table = containerBlocks(state.doc, loc.where)[loc.bi] as TableBlock;
-  const grid = buildTableGrid(table);
-  const origin = gridOriginOfCell(grid, loc.ri, loc.ci);
-  if (!origin) return null;
+/** Pure capability query shared by the ribbon and context menu. It intentionally
+ * uses the same resolver and validator as the command implementation, avoiding
+ * controls that look enabled but later return a silent null transaction. */
+export function canExecuteTableAction(state: EditorState, action: TableAction): boolean {
+  const target = tableTargetResolver.resolve(state);
+  if (!target?.structuralOpsSupported) return false;
+  if (action === "deleteTable") return true;
+  const validation = validateTableGrid(target.table);
+  if (!validation.valid && !isRepairableTableGrid(validation)) return false;
+  // Merge/unmerge must never infer geometry across a ragged legacy grid. Row and
+  // column operations repair those empty slots first; merge remains strict.
+  if (!validation.valid && (action === "mergeCells" || action === "unmergeCell")) return false;
+  if (action === "mergeCells") return target.rect.r0 !== target.rect.r1 || target.rect.c0 !== target.rect.c1;
+  if (action === "unmergeCell") {
+    const slot = target.grid.slots[target.rect.r0]?.[target.rect.c0];
+    return !!slot && (slot.rowSpan > 1 || slot.colSpan > 1);
+  }
+  return true;
+}
+
+function cellContext(state: EditorState): CellContext | null {
+  const target = tableTargetResolver.resolve(state);
+  // Shared operations still address top-level tables by ID. The resolver already
+  // understands nested paths, so the UI can report/disable those commands rather
+  // than accidentally editing the outer table.
+  if (!target?.structuralOpsSupported) return null;
+  const slot = target.grid.slots[target.active.row]?.[target.active.col];
+  if (!slot) return null;
   return {
-    table,
-    where: loc.where,
-    bi: loc.bi,
-    ri: loc.ri,
-    ci: loc.ci,
-    gridRow: origin.row,
-    gridCol: origin.col,
-    grid,
+    table: target.table,
+    where: target.where,
+    bi: target.topLevelIndex,
+    ri: slot.ri,
+    ci: slot.ci,
+    gridRow: target.active.row,
+    gridCol: target.active.col,
+    grid: target.grid,
   };
 }
 
@@ -2030,62 +2034,63 @@ function emptyCellPara(proto: Paragraph | undefined): Paragraph {
   };
 }
 
+/** Normalize legacy DOCX table shapes immediately before a structural edit.
+ * Modern imports are already valid and pass through by reference. */
+function tableForStructuralEdit(table: TableBlock): TableBlock {
+  const validation = validateTableGrid(table);
+  if (validation.valid) return table;
+  return repairTableGrid(table, (_row, _col, proto) => ({
+    id: freshBlockId(),
+    blocks: [emptyCellPara(firstCellPara(proto))],
+    ...cloneCellFormat(proto),
+  }));
+}
+
 export function insertTableRowCmd(side: "above" | "below"): Command {
   return (state) => {
-    const ctx = cellContext(state);
-    if (!ctx) return null;
-    const selectedSlot = ctx.grid.slots[ctx.gridRow]?.[ctx.gridCol];
-    if (!selectedSlot) return null;
-    const protoRowIndex = ctx.gridRow;
-    const row: TableRow = {
-      // Build one unmerged cell per logical grid column. Copying the physical
-      // cells of a row with a 5-column merge used to create a malformed 2-column
-      // row in a 6-column table.
-      cells: Array.from({ length: ctx.grid.cols }, (_, col) => {
-        const proto = ctx.grid.slots[protoRowIndex]?.[col]?.cell;
-        return {
-          id: freshBlockId(),
-          blocks: [emptyCellPara(firstCellPara(proto))],
-          ...cloneCellFormat(proto),
-        };
-      }),
-    };
-    const rowIndex = side === "above"
-      ? selectedSlot.originRow
-      : selectedSlot.originRow + selectedSlot.rowSpan;
-    const caretCell = row.cells[Math.min(ctx.gridCol, row.cells.length - 1)]!;
-    return tr(
-      [{ type: "insertTableRow", tableId: ctx.table.id, rowIndex, row }],
-      caret(caretCell.blocks[0]!.id, 0),
-      "command",
-    );
+    const target = tableTargetResolver.resolve(state);
+    if (!target?.structuralOpsSupported) return null;
+    const count = target.rect.r1 - target.rect.r0 + 1;
+    const rowIndex = side === "above" ? target.rect.r0 : target.rect.r1 + 1;
+    try {
+      const source = tableForStructuralEdit(target.table);
+      const result = tableGridMutations.insertRows(source, rowIndex, count, (_row, _col, proto) => ({
+        id: freshBlockId(),
+        blocks: [emptyCellPara(firstCellPara(proto))],
+        ...cloneCellFormat(proto),
+      }));
+      const next = { ...source, rows: result.rows, ...(result.colFractions ? { colFractions: result.colFractions } : {}) };
+      const grid = buildTableGrid(next);
+      const slot = grid.slots[rowIndex]?.[Math.min(target.active.col, grid.cols - 1)];
+      const paragraph = firstCellPara(slot?.cell);
+      return tr([structureOp(target.table, result.rows, result.colFractions)], paragraph ? caret(paragraph.id, 0) : state.selection, "command");
+    } catch {
+      return null;
+    }
   };
 }
 
 export function insertTableColumnCmd(side: "left" | "right"): Command {
   return (state) => {
-    const ctx = cellContext(state);
-    if (!ctx) return null;
-    const selectedSlot = ctx.grid.slots[ctx.gridRow]?.[ctx.gridCol];
-    if (!selectedSlot) return null;
-    const colIndex = side === "left"
-      ? selectedSlot.originCol
-      : selectedSlot.originCol + selectedSlot.colSpan;
-    const cells = ctx.table.rows.map((_row, ri) => {
-      const sampleCol = Math.max(0, Math.min(ctx.grid.cols - 1, ctx.gridCol));
-      const proto = ctx.grid.slots[ri]?.[sampleCol]?.cell;
-      return {
+    const target = tableTargetResolver.resolve(state);
+    if (!target?.structuralOpsSupported) return null;
+    const count = target.rect.c1 - target.rect.c0 + 1;
+    const colIndex = side === "left" ? target.rect.c0 : target.rect.c1 + 1;
+    try {
+      const source = tableForStructuralEdit(target.table);
+      const result = tableGridMutations.insertColumns(source, colIndex, count, (_row, _col, proto) => ({
         id: freshBlockId(),
         blocks: [emptyCellPara(firstCellPara(proto))],
         ...cloneCellFormat(proto),
-      };
-    });
-    const caretCell = cells[Math.min(selectedSlot.originRow, cells.length - 1)]!;
-    return tr(
-      [{ type: "insertTableColumn", tableId: ctx.table.id, colIndex, cells }],
-      caret(caretCell.blocks[0]!.id, 0),
-      "command",
-    );
+      }));
+      const next = { ...source, rows: result.rows, ...(result.colFractions ? { colFractions: result.colFractions } : {}) };
+      const grid = buildTableGrid(next);
+      const slot = grid.slots[Math.min(target.active.row, grid.rows - 1)]?.[colIndex];
+      const paragraph = firstCellPara(slot?.cell);
+      return tr([structureOp(target.table, result.rows, result.colFractions)], paragraph ? caret(paragraph.id, 0) : state.selection, "command");
+    } catch {
+      return null;
+    }
   };
 }
 
@@ -2099,49 +2104,49 @@ function caretAfterTable(state: EditorState, where: Container, bi: number): DocS
 
 export function deleteTableRowCmd(): Command {
   return (state) => {
-    const ctx = cellContext(state);
-    if (!ctx) return null;
-    if (ctx.table.rows.length <= 1) return deleteTableCmd()(state);
-    const rowIndex = ctx.gridRow;
-    const targetGridRow = rowIndex === 0 ? 1 : rowIndex - 1;
-    const targetSlot = ctx.grid.slots[targetGridRow]?.[Math.min(ctx.gridCol, ctx.grid.cols - 1)];
-    const targetRow = ctx.table.rows[targetGridRow]!;
-    const caretPara = firstCellPara(targetSlot?.cell) ??
-      firstCellPara(targetRow.cells.find((c) => firstCellPara(c)));
-    return tr(
-      [{ type: "removeTableRow", tableId: ctx.table.id, rowIndex }],
-      caretPara ? caret(caretPara.id, 0) : state.selection,
-      "command",
-    );
+    const target = tableTargetResolver.resolve(state);
+    if (!target?.structuralOpsSupported) return null;
+    if (target.rect.r1 - target.rect.r0 + 1 >= target.table.rows.length) return deleteTableCmd()(state);
+    try {
+      const source = tableForStructuralEdit(target.table);
+      const result = tableGridMutations.deleteRows(source, target.rect.r0, target.rect.r1);
+      const next = { ...source, rows: result.rows, ...(result.colFractions ? { colFractions: result.colFractions } : {}) };
+      const grid = buildTableGrid(next);
+      const caretRow = Math.min(target.rect.r0, grid.rows - 1);
+      const slot = grid.slots[caretRow]?.[Math.min(target.active.col, grid.cols - 1)];
+      const paragraph = firstCellPara(slot?.cell);
+      return tr([structureOp(target.table, result.rows, result.colFractions)], paragraph ? caret(paragraph.id, 0) : state.selection, "command");
+    } catch {
+      return null;
+    }
   };
 }
 
 export function deleteTableColumnCmd(): Command {
   return (state) => {
-    const ctx = cellContext(state);
-    if (!ctx) return null;
-    const colCount = ctx.grid.cols;
-    if (colCount <= 1) return deleteTableCmd()(state);
-    const colIndex = ctx.gridCol;
-    const targetGridCol = colIndex === 0 ? 1 : colIndex - 1;
-    const targetSlot = ctx.grid.slots[ctx.gridRow]?.[targetGridCol];
-    const caretPara = firstCellPara(targetSlot?.cell);
-    return tr(
-      [{ type: "removeTableColumn", tableId: ctx.table.id, colIndex }],
-      caretPara ? caret(caretPara.id, 0) : state.selection,
-      "command",
-    );
+    const target = tableTargetResolver.resolve(state);
+    if (!target?.structuralOpsSupported) return null;
+    if (target.rect.c1 - target.rect.c0 + 1 >= target.grid.cols) return deleteTableCmd()(state);
+    try {
+      const source = tableForStructuralEdit(target.table);
+      const result = tableGridMutations.deleteColumns(source, target.rect.c0, target.rect.c1);
+      const next = { ...source, rows: result.rows, ...(result.colFractions ? { colFractions: result.colFractions } : {}) };
+      const grid = buildTableGrid(next);
+      const caretCol = Math.min(target.rect.c0, grid.cols - 1);
+      const slot = grid.slots[Math.min(target.active.row, grid.rows - 1)]?.[caretCol];
+      const paragraph = firstCellPara(slot?.cell);
+      return tr([structureOp(target.table, result.rows, result.colFractions)], paragraph ? caret(paragraph.id, 0) : state.selection, "command");
+    } catch {
+      return null;
+    }
   };
 }
 
 /** Find a body- or band-level table by id (cell selections are body-only today,
  *  but a table can also live in a header/footer story). */
 export function findTableById(doc: EditorState["doc"], tableId: string): { table: TableBlock; where: Container } | null {
-  for (const where of ["body", ...BAND_CONTAINERS] as const) {
-    const t = containerListOf(doc, where).find((b): b is TableBlock => b.kind === "table" && b.id === tableId);
-    if (t) return { table: t, where };
-  }
-  return null;
+  const found = findTablePathById(doc, tableId);
+  return found ? { table: found.table, where: found.where } : null;
 }
 
 /** Resolve a rectangular cell range to act on: an explicit `override` (the modal
@@ -2149,23 +2154,8 @@ export function findTableById(doc: EditorState["doc"], tableId: string): { table
  *  text selection straddling two cells of the same table is the rectangle
  *  between them. Returns grid-space coordinates. */
 function cellRangeFromState(state: EditorState, override?: CellSelection | null): { table: TableBlock; rect: GridRect } | null {
-  const cs = override ?? state.cellSelection;
-  if (cs) {
-    const found = findTableById(state.doc, cs.tableId);
-    if (!found) return null;
-    return { table: found.table, rect: { r0: cs.anchor.row, c0: cs.anchor.col, r1: cs.focus.row, c1: cs.focus.col } };
-  }
-  const sel = state.selection;
-  if (!sel) return null;
-  const a = locateParagraph(state.doc, sel.anchor.blockId);
-  const f = locateParagraph(state.doc, sel.focus.blockId);
-  if (a?.kind !== "cell" || f?.kind !== "cell" || a.where !== f.where || a.bi !== f.bi) return null;
-  const table = containerBlocks(state.doc, a.where)[a.bi] as TableBlock;
-  const grid = buildTableGrid(table);
-  const oa = gridOriginOfCell(grid, a.ri, a.ci);
-  const of = gridOriginOfCell(grid, f.ri, f.ci);
-  if (!oa || !of) return null;
-  return { table, rect: { r0: oa.row, c0: oa.col, r1: of.row, c1: of.col } };
+  const target = tableTargetResolver.resolve(override ? { ...state, tableSelection: null, cellSelection: override } : state);
+  return target ? { table: target.table, rect: target.rect } : null;
 }
 
 /** A block is "blank" if it's an empty paragraph. Used to avoid stacking a pile
@@ -2186,52 +2176,38 @@ function mergedBlocks(cells: TableCell[]): Block[] {
  *  Emitted as one setTableStructure op (multiple rows change), invertible. */
 export function mergeCellsCmd(): Command {
   return (state) => {
-    const range = cellRangeFromState(state);
-    if (!range) return null;
-    const grid = buildTableGrid(range.table);
-    const rect = normalizeRect(grid, range.rect);
-    if (rect.r0 === rect.r1 && rect.c0 === rect.c1) return null; // single cell — nothing to merge
-    const topLeft = grid.slots[rect.r0]![rect.c0]!.cell;
-    const colSpan = rect.c1 - rect.c0 + 1;
-    const rowSpan = rect.r1 - rect.r0 + 1;
-    const merged: TableCell = {
-      id: topLeft.id,
-      blocks: mergedBlocks(cellsInRect(grid, rect).map((s) => s.cell)),
-      ...(colSpan > 1 ? { colSpan } : {}),
-      ...(rowSpan > 1 ? { rowSpan } : {}),
-      ...(topLeft.shading !== undefined ? { shading: topLeft.shading } : {}),
-      ...(topLeft.borders !== undefined ? { borders: topLeft.borders } : {}),
-      ...(topLeft.margin !== undefined ? { margin: topLeft.margin } : {}),
-    };
-    const rows = mergeRows(grid, rect, merged);
-    const firstPara = firstCellPara(merged);
-    return tr(
-      [structureOp(range.table, rows)],
-      firstPara ? caret(firstPara.id, 0) : null,
-      "command",
-    );
+    const target = tableTargetResolver.resolve(state);
+    if (!target?.structuralOpsSupported || (target.rect.r0 === target.rect.r1 && target.rect.c0 === target.rect.c1)) return null;
+    try {
+      let mergedCell: TableCell | undefined;
+      const result = tableGridMutations.merge(target.table, target.rect, (cells) => {
+        const topLeft = cells[0]!;
+        mergedCell = {
+          id: topLeft.id,
+          blocks: mergedBlocks(cells),
+          ...(topLeft.shading !== undefined ? { shading: topLeft.shading } : {}),
+          ...(topLeft.borders !== undefined ? { borders: topLeft.borders } : {}),
+          ...(topLeft.margin !== undefined ? { margin: topLeft.margin } : {}),
+          ...(topLeft.vAlign !== undefined ? { vAlign: topLeft.vAlign } : {}),
+          ...(topLeft.textDirection !== undefined ? { textDirection: topLeft.textDirection } : {}),
+        };
+        return mergedCell;
+      });
+      const paragraph = firstCellPara(mergedCell);
+      return tr([structureOp(target.table, result.rows, result.colFractions)], paragraph ? caret(paragraph.id, 0) : null, "command");
+    } catch {
+      return null;
+    }
   };
 }
 
 /** The cell to unmerge: the top-left of an active cell selection, else the cell
  *  containing the caret. */
 function unmergeTarget(state: EditorState): { table: TableBlock; row: number; col: number; cell: TableCell } | null {
-  const cs = state.cellSelection;
-  if (cs) {
-    const found = findTableById(state.doc, cs.tableId);
-    if (!found) return null;
-    const grid = buildTableGrid(found.table);
-    const rect = normalizeRect(grid, { r0: cs.anchor.row, c0: cs.anchor.col, r1: cs.focus.row, c1: cs.focus.col });
-    const slot = grid.slots[rect.r0]?.[rect.c0];
-    if (!slot) return null;
-    return { table: found.table, row: slot.originRow, col: slot.originCol, cell: slot.cell };
-  }
-  const ctx = cellContext(state);
-  if (!ctx) return null;
-  const grid = buildTableGrid(ctx.table);
-  const origin = gridOriginOfCell(grid, ctx.ri, ctx.ci);
-  if (!origin) return null;
-  return { table: ctx.table, row: origin.row, col: origin.col, cell: ctx.table.rows[ctx.ri]!.cells[ctx.ci]! };
+  const target = tableTargetResolver.resolve(state);
+  if (!target?.structuralOpsSupported) return null;
+  const slot = target.grid.slots[target.rect.r0]?.[target.rect.c0];
+  return slot ? { table: target.table, row: slot.originRow, col: slot.originCol, cell: slot.cell } : null;
 }
 
 /** Split a merged cell back into a 1x1 grid of cells (content stays in the
@@ -2243,34 +2219,25 @@ export function unmergeCellCmd(): Command {
     if (!target) return null;
     const { table, row, col, cell } = target;
     if ((cell.colSpan ?? 1) <= 1 && (cell.rowSpan ?? 1) <= 1) return null;
-    const grid = buildTableGrid(table);
-    const topLeft: TableCell = {
-      id: cell.id,
-      blocks: cell.blocks,
-      ...(cell.shading !== undefined ? { shading: cell.shading } : {}),
-      ...(cell.borders !== undefined ? { borders: cell.borders } : {}),
-      ...(cell.margin !== undefined ? { margin: cell.margin } : {}),
-    };
-    const makeEmpty = (): TableCell => ({
-      id: freshBlockId(),
-      blocks: [emptyCellPara(firstCellPara(cell))],
-      ...(cell.margin !== undefined ? { margin: cell.margin } : {}),
-    });
-    const rows = unmergeRows(grid, row, col, topLeft, makeEmpty);
-    const caretPara = firstCellPara(cell);
-    return tr(
-      [structureOp(table, rows)],
-      caretPara ? caret(caretPara.id, 0) : null,
-      "command",
-    );
+    try {
+      const result = tableGridMutations.unmerge(table, row, col, (_row, _col, proto) => ({
+        id: freshBlockId(),
+        blocks: [emptyCellPara(firstCellPara(proto))],
+        ...cloneCellFormat(proto),
+      }));
+      const caretPara = firstCellPara(cell);
+      return tr([structureOp(table, result.rows, result.colFractions)], caretPara ? caret(caretPara.id, 0) : null, "command");
+    } catch {
+      return null;
+    }
   };
 }
 
 /** A setTableStructure op preserving the table's column fractions (cell merges
  *  and border edits never change the grid-column count). */
-function structureOp(table: TableBlock, rows: TableRow[]): Op {
-  return table.colFractions
-    ? { type: "setTableStructure", tableId: table.id, rows, colFractions: table.colFractions }
+function structureOp(table: TableBlock, rows: TableRow[], colFractions = table.colFractions): Op {
+  return colFractions
+    ? { type: "setTableStructure", tableId: table.id, rows, colFractions }
     : { type: "setTableStructure", tableId: table.id, rows };
 }
 
@@ -2358,11 +2325,11 @@ export function setCellsShadingCmd(fill: string | null, range?: CellSelection | 
 
 export function deleteTableCmd(): Command {
   return (state) => {
-    const ctx = cellContext(state);
-    if (!ctx) return null;
+    const target = tableTargetResolver.resolve(state);
+    if (!target?.structuralOpsSupported) return null;
     return tr(
-      [{ type: "removeBlock", blockId: ctx.table.id }],
-      caretAfterTable(state, ctx.where, ctx.bi),
+      [{ type: "removeBlock", blockId: target.table.id }],
+      caretAfterTable(state, target.where, target.topLevelIndex),
       "command",
     );
   };

@@ -1031,6 +1031,47 @@ export interface CellHit {
   col: number;
 }
 
+export type TableSelectionHandleHit =
+  | { kind: "table"; tableId: string }
+  | { kind: "row"; tableId: string; index: number }
+  | { kind: "column"; tableId: string; index: number };
+
+/** Word-style row/column/table selector strips just outside the table grid. The
+ * strips are document-space geometry (therefore zoom correctly with the page),
+ * not DOM controls that drift when the canvas is scaled. */
+export function hitTestTableSelectionHandle(
+  tree: LayoutTree,
+  pageIndex: number,
+  x: number,
+  y: number,
+  handleSize = 10,
+): TableSelectionHandleHit | null {
+  const page = tree.pages[pageIndex];
+  if (!page) return null;
+  for (const block of page.blocks) {
+    const table = block.table;
+    if (!table) continue;
+    const inLeftStrip = x >= table.x - handleSize && x < table.x;
+    const inTopStrip = y >= table.y - handleSize && y < table.y;
+    if (inLeftStrip && inTopStrip) return { kind: "table", tableId: block.blockId };
+    if (inLeftStrip && y >= table.y && y < table.y + table.height) {
+      const local = table.rows.findIndex((row) => y >= row.y && y < row.y + row.height);
+      if (local >= 0) return { kind: "row", tableId: block.blockId, index: block.firstLineIndex + local };
+    }
+    if (inTopStrip && x >= table.x && x < table.x + table.width) {
+      let offset = x - table.x;
+      let visualCol = 0;
+      for (; visualCol < table.colWidths.length - 1; visualCol++) {
+        if (offset < table.colWidths[visualCol]!) break;
+        offset -= table.colWidths[visualCol]!;
+      }
+      const index = table.bidiVisual ? table.colWidths.length - 1 - visualCol : visualCol;
+      return { kind: "column", tableId: block.blockId, index };
+    }
+  }
+  return null;
+}
+
 export function hitTestCell(tree: LayoutTree, pageIndex: number, x: number, y: number): CellHit | null {
   const page = tree.pages[pageIndex];
   if (!page) return null;

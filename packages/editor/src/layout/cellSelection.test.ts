@@ -4,7 +4,7 @@ import "./test-canvas-setup";
 import { describe, it, expect } from "vitest";
 import type { Block, CharStyle, Document, ParaStyle, Paragraph, SectionProps, TableBlock, TableCell } from "@kindy/shared";
 import { createLayoutEngine } from "./engine";
-import { cellRangeRects, hitTest, hitTestCell } from "./geometry";
+import { cellRangeRects, hitTest, hitTestCell, hitTestTableSelectionHandle } from "./geometry";
 import type { PlacedBlock } from "./layoutTree";
 
 const CHAR: CharStyle = { fontFamily: "Georgia, serif", fontSizePx: 16, bold: false, italic: false, underline: false, strikethrough: false, color: "#000" };
@@ -86,6 +86,18 @@ describe("hitTestCell", () => {
     const row1 = pt.rows[1]!;
     const x = pt.x + pt.colWidths[0]! + pt.colWidths[1]! / 2;
     expect(hitTestCell(tree, page, x, row1.y + row1.height / 2)).toEqual({ tableId: "tbl", row: 1, col: 1 });
+  });
+});
+
+describe("hitTestTableSelectionHandle", () => {
+  it("maps the outside strips to table, row and column semantic targets", () => {
+    const t = table([[cell("a"), cell("b")], [cell("c"), cell("d")]]);
+    const tree = layout(doc([t]));
+    const { page, pb } = placedTable(tree, "tbl");
+    const placed = pb.table!;
+    expect(hitTestTableSelectionHandle(tree, page, placed.x - 5, placed.y - 5)).toEqual({ kind: "table", tableId: "tbl" });
+    expect(hitTestTableSelectionHandle(tree, page, placed.x - 5, placed.rows[1]!.y + placed.rows[1]!.height / 2)).toEqual({ kind: "row", tableId: "tbl", index: 1 });
+    expect(hitTestTableSelectionHandle(tree, page, placed.x + placed.colWidths[0]! + placed.colWidths[1]! / 2, placed.y - 5)).toEqual({ kind: "column", tableId: "tbl", index: 1 });
   });
 });
 

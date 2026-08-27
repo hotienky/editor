@@ -5,6 +5,8 @@
 
 import type { DocSelection, Document, EditorEventDetail, Fragment, PublicEditorEvent, ReviewLayer, UserInfo } from "@kindy/shared";
 import type { ChildDocument, EditMode, FieldResolver } from "../index";
+import type { TableSelection } from "../editor/state";
+import type { TableAction } from "../editor/commands";
 import type { ExportWarning } from "../export/exportDocument";
 import type { CjkConfig, DefaultStyleOverrides, EditorBehavior, EditorTheme, FontsConfig } from "../config";
 import type { CustomizeRibbon } from "../ribbon";
@@ -142,6 +144,11 @@ export interface EditorHandle {
   getSelection(): DocSelection | null;
   /** Insert plain text at the caret, replacing any selection. */
   insertText(text: string): void;
+  /** Current semantic table selection, if a cell/row/column/table is selected. */
+  getTableSelection(): TableSelection | null;
+  setTableSelection(selection: TableSelection | null): void;
+  canExecuteTableAction(action: TableAction): boolean;
+  executeTableAction(action: TableAction): boolean;
   // ---- review layer (track changes + comments) ----------------------------
   getMode(): EditMode;
   setMode(mode: EditMode): boolean;

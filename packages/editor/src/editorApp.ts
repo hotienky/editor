@@ -52,6 +52,7 @@ import { ARABIC_FONT_FAMILY, CJK_FONT_FAMILY, HEBREW_FONT_FAMILY } from "./fonts
 import { fontsProgress } from "./app/loadProgress";
 import { toolbarFonts } from "./fonts/clones";
 import { createFontRegistry, normalizeFamily } from "./fonts/customRegistry";
+import { resolveFontSources } from "./fonts/fontAssets";
 import type { EditorHandle, KindyEditorRuntime } from "./app/runtime";
 import { buildShell } from "./app/shell";
 import { ensureKindyEditorStyles } from "./ui/styles";
@@ -151,7 +152,7 @@ export async function mountEditorApp(runtime: KindyEditorRuntime): Promise<void>
   // same font strings the paint layer draws with, so a late font swap would desync
   // them. The editor renders the bundled metric clones (Calibri→Carlito, …) plus any
   // custom fonts, so layout matches the PDF/DOCX exporters exactly.
-  const config = resolveConfig({
+  const baseConfig = resolveConfig({
     ...(runtime.theme ? { theme: runtime.theme } : {}),
     ...(runtime.overrideDefaultStyles ? { overrideDefaultStyles: runtime.overrideDefaultStyles } : {}),
     ...(runtime.behavior ? { behavior: runtime.behavior } : {}),
@@ -159,6 +160,10 @@ export async function mountEditorApp(runtime: KindyEditorRuntime): Promise<void>
     ...(runtime.cjk ? { cjk: runtime.cjk } : {}),
     ...(runtime.develop !== undefined ? { develop: runtime.develop } : {}),
   });
+  // Resolve external/CDN catalogs before the first layout. The returned config
+  // contains absolute face URLs and the host loader, and is the SAME object later
+  // used to fetch bytes for PDF/DOCX export.
+  const config = { ...baseConfig, fonts: await resolveFontSources(baseConfig.fonts) };
   // Resolve the i18n message catalog. Falls back to English when the runtime
   // doesn't carry a catalog (legacy test harnesses, direct mountEditorApp calls).
   const t = runtime.messages ?? defaultMessages;
@@ -2265,17 +2270,18 @@ if (toolbar) {
   // ===== Table tab (acts on the cell containing the caret) =================
   const tableTab = tab("table", t.ribbon.table);
   group(tableTab, t.table.groupRowsCols);
-  const inTable = (f: CurrentFormat): boolean => f.inTable;
-  enable(btn(ICONS.rowAbove, t.table.insertRowAbove, () => editor.dispatch(insertTableRowCmd("above"))), inTable, t.table.placeCaretInTable);
-  enable(btn(ICONS.rowBelow, t.table.insertRowBelow, () => editor.dispatch(insertTableRowCmd("below"))), inTable, t.table.placeCaretInTable);
-  enable(btn(ICONS.colLeft, t.table.insertColLeft, () => editor.dispatch(insertTableColumnCmd("left"))), inTable, t.table.placeCaretInTable);
-  enable(btn(ICONS.colRight, t.table.insertColRight, () => editor.dispatch(insertTableColumnCmd("right"))), inTable, t.table.placeCaretInTable);
-  enable(btn(ICONS.deleteRow, t.table.deleteRow, () => editor.dispatch(deleteTableRowCmd())), inTable, t.table.placeCaretInTable);
-  enable(btn(ICONS.deleteCol, t.table.deleteCol, () => editor.dispatch(deleteTableColumnCmd())), inTable, t.table.placeCaretInTable);
-  enable(btn(ICONS.deleteTable, t.table.deleteTable, () => editor.dispatch(deleteTableCmd())), inTable, t.table.placeCaretInTable);
+  const canTable = (action: Parameters<typeof editor.canExecuteTableAction>[0]) => (_f: CurrentFormat): boolean =>
+    editor.canExecuteTableAction(action);
+  enable(btn(ICONS.rowAbove, t.table.insertRowAbove, () => editor.dispatch(insertTableRowCmd("above"))), canTable("insertRowAbove"), t.table.placeCaretInTable);
+  enable(btn(ICONS.rowBelow, t.table.insertRowBelow, () => editor.dispatch(insertTableRowCmd("below"))), canTable("insertRowBelow"), t.table.placeCaretInTable);
+  enable(btn(ICONS.colLeft, t.table.insertColLeft, () => editor.dispatch(insertTableColumnCmd("left"))), canTable("insertColumnLeft"), t.table.placeCaretInTable);
+  enable(btn(ICONS.colRight, t.table.insertColRight, () => editor.dispatch(insertTableColumnCmd("right"))), canTable("insertColumnRight"), t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteRow, t.table.deleteRow, () => editor.dispatch(deleteTableRowCmd())), canTable("deleteRow"), t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteCol, t.table.deleteCol, () => editor.dispatch(deleteTableColumnCmd())), canTable("deleteColumn"), t.table.placeCaretInTable);
+  enable(btn(ICONS.deleteTable, t.table.deleteTable, () => editor.dispatch(deleteTableCmd())), canTable("deleteTable"), t.table.placeCaretInTable);
   group(tableTab, t.table.groupMerge);
-  enable(btn(ICONS.mergeCells, t.table.mergeCells, () => editor.dispatch(mergeCellsCmd())), inTable, t.table.placeCaretInTable);
-  enable(btn(ICONS.unmergeCells, t.table.unmergeCells, () => editor.dispatch(unmergeCellCmd())), inTable, t.table.placeCaretInTable);
+  enable(btn(ICONS.mergeCells, t.table.mergeCells, () => editor.dispatch(mergeCellsCmd())), canTable("mergeCells"), t.table.placeCaretInTable);
+  enable(btn(ICONS.unmergeCells, t.table.unmergeCells, () => editor.dispatch(unmergeCellCmd())), canTable("unmergeCell"), t.table.placeCaretInTable);
   group(tableTab, t.table.groupSize);
   const autofitBtn = txtBtn("AutoFit", t.table.autofitTooltip, () => {}, "", true);
   autofitBtn.addEventListener("click", () => {
@@ -3995,6 +4001,24 @@ const handle: EditorHandle = {
   getShareLink: () => shareLink,
   getSelection: () => editor.getSelection(),
   insertText: (text) => editor.dispatch(insertTextCmd(text)),
+  getTableSelection: () => editor.getTableSelection(),
+  setTableSelection: (selection) => editor.setTableSelection(selection),
+  canExecuteTableAction: (action) => editor.canExecuteTableAction(action),
+  executeTableAction: (action) => {
+    if (!editor.canExecuteTableAction(action)) return false;
+    const commands = {
+      insertRowAbove: insertTableRowCmd("above"),
+      insertRowBelow: insertTableRowCmd("below"),
+      insertColumnLeft: insertTableColumnCmd("left"),
+      insertColumnRight: insertTableColumnCmd("right"),
+      deleteRow: deleteTableRowCmd(),
+      deleteColumn: deleteTableColumnCmd(),
+      deleteTable: deleteTableCmd(),
+      mergeCells: mergeCellsCmd(),
+      unmergeCell: unmergeCellCmd(),
+    } as const;
+    return editor.dispatch(commands[action]);
+  },
   getMode: () => editor.getMode(),
   setMode: (mode) => editor.setMode(mode),
   getReview: () => editor.getReview(),

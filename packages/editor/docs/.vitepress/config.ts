@@ -6,6 +6,8 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
+      { text: 'Fonts & CDN', link: '/fonts' },
+      { text: 'Table editing', link: '/table-editing' },
       { text: 'Public Events', link: '/public-events' },
       { text: 'HTTP Event Sink', link: '/http-event-sink' },
     ],
@@ -14,6 +16,8 @@ export default defineConfig({
         text: 'Integration & Events',
         items: [
           { text: 'Overview', link: '/' },
+          { text: 'Fonts & CDN', link: '/fonts' },
+          { text: 'Table editing', link: '/table-editing' },
           { text: 'Public Events API', link: '/public-events' },
           { text: 'HTTP Event Sink', link: '/http-event-sink' },
         ]

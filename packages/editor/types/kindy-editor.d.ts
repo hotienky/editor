@@ -35,6 +35,26 @@ export interface DocSelection {
   goalX?: number;
 }
 
+export type TableStoryPath =
+  | { kind: "body" }
+  | { kind: "band"; band: "header" | "footer" | "headerFirst" | "headerEven" | "footerFirst" | "footerEven" };
+export interface TablePath {
+  story: TableStoryPath;
+  ancestors: Array<{ tableId: string; cellId: string }>;
+  tableId: string;
+}
+export interface TableGridPoint { row: number; col: number }
+export type TableSelection =
+  | { kind: "cell"; table: TablePath; anchor: TableGridPoint; focus: TableGridPoint }
+  | { kind: "row"; table: TablePath; from: number; to: number }
+  | { kind: "column"; table: TablePath; from: number; to: number }
+  | { kind: "table"; table: TablePath };
+export type TableAction =
+  | "insertRowAbove" | "insertRowBelow"
+  | "insertColumnLeft" | "insertColumnRight"
+  | "deleteRow" | "deleteColumn" | "deleteTable"
+  | "mergeCells" | "unmergeCell";
+
 // ===== Review layer (track changes + comments) =============================
 // An attributed, anchored overlay on top of the core document. `getReview()`
 // returns a snapshot; the `reviewChanged` event carries the full layer.
@@ -244,6 +264,33 @@ export interface CustomFontDef {
   label?: string;
 }
 
+/** One versioned font catalog hosted by the application or a CDN. */
+export interface FontManifestSource {
+  url: string;
+  /** Override for resolving relative face URLs; defaults to the manifest directory. */
+  baseUrl?: string;
+}
+
+/** JSON schema accepted by `FontsConfig.manifests`. */
+export interface KindyFontManifest {
+  schemaVersion: "1.0";
+  baseUrl?: string;
+  fonts: CustomFontDef[];
+}
+
+/** A manifest/font request handed to an authenticated host transport. */
+export interface FontAssetRequest {
+  kind: "manifest" | "font";
+  url: string;
+  family?: string;
+  style?: "Regular" | "Bold" | "Italic" | "BoldItalic";
+}
+
+export type FontAssetLoader = (
+  request: Readonly<FontAssetRequest>,
+  signal: AbortSignal,
+) => Promise<ArrayBuffer | Uint8Array>;
+
 /** The `fonts` option: register custom fonts and/or hide built-ins from the toolbar. */
 export interface FontsConfig {
   /** Original family names (e.g. "Calibri") to hide from the toolbar. Hidden
@@ -252,6 +299,12 @@ export interface FontsConfig {
   disableBuiltin?: string[];
   /** Custom fonts to register and offer in the toolbar. */
   fonts?: CustomFontDef[];
+  /** Base URL for relative face URLs declared directly in `fonts`. */
+  baseUrl?: string;
+  /** Versioned JSON catalogs to load before the first Canvas layout. */
+  manifests?: Array<string | FontManifestSource>;
+  /** Optional authenticated/custom transport; defaults to standards-based fetch. */
+  loader?: FontAssetLoader;
 }
 
 /** Overrides the LIBRARY's built-in default run/paragraph styles for NEW/blank
@@ -428,7 +481,10 @@ export interface KindyEditorOptions {
   /** Behavior tuning: zoom step (default 1.1), zoom clamp (0.25–5), indent step
    *  (36px), and default drawing-grid spacing (24px; `view.gridSpacingPx` wins). */
   behavior?: EditorBehavior;
-  /** Supply your OWN fonts, loaded from URLs at runtime. Each custom font needs a
+  /** Supply your OWN fonts, loaded from URLs or versioned CDN manifests at runtime.
+   *  Relative inline URLs resolve against `baseUrl`; `loader` can add auth headers
+   *  or signed URLs and is shared by Canvas preview and export preparation. Each
+   *  custom font needs a
    *  `family` (stored in the model + shown in the toolbar), per-style face URLs
    *  (`regular` required; the rest fall back to it), and REQUIRED `sizing`
    *  ({ ascent, descent } as fractions of em) so the editor and the PDF/DOCX
@@ -665,6 +721,10 @@ export interface EditorHandle {
   getSelection(): DocSelection | null;
   /** Insert plain text at the caret, replacing any selection. */
   insertText(text: string): void;
+  getTableSelection(): TableSelection | null;
+  setTableSelection(selection: TableSelection | null): void;
+  canExecuteTableAction(action: TableAction): boolean;
+  executeTableAction(action: TableAction): boolean;
   // ---- review layer (track changes + comments) ----------------------------
   /** The current editor mode. */
   getMode(): EditMode;
@@ -763,6 +823,10 @@ export declare class KindyEditor {
   getSelection(): DocSelection | null;
   /** Insert plain text at the caret (replacing any selection). */
   insertText(text: string): Promise<void>;
+  getTableSelection(): TableSelection | null;
+  setTableSelection(selection: TableSelection | null): Promise<void>;
+  canExecuteTableAction(action: TableAction): boolean;
+  executeTableAction(action: TableAction): Promise<boolean>;
   getDocId(): string | null;
   getShareLink(): string | null;
   destroy(): void;

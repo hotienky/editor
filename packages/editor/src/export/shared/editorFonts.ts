@@ -15,6 +15,7 @@ import {
   type FontStyleName,
   type ResolvedFontsConfig,
 } from "../../fonts/customRegistry";
+import { fontAssetCacheScope, loadFontAssetBytes } from "../../fonts/fontAssets";
 
 const STYLE_ATTRS: Record<string, { weight: string; style: string }> = {
   Regular: { weight: "400", style: "normal" },
@@ -218,10 +219,13 @@ function loadBuiltins(onProgress?: (loaded: number, total: number) => void): Pro
 function loadCustom(cfg?: ResolvedFontsConfig): Promise<Set<string>> {
   if (!cfg || cfg.fonts.length === 0) return Promise.resolve(new Set());
   const loaded = new Set<string>();
+  // A missing optional face resolves to Regular. Deduplicate that URL inside this
+  // mount so one family with only Regular performs one CDN request, not four.
+  const bytesByUrl = new Map<string, Promise<Uint8Array>>();
   return Promise.all(
     cfg.fonts.flatMap((f) =>
       CUSTOM_FONT_STYLES.map(async (style) => {
-        const ok = await loadCustomFace(f.family, style, faceUrlForStyle(f.faces, style));
+        const ok = await loadCustomFace(cfg, f.family, style, faceUrlForStyle(f.faces, style), bytesByUrl);
         // A family is "loaded" once its required Regular face is in document.fonts.
         if (ok && style === "Regular") loaded.add(normalizeFamily(f.family));
       }),
@@ -229,19 +233,32 @@ function loadCustom(cfg?: ResolvedFontsConfig): Promise<Set<string>> {
   ).then(() => loaded);
 }
 
-function loadCustomFace(family: string, style: FontStyleName, url: string): Promise<boolean> {
-  const key = `${family} ${style} ${url}`;
+function loadCustomFace(
+  cfg: ResolvedFontsConfig,
+  family: string,
+  style: FontStyleName,
+  url: string,
+  bytesByUrl: Map<string, Promise<Uint8Array>>,
+): Promise<boolean> {
+  const key = `${fontAssetCacheScope(cfg)} ${family} ${style} ${url}`;
   let p = customLoaded.get(key);
   if (!p) {
     p = (async () => {
       try {
-        const buf = await (await fetch(url)).arrayBuffer();
+        let bytesPromise = bytesByUrl.get(url);
+        if (!bytesPromise) {
+          bytesPromise = loadFontAssetBytes(cfg, { kind: "font", url, family, style });
+          bytesByUrl.set(url, bytesPromise);
+        }
+        const bytes = await bytesPromise;
         const a = STYLE_ATTRS[style]!;
         // Register under the custom FAMILY name (what charStyleToFont emits) at the
         // style's weight/style. A missing optional face reuses the regular URL, so
         // the browser paints regular glyphs for it — matching the exporter, which
         // also resolves a missing style to the custom Regular (deterministic parity).
-        const face = new FontFace(family, buf, { weight: a.weight, style: a.style });
+        // Copy into an ArrayBuffer-backed view: the public loader may return a
+        // Uint8Array over SharedArrayBuffer, which FontFace intentionally rejects.
+        const face = new FontFace(family, Uint8Array.from(bytes).buffer, { weight: a.weight, style: a.style });
         await face.load();
         (document as Document & { fonts: FontFaceSet }).fonts.add(face);
         return true;

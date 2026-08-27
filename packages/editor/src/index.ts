@@ -26,6 +26,7 @@ import {
   selectionRects,
   type ColumnBoundaryHit,
   type RowBoundaryHit,
+  type TableSelectionHandleHit,
   type GeoScope,
   type Rect,
 } from "./layout/geometry";
@@ -45,6 +46,7 @@ import { parseOoxmlFragment } from "./import/docx/fragment";
 import { mediaUrl, registerMediaBytes } from "./media/store";
 import { importDocx } from "./import/docx/importDocx";
 import { showContextMenu, type ContextMenuHandle, type MenuEntry } from "./ui/contextMenu";
+import { createTableQuickActions, type TableQuickActionTarget } from "./ui/tableQuickActions";
 import { showSdtInspector, type SdtInspectorData, type SdtInspectorHandle } from "./ui/sdtInspector";
 import { showFieldConstructor } from "./ui/fieldConstructor";
 import { showEquationEditor, equationToMathmlString } from "./ui/equationEditor";
@@ -59,6 +61,7 @@ import { createA11yMirror } from "./a11y/mirror";
 import {
   changeListLevel,
   applyTableStyle,
+  canExecuteTableAction as canExecuteTableActionForState,
   deleteTableRowCmd,
   deleteTableColumnCmd,
   deleteTableCmd,
@@ -125,10 +128,13 @@ import {
   setRowHeightAtSelectionCmd,
   setRowPropsCmd,
   setTablePropsAtSelectionCmd,
+  type TableAction,
 } from "./editor/commands";
 import type { SdtType } from "@kindy/shared";
 import { ICONS } from "./ui/icons";
 import type { CellSelection, Command, EditMode, EditorState, Transaction } from "./editor/state";
+import type { TableSelection } from "./editor/state";
+import { findTablePathById as resolveTableIdPath, resolveTablePath } from "./editor/tableTargetResolver";
 import { UndoManager } from "./editor/undo";
 import { ChangeRecorder, type ChangeSink } from "./sync/changeRecorder";
 import type { Change, ChangeOrigin } from "@kindy/shared";
@@ -242,6 +248,9 @@ export interface Editor {
   getSelection(): DocSelection | null;
   /** Active rectangular table-cell selection in span-aware grid coordinates. */
   getCellSelection(): CellSelection | null;
+  /** Semantic cell/row/column/table selection used by structural commands. */
+  getTableSelection(): TableSelection | null;
+  setTableSelection(selection: TableSelection | null): void;
   /** Move the caret/selection programmatically (null clears it). Unlike
    *  revealBlock/revealBookmark this does NOT scroll — it just sets the anchor so
    *  a following command (insert/format) targets the range. Used by agent tools. */
@@ -258,7 +267,10 @@ export interface Editor {
   createChild(): ChildDocument;
   getSelectedObject(): string | null;
   selectObject(blockId: string | null): void;
-  dispatch(cmd: Command): void;
+  /** Execute a command and report whether it produced a transaction. */
+  dispatch(cmd: Command): boolean;
+  /** Whether a structural table action is valid for the semantic current target. */
+  canExecuteTableAction(action: TableAction): boolean;
   toggleStyle(key: StyleKey): void;
   /** Absolute char patch: range -> restyle runs; collapsed -> pending style. */
   setCharStyle(patch: Partial<CharStyle>): void;
@@ -601,12 +613,13 @@ export function createEditor(
   let tree: LayoutTree = engine.layout(doc);
   let selection: DocSelection | null = null;
   let cellSelection: CellSelection | null = null; // rectangular table-cell selection
+  let tableSelection: TableSelection | null = null;
   let pendingStyle: Partial<CharStyle> | null = null;
   let activeStory: GeoScope | null = null; // header/footer story-edit scope
   let savedBodySelection: DocSelection | null = null; // restored on story exit
   paint.setTree(tree);
 
-  const state = (): EditorState => ({ doc, selection, cellSelection, pendingStyle });
+  const state = (): EditorState => ({ doc, selection, cellSelection, tableSelection, pendingStyle });
   const scope = (): GeoScope | undefined => activeStory ?? undefined;
 
   // ---- selection visuals + proxy follow ----------------------------------
@@ -972,6 +985,18 @@ export function createEditor(
     return cellRangeRects(tree, cellSelection.tableId, rect.r0, rect.c0, rect.r1, rect.c1);
   };
 
+  const tableSelectionHandleRects = (rects: Rect[]): Rect[] => {
+    if (!tableSelection) return [];
+    if (tableSelection.kind === "row") {
+      return rects.map((rect) => ({ pageIndex: rect.pageIndex, x: rect.x - 9, y: rect.y, width: 7, height: rect.height }));
+    }
+    if (tableSelection.kind === "column") {
+      return rects.map((rect) => ({ pageIndex: rect.pageIndex, x: rect.x, y: rect.y - 9, width: rect.width, height: 7 }));
+    }
+    const first = rects[0];
+    return first ? [{ pageIndex: first.pageIndex, x: first.x - 9, y: first.y - 9, width: 7, height: 7 }] : [];
+  };
+
   // Assigned in the review section below; called from refreshSelectionVisuals.
   let updateCommentAffordance: () => void = () => {};
 
@@ -981,10 +1006,13 @@ export function createEditor(
     // A rectangular cell selection paints filled cell rects and hides the caret;
     // it supersedes any lingering text selection visual.
     if (cellSelection) {
-      paint.setSelectionRects(cellSelectionRects());
+      const rects = cellSelectionRects();
+      paint.setSelectionRects(rects);
+      paint.setTableSelectionHandles(tableSelectionHandleRects(rects));
       paint.setCaret(null);
       return;
     }
+    paint.setTableSelectionHandles([]);
     if (!selection) {
       paint.setSelectionRects([]);
       paint.setCaret(null);
@@ -1069,6 +1097,7 @@ export function createEditor(
     }
     selection = next;
     cellSelection = null; // a text caret/selection supersedes a cell selection
+    tableSelection = null;
     pendingStyle = null; // moving the caret drops the pending typing style
     refreshSelectionVisuals();
     mirror.sync(state());
@@ -1079,11 +1108,61 @@ export function createEditor(
   /** Set (or clear) the rectangular table-cell selection. Repaints the cell rects
    *  and updates the menu/toolbar context. */
   const setCellSelection = (next: CellSelection | null): void => {
-    if (!next && !cellSelection) return;
+    if (!next && !cellSelection && !tableSelection) return;
     cellSelection = next;
+    const resolved = next
+      ? (next.tablePath ? resolveTablePath(doc, next.tablePath) : resolveTableIdPath(doc, next.tableId))
+      : null;
+    tableSelection = next && resolved
+      ? { kind: "cell", table: resolved.path, anchor: next.anchor, focus: next.focus }
+      : null;
     refreshSelectionVisuals();
     mirror.sync(state());
+    // A drag can be the first interaction that establishes table context (for
+    // example after import or after a programmatic selection). Refresh ribbon
+    // capability predicates here as well as on ordinary caret moves; otherwise
+    // row/column/delete buttons can stay visibly disabled despite a live range.
+    notifyChange();
     options.onSelectionChange?.(selection);
+  };
+
+  const setSemanticTableSelection = (next: TableSelection | null): void => {
+    tableSelection = next;
+    if (!next) {
+      cellSelection = null;
+    } else {
+      const resolved = resolveTablePath(doc, next.table);
+      if (!resolved) {
+        tableSelection = null;
+        cellSelection = null;
+      } else {
+        const grid = buildTableGrid(resolved.table);
+        const point = (row: number, col: number) => ({
+          row: Math.max(0, Math.min(grid.rows - 1, row)),
+          col: Math.max(0, Math.min(grid.cols - 1, col)),
+        });
+        if (next.kind === "cell") {
+          cellSelection = { tableId: next.table.tableId, tablePath: next.table, anchor: point(next.anchor.row, next.anchor.col), focus: point(next.focus.row, next.focus.col) };
+        } else if (next.kind === "row") {
+          cellSelection = { tableId: next.table.tableId, tablePath: next.table, anchor: point(next.from, 0), focus: point(next.to, grid.cols - 1) };
+        } else if (next.kind === "column") {
+          cellSelection = { tableId: next.table.tableId, tablePath: next.table, anchor: point(0, next.from), focus: point(grid.rows - 1, next.to) };
+        } else {
+          cellSelection = { tableId: next.table.tableId, tablePath: next.table, anchor: point(0, 0), focus: point(grid.rows - 1, grid.cols - 1) };
+        }
+      }
+    }
+    refreshSelectionVisuals();
+    mirror.sync(state());
+    notifyChange();
+  };
+
+  const selectTableHandle = (hit: TableSelectionHandleHit): void => {
+    const resolved = resolveTableIdPath(doc, hit.tableId);
+    if (!resolved) return;
+    if (hit.kind === "row") setSemanticTableSelection({ kind: "row", table: resolved.path, from: hit.index, to: hit.index });
+    else if (hit.kind === "column") setSemanticTableSelection({ kind: "column", table: resolved.path, from: hit.index, to: hit.index });
+    else setSemanticTableSelection({ kind: "table", table: resolved.path });
   };
 
   // ---- story mode (header/footer band editing) ----------------------------
@@ -1527,6 +1606,7 @@ export function createEditor(
     relayout();
     selection = selectionAfter;
     cellSelection = null; // grid coords are invalidated by any structural change
+    tableSelection = null;
     refreshSelectionVisuals();
     refreshObjectFrame(); // images move/resize with reflow; frame follows
     if (searchQuery && !transient) {
@@ -1608,9 +1688,11 @@ export function createEditor(
     commitCore(trn, []);
   };
 
-  const dispatch = (cmd: Command): void => {
+  const dispatch = (cmd: Command): boolean => {
     const trn = cmd(state());
-    if (trn) commit(trn);
+    if (!trn) return false;
+    commit(trn);
+    return true;
   };
 
   const undo = (): void => {
@@ -2292,6 +2374,7 @@ export function createEditor(
     setSelection,
     getCellSelection: () => cellSelection,
     setCellSelection,
+    onTableSelectionHandle: selectTableHandle,
     clientToPage: (x, y) => paint.clientToPage(x, y),
     getGridSpacing: () => paint.getGridSpacing(),
     isSnapToGrid: () => paint.getSnapToGrid(),
@@ -2807,6 +2890,8 @@ export function createEditor(
    *  modal is open. */
   const keepCellSelection = (cs: CellSelection): void => {
     cellSelection = cs;
+    const resolved = cs.tablePath ? resolveTablePath(doc, cs.tablePath) : resolveTableIdPath(doc, cs.tableId);
+    tableSelection = resolved ? { kind: "cell", table: resolved.path, anchor: cs.anchor, focus: cs.focus } : null;
     refreshSelectionVisuals();
   };
 
@@ -3171,10 +3256,10 @@ export function createEditor(
           label: t.contextMenu.insertTableElem,
           icon: ICONS.rowBelow,
           items: [
-            { kind: "item", label: t.contextMenu.insertRowAbove, icon: ICONS.rowAbove, onClick: () => dispatch(insertTableRowCmd("above")) },
-            { kind: "item", label: t.contextMenu.insertRowBelow, icon: ICONS.rowBelow, onClick: () => dispatch(insertTableRowCmd("below")) },
-            { kind: "item", label: t.contextMenu.insertColLeft, icon: ICONS.colLeft, onClick: () => dispatch(insertTableColumnCmd("left")) },
-            { kind: "item", label: t.contextMenu.insertColRight, icon: ICONS.colRight, onClick: () => dispatch(insertTableColumnCmd("right")) },
+            { kind: "item", label: t.contextMenu.insertRowAbove, icon: ICONS.rowAbove, disabled: !canExecuteTableActionForState(state(), "insertRowAbove"), onClick: () => dispatch(insertTableRowCmd("above")) },
+            { kind: "item", label: t.contextMenu.insertRowBelow, icon: ICONS.rowBelow, disabled: !canExecuteTableActionForState(state(), "insertRowBelow"), onClick: () => dispatch(insertTableRowCmd("below")) },
+            { kind: "item", label: t.contextMenu.insertColLeft, icon: ICONS.colLeft, disabled: !canExecuteTableActionForState(state(), "insertColumnLeft"), onClick: () => dispatch(insertTableColumnCmd("left")) },
+            { kind: "item", label: t.contextMenu.insertColRight, icon: ICONS.colRight, disabled: !canExecuteTableActionForState(state(), "insertColumnRight"), onClick: () => dispatch(insertTableColumnCmd("right")) },
           ],
         },
         {
@@ -3182,13 +3267,13 @@ export function createEditor(
           label: t.contextMenu.deleteTableElem,
           icon: ICONS.deleteRow,
           items: [
-            { kind: "item", label: t.contextMenu.deleteRow, icon: ICONS.deleteRow, danger: true, onClick: () => dispatch(deleteTableRowCmd()) },
-            { kind: "item", label: t.contextMenu.deleteCol, icon: ICONS.deleteCol, danger: true, onClick: () => dispatch(deleteTableColumnCmd()) },
-            { kind: "item", label: t.contextMenu.deleteTable, icon: ICONS.deleteTable, danger: true, onClick: () => dispatch(deleteTableCmd()) },
+            { kind: "item", label: t.contextMenu.deleteRow, icon: ICONS.deleteRow, danger: true, disabled: !canExecuteTableActionForState(state(), "deleteRow"), onClick: () => dispatch(deleteTableRowCmd()) },
+            { kind: "item", label: t.contextMenu.deleteCol, icon: ICONS.deleteCol, danger: true, disabled: !canExecuteTableActionForState(state(), "deleteColumn"), onClick: () => dispatch(deleteTableColumnCmd()) },
+            { kind: "item", label: t.contextMenu.deleteTable, icon: ICONS.deleteTable, danger: true, disabled: !canExecuteTableActionForState(state(), "deleteTable"), onClick: () => dispatch(deleteTableCmd()) },
           ],
         },
-        item(t.contextMenu.mergeCells, () => dispatch(mergeCellsCmd()), { icon: ICONS.mergeCells, disabled: !hasSel && !hasCellSel }),
-        item(t.contextMenu.unmergeCell, () => dispatch(unmergeCellCmd()), { icon: ICONS.unmergeCells }),
+        item(t.contextMenu.mergeCells, () => dispatch(mergeCellsCmd()), { icon: ICONS.mergeCells, disabled: !canExecuteTableActionForState(state(), "mergeCells") }),
+        item(t.contextMenu.unmergeCell, () => dispatch(unmergeCellCmd()), { icon: ICONS.unmergeCells, disabled: !canExecuteTableActionForState(state(), "unmergeCell") }),
         (() => {
           const captured = cellSelection ?? singleCellAtCaret();
           const tbl = captured ? findTableById(doc, captured.tableId)?.table : undefined;
@@ -3221,18 +3306,18 @@ export function createEditor(
             label: t.contextMenu.autofitAndSize,
             icon: ICONS.table,
             items: [
-              fit(t.tableTab.autoFitContents, "autofitContents"),
-              fit(t.tableTab.autoFitWindow, "autofitWindow"),
-              fit(t.tableTab.fixedColWidth, "fixed"),
+              fit(t.table.autofitContents, "autofitContents"),
+              fit(t.table.autofitWindow, "autofitWindow"),
+              fit(t.table.fixedWidth, "fixed"),
               sep,
-              widthItem(t.tableTab.width25, 25),
-              widthItem(t.tableTab.width50, 50),
-              widthItem(t.tableTab.width75, 75),
-              widthItem(t.tableTab.widthFull, null),
+              widthItem(t.table.width25, 25),
+              widthItem(t.table.width50, 50),
+              widthItem(t.table.width75, 75),
+              widthItem(t.table.widthFull, null),
               sep,
-              alignItem(t.tableTab.alignLeft, "left"),
-              alignItem(t.tableTab.alignCenter, "center"),
-              alignItem(t.tableTab.alignRight, "right"),
+              alignItem(t.table.alignLeft, "left"),
+              alignItem(t.table.alignCenter, "center"),
+              alignItem(t.table.alignRight, "right"),
             ],
           } as MenuEntry;
         })(),
@@ -3354,11 +3439,123 @@ export function createEditor(
     return edits.length;
   };
 
+  /** Make the hovered/right-clicked canvas cell the semantic command target.
+   *  This is intentionally independent of text hit-testing: blank cells, cell
+   *  padding and imported cells without a paragraph still need table actions. */
+  const selectTableCellTarget = (target: TableQuickActionTarget): boolean => {
+    const resolved = resolveTableIdPath(doc, target.tableId);
+    if (!resolved) return false;
+    setSemanticTableSelection({
+      kind: "cell",
+      table: resolved.path,
+      anchor: { row: target.row, col: target.col },
+      focus: { row: target.row, col: target.col },
+    });
+    return true;
+  };
+
+  const quickTableMenuEntries = (): MenuEntry[] => {
+    const action = (label: string, icon: string, run: () => void, enabled: boolean, danger = false): MenuEntry => ({
+      kind: "item",
+      label,
+      icon,
+      disabled: !enabled,
+      danger,
+      onClick: run,
+    });
+    return [
+      { kind: "header", label: t.ribbon.table },
+      action(t.table.insertRowAbove, ICONS.rowAbove, () => dispatch(insertTableRowCmd("above")), canExecuteTableActionForState(state(), "insertRowAbove")),
+      action(t.table.insertRowBelow, ICONS.rowBelow, () => dispatch(insertTableRowCmd("below")), canExecuteTableActionForState(state(), "insertRowBelow")),
+      action(t.table.insertColLeft, ICONS.colLeft, () => dispatch(insertTableColumnCmd("left")), canExecuteTableActionForState(state(), "insertColumnLeft")),
+      action(t.table.insertColRight, ICONS.colRight, () => dispatch(insertTableColumnCmd("right")), canExecuteTableActionForState(state(), "insertColumnRight")),
+      { kind: "sep" },
+      action(t.table.mergeCells, ICONS.mergeCells, () => dispatch(mergeCellsCmd()), canExecuteTableActionForState(state(), "mergeCells")),
+      action(t.table.unmergeCells, ICONS.unmergeCells, () => dispatch(unmergeCellCmd()), canExecuteTableActionForState(state(), "unmergeCell")),
+      { kind: "sep" },
+      action(t.table.deleteRow, ICONS.deleteRow, () => dispatch(deleteTableRowCmd()), canExecuteTableActionForState(state(), "deleteRow"), true),
+      action(t.table.deleteCol, ICONS.deleteCol, () => dispatch(deleteTableColumnCmd()), canExecuteTableActionForState(state(), "deleteColumn"), true),
+      action(t.table.deleteTable, ICONS.deleteTable, () => dispatch(deleteTableCmd()), canExecuteTableActionForState(state(), "deleteTable"), true),
+    ];
+  };
+
+  const tableQuickActions = createTableQuickActions({
+    labels: {
+      insertRow: t.table.insertRowBelow,
+      insertColumn: t.table.insertColRight,
+      more: t.ribbon.table,
+    },
+    icons: { insertRow: ICONS.rowBelow, insertColumn: ICONS.colRight },
+    onInsertRow: (target) => {
+      if (selectTableCellTarget(target)) dispatch(insertTableRowCmd("below"));
+    },
+    onInsertColumn: (target) => {
+      if (selectTableCellTarget(target)) dispatch(insertTableColumnCmd("right"));
+    },
+    onMore: (target, anchor) => {
+      if (!selectTableCellTarget(target)) return;
+      closeContextMenu();
+      contextMenu = showContextMenu(anchor.right - 2, anchor.bottom + 4, quickTableMenuEntries());
+    },
+  });
+
+  /** Convert a placed canvas cell to a viewport anchor for the fixed-size DOM
+   *  action bar. This keeps controls crisp and stable at 25–500% document zoom. */
+  const tableCellClientAnchor = (
+    pageIndex: number,
+    target: TableQuickActionTarget,
+    pageX: number,
+    pageY: number,
+  ): { left: number; top: number; right: number; bottom: number } | null => {
+    const page = tree.pages[pageIndex];
+    const pageEl = paint.getPageElement(pageIndex);
+    if (!page || !pageEl) return null;
+    for (const block of page.blocks) {
+      const table = block.table;
+      if (!table || block.blockId !== target.tableId) continue;
+      for (const row of table.rows) {
+        for (const cell of row.cells) {
+          if (cell.originRow !== target.row || cell.originCol !== target.col) continue;
+          if (pageX < cell.x || pageX > cell.x + cell.width || pageY < cell.y || pageY > cell.y + cell.height) continue;
+          const rect = pageEl.getBoundingClientRect();
+          const zoom = paint.getZoom();
+          return {
+            left: rect.left + cell.x * zoom,
+            top: rect.top + cell.y * zoom,
+            right: rect.left + (cell.x + cell.width) * zoom,
+            bottom: rect.top + (cell.y + cell.height) * zoom,
+          };
+        }
+      }
+    }
+    return null;
+  };
+
+  const updateTableQuickActions = (ev: MouseEvent): void => {
+    if (mode !== "edit" || activeStory || ev.buttons !== 0) {
+      tableQuickActions.scheduleHide();
+      return;
+    }
+    const pt = paint.clientToPage(ev.clientX, ev.clientY);
+    const hit = pt?.inside ? hitTestCell(tree, pt.pageIndex, pt.x, pt.y) : null;
+    if (!pt || !hit) {
+      tableQuickActions.scheduleHide();
+      return;
+    }
+    const anchor = tableCellClientAnchor(pt.pageIndex, hit, pt.x, pt.y);
+    if (!anchor) {
+      tableQuickActions.scheduleHide();
+      return;
+    }
+    tableQuickActions.show(hit, anchor);
+  };
+
   const onContextMenu = (ev: MouseEvent): void => {
     const pt = paint.clientToPage(ev.clientX, ev.clientY);
     if (!pt) return;
     ev.preventDefault();
     closeContextMenu();
+    tableQuickActions.hide();
     proxy.focus();
 
     // Word: right-click places focus unless it lands inside an existing range —
@@ -3374,7 +3571,12 @@ export function createEditor(
       } else {
         selectObject(null);
         const pos = hitTest(tree, pt.pageIndex, pt.x, pt.y, scope());
-        if (pos && !positionWithinSelection(pos)) setSelection({ anchor: pos, focus: pos });
+        if (pos && !positionWithinSelection(pos)) {
+          setSelection({ anchor: pos, focus: pos });
+        } else if (!pos) {
+          const cell = hitTestCell(tree, pt.pageIndex, pt.x, pt.y);
+          if (cell) selectTableCellTarget(cell);
+        }
       }
       refreshSelectionVisuals();
     }
@@ -3399,10 +3601,12 @@ export function createEditor(
   // Hover highlighting for content controls (incl. nested) — point at any control
   // to see its frame(s) and breadcrumb, without moving the caret.
   const onSdtHoverMove = (ev: MouseEvent): void => {
+    updateTableQuickActions(ev);
     updateHoverAdornment(ev.clientX, ev.clientY, ev.buttons);
     updateInspectorHover(ev.clientX, ev.clientY, ev.buttons);
   };
   const onSdtHoverLeave = (): void => {
+    tableQuickActions.scheduleHide();
     if (inspectorActive && lastInspectorHover !== null) {
       lastInspectorHover = null;
       options.onInspectorHover?.(null);
@@ -3420,6 +3624,8 @@ export function createEditor(
   };
   container.addEventListener("mousemove", onSdtHoverMove);
   container.addEventListener("mouseleave", onSdtHoverLeave);
+  const onTableViewportMove = (): void => tableQuickActions.hide();
+  container.addEventListener("scroll", onTableViewportMove, { passive: true });
 
   const applyZoom = (next: number, anchorClientY?: number): void => {
     const before = paint.getZoom();
@@ -3541,6 +3747,12 @@ export function createEditor(
     getCellSelection(): CellSelection | null {
       return cellSelection;
     },
+    getTableSelection(): TableSelection | null {
+      return tableSelection;
+    },
+    setTableSelection(next: TableSelection | null): void {
+      setSemanticTableSelection(next);
+    },
     setSelection(sel: DocSelection | null): void {
       setSelection(sel);
     },
@@ -3595,6 +3807,9 @@ export function createEditor(
     },
     applyRemoteReviewOp,
     dispatch,
+    canExecuteTableAction(action: TableAction): boolean {
+      return mode !== "view" && canExecuteTableActionForState(state(), action);
+    },
     toggleStyle,
     setCharStyle(patch: Partial<CharStyle>): void {
       if (selection && !isCollapsed(selection)) {
@@ -3815,6 +4030,7 @@ export function createEditor(
       container.removeEventListener("contextmenu", onContextMenu);
       container.removeEventListener("mousemove", onSdtHoverMove);
       container.removeEventListener("mouseleave", onSdtHoverLeave);
+      container.removeEventListener("scroll", onTableViewportMove);
       if (vv) {
         vv.removeEventListener("resize", onViewportChange);
         vv.removeEventListener("scroll", onViewportChange);
@@ -3828,6 +4044,7 @@ export function createEditor(
       comments.destroy();
       controller.destroy();
       objectFrame.destroy();
+      tableQuickActions.destroy();
       mirror.destroy();
       proxy.destroy();
       paint.destroy();

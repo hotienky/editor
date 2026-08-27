@@ -28,6 +28,7 @@ import {
   documentEdges,
   hitTest,
   hitTestCell,
+  hitTestTableSelectionHandle,
   hitTestSelectableObject,
   hitTestColumnBoundary,
   hitTestRowBoundary,
@@ -40,6 +41,7 @@ import {
   visualCaretStep,
   type ColumnBoundaryHit,
   type RowBoundaryHit,
+  type TableSelectionHandleHit,
   type GeoScope,
 } from "../layout/geometry";
 import type { ColumnGuide, RowGuide, PagePoint } from "../paint/renderer";
@@ -56,6 +58,8 @@ export interface SelectionControllerDeps {
   getCellSelection(): CellSelection | null;
   /** Set (or clear) the rectangular table-cell selection during a cross-cell drag. */
   setCellSelection(sel: CellSelection | null): void;
+  /** Select a whole row, column, or table from the outside selector strip. */
+  onTableSelectionHandle(hit: TableSelectionHandleHit): void;
   clientToPage(clientX: number, clientY: number): PagePoint | null;
   /** Drawing-grid step in document px; 0 disables snapping. */
   getGridSpacing(): number;
@@ -352,6 +356,12 @@ export function createSelectionController(deps: SelectionControllerDeps): Select
         // Column/row grips live only in the body content area, never the margins.
         // Columns are tested FIRST so a cell-corner pixel prefers the column grip.
         if (!band) {
+          const selectHit = hitTestTableSelectionHandle(deps.getTree(), pt.pageIndex, pt.x, pt.y);
+          if (selectHit) {
+            ev.preventDefault();
+            deps.onTableSelectionHandle(selectHit);
+            return;
+          }
           const colHit = hitTestColumnBoundary(deps.getTree(), pt.pageIndex, pt.x, pt.y);
           if (colHit) {
             ev.preventDefault();
